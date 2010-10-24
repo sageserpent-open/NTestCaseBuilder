@@ -12,6 +12,12 @@ using Wintellect.PowerCollections;
 
 namespace SageSerpent.TestInfrastructureTests
 {
+    using AtomicTestCaseToContainingCombinationMultiMap = MultiDictionary<TestCaseGeneratorsTestFixture.AtomicTestCase, Set<TestCaseGeneratorsTestFixture.AtomicTestCase>>;
+    using CombinationOfAtomicTestCases = Set<TestCaseGeneratorsTestFixture.AtomicTestCase>;
+    using SequenceOfAtomicTestCases = IList<TestCaseGeneratorsTestFixture.AtomicTestCase>;
+    using CollectionOwningAtomicTestCases = Bag<TestCaseGeneratorsTestFixture.AtomicTestCase>;
+    using SequenceOfCollectionsOwningAtomicTestCases = IEnumerable<Bag<TestCaseGeneratorsTestFixture.AtomicTestCase>>;
+
     [TestFixture]
     public class TestCaseGeneratorsTestFixture
     {
@@ -29,16 +35,16 @@ namespace SageSerpent.TestInfrastructureTests
                         IEnumerator testCaseIterator =
                             testCaseGeneratorWithoutCollisions.CreateIterator(requestedDegreesOfFreedomForCombinationCoverage);
 
-                        SetOfSequencesOfOwningBags possibleSequencesOfOwningBags =
-                            ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGeneratorWithoutCollisions).PossibleSequencesOfOwningBags();
+                        SetOfSequencesOfCollectionsOwningAtomicTestCases possibleSequencesOfCollectionsOwningAtomicTestCases =
+                            ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGeneratorWithoutCollisions).PossibleSequencesOfCollectionsOwningAtomicTestCases();
 
                         while (testCaseIterator.MoveNext())
                         {
                             AbstractTestCase testCase = (AbstractTestCase) testCaseIterator.Current;
 
-                            IEnumerable<Bag<AtomicTestCase>> owningBagsThatContributedToThisTestCase = SequenceOfOwningBags(testCase);
+                            SequenceOfCollectionsOwningAtomicTestCases sequenceOfOwningCollectionsThatContributedToThisTestCase = SequenceOfCollectionsOwningAtomicTestCases(testCase);
 
-                            Assert.IsTrue(possibleSequencesOfOwningBags.Contains(owningBagsThatContributedToThisTestCase));
+                            Assert.IsTrue(possibleSequencesOfCollectionsOwningAtomicTestCases.Contains(sequenceOfOwningCollectionsThatContributedToThisTestCase));
                         }
                     });
         }
@@ -57,9 +63,8 @@ namespace SageSerpent.TestInfrastructureTests
 
             while (numberOfCombinationsLeftToTry-- != 0U)
             {
-                Set<AtomicTestCase> atomicTestCasesCombination =
-                    new Set<AtomicTestCase>(
-                        ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerator).PickFeasibleCombinationOfAtomicTestCases(randomChoice));
+                CombinationOfAtomicTestCases atomicTestCasesCombination =
+                    ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerator).PickFeasibleCombinationOfAtomicTestCases(randomChoice);
 
                 atomicTestCasesCombinations.Add(atomicTestCasesCombination);
             }
@@ -67,13 +72,13 @@ namespace SageSerpent.TestInfrastructureTests
             return atomicTestCasesCombinations;
         }
 
-        private static MultiDictionary<AtomicTestCase, Set<AtomicTestCase>> MakeAtomicStateToContainingCombinationMultiMap(
+        private static AtomicTestCaseToContainingCombinationMultiMap MakeAtomicStateToContainingCombinationMultiMap(
             SetOfCombinations atomicTestCasesCombinations)
         {
-            MultiDictionary<AtomicTestCase, Set<AtomicTestCase>> atomicStateToContainingCombinationMultiMap =
-                new MultiDictionary<AtomicTestCase, Set<AtomicTestCase>>(false);
+            AtomicTestCaseToContainingCombinationMultiMap atomicStateToContainingCombinationMultiMap =
+                new AtomicTestCaseToContainingCombinationMultiMap(false);
 
-            Algorithms.ForEach(atomicTestCasesCombinations, delegate(Set<AtomicTestCase> combination)
+            Algorithms.ForEach(atomicTestCasesCombinations, delegate(CombinationOfAtomicTestCases combination)
                 {
                     Algorithms.ForEach(combination, delegate(AtomicTestCase
                                                         testCase)
@@ -82,40 +87,42 @@ namespace SageSerpent.TestInfrastructureTests
             return atomicStateToContainingCombinationMultiMap;
         }
 
-        private static UInt32 ChooseHowManyDegreesOfFreedomRequiredToAllowAllCombinationsToBeCovered(SetOfCombinations atomicTestCasesCombinations, Random randomChoice, ITestCaseGenerator testCaseGenerator)
+        private static UInt32 ChooseHowManyDegreesOfFreedomRequiredToAllowAllCombinationsToBeCovered(SetOfCombinations atomicTestCasesCombinations,
+                                                                                                     Random randomChoice,
+                                                                                                     ITestCaseGenerator testCaseGenerator)
         {
-            UInt32 maximumCombinationWidth = Algorithms.Maximum(Algorithms.Convert(atomicTestCasesCombinations, delegate(Set<AtomicTestCase>
+            UInt32 maximumCombinationWidth = Algorithms.Maximum(Algorithms.Convert(atomicTestCasesCombinations, delegate(CombinationOfAtomicTestCases
                                                                                                                     combination)
                 { return (UInt32) combination.Count; }));
 
             return (UInt32) randomChoice.Next((Int32) maximumCombinationWidth, (Int32) (testCaseGenerator.MaximumDegreesOfFreedom + 1U));
         }
 
-        private static void StrikeOffCombinationsCoveredByTestCase(AbstractTestCase abstractTestCaseCollisions,
-                                                                   MultiDictionary<AtomicTestCase, Set<AtomicTestCase>>
+        private static void StrikeOffCombinationsCoveredByTestCase(AbstractTestCase testCase,
+                                                                   AtomicTestCaseToContainingCombinationMultiMap
                                                                        atomicStateToContainingCombinationMultiMap,
                                                                    SetOfCombinations atomicTestCasesCombinations)
         {
-            IDictionary<Set<AtomicTestCase>, UInt32> combinationToNumberOfAtomicTestCaseComponentsLeftToFind =
-                new Dictionary<Set<AtomicTestCase>, UInt32>();
+            IDictionary<CombinationOfAtomicTestCases, UInt32> combinationToNumberOfAtomicTestCaseComponentsLeftToFindMap =
+                new Dictionary<CombinationOfAtomicTestCases, UInt32>();
 
             Algorithms.ForEach(atomicTestCasesCombinations,
-                               delegate(Set<AtomicTestCase> combination) { combinationToNumberOfAtomicTestCaseComponentsLeftToFind[combination] = (UInt32) combination.Count; });
+                               delegate(CombinationOfAtomicTestCases combination) { combinationToNumberOfAtomicTestCaseComponentsLeftToFindMap[combination] = (UInt32) combination.Count; });
 
-            Algorithms.ForEach(abstractTestCaseCollisions.AtomicTestCases(), delegate(AtomicTestCase atomicTestCase)
+            Algorithms.ForEach(testCase.AtomicTestCases(), delegate(AtomicTestCase atomicTestCase)
                 {
                     if (atomicStateToContainingCombinationMultiMap.ContainsKey(atomicTestCase))
                     {
-                        Algorithms.ForEach(atomicStateToContainingCombinationMultiMap[atomicTestCase], delegate(Set<AtomicTestCase>
+                        Algorithms.ForEach(atomicStateToContainingCombinationMultiMap[atomicTestCase], delegate(CombinationOfAtomicTestCases
                                                                                                            combination)
                             {
                                 --
-                                    combinationToNumberOfAtomicTestCaseComponentsLeftToFind[combination];
+                                    combinationToNumberOfAtomicTestCaseComponentsLeftToFindMap[combination];
                             });
                     }
                 });
 
-            Algorithms.ForEach(combinationToNumberOfAtomicTestCaseComponentsLeftToFind, delegate(KeyValuePair<Set<AtomicTestCase>, UInt32>
+            Algorithms.ForEach(combinationToNumberOfAtomicTestCaseComponentsLeftToFindMap, delegate(KeyValuePair<CombinationOfAtomicTestCases, UInt32>
                                                                                             combinationAndNumberOfAtomicTestCaseComponentsLeftToFindPair)
                 {
                     if (combinationAndNumberOfAtomicTestCaseComponentsLeftToFindPair.Value == 0U)
@@ -132,34 +139,37 @@ namespace SageSerpent.TestInfrastructureTests
 
             ForABunchOfTestCaseGenerators(
                 delegate(ITestCaseGenerator testCaseGeneratorWithoutCollisions, ITestCaseGenerator testCaseGeneratorWithCollisions)
-                {
-                    SetOfCombinations atomicTestCasesCombinations =
-                        MakeAtomicTestCasesCombinations(testCaseGeneratorWithoutCollisions, randomChoice);
-
-                    MultiDictionary<AtomicTestCase, Set<AtomicTestCase>> atomicStateToContainingCombinationMultiMap =
-                        MakeAtomicStateToContainingCombinationMultiMap(atomicTestCasesCombinations);
-
-                    UInt32 numberOfDegreesOfFreedom =
-                        ChooseHowManyDegreesOfFreedomRequiredToAllowAllCombinationsToBeCovered(atomicTestCasesCombinations, randomChoice,
-                                                                                               testCaseGeneratorWithoutCollisions);
-
                     {
-                        IEnumerator testCaseEnumerator = testCaseGeneratorWithoutCollisions.CreateIterator(numberOfDegreesOfFreedom);
+                        SetOfCombinations atomicTestCasesCombinations =
+                            MakeAtomicTestCasesCombinations(testCaseGeneratorWithoutCollisions, randomChoice);
 
-                        CheckThatAllCombinationsAreCovered(testCaseEnumerator, atomicStateToContainingCombinationMultiMap,
-                                                             atomicTestCasesCombinations);
-                    }
+                        AtomicTestCaseToContainingCombinationMultiMap atomicStateToContainingCombinationMultiMap =
+                            MakeAtomicStateToContainingCombinationMultiMap(atomicTestCasesCombinations);
 
-                    {
-                        IEnumerator testCaseEnumerator = testCaseGeneratorWithCollisions.CreateIterator(numberOfDegreesOfFreedom);
+                        UInt32 numberOfDegreesOfFreedom =
+                            ChooseHowManyDegreesOfFreedomRequiredToAllowAllCombinationsToBeCovered(atomicTestCasesCombinations, randomChoice,
+                                                                                                   testCaseGeneratorWithoutCollisions);
 
-                        CheckThatAllCombinationsAreCovered(testCaseEnumerator, atomicStateToContainingCombinationMultiMap,
-                                                             atomicTestCasesCombinations);
-                    }
-                });
+                        {
+                            IEnumerator testCaseEnumerator = testCaseGeneratorWithoutCollisions.CreateIterator(numberOfDegreesOfFreedom);
+
+                            CheckThatAllCombinationsAreCovered(testCaseEnumerator, atomicStateToContainingCombinationMultiMap,
+                                                               atomicTestCasesCombinations);
+                        }
+
+                        {
+                            IEnumerator testCaseEnumerator = testCaseGeneratorWithCollisions.CreateIterator(numberOfDegreesOfFreedom);
+
+                            CheckThatAllCombinationsAreCovered(testCaseEnumerator, atomicStateToContainingCombinationMultiMap,
+                                                               atomicTestCasesCombinations);
+                        }
+                    });
         }
 
-        private static void CheckThatAllCombinationsAreCovered(IEnumerator testCaseEnumerator, MultiDictionary<AtomicTestCase, Set<AtomicTestCase>> atomicStateToContainingCombinationMultiMap, SetOfCombinations atomicTestCasesCombinations)
+        private static void CheckThatAllCombinationsAreCovered(IEnumerator testCaseEnumerator,
+                                                               AtomicTestCaseToContainingCombinationMultiMap
+                                                                   atomicStateToContainingCombinationMultiMap,
+                                                               SetOfCombinations atomicTestCasesCombinations)
         {
             SetOfCombinations atomicTestCasesCombinationsToBeStruckOff = new SetOfCombinations(atomicTestCasesCombinations);
 
@@ -173,14 +183,13 @@ namespace SageSerpent.TestInfrastructureTests
             Assert.IsTrue(atomicTestCasesCombinationsToBeStruckOff.Count == 0U);
         }
 
-        private static SetOfCombinations PickTheLargestCombinationsOfSizeNotExceeding(IEnumerable<AtomicTestCase> testCases,
+        private static SetOfCombinations PickTheLargestCombinationsOfSizeNotExceeding(SequenceOfAtomicTestCases testCases,
                                                                                       UInt32 maximumCombinationWidth)
         {
-            IList<AtomicTestCase> testCasesInUsableForm = new List<AtomicTestCase>(testCases);
-            return PickAllCombinationsOfSize(testCasesInUsableForm, Math.Min(maximumCombinationWidth, (UInt32) testCasesInUsableForm.Count));
+            return PickAllCombinationsOfSize(testCases, Math.Min(maximumCombinationWidth, (UInt32)testCases.Count));
         }
 
-        private static SetOfCombinations PickAllCombinationsOfSize(IList<AtomicTestCase> testCases, UInt32 combinationSize)
+        private static SetOfCombinations PickAllCombinationsOfSize(SequenceOfAtomicTestCases testCases, UInt32 combinationSize)
         {
             if (!(testCases.Count >= combinationSize))
             {
@@ -191,7 +200,7 @@ namespace SageSerpent.TestInfrastructureTests
             {
                 SetOfCombinations trivialResult = new SetOfCombinations();
 
-                trivialResult.Add(new Set<AtomicTestCase>());
+                trivialResult.Add(new CombinationOfAtomicTestCases());
 
                 return trivialResult;
             }
@@ -200,23 +209,23 @@ namespace SageSerpent.TestInfrastructureTests
             {
                 SetOfCombinations trivialResult = new SetOfCombinations();
 
-                trivialResult.Add(new Set<AtomicTestCase>(testCases));
+                trivialResult.Add(new CombinationOfAtomicTestCases(testCases));
 
                 return trivialResult;
             }
 
             // Alas, neither [head::tail] nor [head:tail] ...
 
-            IList<AtomicTestCase> tailTestCases = Algorithms.Range(testCases, 1, testCases.Count - 1);
+            SequenceOfAtomicTestCases tailTestCases = Algorithms.Range(testCases, 1, testCases.Count - 1);
 
             AtomicTestCase headTestCase = testCases[0];
 
             SetOfCombinations result = new SetOfCombinations();
 
             result.AddMany(
-                Algorithms.Convert(PickAllCombinationsOfSize(tailTestCases, combinationSize - 1U), delegate(Set<AtomicTestCase> combination)
+                Algorithms.Convert(PickAllCombinationsOfSize(tailTestCases, combinationSize - 1U), delegate(CombinationOfAtomicTestCases combination)
                     {
-                        Set<AtomicTestCase> value = combination.Clone();
+                        CombinationOfAtomicTestCases value = combination.Clone();
 
                         value.Add(headTestCase);
 
@@ -235,44 +244,51 @@ namespace SageSerpent.TestInfrastructureTests
 
             ForABunchOfTestCaseGenerators(
                 delegate(ITestCaseGenerator testCaseGeneratorWithoutCollisions, ITestCaseGenerator testCaseGeneratorWithCollisions)
-                {
-                    UInt32 maximumDegreesOfFreedom =
-                        (UInt32)randomChoice.Next((Int32)testCaseGeneratorWithoutCollisions.MaximumDegreesOfFreedom) + 1U;
-
-                    Set<AbstractTestCase> testCases = new Set<AbstractTestCase>();
-
-                    IEnumerator testCaseEnumerator = testCaseGeneratorWithoutCollisions.CreateIterator(maximumDegreesOfFreedom);
-
-                    while (testCaseEnumerator.MoveNext())
                     {
-                        testCases.Add((AbstractTestCase)testCaseEnumerator.Current);
-                    }
+                        UInt32 maximumDegreesOfFreedom =
+                            (UInt32) randomChoice.Next((Int32) testCaseGeneratorWithoutCollisions.MaximumDegreesOfFreedom) + 1U;
 
-                    AbstractTestCase testCaseToBeExcluded = Algorithms.RandomSubset(testCases, 1, randomChoice)[0];
+                        Set<AbstractTestCase> testCases = new Set<AbstractTestCase>();
 
-                    SetOfCombinations atomicTestCasesCombinations =
-                        PickTheLargestCombinationsOfSizeNotExceeding(testCaseToBeExcluded.AtomicTestCases(), maximumDegreesOfFreedom);
+                        IEnumerator testCaseEnumerator = testCaseGeneratorWithoutCollisions.CreateIterator(maximumDegreesOfFreedom);
 
-                    MultiDictionary<AtomicTestCase, Set<AtomicTestCase>> atomicStateToContainingCombinationMultiMap =
-                        MakeAtomicStateToContainingCombinationMultiMap(atomicTestCasesCombinations);
+                        while (testCaseEnumerator.MoveNext())
+                        {
+                            testCases.Add((AbstractTestCase) testCaseEnumerator.Current);
+                        }
 
-                    {
-                        IEnumerator testCaseEnumeratorTwo = testCaseGeneratorWithoutCollisions.CreateIterator(maximumDegreesOfFreedom);
+                        AbstractTestCase testCaseToBeExcluded = Algorithms.RandomSubset(testCases, 1, randomChoice)[0];
 
-                        CheckThatAtLeastOneCombinationIsNotCovered(testCaseToBeExcluded, testCaseEnumeratorTwo, atomicStateToContainingCombinationMultiMap,
-                                                                   atomicTestCasesCombinations);
-                    }
+                        SetOfCombinations atomicTestCasesCombinations =
+                            PickTheLargestCombinationsOfSizeNotExceeding(testCaseToBeExcluded.AtomicTestCases(), maximumDegreesOfFreedom == 0U
+                                                                                                                     ? testCaseGeneratorWithoutCollisions
+                                                                                                                           .MaximumDegreesOfFreedom
+                                                                                                                     : maximumDegreesOfFreedom);
 
-                    {
-                        IEnumerator testCaseEnumeratorTwo = testCaseGeneratorWithCollisions.CreateIterator(maximumDegreesOfFreedom);
+                        AtomicTestCaseToContainingCombinationMultiMap atomicStateToContainingCombinationMultiMap =
+                            MakeAtomicStateToContainingCombinationMultiMap(atomicTestCasesCombinations);
 
-                        CheckThatAtLeastOneCombinationIsNotCovered(testCaseToBeExcluded, testCaseEnumeratorTwo, atomicStateToContainingCombinationMultiMap,
-                                                                   atomicTestCasesCombinations);
-                    }
-                });
+                        {
+                            IEnumerator testCaseEnumeratorTwo = testCaseGeneratorWithoutCollisions.CreateIterator(maximumDegreesOfFreedom);
+
+                            CheckThatAtLeastOneCombinationIsNotCovered(testCaseToBeExcluded, testCaseEnumeratorTwo,
+                                                                       atomicStateToContainingCombinationMultiMap, atomicTestCasesCombinations);
+                        }
+
+                        {
+                            IEnumerator testCaseEnumeratorTwo = testCaseGeneratorWithCollisions.CreateIterator(maximumDegreesOfFreedom);
+
+                            CheckThatAtLeastOneCombinationIsNotCovered(testCaseToBeExcluded, testCaseEnumeratorTwo,
+                                                                       atomicStateToContainingCombinationMultiMap, atomicTestCasesCombinations);
+                        }
+                    });
         }
 
-        private static void CheckThatAtLeastOneCombinationIsNotCovered(AbstractTestCase testCaseToBeExcluded, IEnumerator testCaseEnumeratorTwo, MultiDictionary<AtomicTestCase, Set<AtomicTestCase>> atomicStateToContainingCombinationMultiMap, SetOfCombinations atomicTestCasesCombinations)
+        private static void CheckThatAtLeastOneCombinationIsNotCovered(AbstractTestCase testCaseToBeExcluded,
+                                                                       IEnumerator testCaseEnumeratorTwo,
+                                                                       AtomicTestCaseToContainingCombinationMultiMap
+                                                                           atomicStateToContainingCombinationMultiMap,
+                                                                       SetOfCombinations atomicTestCasesCombinations)
         {
             SetOfCombinations atomicTestCasesCombinationsToBeStruckOff = new SetOfCombinations(atomicTestCasesCombinations);
 
@@ -288,11 +304,6 @@ namespace SageSerpent.TestInfrastructureTests
             }
 
             Assert.IsTrue(atomicTestCasesCombinationsToBeStruckOff.Count > 0U);
-        }
-
-        [Test]
-        public void TestThatCoverageOfAllNWayCombinationsWorksAroundAnyCollisionsBetweenOutputTestCases()
-        {
         }
 
         [Test]
@@ -332,16 +343,16 @@ namespace SageSerpent.TestInfrastructureTests
             }
         }
 
-        private static IEnumerable<Bag<AtomicTestCase>> SequenceOfOwningBags(AbstractTestCase abstractTestCaseCollisions)
+        private static SequenceOfCollectionsOwningAtomicTestCases SequenceOfCollectionsOwningAtomicTestCases(AbstractTestCase testCase)
         {
             return
-                Algorithms.Convert(abstractTestCaseCollisions.AtomicTestCases(),
-                                   delegate(AtomicTestCase atomicTestCase) { return atomicTestCase.OwningSet; });
+                Algorithms.Convert(testCase.AtomicTestCases(),
+                                   delegate(AtomicTestCase atomicTestCase) { return atomicTestCase.OwningCollection; });
         }
 
         public abstract class AbstractTestCase
         {
-            public abstract IEnumerable<AtomicTestCase> AtomicTestCases();
+            public abstract SequenceOfAtomicTestCases AtomicTestCases();
 
             public override Boolean Equals(Object another)
             {
@@ -369,31 +380,31 @@ namespace SageSerpent.TestInfrastructureTests
 
         public class AtomicTestCase: AbstractTestCase
         {
-            private AtomicTestCase(Bag<AtomicTestCase> owningSet)
+            private AtomicTestCase(CollectionOwningAtomicTestCases owningCollection)
             {
-                _owningSet = owningSet;
+                _owningCollection = owningCollection;
             }
 
-            public override IEnumerable<AtomicTestCase> AtomicTestCases()
+            public override SequenceOfAtomicTestCases AtomicTestCases()
             {
-                ICollection<AtomicTestCase> singletonSequence = new List<AtomicTestCase>();
+                SequenceOfAtomicTestCases singletonSequence = new List<AtomicTestCase>();
 
                 singletonSequence.Add(this);
 
                 return singletonSequence;
             }
 
-            public static void PutNewTestCaseInto(Bag<AtomicTestCase> owningBag)
+            public static void PutNewTestCaseInto(CollectionOwningAtomicTestCases owningCollection)
             {
-                AtomicTestCase testCase = new AtomicTestCase(owningBag);
-                owningBag.Add(testCase);
+                AtomicTestCase testCase = new AtomicTestCase(owningCollection);
+                owningCollection.Add(testCase);
             }
 
-            public static void PutNewTestCaseInto(Bag<AtomicTestCase> owningBag, Int32 equivalenceIndex)
+            public static void PutNewTestCaseInto(CollectionOwningAtomicTestCases owningCollection, Int32 equivalenceIndex)
             {
-                AtomicTestCase testCase = new AtomicTestCase(owningBag);
+                AtomicTestCase testCase = new AtomicTestCase(owningCollection);
                 testCase.SetEquivalenceIndex(equivalenceIndex);
-                owningBag.Add(testCase);
+                owningCollection.Add(testCase);
             }
 
             public void SetEquivalenceIndex(Int32 equivalenceIndex)
@@ -402,14 +413,14 @@ namespace SageSerpent.TestInfrastructureTests
                 _equivalenceIndexExists = true;
             }
 
-            private readonly Bag<AtomicTestCase> _owningSet;
+            private readonly CollectionOwningAtomicTestCases _owningCollection;
 
             private Int32 _equivalenceIndex;
             private Boolean _equivalenceIndexExists = false;
 
-            public Bag<AtomicTestCase> OwningSet
+            public CollectionOwningAtomicTestCases OwningCollection
             {
-                get { return _owningSet; }
+                get { return _owningCollection; }
             }
 
             protected override Boolean EqualWithoutConsideringCollisions(Object another)
@@ -444,12 +455,12 @@ namespace SageSerpent.TestInfrastructureTests
 
         public class ComposedTestCase: AbstractTestCase
         {
-            public override IEnumerable<AtomicTestCase> AtomicTestCases()
+            public override SequenceOfAtomicTestCases AtomicTestCases()
             {
-                return
-                    Algorithms.Concatenate(
+                return new List<AtomicTestCase>
+                    (Algorithms.Concatenate(
                         Algorithms.ToArray(
-                            Algorithms.Convert(_childTestCases, delegate(AbstractTestCase testCase) { return testCase.AtomicTestCases(); })));
+                            Algorithms.Convert(_childTestCases, delegate(AbstractTestCase testCase) { return testCase.AtomicTestCases(); }))));
             }
 
             public static ComposedTestCase MakeShuffledCombination(IEnumerable<AbstractTestCase> testCases, Int32 seed)
@@ -498,33 +509,31 @@ namespace SageSerpent.TestInfrastructureTests
 
         public interface ITestCaseGeneratorIntrusiveTestHooks
         {
-            SetOfSequencesOfOwningBags PossibleSequencesOfOwningBags();
+            SetOfSequencesOfCollectionsOwningAtomicTestCases PossibleSequencesOfCollectionsOwningAtomicTestCases();
 
             UInt32 MaximumNumberOfOwningSetsInSequence { get; }
 
-            IEnumerable<AtomicTestCase> PickFeasibleCombinationOfAtomicTestCases(Random randomChoice);
+            CombinationOfAtomicTestCases PickFeasibleCombinationOfAtomicTestCases(Random randomChoice);
         }
 
-        public class SetOfCombinations: Set<Set<AtomicTestCase>>
+        public class SetOfCombinations: Set<CombinationOfAtomicTestCases>
         {
             public SetOfCombinations(): base(_setComparer)
             {
             }
 
-            public SetOfCombinations(SetOfCombinations another):
-                base(another, another.Comparer)
+            public SetOfCombinations(SetOfCombinations another): base(another, another.Comparer)
             {
-                
             }
 
-            private class TestCaseSetComparer: IEqualityComparer<Set<AtomicTestCase>>
+            private class TestCaseSetComparer: IEqualityComparer<CombinationOfAtomicTestCases>
             {
-                public bool Equals(Set<AtomicTestCase> x, Set<AtomicTestCase> y)
+                public bool Equals(CombinationOfAtomicTestCases x, CombinationOfAtomicTestCases y)
                 {
                     return _decoratedComparer.Equals(x, y);
                 }
 
-                public int GetHashCode(Set<AtomicTestCase> obj)
+                public int GetHashCode(CombinationOfAtomicTestCases obj)
                 {
                     return _decoratedComparer.GetHashCode(obj);
                 }
@@ -533,23 +542,23 @@ namespace SageSerpent.TestInfrastructureTests
                     Algorithms.GetSetEqualityComparer<AtomicTestCase>();
             }
 
-            private static readonly IEqualityComparer<Set<AtomicTestCase>> _setComparer = new TestCaseSetComparer();
+            private static readonly IEqualityComparer<CombinationOfAtomicTestCases> _setComparer = new TestCaseSetComparer();
         }
 
-        public class SetOfSequencesOfOwningBags: Set<IEnumerable<Bag<AtomicTestCase>>>
+        public class SetOfSequencesOfCollectionsOwningAtomicTestCases: Set<SequenceOfCollectionsOwningAtomicTestCases>
         {
-            public SetOfSequencesOfOwningBags(): base(_sequenceOfBagsDeepValueComparer)
+            public SetOfSequencesOfCollectionsOwningAtomicTestCases(): base(_sequenceOfCollectionsDeepValueComparer)
             {
             }
 
-            private class TestCaseBagComparer: IEqualityComparer<Bag<AtomicTestCase>>
+            private class TestCaseBagComparer: IEqualityComparer<CollectionOwningAtomicTestCases>
             {
-                public bool Equals(Bag<AtomicTestCase> x, Bag<AtomicTestCase> y)
+                public bool Equals(CollectionOwningAtomicTestCases x, CollectionOwningAtomicTestCases y)
                 {
                     return _decoratedComparer.Equals(x, y);
                 }
 
-                public int GetHashCode(Bag<AtomicTestCase> obj)
+                public int GetHashCode(CollectionOwningAtomicTestCases obj)
                 {
                     return _decoratedComparer.GetHashCode(obj);
                 }
@@ -558,21 +567,21 @@ namespace SageSerpent.TestInfrastructureTests
                     Algorithms.GetSetEqualityComparer<AtomicTestCase>();
             }
 
-            private static readonly IEqualityComparer<IEnumerable<Bag<AtomicTestCase>>> _sequenceOfBagsDeepValueComparer =
+            private static readonly IEqualityComparer<SequenceOfCollectionsOwningAtomicTestCases> _sequenceOfCollectionsDeepValueComparer =
                 Algorithms.GetCollectionEqualityComparer(new TestCaseBagComparer());
         }
 
 
         public class TestCaseFromCollectionGenerator: TestInfrastructure.TestCaseFromCollectionGenerator, ITestCaseGeneratorIntrusiveTestHooks
         {
-            private TestCaseFromCollectionGenerator(Bag<AtomicTestCase> owningBag): base(owningBag)
+            private TestCaseFromCollectionGenerator(CollectionOwningAtomicTestCases owningCollection): base(owningCollection)
             {
-                if (!(owningBag.Count > 0U))
+                if (!(owningCollection.Count > 0U))
                 {
-                    throw new PreconditionViolation("The owning set of atomic test cases must have at least one element.");
+                    throw new PreconditionViolation("The owning collection of atomic test cases must have at least one element.");
                 }
 
-                _owningBag = owningBag;
+                _owningCollection = owningCollection;
             }
 
             public static TestCaseFromCollectionGenerator Create(Random randomChoice, Int32? equivalenceIndex)
@@ -581,31 +590,31 @@ namespace SageSerpent.TestInfrastructureTests
 
                 const UInt32 maximumNumberOfTestCasesInCollection = 10;
 
-                Bag<AtomicTestCase> owningBag = new Bag<AtomicTestCase>();
+                CollectionOwningAtomicTestCases owningCollection = new CollectionOwningAtomicTestCases();
 
-                UInt32 countDown = (UInt32) randomChoice.Next((Int32) (maximumNumberOfTestCasesInCollection + 1U));
+                UInt32 countDown = (UInt32) randomChoice.Next((Int32) maximumNumberOfTestCasesInCollection) + 1U;
 
                 while (countDown-- != 0U)
                 {
-                    AtomicTestCase.PutNewTestCaseInto(owningBag);
+                    AtomicTestCase.PutNewTestCaseInto(owningCollection);
                 }
 
                 if (equivalenceIndex.HasValue)
                 {
-                    AtomicTestCase.PutNewTestCaseInto(owningBag, equivalenceIndex.Value);
+                    AtomicTestCase.PutNewTestCaseInto(owningCollection, equivalenceIndex.Value);
                 }
 
-                return new TestCaseFromCollectionGenerator(owningBag);
+                return new TestCaseFromCollectionGenerator(owningCollection);
             }
 
 
-            public SetOfSequencesOfOwningBags PossibleSequencesOfOwningBags()
+            public SetOfSequencesOfCollectionsOwningAtomicTestCases PossibleSequencesOfCollectionsOwningAtomicTestCases()
             {
-                SetOfSequencesOfOwningBags result = new SetOfSequencesOfOwningBags();
+                SetOfSequencesOfCollectionsOwningAtomicTestCases result = new SetOfSequencesOfCollectionsOwningAtomicTestCases();
 
-                ICollection<Bag<AtomicTestCase>> singletonSequence = new List<Bag<AtomicTestCase>>();
+                ICollection<CollectionOwningAtomicTestCases> singletonSequence = new List<CollectionOwningAtomicTestCases>();
 
-                singletonSequence.Add(_owningBag);
+                singletonSequence.Add(_owningCollection);
 
                 result.Add(singletonSequence);
 
@@ -617,12 +626,12 @@ namespace SageSerpent.TestInfrastructureTests
                 get { return 1U; }
             }
 
-            public IEnumerable<AtomicTestCase> PickFeasibleCombinationOfAtomicTestCases(Random randomChoice)
+            public CombinationOfAtomicTestCases PickFeasibleCombinationOfAtomicTestCases(Random randomChoice)
             {
-                return Algorithms.RandomSubset(_owningBag, 1, randomChoice);
+                return new Set<AtomicTestCase>(Algorithms.RandomSubset(_owningCollection, 1, randomChoice));
             }
 
-            private readonly Bag<AtomicTestCase> _owningBag = new Bag<AtomicTestCase>();
+            private readonly CollectionOwningAtomicTestCases _owningCollection = new CollectionOwningAtomicTestCases();
         }
 
         private static int? RandomlySteppedEquivalenceIndex(Random randomChoice, int? equivalenceIndex)
@@ -668,13 +677,13 @@ namespace SageSerpent.TestInfrastructureTests
                 return new TestCaseFromAlternativesGenerator(testCaseGenerators);
             }
 
-            public SetOfSequencesOfOwningBags PossibleSequencesOfOwningBags()
+            public SetOfSequencesOfCollectionsOwningAtomicTestCases PossibleSequencesOfCollectionsOwningAtomicTestCases()
             {
-                SetOfSequencesOfOwningBags result = new SetOfSequencesOfOwningBags();
+                SetOfSequencesOfCollectionsOwningAtomicTestCases result = new SetOfSequencesOfCollectionsOwningAtomicTestCases();
 
                 foreach (ITestCaseGenerator testCaseGenerator in _testCaseGenerators)
                 {
-                    result.UnionWith(((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerator).PossibleSequencesOfOwningBags());
+                    result.UnionWith(((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerator).PossibleSequencesOfCollectionsOwningAtomicTestCases());
                 }
 
                 return result;
@@ -703,7 +712,7 @@ namespace SageSerpent.TestInfrastructureTests
                 }
             }
 
-            public IEnumerable<AtomicTestCase> PickFeasibleCombinationOfAtomicTestCases(Random randomChoice)
+            public CombinationOfAtomicTestCases PickFeasibleCombinationOfAtomicTestCases(Random randomChoice)
             {
                 return
                     ((ITestCaseGeneratorIntrusiveTestHooks) Algorithms.RandomSubset(_testCaseGenerators, 1, randomChoice)[0]).
@@ -748,7 +757,7 @@ namespace SageSerpent.TestInfrastructureTests
                 selectedPartitionPoints.Add(1U);
                 // We always put this into the set and use the iterator down below to pick it back out during set up
                 // for the loop below. This means we don't have to worry about whether we might encounter the value of
-                // one within the loop, which is a messy special case.
+                // one within the loop, which is a messy special case...
                 selectedPartitionPoints.Add(maximumDegreesOfFreedom);
                 // ... and similarly, we always put the final endpoint for the highest partition
                 // in, so that our loop never runs short. If we only have one point to work with,
@@ -932,18 +941,18 @@ namespace SageSerpent.TestInfrastructureTests
                 return result;
             }
 
-            public SetOfSequencesOfOwningBags PossibleSequencesOfOwningBags()
+            public SetOfSequencesOfCollectionsOwningAtomicTestCases PossibleSequencesOfCollectionsOwningAtomicTestCases()
             {
-                SetOfSequencesOfOwningBags result = new SetOfSequencesOfOwningBags();
+                SetOfSequencesOfCollectionsOwningAtomicTestCases result = new SetOfSequencesOfCollectionsOwningAtomicTestCases();
 
-                ConcatenateCrossProductOfSequences(_testCaseGenerators, new List<Bag<AtomicTestCase>>(), result);
+                ConcatenateCrossProductOfSequences(_testCaseGenerators, new List<CollectionOwningAtomicTestCases>(), result);
 
                 return result;
             }
 
             private static void ConcatenateCrossProductOfSequences(IList<ITestCaseGenerator> testCaseGenerators,
-                                                                   IEnumerable<Bag<AtomicTestCase>> sequenceBeingBuiltUp,
-                                                                   SetOfSequencesOfOwningBags result)
+                                                                   SequenceOfCollectionsOwningAtomicTestCases sequenceBeingBuiltUp,
+                                                                   SetOfSequencesOfCollectionsOwningAtomicTestCases result)
             {
                 if (testCaseGenerators.Count == 0)
                 {
@@ -951,8 +960,8 @@ namespace SageSerpent.TestInfrastructureTests
                 }
                 else
                 {
-                    foreach (IEnumerable<Bag<AtomicTestCase>> sequence in
-                        ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerators[0]).PossibleSequencesOfOwningBags())
+                    foreach (SequenceOfCollectionsOwningAtomicTestCases sequence in
+                        ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerators[0]).PossibleSequencesOfCollectionsOwningAtomicTestCases())
                     {
                         ConcatenateCrossProductOfSequences(Algorithms.Range(testCaseGenerators, 1, testCaseGenerators.Count - 1),
                                                            Algorithms.Concatenate(sequenceBeingBuiltUp, sequence), result);
@@ -983,11 +992,11 @@ namespace SageSerpent.TestInfrastructureTests
                 }
             }
 
-            public IEnumerable<AtomicTestCase> PickFeasibleCombinationOfAtomicTestCases(Random randomChoice)
+            public CombinationOfAtomicTestCases PickFeasibleCombinationOfAtomicTestCases(Random randomChoice)
             {
                 UInt32 numberOfChildren = (UInt32) randomChoice.Next(_testCaseGenerators.Count) + 1U;
 
-                IEnumerable<IEnumerable<AtomicTestCase>> sequenceOfCombinationsOfAtomicTestCasesFromChildren =
+                IEnumerable<CombinationOfAtomicTestCases> sequenceOfCombinationsOfAtomicTestCasesFromChildren =
                     Algorithms.Convert(Algorithms.RandomSubset(_testCaseGenerators, (Int32) numberOfChildren, randomChoice),
                                        delegate(ITestCaseGenerator testCaseGenerator)
                                            {
@@ -996,7 +1005,7 @@ namespace SageSerpent.TestInfrastructureTests
                                                        (randomChoice);
                                            });
 
-                return Algorithms.Concatenate(Algorithms.ToArray(sequenceOfCombinationsOfAtomicTestCasesFromChildren));
+                return new CombinationOfAtomicTestCases(Algorithms.Concatenate(Algorithms.ToArray(sequenceOfCombinationsOfAtomicTestCasesFromChildren)));
             }
 
             private readonly IList<ITestCaseGenerator> _testCaseGenerators;

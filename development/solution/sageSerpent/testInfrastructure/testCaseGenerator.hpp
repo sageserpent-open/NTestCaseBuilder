@@ -13,7 +13,7 @@ namespace SageSerpent
             // 'requestedDegreesOfFreedomForCombinationCoverage' may be greater than or equal to the 'MaximumDegreesOfFreedom' property
             // - this is rather like the situation where collisions during test case generation prevent full coverage of all combinations.
             // All that happens is that the test case generator does its best.
-            // If 'requestedDegreesOfFreedomForCombinationCoverage' is zero, this indicates that all possible combinations should be
+            // If 'requestedDegreesOfFreedomForCombinationCoverage' is zero, this indicates that 'MaximumDegreesOfFreedom' combinations should be
             // generated.
             System::Collections::IEnumerator ^CreateIterator(System::UInt32 requestedDegreesOfFreedomForCombinationCoverage);
             
