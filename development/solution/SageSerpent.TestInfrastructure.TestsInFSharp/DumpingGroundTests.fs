@@ -23,12 +23,14 @@ namespace SageSerpent.TestInfrastructure.Tests
         let maximumNumberOfTestVariables = 20u
         let maximumNumberOfTestLevelsForATestVariable = 10u
         let maximumNumberOfSubtreeHeadsPerAncestorNode = 5u
+        let maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 1u
         let randomSeed = 23
         
         [<Test>]
         member this.TestThatARandomlyChosenNCombinationOfTestVariablesIsCoveredInTermsOfCrossProductOfLevels () =
             let chooseAnyNumberFromZeroToOneLessThan = int32 >> (Random randomSeed).Next >> uint32
             let chooseAnyNumberFromOneTo = chooseAnyNumberFromZeroToOneLessThan >> (+) 1u
+            let headsItIs () = chooseAnyNumberFromZeroToOneLessThan 2u = 0u
             for i in [0 .. 5] do
                 let numberOfTestVariables = chooseAnyNumberFromOneTo maximumNumberOfTestVariables
                 let numberOfTrackedTestVariables = chooseAnyNumberFromOneTo numberOfTestVariables
@@ -37,8 +39,11 @@ namespace SageSerpent.TestInfrastructure.Tests
                                            (fun testVariable -> testVariable, chooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable))
                 let rec createTree distributionModeWrtInterleavingNode
                                    indexForLeftmostTrackedTestVariable
-                                   numberOfTrackedTestVariables =
-                    if numberOfTrackedTestVariables <= 1u
+                                   numberOfTrackedTestVariables
+                                   maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables =
+                    let thinkAboutTerminatingRecursion = numberOfTrackedTestVariables <= 1u
+                    if headsItIs () && thinkAboutTerminatingRecursion
+                       || maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 0u
                     then if numberOfTrackedTestVariables = 1u
                          then TestVariableNode ([for level in [1u .. trackedTestVariableToNumberOfLevelsMap.[int32 indexForLeftmostTrackedTestVariable]] do
                                                     yield box (Tracked (indexForLeftmostTrackedTestVariable, level))])
@@ -59,11 +64,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                                     let rec incrementOneOfTheEntriesWithoutPuttingAllOfTheTrackedVariablesInOneSubtree distribution =
                                         match distribution with
                                             [] -> raise (InternalAssertionViolationException "Either given an empty distribution or one with too high a limit.")
-                                          | head::tail -> if head + 1u = numberOfTrackedTestVariables
-                                                          then head :: incrementOneOfTheEntriesWithoutPuttingAllOfTheTrackedVariablesInOneSubtree tail
-                                                          else head + 1u :: tail
+                                          | head :: tail -> if head + 1u = numberOfTrackedTestVariables
+                                                            then head :: incrementOneOfTheEntriesWithoutPuttingAllOfTheTrackedVariablesInOneSubtree tail
+                                                            else head + 1u :: tail
                                     incrementOneOfTheEntriesWithoutPuttingAllOfTheTrackedVariablesInOneSubtree
                                         (distributionMakerForSynthesizingNodes numberOfSubtrees (numberOfTrackedTestVariables - 1u))
+                              | BetweenSiblingSubtrees when numberOfSubtrees = 1u -> [numberOfTrackedTestVariables]
                               | _ -> let choice = chooseAnyNumberFromOneTo numberOfSubtrees
                                      [for counter in [1u .. numberOfSubtrees] do
                                         if counter = choice
@@ -74,19 +80,26 @@ namespace SageSerpent.TestInfrastructure.Tests
                                 chooseAnyNumberFromOneTo maximumNumberOfSubtreeHeadsPerAncestorNode
                             let gatherSubtree (previouslyGatheredSubtrees, indexForLeftmostTrackedTestVariable) numberOfTrackedVariables =
                                 let subtree, maximumTrackingVariableIndexFromSubtree =
-                                    createTree distributionModeWrtInterleavingNode indexForLeftmostTrackedTestVariable numberOfTrackedVariables
-                                subtree::previouslyGatheredSubtrees, maximumTrackingVariableIndexFromSubtree
+                                    createTree distributionModeWrtInterleavingNode
+                                               indexForLeftmostTrackedTestVariable
+                                               numberOfTrackedVariables
+                                               (if thinkAboutTerminatingRecursion
+                                                then maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables - 1u
+                                                else maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables)
+                                subtree :: previouslyGatheredSubtrees, maximumTrackingVariableIndexFromSubtree
                             let distributionOfNumberOfTrackedTestVariablesForEachSubtree =
                                 distributionMaker numberOfSubtrees numberOfTrackedTestVariables
                             let subtrees, maximumTrackingVariableIndex =
                                 distributionOfNumberOfTrackedTestVariablesForEachSubtree                      
                                 |> List.fold_left gatherSubtree ([], indexForLeftmostTrackedTestVariable)
                             nodeFactory subtrees, maximumTrackingVariableIndex
-                         match chooseAnyNumberFromOneTo 2u with
-                            1u -> generateNode (fun subtrees -> InterleavingNode subtrees) distributionMakerForSynthesizingNodes
-                          | 2u -> generateNode (fun subtrees -> SynthesizingNode subtrees) distributionMakerForInterleavedNodes                           
-                          | _ -> raise (InternalAssertionViolationException "Invalid choice: should be 1u or 2u!")
-                let tree, _ = createTree WithinOnlyASingleSubtree 0u numberOfTrackedTestVariables
+                         if headsItIs ()
+                         then generateNode (fun subtrees -> InterleavingNode subtrees) distributionMakerForInterleavedNodes
+                         else generateNode (fun subtrees -> SynthesizingNode subtrees) distributionMakerForSynthesizingNodes                          
+                let tree, _ = createTree WithinOnlyASingleSubtree
+                                         0u
+                                         numberOfTrackedTestVariables
+                                         maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables
                 let dumpTree tree =
                     let form = new Form ()
                     form.AutoSizeMode <- AutoSizeMode.GrowOnly
