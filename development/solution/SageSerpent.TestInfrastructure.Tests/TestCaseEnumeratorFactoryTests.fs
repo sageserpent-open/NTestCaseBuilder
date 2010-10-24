@@ -113,9 +113,9 @@
                                         Expr.Var argument
                                     Expr.NewUnionCase (listConsConstructor
                                                        , [argumentExpression; expressionForLadderSequenceBuildingUpList]))
-                                arguments
-                                (Expr.NewUnionCase (listEmptyConstructor
-                                                    , []))
+                              arguments
+                              (Expr.NewUnionCase (listEmptyConstructor
+                                                  , []))
                 
             let condensationAppliedToList = Expr.Application (<@ listCondensation @>
                                                               , expressionForLadderSequenceBuildingUpList)

@@ -2,10 +2,10 @@
 Debug
 Release
 obj
+bin
 *.ncb
 *.dat
-*resharper*
-_ReSharper*
+*[Rr]eSharper*
 *.pdb
 *DXCore.Solution
 *.vcproj*.user

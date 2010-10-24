@@ -12,9 +12,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SageSerpent.TestInfrastructure.Examples", "SageSerpent.TestInfrastructure.Examples\SageSerpent.TestInfrastructure.Examples.csproj", "{52BC7E44-9F03-4EF9-8E0D-C30B5DA0370B}"
 EndProject
 Global
-	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = everything.vsmdi
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|Mixed Platforms = Debug|Mixed Platforms
