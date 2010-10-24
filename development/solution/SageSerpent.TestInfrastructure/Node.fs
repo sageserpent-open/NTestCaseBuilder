@@ -6,6 +6,7 @@ namespace SageSerpent.TestInfrastructure
     open System.Collections.Generic
     open System
     open SageSerpent.Infrastructure
+    open Microsoft.FSharp.Collections
     
     type 'Result NodeVisitOperations = // A 'visitor' by any other name. :-)
         {
@@ -56,21 +57,30 @@ namespace SageSerpent.TestInfrastructure
                 let rec walkTree node indexForLeftmostTestVariable interleavingTestVariableIndices association =
                     match node with
                         TestVariableNode levels ->
-                            (indexForLeftmostTestVariable, interleavingTestVariableIndices)
-                             :: association
+                            let forwardInterleavingPairs =
+                                interleavingTestVariableIndices
+                                |> List.map (function interleavingTestVariableIndex ->
+                                                        indexForLeftmostTestVariable
+                                                        , interleavingTestVariableIndex)
+                            let backwardInterleavingPairs =
+                                interleavingTestVariableIndices
+                                |> List.map (function interleavingTestVariableIndex ->
+                                                        interleavingTestVariableIndex
+                                                        , indexForLeftmostTestVariable)
+                            association
+                            |> List.append forwardInterleavingPairs
+                            |> List.append backwardInterleavingPairs
                             , indexForLeftmostTestVariable + 1u
                       | InterleavingNode subtreeRootNodes ->
                             let association
-                                , maximumTestVariableFromSubtree
-                                , _ =
-                                let rec accumulateContributionsFromTheLeftAndThenJoinInContributionsFromTheRight subtreeRootNodes
-                                                                                                                 contributionsFromTheLeft
-                                                                                                                 indexForLeftmostTestVariable =
+                                , maximumTestVariableFromSubtree =
+                                let rec accumulateContributionsFromTheLeft subtreeRootNodes
+                                                                           contributionsFromTheLeft
+                                                                           indexForLeftmostTestVariable =
                                     match subtreeRootNodes with
                                         [] ->
                                             association
                                             , indexForLeftmostTestVariable
-                                            , []
                                       | head :: tail ->
                                             let numberOfTestVariablesFromNode =
                                                 (head: Node).CountTestVariables
@@ -78,25 +88,20 @@ namespace SageSerpent.TestInfrastructure
                                                 List.init (int32 numberOfTestVariablesFromNode)
                                                           (fun variableCount -> uint32 variableCount + indexForLeftmostTestVariable)
                                             let partialAssociation
-                                                , maximumTestVariableIndex
-                                                , contributionsFromTheRight =
-                                                accumulateContributionsFromTheLeftAndThenJoinInContributionsFromTheRight tail
-                                                                                                                         (List.append testVariableIndicesFromNode contributionsFromTheLeft)
-                                                                                                                         (indexForLeftmostTestVariable + numberOfTestVariablesFromNode)
-                                            let contributionsFromEitherSide =
-                                                List.append contributionsFromTheLeft contributionsFromTheRight
-                                                
+                                                , maximumTestVariableIndex =
+                                                accumulateContributionsFromTheLeft tail
+                                                                                   (List.append testVariableIndicesFromNode contributionsFromTheLeft)
+                                                                                   (indexForLeftmostTestVariable + numberOfTestVariablesFromNode)
                                             let resultAssociation
                                                 , _ =
-                                                walkTree head indexForLeftmostTestVariable contributionsFromEitherSide partialAssociation                                                 
+                                                walkTree head indexForLeftmostTestVariable contributionsFromTheLeft partialAssociation                                                 
 
                                                                     
                                             resultAssociation
                                             , maximumTestVariableIndex
-                                            , List.append testVariableIndicesFromNode contributionsFromTheRight
-                                accumulateContributionsFromTheLeftAndThenJoinInContributionsFromTheRight (List.of_seq subtreeRootNodes)
-                                                                                                         interleavingTestVariableIndices
-                                                                                                         indexForLeftmostTestVariable
+                                accumulateContributionsFromTheLeft (List.of_seq subtreeRootNodes)
+                                                                   interleavingTestVariableIndices
+                                                                   indexForLeftmostTestVariable
                             association
                             , maximumTestVariableFromSubtree
                       | SynthesizingNode subtreeRootNodes ->
@@ -110,7 +115,7 @@ namespace SageSerpent.TestInfrastructure
                 let result,
                     _ =
                         walkTree this 0u [] []
-                result
+                HashMultiMap.Create result
                                     
             member this.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding strength =
                 if strength = 0u
@@ -218,13 +223,12 @@ namespace SageSerpent.TestInfrastructure
                         |> Map.of_list 
                      let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                         this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
-                        |> Map.of_list
                      let createTestVectorRepresentations testVariableCombination =
                         let sentinelEntriesForInterleavedTestVariableIndices =
                             testVariableCombination
                             |> List.map (fun testVariableIndex ->
                                             if associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.ContainsKey testVariableIndex
-                                            then associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.[testVariableIndex]
+                                            then associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.FindAll testVariableIndex
                                             else [])
                             |> List.concat
                             |> Set.of_list
