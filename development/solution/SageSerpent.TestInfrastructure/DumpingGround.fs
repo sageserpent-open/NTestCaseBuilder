@@ -6,7 +6,7 @@ namespace SageSerpent.TestInfrastructure
     open System.Collections.Generic
     open System
     open SageSerpent.Infrastructure
-
+    
     type Node =
             TestVariableNode of seq<Object>
           | InterleavingNode of seq<Node>
@@ -59,7 +59,8 @@ namespace SageSerpent.TestInfrastructure
                             TestVariableNode levels ->
                                 [[[indexForLeftmostTestVariable]]]
                                 , indexForLeftmostTestVariable + 1u
-                                , [(indexForLeftmostTestVariable, levels)]
+                                , [(indexForLeftmostTestVariable, levels
+                                                                  |> Seq.map Some)]
                                 
                           | InterleavingNode subtreeRootNodes ->
                                 let rec joinPairsAtEachStrength first second =
