@@ -246,13 +246,13 @@ namespace SageSerpent.TestInfrastructure
                      } as internalNodeRepresentation))
                     , Some levelFromNewPartialTestVectorRepresentation :: tailFromNewPartialTestVectorRepresentation ->
                         let bringNewInternalNodeUpToSubtreeRoot =
-                                if bringNewInternalNodeUpToSubtreeRoot
-                                then
-                                    true
-                                else
-                                    let chosenNumber =
-                                        (randomBehaviour: Random).ChooseAnyNumberFromOneTo (1u + (tree: TernarySearchTree<'Level>).NumberOfLevelsForLeadingTestVariable)
-                                    1u = chosenNumber
+                            if bringNewInternalNodeUpToSubtreeRoot
+                            then
+                                true
+                            else
+                                let chosenNumber =
+                                    (randomBehaviour: Random).ChooseAnyNumberFromOneTo (1u + (tree: TernarySearchTree<'Level>).NumberOfLevelsForLeadingTestVariable)
+                                1u = chosenNumber
                         match compare levelFromNewPartialTestVectorRepresentation levelForTestVariableIndex with
                             result when result < 0  ->
                                 let modifiedSubtreeWithLesserLevelsForSameTestVariableIndex =
@@ -520,8 +520,7 @@ namespace SageSerpent.TestInfrastructure
                             }
             let rec remove tree
                            queryPartialTestVectorRepresentation
-                           treeIsForNextTestVariableIndex
-                           testVariableIndex =
+                           treeIsForNextTestVariableIndex =
                 match tree
                       , queryPartialTestVectorRepresentation with                
                     UnsuccessfulSearchTerminationNode
@@ -541,12 +540,10 @@ namespace SageSerpent.TestInfrastructure
                     }
                     , headFromQueryPartialTestVectorRepresentation :: tailFromQueryPartialTestVectorRepresentation when treeIsForNextTestVariableIndex ->
                         buildResultFromWildcardNodeModifyingSubtreeForAllLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
-                                                                                                           testVariableIndex
                                                                                                            subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                            subtreeForFollowingIndices
                         |> BargainBasement.Flip Option.LazyMPlus
                                                 (lazy buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices queryPartialTestVectorRepresentation
-                                                                                                                                 testVariableIndex
                                                                                                                                  subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                                                  subtreeForFollowingIndices)
                   | AugmentedInternalNode
@@ -561,21 +558,18 @@ namespace SageSerpent.TestInfrastructure
                         match compare levelFromQueryPartialTestVectorRepresentation levelForTestVariableIndex with
                             result when result < 0 ->
                                 buildResultFromInternalNodeModifyingSubtreeForLesserLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
-                                                                                                                      testVariableIndex
                                                                                                                       levelForTestVariableIndex
                                                                                                                       subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                                       subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                                       subtreeForFollowingIndices                          
                           | result when result > 0 ->
                                 buildResultFromInternalNodeModifyingSubtreeForGreaterLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
-                                                                                                                       testVariableIndex
                                                                                                                        levelForTestVariableIndex
                                                                                                                        subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                                        subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                                        subtreeForFollowingIndices                          
                           | _ ->
                                 buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices queryPartialTestVectorRepresentation
-                                                                                                           testVariableIndex
                                                                                                            levelForTestVariableIndex
                                                                                                            subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                            subtreeWithGreaterLevelsForSameTestVariableIndex
@@ -590,21 +584,18 @@ namespace SageSerpent.TestInfrastructure
                     })
                     , None :: tailFromQueryPartialTestVectorRepresentation ->
                         buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices queryPartialTestVectorRepresentation
-                                                                                                   testVariableIndex
                                                                                                    levelForTestVariableIndex
                                                                                                    subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                    subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                    subtreeForFollowingIndices
                         |> BargainBasement.Flip Option.LazyMPlus
                                                 (lazy buildResultFromInternalNodeModifyingSubtreeForLesserLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
-                                                                                                                                            testVariableIndex
                                                                                                                                             levelForTestVariableIndex
                                                                                                                                             subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                                                             subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                                                             subtreeForFollowingIndices)
                         |> BargainBasement.Flip Option.LazyMPlus
                                            (lazy buildResultFromInternalNodeModifyingSubtreeForGreaterLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
-                                                                                                                                        testVariableIndex
                                                                                                                                         levelForTestVariableIndex
                                                                                                                                         subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                                                         subtreeWithGreaterLevelsForSameTestVariableIndex
@@ -622,12 +613,10 @@ namespace SageSerpent.TestInfrastructure
                         remove tree
                                [None]
                                treeIsForNextTestVariableIndex
-                               testVariableIndex
                   | _
                     , [] ->
                         raise (InternalAssertionViolationException ("Left or right subtrees should only be traversed with a non-empty new partial test vector representation"))
             and buildResultFromInternalNodeModifyingSubtreeForLesserLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
-                                                                                                      testVariableIndex
                                                                                                       levelForTestVariableIndex
                                                                                                       subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                       subtreeWithGreaterLevelsForSameTestVariableIndex
@@ -639,7 +628,6 @@ namespace SageSerpent.TestInfrastructure
                                 remove subtreeWithLesserLevelsForSameTestVariableIndex
                                        queryPartialTestVectorRepresentation
                                        false
-                                       testVariableIndex
                             return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
                                                                                                            modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                            subtreeWithGreaterLevelsForSameTestVariableIndex
@@ -647,7 +635,6 @@ namespace SageSerpent.TestInfrastructure
                                    , removedPartialTestVector
                         }
             and buildResultFromInternalNodeModifyingSubtreeForGreaterLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
-                                                                                                       testVariableIndex
                                                                                                        levelForTestVariableIndex
                                                                                                        subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                        subtreeWithGreaterLevelsForSameTestVariableIndex
@@ -659,7 +646,6 @@ namespace SageSerpent.TestInfrastructure
                                 remove subtreeWithGreaterLevelsForSameTestVariableIndex
                                        queryPartialTestVectorRepresentation
                                        false
-                                       testVariableIndex
                             return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
                                                                                                            subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                            modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
@@ -667,7 +653,6 @@ namespace SageSerpent.TestInfrastructure
                                    , removedPartialTestVector
                         }
             and buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices queryPartialTestVectorRepresentation
-                                                                                           testVariableIndex
                                                                                            levelForTestVariableIndex
                                                                                            subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                            subtreeWithGreaterLevelsForSameTestVariableIndex
@@ -679,7 +664,6 @@ namespace SageSerpent.TestInfrastructure
                                 remove subtreeForFollowingIndices
                                        (List.tail queryPartialTestVectorRepresentation)
                                        true
-                                       (testVariableIndex + 1u)
                             return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
                                                                                                            subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                            subtreeWithGreaterLevelsForSameTestVariableIndex
@@ -687,7 +671,6 @@ namespace SageSerpent.TestInfrastructure
                                    , (Some levelForTestVariableIndex :: removedPartialTestVector)
                         }
             and buildResultFromWildcardNodeModifyingSubtreeForAllLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
-                                                                                                   testVariableIndex
                                                                                                    subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                    subtreeForFollowingIndices =
                     optionWorkflow
@@ -697,13 +680,11 @@ namespace SageSerpent.TestInfrastructure
                                 remove subtreeWithAllLevelsForSameTestVariableIndex
                                        queryPartialTestVectorRepresentation
                                        true
-                                       testVariableIndex
                             return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
                                                                                                            subtreeForFollowingIndices
                                    , removedPartialTestVector
                         }
             and buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices queryPartialTestVectorRepresentation
-                                                                                           testVariableIndex
                                                                                            subtreeWithAllLevelsForSameTestVariableIndex
                                                                                            subtreeForFollowingIndices =
                     optionWorkflow
@@ -713,12 +694,11 @@ namespace SageSerpent.TestInfrastructure
                                 remove subtreeForFollowingIndices
                                        (List.tail queryPartialTestVectorRepresentation)
                                        true
-                                       (testVariableIndex + 1u)
                             return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                            modifiedSubtreeForFollowingTestVariableIndices
                                    , (List.head queryPartialTestVectorRepresentation :: removedPartialTestVector)
                         }
-            remove tree queryPartialTestVectorRepresentation true 0u
+            remove tree queryPartialTestVectorRepresentation true
             
         let checkInvariant tree =
             let rec checkInvariant tree
