@@ -356,9 +356,9 @@ namespace SageSerpent.TestInfrastructure
             let rec walkTree node
                              indexForLeftmostTestVariable =
                 let numberOfTestVariables =
-                    this.CountTestVariables
+                    (node: Node).CountTestVariables
                 if indexForLeftmostTestVariable + numberOfTestVariables > uint32 (Array.length fullTestVector)
-                then raise (PreconditionViolationException "Vector is inconsistent with the tree structure - test vector has more entries than the number of test variables in the tree.")
+                then raise (InternalAssertionViolationException "No longer have enough entries in what's left of the vector.")
                 else match node with
                         TestVariableNode _ ->
                             match fullTestVector.[int32 indexForLeftmostTestVariable] with
@@ -397,11 +397,11 @@ namespace SageSerpent.TestInfrastructure
                                             else discardLeftmostSubtreesInvolvingOnlyExcludedTestVariables tail
                                                                                                            indexForForLeftmostTestVariableInTail
                             let subtreeRootNodesHeadedByNodeContainingLeftmostNonExcludedTestVariable
-                                , indexForLeftmostTestVariable =
+                                , indexForLeftmostTestVariableInNodeContainingLeftmostNonExcludedTestVariable =
                                 discardLeftmostSubtreesInvolvingOnlyExcludedTestVariables subtreeRootNodes
                                                                                           indexForLeftmostTestVariable
-                            walkTree (LazyList.hd subtreeRootNodes)
-                                     indexForLeftmostTestVariable
+                            walkTree (LazyList.hd subtreeRootNodesHeadedByNodeContainingLeftmostNonExcludedTestVariable)
+                                     indexForLeftmostTestVariableInNodeContainingLeftmostNonExcludedTestVariable
                       | SynthesizingNode (subtreeRootNodes
                                           , synthesisDelegate) ->
                             let subtreeRootNodes =
