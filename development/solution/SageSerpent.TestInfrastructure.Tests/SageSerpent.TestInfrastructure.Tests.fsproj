@@ -43,6 +43,9 @@
     <Compile Include="TestCaseEnumeratorFactoryTests.fs" />
     <Compile Include="Driver.fs" />
     <None Include="Script.fsx" />
+    <None Include="..\ThirdParty\NUnit\bin\net-2.0\framework\nunit.framework.dll">
+      <Link>nunit.framework.dll</Link>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">
@@ -61,7 +64,6 @@
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="nunit.framework">
-      <HintPath>Z:\Documents\SageSerpent\workInProgressForSageSerpentOpenSource\development\solution\ThirdParty\NUnit\bin\net-2.0\framework\nunit.framework.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
