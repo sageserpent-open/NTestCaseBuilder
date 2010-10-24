@@ -6,3 +6,8 @@ obj
 *.dat
 *resharper*
 _ReSharper*
+*.pdb
+*DXCore.Solution
+*.vcproj*.user
+
+
