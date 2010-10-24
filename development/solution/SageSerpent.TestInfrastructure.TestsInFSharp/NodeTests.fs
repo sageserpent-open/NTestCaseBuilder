@@ -34,16 +34,23 @@ namespace SageSerpent.TestInfrastructure.Tests
             treeView.Nodes.Add treeGuiNode |> ignore
             let rec dumpNode node (treeGuiNode: TreeNode) =
                 match node with
-                    TestVariableNode levels -> let subtreeGuiNode = TreeNode ("TreeNode\n" + any_to_string levels)
-                                               treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
-                  | InterleavingNode subtrees -> let subtreeGuiNode = TreeNode ("InterleavingNode\n")
-                                                 treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
-                                                 for subtree in subtrees do
-                                                    dumpNode subtree subtreeGuiNode
-                  | SynthesizingNode subtrees -> let subtreeGuiNode = TreeNode ("SynthesizingNode\n")
-                                                 treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
-                                                 for subtree in subtrees do
-                                                    dumpNode subtree subtreeGuiNode
+                    TestVariableNode levels ->
+                        let subtreeGuiNode =
+                            TreeNode ("TreeNode\n" + any_to_string levels)
+                        treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
+                  | InterleavingNode subtrees ->
+                        let subtreeGuiNode =
+                            TreeNode ("InterleavingNode\n")
+                        treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
+                        for subtree in subtrees do
+                            dumpNode subtree subtreeGuiNode
+                  | SynthesizingNode (subtrees
+                                      , _) ->
+                        let subtreeGuiNode =
+                            TreeNode ("SynthesizingNode\n")
+                        treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
+                        for subtree in subtrees do
+                            dumpNode subtree subtreeGuiNode
             dumpNode tree treeGuiNode
             treeView.ExpandAll ()
             form.ShowDialog () |> ignore
@@ -169,7 +176,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                          if randomBehaviour.HeadsItIs ()
                          then generateNode (fun subtrees -> InterleavingNode subtrees)
                                            distributionMakerForInterleavedNodes
-                         else generateNode (fun subtrees -> SynthesizingNode subtrees)
+                         else generateNode (fun subtrees -> SynthesizingNode (subtrees
+                                                                              , BargainBasement.IdentityFunctionDelegate))
                                            distributionMakerForSynthesizingNodes                          
                 let tree
                     , _ = 
@@ -294,7 +302,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                                         |> List.concat
                                      (if whetherInterleavedNodeChoice
                                       then InterleavingNode nodes
-                                      else SynthesizingNode nodes)
+                                      else SynthesizingNode (nodes
+                                                             , BargainBasement.IdentityFunctionDelegate))
                                      , spannedTestVariableIndices
                             let nextLevelOfNodeAndItsSpannedTestVariableIndicesPairs =
                                 (List.zip groupsForSubtreeRoots whetherInterleavedNodeChoices)

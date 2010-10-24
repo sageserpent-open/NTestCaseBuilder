@@ -3,6 +3,7 @@
 module SageSerpent.Infrastructure.BargainBasement
 
     open System.Collections.Generic
+    open System
 
 //    let rec CrossProduct sequences =
 //        match sequences with
@@ -101,4 +102,11 @@ module SageSerpent.Infrastructure.BargainBasement
             Some _ ->
                 optional
           | None ->
-                defaultComputation ()              
+                defaultComputation () 
+                
+    type private TypePreservingFunction<'X> =
+        delegate of 'X -> 'X
+                
+    let IdentityFunctionDelegate =
+        (TypePreservingFunction (fun x -> x)) :> Delegate     
+                 
