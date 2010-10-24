@@ -19,7 +19,8 @@ namespace SageSerpent.TestInfrastructure
             SubtreeForGreaterIndices: MergedPartialTestVectorRepresentations
         }
     and MergedPartialTestVectorRepresentations =
-        LeafNode
+        SuccessfulSearchTerminationNode
+      | UnsuccessfulSearchTerminationNode
       | InternalNode of InternalNodeRepresentation
       
         interface IEnumerable<Map<UInt32, Object>> with
@@ -35,11 +36,15 @@ namespace SageSerpent.TestInfrastructure
                                  partialTestVectorBeingBuilt
                                  subtreeIsForANewTestVariableIndex =
                 match tree with
-                    LeafNode ->
+                    SuccessfulSearchTerminationNode ->
+                        // NOTE: as we are converting to a map, we can be cavalier about the
+                        // order in which associative pairs are added to the partial test vector.
                         seq { if subtreeIsForANewTestVariableIndex
                               then yield partialTestVectorBeingBuilt
-                                            |> Map.of_list }    // NOTE: as we are converting to a map, we can be cavalier about the
-                                                                // order in which associative pairs are added to the partial test vector.
+                                            |> Map.of_list
+                              else raise (InternalAssertionViolationException "A successful search cannot terminate on a left or right subtree.") }
+                  | UnsuccessfulSearchTerminationNode ->
+                        Seq.empty
                   | InternalNode
                     {
                         LevelForTestVariableIndex = levelForTestVariableIndex
@@ -101,22 +106,29 @@ namespace SageSerpent.TestInfrastructure
                                  
         member private this.Add newPartialTestVectorRepresentation =
             let rec add tree newPartialTestVectorRepresentation treeIsForNextTestVariableIndex =
-                match tree with
-                    LeafNode ->
-                        if List.is_empty newPartialTestVectorRepresentation
-                        then if treeIsForNextTestVariableIndex
-                             then raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that is already mergeable with or equivalent to a previous one.")
-                                    // The above is really a precondition violation, but the precondition should have been enforced by the implementation and not by the client.
-                             else raise (InternalAssertionViolationException "Left or right subtrees should only be added to with a non-empty new partial test vector representation.")
+                let buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation () =
                         List.fold_right (fun level
                                              degenerateLinearSubtree ->
                                                 InternalNode
                                                     {
                                                         LevelForTestVariableIndex = level
-                                                        SubtreeWithLesserLevelsForSameTestVariableIndex = LeafNode
-                                                        SubtreeWithGreaterLevelsForSameTestVariableIndex = LeafNode
+                                                        SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                                        SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                                                         SubtreeForGreaterIndices = degenerateLinearSubtree
-                                                    }) newPartialTestVectorRepresentation LeafNode
+                                                    }) newPartialTestVectorRepresentation SuccessfulSearchTerminationNode                
+                match tree with
+                    SuccessfulSearchTerminationNode ->
+                        if List.is_empty newPartialTestVectorRepresentation
+                        then if treeIsForNextTestVariableIndex
+                             then raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that is already mergeable with or equivalent to a previous one.")
+                                    // The above is really a precondition violation, but the precondition should have been enforced by the implementation and not by the client.
+                             else raise (InternalAssertionViolationException "Left or right subtrees should only be added to with a non-empty new partial test vector representation.")
+                        buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation ()                             
+                  | UnsuccessfulSearchTerminationNode ->
+                        if List.is_empty newPartialTestVectorRepresentation
+                           && not treeIsForNextTestVariableIndex
+                        then raise (InternalAssertionViolationException "Left or right subtrees should only be added to with a non-empty new partial test vector representation.")
+                        buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation ()                             
                   | InternalNode
                     {
                         LevelForTestVariableIndex = levelForTestVariableIndex
@@ -174,13 +186,19 @@ namespace SageSerpent.TestInfrastructure
         member private this.Remove queryPartialTestVectorRepresentation =
             let rec remove tree queryPartialTestVectorRepresentation treeIsForNextTestVariableIndex testVariableIndex =
                 match tree with
-                    LeafNode ->
+                    SuccessfulSearchTerminationNode ->
                         if treeIsForNextTestVariableIndex
-                        then Some (LeafNode
+                        then Some (UnsuccessfulSearchTerminationNode
                                    , queryPartialTestVectorRepresentation)
                         else if List.is_empty queryPartialTestVectorRepresentation
-                             then raise (InternalAssertionViolationException "Left or right subtrees should only be searched with a non-empty query partial test vector representation.")
-                             else None                        
+                             then raise (InternalAssertionViolationException ("Two problems: left or right subtrees should only be searched with a non-empty query partial test vector representation"
+                                                                              + " and a successful search cannot terminate on a left or right subtree."))
+                             else raise (InternalAssertionViolationException "A successful search cannot terminate on a left or right subtree.")
+                  | UnsuccessfulSearchTerminationNode ->
+                        if List.is_empty queryPartialTestVectorRepresentation
+                           && not treeIsForNextTestVariableIndex
+                        then raise (InternalAssertionViolationException "Left or right subtrees should only be searched with a non-empty query partial test vector representation.")
+                        None        
                   | InternalNode
                     {
                         LevelForTestVariableIndex = levelForTestVariableIndex
@@ -194,10 +212,10 @@ namespace SageSerpent.TestInfrastructure
                             match subtreeWithLesserLevelsForSameTestVariableIndex
                                   , subtreeWithGreaterLevelsForSameTestVariableIndex
                                   , subtreeForGreaterIndices with
-                                LeafNode
-                                , LeafNode
-                                , LeafNode ->
-                                    LeafNode
+                                UnsuccessfulSearchTerminationNode
+                                , UnsuccessfulSearchTerminationNode
+                                , UnsuccessfulSearchTerminationNode ->
+                                    UnsuccessfulSearchTerminationNode
                               | _ ->
                                     InternalNode
                                         {
@@ -293,7 +311,7 @@ namespace SageSerpent.TestInfrastructure
             remove this queryPartialTestVectorRepresentation true 0u                  
                                   
         static member Initial =
-            LeafNode
+            UnsuccessfulSearchTerminationNode
             
         member this.MergeOrAdd partialTestVectorRepresentation =
             if Map.is_empty partialTestVectorRepresentation
