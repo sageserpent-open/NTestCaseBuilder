@@ -11,6 +11,46 @@ namespace SageSerpent.TestInfrastructure
             TestVariableNode of seq<Object>
           | InterleavingNode of seq<Node>
           | SynthesizingNode of seq<Node>
+          
+            member this.CountTestVariables =
+                match this with
+                    TestVariableNode _ ->
+                        1u
+                  | InterleavingNode subtrees ->
+                        subtrees
+                        |> Seq.map (fun subtreeHead -> subtreeHead.CountTestVariables)
+                        |> Seq.reduce (+)
+                  | SynthesizingNode subtrees ->
+                        subtrees
+                        |> Seq.map (fun subtreeHead -> subtreeHead.CountTestVariables)
+                        |> Seq.reduce (+)          
+          
+            member this.SumLevelCountsFromAllTestVariables =
+                match this with
+                    TestVariableNode levels ->
+                        uint32 (Seq.length levels)
+                  | InterleavingNode subtrees ->
+                        subtrees
+                        |> Seq.map (fun subtreeHead -> subtreeHead.SumLevelCountsFromAllTestVariables)
+                        |> Seq.reduce (+)
+                  | SynthesizingNode subtrees ->
+                        subtrees
+                        |> Seq.map (fun subtreeHead -> subtreeHead.SumLevelCountsFromAllTestVariables)
+                        |> Seq.reduce (+)          
+          
+            member this.MaximumStrengthOfTestVariableCombination =
+                match this with
+                    TestVariableNode levels ->
+                        1u
+                  | InterleavingNode subtrees ->
+                        subtrees
+                        |> Seq.map (fun subtreeHead -> subtreeHead.MaximumStrengthOfTestVariableCombination)
+                        |> Seq.max
+                  | SynthesizingNode subtrees ->
+                        subtrees
+                        |> Seq.map (fun subtreeHead -> subtreeHead.MaximumStrengthOfTestVariableCombination)
+                        |> Seq.reduce (+)          
+          
             member this.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding strength =
                 if strength = 0u
                 then raise (PreconditionViolationException "Strength must be non-zero.")

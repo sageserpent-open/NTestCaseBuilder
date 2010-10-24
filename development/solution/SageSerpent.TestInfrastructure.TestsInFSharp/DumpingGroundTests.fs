@@ -33,6 +33,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             let chooseAnyNumberFromOneTo = chooseAnyNumberFromZeroToOneLessThan >> (+) 1u
             let headsItIs () = chooseAnyNumberFromZeroToOneLessThan 2u = 0u
             let didTheSingleTestVariableEdgeCase = ref false
+            let timeAtStart = DateTime.Now
             for _ in 0u .. 90u do
                 let numberOfTrackedTestVariables = chooseAnyNumberFromOneTo maximumNumberOfTrackedTestVariables
                 if numberOfTrackedTestVariables = 1u
@@ -141,30 +142,40 @@ namespace SageSerpent.TestInfrastructure.Tests
                                          0u
                                          numberOfTrackedTestVariables
                                          maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables
-                printf "**** Tree:\n%A\n" tree
-                let resultsWithOnlyLevelsFromTrackedTestVariablesCombinedAtDesiredStrength =
-                    let results =
-                        tree.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding numberOfTrackedTestVariables
-                    let resultsAtDesiredStrength =
-                        if numberOfTrackedTestVariables <= (uint32 results.Length)
-                        then List.nth results (int32 numberOfTrackedTestVariables - 1)
-                        else Seq.empty
-                    resultsAtDesiredStrength
-                    |> Seq.map (fun testVectorRepresentation ->
-                                    Map.fold_right (fun _ level partialResult ->
-                                                        match unbox level with
-                                                            Tracked (trackedTestVariableIndex, level) ->
-                                                                (trackedTestVariableIndex, level)
-                                                                 :: partialResult
-                                                          | _ ->
-                                                            partialResult)
-                                                   testVectorRepresentation []
-                                    |> Map.of_list  // Sort by the tracked test variable index - hence the roundtrip from list -> map -> list!
-                                    |> Map.to_list
-                                    |> List.map (function _, level -> level))
-                    |> Seq.filter (fun levels -> uint32 levels.Length = numberOfTrackedTestVariables)
-                    |> Set.of_seq
-                testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelsFromTrackedTestVariablesCombinedAtDesiredStrength
+                let maximumStrengthOfTestVariableCombination =
+                    tree.MaximumStrengthOfTestVariableCombination
+                if maximumStrengthOfTestVariableCombination < 30u
+                then //printf "**** Tree:\n%A\n\n" tree
+                     //printf "Number of test variables: %d\nNumber of levels overall: %d\nMaximum strength: %d\n\n"
+                     //       tree.CountTestVariables
+                     //       tree.SumLevelCountsFromAllTestVariables
+                     //       tree.MaximumStrengthOfTestVariableCombination
+                     let resultsWithOnlyLevelsFromTrackedTestVariablesCombinedAtDesiredStrength =
+                        let results =
+                            tree.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding numberOfTrackedTestVariables
+                        let resultsAtDesiredStrength =
+                            if numberOfTrackedTestVariables <= (uint32 results.Length)
+                            then List.nth results (int32 numberOfTrackedTestVariables - 1)
+                            else Seq.empty
+                        resultsAtDesiredStrength
+                        |> Seq.map (fun testVectorRepresentation ->
+                                        Map.fold_right (fun _ level partialResult ->
+                                                            match unbox level with
+                                                                Tracked (trackedTestVariableIndex, level) ->
+                                                                    (trackedTestVariableIndex, level)
+                                                                     :: partialResult
+                                                              | _ ->
+                                                                partialResult)
+                                                       testVectorRepresentation []
+                                        |> Map.of_list  // Sort by the tracked test variable index - hence the roundtrip from list -> map -> list!
+                                        |> Map.to_list
+                                        |> List.map (function _, level -> level))
+                        |> Seq.filter (fun levels -> uint32 levels.Length = numberOfTrackedTestVariables)
+                        |> Set.of_seq
+                     testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelsFromTrackedTestVariablesCombinedAtDesiredStrength
+                else printf "Rejected tree of strength %d as it would take too long!\n" maximumStrengthOfTestVariableCombination
+            let timeAtEnd = DateTime.Now
+            printf "**** TIME FOR TEST: %A\n" (timeAtEnd - timeAtStart)
             Assert.IsTrue !didTheSingleTestVariableEdgeCase                 
         
         let dumpTree tree =
