@@ -9,6 +9,7 @@ namespace SageSerpent.TestInfrastructure
     open System
     open SageSerpent.Infrastructure
     open Microsoft.FSharp.Collections
+    open Wintellect.PowerCollections
     
     type 'Result NodeVisitOperations = // A 'visitor' by any other name. :-)
         {
@@ -218,7 +219,8 @@ namespace SageSerpent.TestInfrastructure
                                         (BargainBasement.CrossProduct testVariableCombinationsBySubtree)
                                         |> List.map (List.reduce_left joinTestVariableCombinations)
                                     List.append testVariableCombinationsBuiltFromCrossProduct partialResult
-                                (distributions |> Seq.fold addInTestVariableCombinationsForAGivenDistribution [])::partialResult
+                                (distributions |> Seq.fold addInTestVariableCombinationsForAGivenDistribution [])
+                                :: partialResult
                             let testVariableCombinationsGroupedByStrength =
                                 Map.fold_right addInTestVariableCombinationsForGivenStrength distributionsOfStrengthsOverSubtreesAtEachTotalStrength []
                             testVariableCombinationsGroupedByStrength
@@ -267,5 +269,77 @@ namespace SageSerpent.TestInfrastructure
                                 testVariableCombinations
                                 |> Seq.map createTestVectorRepresentations
                                 |> Seq.concat)
-        
+                                
+        member private this.LevelsFor testVariableIndex =
+            let rec walkTree node indexForLeftmostTestVariable =
+                let rec recurseOnAppropriateSubtree subtreeRootNodes indexForLeftmostTestVariable =
+                    match subtreeRootNodes with
+                        LazyList.Nil ->
+                            raise (PreconditionViolationException "'testVariableIndex' is too large - there are not enough test variables in the tree.")
+                      | LazyList.Cons (head, tail) ->
+                            let indexForForLeftmostTestVariableInTail =
+                                (head: Node).CountTestVariables + indexForLeftmostTestVariable
+                            if testVariableIndex < indexForForLeftmostTestVariableInTail
+                            then walkTree head indexForLeftmostTestVariable
+                            else recurseOnAppropriateSubtree tail indexForForLeftmostTestVariableInTail                            
+                match node with
+                    TestVariableNode levels ->
+                        levels
+                  | InterleavingNode subtreeRootNodes ->
+                        recurseOnAppropriateSubtree (subtreeRootNodes
+                                                     |> LazyList.of_seq)
+                                                    indexForLeftmostTestVariable
+                  | SynthesizingNode subtreeRootNodes ->
+                        recurseOnAppropriateSubtree (subtreeRootNodes
+                                                     |> LazyList.of_seq)
+                                                    indexForLeftmostTestVariable
+            walkTree this 0u
+
+        member this.FillOutPartialTestVectorRepresentation randomBehaviour partialTestVectorRepresentation =
+            let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
+                this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
+            let testVariableIndices =
+                ((partialTestVectorRepresentation: Map<_, _>):> IDictionary<_, _>).Keys
+                |> Set.of_seq
+            let missingTestVariableIndices =
+                (List.init (int32 this.CountTestVariables)
+                           (fun count ->
+                             uint32 count)
+                 |> Set.of_list)
+                - testVariableIndices
+            let rec fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices =
+                if Set.count missingTestVariableIndices = 0
+                then []
+                else let chosenTestVariableIndex =
+                        (Algorithms.RandomSubset (missingTestVariableIndices,
+                                                  1,
+                                                  (randomBehaviour: RandomBehaviour).UnderlyingImplementationForClientUse)).[0]
+                            
+                     let chooseLevelFor testVariableIndex =
+                        let levels =
+                            this.LevelsFor testVariableIndex
+                        (Algorithms.RandomSubset (levels,
+                                                  1,
+                                                  (randomBehaviour: RandomBehaviour).UnderlyingImplementationForClientUse)).[0]
+                            
+                     let entryForChosenTestVariable =
+                        chosenTestVariableIndex
+                        , Some (chooseLevelFor chosenTestVariableIndex)
+                     let excludedTestVariableIndices =
+                        associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.FindAll chosenTestVariableIndex
+                     let entriesForExcludedTestVariableIndices =
+                        excludedTestVariableIndices
+                        |> List.map (fun excludedTestVariableIndex ->
+                                        excludedTestVariableIndex
+                                        , None)
+                     let missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions =
+                        missingTestVariableIndices - Set.of_list (chosenTestVariableIndex
+                                                                   :: excludedTestVariableIndices)
+                     List.append (entryForChosenTestVariable
+                                   :: entriesForExcludedTestVariableIndices)
+                                 (fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions)
+            List.append (fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices)
+                        (partialTestVectorRepresentation
+                         |> Map.to_list)
+            |> Map.of_list
                             

@@ -39,11 +39,11 @@ let f = TestVariableNode [box '&'; box '*']
 
 let g = SynthesizingNode [f; e]
 
-let resultsGalore = g.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding 3u
+let resultsGalore = g.PartialTestVectorRepresentationsGroupedByStrengthUpToAndIncluding 3u
 
 let h = SynthesizingNode [b; g];;
 
-let evenMoreResultsGalore = h.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding 3u
+let evenMoreResultsGalore = h.PartialTestVectorRepresentationsGroupedByStrengthUpToAndIncluding 3u
 
 let debug results =
     let printResultsAtStrength strength resultsAtStrength =
