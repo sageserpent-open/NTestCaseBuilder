@@ -16,10 +16,10 @@ namespace SageSerpent.TestInfrastructureTests
     using AtomicTestCaseToContainingCombinationMultiMap = Wintellect.PowerCollections.MultiDictionary<AtomicTestCase, HashSet<AtomicTestCase>>;
     using CombinationOfAtomicTestCases = HashSet<AtomicTestCase>;
     using SequenceOfAtomicTestCases = C5.IList<AtomicTestCase>;
-    using CollectionOwningAtomicTestCases = HashBag<AtomicTestCase>;
-    using SequenceOfCollectionsOwningAtomicTestCases = System.Collections.Generic.IEnumerable<HashBag<AtomicTestCase>>;
+    using CollectionOwningAtomicTestCases = C5.ICollection<AtomicTestCase>;
+    using SequenceOfCollectionsOwningAtomicTestCases = System.Collections.Generic.IEnumerable<C5.ICollection<AtomicTestCase>>;
     using SetOfCombinations = HashSet<HashSet<AtomicTestCase>>;
-    using SetOfSequencesOfCollectionsOwningAtomicTestCases = HashSet<IEnumerable<HashBag<AtomicTestCase>>>;
+    using SetOfSequencesOfCollectionsOwningAtomicTestCases = HashSet<IEnumerable<C5.ICollection<AtomicTestCase>>>;
 
     public abstract class AbstractTestCase
     {
@@ -546,7 +546,7 @@ namespace SageSerpent.TestInfrastructureTests
 
                 const UInt32 maximumNumberOfTestCasesInCollection = 10;
 
-                CollectionOwningAtomicTestCases owningCollection = new CollectionOwningAtomicTestCases();
+                CollectionOwningAtomicTestCases owningCollection = new C5.HashBag<AtomicTestCase>();
 
                 UInt32 countDown = (UInt32) randomChoice.Next((Int32) maximumNumberOfTestCasesInCollection) + 1U;
 
@@ -590,7 +590,7 @@ namespace SageSerpent.TestInfrastructureTests
                 return result;
             }
 
-            private readonly CollectionOwningAtomicTestCases _owningCollection = new CollectionOwningAtomicTestCases();
+            private readonly CollectionOwningAtomicTestCases _owningCollection = new C5.HashBag<AtomicTestCase>();
         }
 
         private static int? RandomlySteppedEquivalenceIndex(Random randomChoice, int? equivalenceIndex)
