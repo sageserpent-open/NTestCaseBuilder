@@ -3,6 +3,8 @@
 module SageSerpent.Infrastructure.CombinatoricUtilities
 
     open Microsoft.FSharp.Collections
+    
+    open Microsoft.FSharp.Core.Operators.Checked
 
     let rec chooseContributionsToMeetTotal contributionLimits total =
         match contributionLimits with

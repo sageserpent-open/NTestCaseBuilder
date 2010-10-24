@@ -37,7 +37,7 @@ namespace SageSerpent.Infrastructure.Tests
             for limit in [0u..5u] do
                 for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
                     for increment in [1u..2u] do
-                        let results = CombinatoricUtilities.chooseContributionsToMeetTotal [] (limit + increment)
+                        let results = CombinatoricUtilities.chooseContributionsToMeetTotal inputExample (limit + increment)
                         let shouldBeTrue = results = []
                         Assert.IsTrue shouldBeTrue
                     
@@ -52,6 +52,26 @@ namespace SageSerpent.Infrastructure.Tests
                             printf "(TestThatSumOfChosenContributionsInEachResultIsTheSameAsTheLimit) Input Example: %A\n" inputExample; Assert.IsTrue shouldBeTrue
                         let shouldBeTrue = not results.IsEmpty
                         Assert.IsTrue shouldBeTrue
+                        
+        [<Test>]
+        member this.TestThatSumOfChosenContributionsInEachResultCannotExceedSumOfInputContributions () =
+            for limit in [0u..3u] do
+                for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
+                    for increment in [1u..3u] do
+                        let results = CombinatoricUtilities.chooseContributionsToMeetTotal inputExample (limit + increment)
+                        let shouldBeTrue = results.IsEmpty
+                        Assert.IsTrue shouldBeTrue
+                        
+        [<Test>]
+        member this.TestThatChosenContributionsInEachResultAreBoundedByInputContributions () =
+            for limit in [0u..3u] do
+                for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
+                    for total in [0u..limit] do
+                        let results = CombinatoricUtilities.chooseContributionsToMeetTotal inputExample total
+                        for item in results do
+                            for chosenAndInputContributionPair in List.zip item inputExample do
+                                let shouldBeTrue = fst chosenAndInputContributionPair <= snd chosenAndInputContributionPair
+                                Assert.IsTrue shouldBeTrue
                         
         [<Test>]
         member this.TestThatEachResultHasTheSameLengthAsTheInputContributionList () =
