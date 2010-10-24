@@ -411,8 +411,10 @@ namespace SageSerpent.TestInfrastructure
                                                                           indexForForLeftmostTestVariableInTail
                             let resultsFromSubtrees =
                                 collectResultsFromSubtrees subtreeRootNodes indexForLeftmostTestVariable
+                            let invocationArguments =
+                                resultsFromSubtrees
                                 |> List.toArray
-                            (synthesisDelegate.DynamicInvoke resultsFromSubtrees) :?> 'LevelUpperBoundType
+                            (synthesisDelegate.DynamicInvoke invocationArguments) :?> 'LevelUpperBoundType
             if this.CountTestVariables > uint32 (Array.length fullTestVector)
             then raise (PreconditionViolationException "Vector is inconsistent with the tree structure - test vector has more entries than the number of test variables in the tree.")                                                             
             else walkTree this

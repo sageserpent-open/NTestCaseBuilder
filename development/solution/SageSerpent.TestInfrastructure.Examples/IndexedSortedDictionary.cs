@@ -1,82 +1,28 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 
 namespace SageSerpent.TestInfrastructure.Examples
 {
-    internal class IndexedSortedDictionary<TKey, TValue>: IDictionary<TKey, TValue>,
-                                                          IList<TValue>
+    internal class IndexedSortedDictionary<TKey, TValue>: IDictionary<TKey, TValue> where TKey: IComparable<TKey>
     {
-        #region Implementation of IEnumerable
+        #region IDictionary<TKey,TValue> Members
 
-        IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() { throw new NotImplementedException(); }
 
-        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
+        IEnumerator IEnumerable.GetEnumerator() { return GetEnumerator(); }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        public void Add(KeyValuePair<TKey, TValue> item) { throw new NotImplementedException(); }
 
-        #endregion
+        public void Clear() { throw new NotImplementedException(); }
 
-        #region Implementation of ICollection<KeyValuePair<TKey,TValue>>
-
-        public void Add(KeyValuePair<TKey, TValue> item)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Add(TValue item)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Clear()
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Contains(TValue item)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void CopyTo
-            (TValue[] array,
-             int arrayIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Remove(TValue item)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Contains(KeyValuePair<TKey, TValue> item)
-        {
-            throw new NotImplementedException();
-        }
+        public bool Contains(KeyValuePair<TKey, TValue> item) { throw new NotImplementedException(); }
 
         public void CopyTo
             (KeyValuePair<TKey, TValue>[] array,
-             int arrayIndex)
-        {
-            throw new NotImplementedException();
-        }
+             int arrayIndex) { throw new NotImplementedException(); }
 
-        public bool Remove(KeyValuePair<TKey, TValue> item)
-        {
-            throw new NotImplementedException();
-        }
+        public bool Remove(KeyValuePair<TKey, TValue> item) { throw new NotImplementedException(); }
 
         public int Count
         {
@@ -88,33 +34,17 @@ namespace SageSerpent.TestInfrastructure.Examples
             get { throw new NotImplementedException(); }
         }
 
-        #endregion
-
-        #region Implementation of IDictionary<TKey,TValue>
-
-        public bool ContainsKey(TKey key)
-        {
-            throw new NotImplementedException();
-        }
+        public bool ContainsKey(TKey key) { throw new NotImplementedException(); }
 
         public void Add
             (TKey key,
-             TValue value)
-        {
-            throw new NotImplementedException();
-        }
+             TValue value) { throw new NotImplementedException(); }
 
-        public bool Remove(TKey key)
-        {
-            throw new NotImplementedException();
-        }
+        public bool Remove(TKey key) { throw new NotImplementedException(); }
 
         public bool TryGetValue
             (TKey key,
-             out TValue value)
-        {
-            throw new NotImplementedException();
-        }
+             out TValue value) { throw new NotImplementedException(); }
 
         public TValue this[TKey key]
         {
@@ -130,33 +60,6 @@ namespace SageSerpent.TestInfrastructure.Examples
         public ICollection<TValue> Values
         {
             get { throw new NotImplementedException(); }
-        }
-
-        #endregion
-
-        #region Implementation of IList<TValue>
-
-        public int IndexOf(TValue item)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Insert
-            (int index,
-             TValue item)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void RemoveAt(int index)
-        {
-            throw new NotImplementedException();
-        }
-
-        TValue IList<TValue>.this[int index]
-        {
-            get { throw new NotImplementedException(); }
-            set { throw new NotImplementedException(); }
         }
 
         #endregion

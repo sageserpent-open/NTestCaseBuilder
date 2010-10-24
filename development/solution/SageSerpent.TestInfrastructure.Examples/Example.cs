@@ -1,9 +1,9 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using NUnit.Framework;
 using SageSerpent.Infrastructure;
+using Wintellect.PowerCollections;
 using Key = System.UInt32;
 using Value = System.String;
 using Operation =
@@ -17,8 +17,10 @@ namespace SageSerpent.TestInfrastructure.Examples
     [TestFixture]
     public class SimpleExample
     {
-        private delegate System.String Synthesis(System.UInt32 resultOne,
-                                                 System.UInt32 resultTwo);
+        private delegate Value Synthesis(Key resultOne,
+                                         Key resultTwo);
+
+        private static readonly Key[] LevelsOne = {0u, 56u, 789u}, LevelsTwo = {100u, 123u};
 
         ///<summary>
         ///</summary>
@@ -28,13 +30,10 @@ namespace SageSerpent.TestInfrastructure.Examples
             var a = TestVariableLevelEnumerableFactory.Create(LevelsOne);
             var b = TestVariableLevelEnumerableFactory.Create(LevelsTwo);
 
-            var c = SynthesizedTestCaseEnumerableFactory.Create(new[] {a, b},
-                                                                (Synthesis)
-                                                                ((resultOne,
-                                                                  resultTwo) =>
-                                                                 string.Format("{0}, {1}",
-                                                                               resultOne.ToString(),
-                                                                               resultTwo.ToString())));
+            var c = SynthesizedTestCaseEnumerableFactory.Create
+                (new[] {a, b},
+                 (Synthesis) ((resultOne,
+                               resultTwo) => string.Format("{0}, {1}", resultOne.ToString(), resultTwo.ToString())));
             var d = TestVariableLevelEnumerableFactory.Create(LevelsOne);
 
             var e = InterleavedTestCaseEnumerableFactory.Create(new List<ITestCaseEnumerableFactory> {d, c});
@@ -45,15 +44,12 @@ namespace SageSerpent.TestInfrastructure.Examples
             {
                 foreach (var u in e.CreateEnumerable(strength))
                 {
-                    System.Console.WriteLine(u.ToString());
+                    Console.WriteLine(u.ToString());
                 }
 
                 Console.WriteLine("****************");
             } while (--strength != 0U);
         }
-
-        private static readonly System.UInt32[] LevelsOne = {0u, 56u, 789u},
-                                                LevelsTwo = {100u, 123u};
     }
 
     ///<summary>
@@ -63,54 +59,70 @@ namespace SageSerpent.TestInfrastructure.Examples
     {
         private enum OperationKind
         {
+            NoOperation,
             Insertion,
             Deletion,
             Replacement,
             Query
         }
 
-        private class OperationSequenceBuilder
+        private class OperationListBuilder
         {
-            public OperationSequenceBuilder
+            private const Key MaximumValueRepresentation = 20U;
+            private readonly Key _key;
+
+            private readonly IDictionary<OperationKind, OperationCreator>
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists =
+                    new Dictionary<OperationKind, OperationCreator>(),
+                _operationKindToOperationCreatorMapWhereNoEntryExists = new Dictionary<OperationKind, OperationCreator>
+                    ();
+
+            private readonly RandomBehaviour _randomBehaviour;
+            private Value _value;
+
+            public OperationListBuilder
                 (Key key,
-                 Int32 seed)
+                 RandomBehaviour randomBehaviourInitialState)
             {
+                Operations = new List<Operation>();
                 _key = key;
-                _randomBehaviour = new RandomBehaviour(seed);
+                _randomBehaviour = new RandomBehaviour(randomBehaviourInitialState);
 
                 AddStateTransitionsForWhenAnEntryAlreadyExists();
 
                 AddStateTransitionsForWhenNoEntryExists();
             }
 
+            public IList<Operation> Operations { get; private set; }
+
             private void AddStateTransitionsForWhenNoEntryExists()
             {
-                _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Insertion,
-                                                                          AddInsertionOperationThatShouldSucceed);
-                _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Deletion,
-                                                                          AddDeletionOperationThatShouldFail);
-                _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Replacement,
-                                                                          AddReplacementOperation);
-                _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Query,
-                                                                          AddQueryOperationThatShouldFail);
+                _operationKindToOperationCreatorMapWhereNoEntryExists.Add
+                    (OperationKind.Insertion, AddInsertionOperationThatShouldSucceed);
+                _operationKindToOperationCreatorMapWhereNoEntryExists.Add
+                    (OperationKind.Deletion, AddDeletionOperationThatShouldFail);
+                _operationKindToOperationCreatorMapWhereNoEntryExists.Add
+                    (OperationKind.Replacement, AddReplacementOperation);
+                _operationKindToOperationCreatorMapWhereNoEntryExists.Add
+                    (OperationKind.Query, AddQueryOperationThatShouldFail);
             }
 
             private void AddStateTransitionsForWhenAnEntryAlreadyExists()
             {
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Insertion,
-                                                                                 AddInsertionOperationThatShouldFail);
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Deletion,
-                                                                                 AddDeletionOperationThatShouldSucceed);
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Replacement,
-                                                                                 AddReplacementOperation);
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Query,
-                                                                                 AddQueryOperationThatShouldSucceed);
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add
+                    (OperationKind.Insertion, AddInsertionOperationThatShouldFail);
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add
+                    (OperationKind.Deletion, AddDeletionOperationThatShouldSucceed);
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add
+                    (OperationKind.Replacement, AddReplacementOperation);
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add
+                    (OperationKind.Query, AddQueryOperationThatShouldSucceed);
             }
-
-            private delegate void OperationCreator();
 
             public void AppendNewOperationOfKind(OperationKind operationKind)
             {
+                if (OperationKind.NoOperation == operationKind) return;
+
                 if (null != _value)
                 {
                     _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists[operationKind]();
@@ -121,98 +133,342 @@ namespace SageSerpent.TestInfrastructure.Examples
                 }
             }
 
-            private void AddQueryOperationThatShouldFail()
-            {
-                _operations.Add(indexSortedDictionary => Assert.IsFalse(indexSortedDictionary.ContainsKey(_key)));
-            }
+            private void AddQueryOperationThatShouldFail() { Operations.Add(indexSortedDictionary => Assert.IsFalse(indexSortedDictionary.ContainsKey(_key))); }
 
             private void AddQueryOperationThatShouldSucceed()
             {
-                _operations.Add(delegate(IndexedSortedDictionary<Key, Value> indexedSortedDictionary1)
-                                    {
-                                        Assert.IsTrue(indexedSortedDictionary1.ContainsKey(_key));
-                                        Assert.IsTrue(indexedSortedDictionary1[_key] == _value);
-                                    });
+                Operations.Add
+                    (delegate(IndexedSortedDictionary<Key, Value> indexedSortedDictionary1)
+                     {
+                         Assert.IsTrue(indexedSortedDictionary1.ContainsKey(_key));
+                         Assert.IsTrue(indexedSortedDictionary1[_key] == _value);
+                     });
             }
 
-            private void AddDeletionOperationThatShouldFail()
-            {
-                _operations.Add(indexedSortedDictionary => Assert.IsFalse(indexedSortedDictionary.Remove(_key)));
-            }
+            private void AddDeletionOperationThatShouldFail() { Operations.Add(indexedSortedDictionary => Assert.IsFalse(indexedSortedDictionary.Remove(_key))); }
 
             private void AddDeletionOperationThatShouldSucceed()
             {
-                _operations.Add(indexedSortedDictionary => Assert.IsTrue(indexedSortedDictionary.Remove(_key)));
+                Operations.Add(indexedSortedDictionary => Assert.IsTrue(indexedSortedDictionary.Remove(_key)));
                 _value = null;
             }
 
             private void AddInsertionOperationThatShouldSucceed()
             {
                 _value = MakeRandomValue();
-                _operations.Add(indexedSortedDictionary => indexedSortedDictionary.Add(_key,
-                                                                                       _value));
+                Operations.Add(indexedSortedDictionary => indexedSortedDictionary.Add(_key, _value));
             }
 
             private void AddInsertionOperationThatShouldFail()
             {
-                _operations.Add(delegate(IndexedSortedDictionary<Key, Value> indexedSortedDictionary)
-                                    {
-                                        try
-                                        {
-                                            indexedSortedDictionary.Add(_key,
-                                                                        MakeRandomValue());
-                                        }
-                                        catch (System.ArgumentException)
-                                        {
-                                            return;
-                                        }
+                Operations.Add
+                    (delegate(IndexedSortedDictionary<Key, Value> indexedSortedDictionary)
+                     {
+                         try
+                         {
+                             indexedSortedDictionary.Add(_key, MakeRandomValue());
+                         }
+                         catch (ArgumentException)
+                         {
+                             return;
+                         }
 
-                                        var stringBuilder = new StringBuilder();
+                         var stringBuilder = new StringBuilder();
 
-                                        stringBuilder.AppendFormat(
-                                            "Should not have been able to insert with key {0} as it already has an entry in the dictionary {1}",
-                                            _key,
-                                            indexedSortedDictionary);
+                         stringBuilder.AppendFormat
+                             ("Should not have been able to insert with key {0} as it already has an entry in the dictionary {1} of {2}",
+                              _key,
+                              indexedSortedDictionary,
+                              _value);
 
-                                        Assert.Fail(stringBuilder.ToString());
-                                    });
+                         Assert.Fail(stringBuilder.ToString());
+                     });
             }
 
             private void AddReplacementOperation()
             {
                 _value = MakeRandomValue();
-                _operations.Add(indexedSortedDictionary => indexedSortedDictionary[_key] = _value);
+                Operations.Add(indexedSortedDictionary => indexedSortedDictionary[_key] = _value);
             }
 
-            private Value MakeRandomValue()
-            {
-                return _randomBehaviour.ChooseAnyNumberFromOneTo.Invoke(MaximumValueRepresentation).ToString();
-            }
+            private Value MakeRandomValue() { return _randomBehaviour.ChooseAnyNumberFromOneTo.Invoke(MaximumValueRepresentation).ToString(); }
 
-            private IEnumerable<Operation> Operations
-            {
-                get { return _operations; }
-            }
+            #region Nested type: OperationCreator
 
-            private readonly Key _key;
-            private readonly IList<Operation> _operations = new List<Operation>();
-            private readonly RandomBehaviour _randomBehaviour;
-            private Value _value = null;
+            private delegate void OperationCreator();
 
-            private readonly IDictionary<OperationKind, OperationCreator>
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists =
-                    new Dictionary<OperationKind, OperationCreator>(),
-                _operationKindToOperationCreatorMapWhereNoEntryExists =
-                    new Dictionary<OperationKind, OperationCreator>();
-
-
-            private const UInt32 MaximumValueRepresentation = 20U;
+            #endregion
         }
 
-        private static void ManipulateIndexedSortedDictionary
-            (UInt32 sequenceLength,
-             UInt32 numberOfKeys)
+        private static IList<Operation> CreateOperationsAccordingToSequenceOfKinds
+            (IEnumerable<OperationKind> kinds,
+             Key key,
+             RandomBehaviour randomBehaviour)
         {
+            var operationsListBuilder = new OperationListBuilder(key, randomBehaviour);
+
+            foreach (var operationKind in kinds)
+            {
+                operationsListBuilder.AppendNewOperationOfKind(operationKind);
+            }
+
+            return operationsListBuilder.Operations;
+        }
+
+        private delegate IList<Operation> OperationsCreator(OperationKind operationKindOne,
+                                                            OperationKind operationKindTwo,
+                                                            OperationKind operationKindThree,
+                                                            OperationKind operationKindFour);
+
+        private delegate UInt32 MappingToAvoidPreviouslyChosenIndices(UInt32 index);
+
+        private delegate void PlacementOfOperationsIntoFinalOrder(UInt32 numberOfIndicesToChooseFrom,
+                                                                  MappingToAvoidPreviouslyChosenIndices
+                                                                      mappingToAvoidPreviouslyChosenIndices,
+                                                                  IList<Operation> operationsPlacedIntoFinalOrder);
+
+        private delegate PlacementOfOperationsIntoFinalOrder InductiveCasePlacementBuilder(
+            IList<Operation> operationsPertainingToTheSameKeyToPlaceIntoFinalOrder,
+            UInt32 combinationSelector,
+            PlacementOfOperationsIntoFinalOrder placementOfOperationsForRemainingKeysIntoFinalOrder);
+
+        private delegate PlacementOfOperationsIntoFinalOrder BaseCasePlacementBuilder();
+
+        private static void BaseCaseForPlacementOfOperationsIntoFinalOrder
+            (UInt32 numberOfIndicesToChooseFrom,
+             MappingToAvoidPreviouslyChosenIndices mappingToAvoidPreviouslyChosenIndices,
+             IList<Operation> operationsPlacedIntoFinalOrder) { }
+
+        private static PlacementOfOperationsIntoFinalOrder BuildInductiveCaseForPlacementOfOperationsIntoFinalOrder
+            (IList<Operation> operationsPertainingToTheSameKeyToPlaceIntoFinalOrder,
+             UInt32 combinationSelector,
+             PlacementOfOperationsIntoFinalOrder placementOfOperationsForRemainingKeysIntoFinalOrder)
+        {
+            PlacementOfOperationsIntoFinalOrder result = delegate(UInt32 numberOfIndicesToChooseFrom,
+                                                                  MappingToAvoidPreviouslyChosenIndices
+                                                                      mappingToAvoidPreviouslyChosenIndices,
+                                                                  IList<Operation> operationsPlacedIntoFinalOrder)
+                                                         {
+                                                             var numberOfIndicesToChoose =
+                                                                 (UInt32)
+                                                                 operationsPertainingToTheSameKeyToPlaceIntoFinalOrder.
+                                                                     Count;
+                                                             if (numberOfIndicesToChooseFrom < numberOfIndicesToChoose)
+                                                             {
+                                                                 throw new LogicErrorException
+                                                                     ("Test has an internal logic error - should have eventually reached base case"
+                                                                      +
+                                                                      " where all indices for placement had been chosen without having to look for more");
+                                                             }
+
+                                                             var indicesToPlaceAt = ChooseIndicesToPlaceAt
+                                                                 (numberOfIndicesToChooseFrom,
+                                                                  numberOfIndicesToChoose,
+                                                                  combinationSelector);
+
+                                                             PlaceOperations
+                                                                 (operationsPertainingToTheSameKeyToPlaceIntoFinalOrder,
+                                                                  indicesToPlaceAt,
+                                                                  mappingToAvoidPreviouslyChosenIndices,
+                                                                  operationsPlacedIntoFinalOrder);
+
+                                                             var composedMappingToAvoidAllIndices =
+                                                                 ComposeMappingToAvoidAllIndices
+                                                                     (indicesToPlaceAt,
+                                                                      mappingToAvoidPreviouslyChosenIndices);
+
+                                                             if (numberOfIndicesToChooseFrom > numberOfIndicesToChoose)
+                                                             {
+                                                                 placementOfOperationsForRemainingKeysIntoFinalOrder
+                                                                     (numberOfIndicesToChooseFrom
+                                                                      - numberOfIndicesToChoose,
+                                                                      composedMappingToAvoidAllIndices,
+                                                                      operationsPlacedIntoFinalOrder);
+                                                             }
+                                                         };
+
+
+            return result;
+        }
+
+        private static MappingToAvoidPreviouslyChosenIndices ComposeMappingToAvoidAllIndices
+            (IEnumerable<UInt32> indicesToPlaceAt,
+             MappingToAvoidPreviouslyChosenIndices mappingToAvoidPreviouslyChosenIndices)
+        {
+            var mappingAvoidingJustTheIndicesChosenInThisCall = BargainBasement.MappingAvoidingIndices(indicesToPlaceAt);
+
+            return
+                index =>
+                mappingToAvoidPreviouslyChosenIndices(mappingAvoidingJustTheIndicesChosenInThisCall.Invoke(index));
+        }
+
+        private static void PlaceOperations
+            (IList<Operation> operationsPertainingToTheSameKeyToPlaceIntoFinalOrder,
+             IEnumerable<UInt32> indicesToPlaceAt,
+             MappingToAvoidPreviouslyChosenIndices mappingToAvoidPreviouslyChosenIndices,
+             IList<Operation> operationsPlacedIntoFinalOrder)
+        {
+            var placementIndices = Algorithms.ToArray
+                (Algorithms.Convert(indicesToPlaceAt, index => mappingToAvoidPreviouslyChosenIndices(index)));
+
+            for (var operationIndex = 0;
+                 operationIndex < operationsPertainingToTheSameKeyToPlaceIntoFinalOrder.Count;
+                 ++operationIndex)
+            {
+                operationsPlacedIntoFinalOrder[(Int32) placementIndices[operationIndex]] =
+                    operationsPertainingToTheSameKeyToPlaceIntoFinalOrder[operationIndex];
+            }
+        }
+
+        private static IEnumerable<UInt32> ChooseIndicesToPlaceAt
+            (UInt32 numberOfIndicesToChooseFrom,
+             UInt32 numberOfIndicesToChoose,
+             UInt32 combinationSelector)
+        {
+            var indicesToChooseFrom = new UInt32[numberOfIndicesToChooseFrom];
+
+            for (var index = 0U; index < numberOfIndicesToChooseFrom; ++index)
+            {
+                indicesToChooseFrom[index] = index;
+            }
+
+            return CombinatoricUtilities.GenerateCombinationOfGivenSizePreservingOrder
+                (numberOfIndicesToChoose, indicesToChooseFrom, combinationSelector);
+        }
+
+        private static readonly IList<Key> Keys = new List<UInt32> {0u, 1u};//, 2u, 67u, 68u, 387786776u, 45u};
+
+        private static readonly IEnumerable<OperationKind> OperationKinds = Algorithms.Convert
+            ((IList<Int32>) Enum.GetValues(typeof (OperationKind)), constant => (OperationKind) constant);
+
+
+        private static ITestCaseEnumerableFactory MakeTestCaseEnumerableFactory
+            (RandomBehaviour randomBehaviour,
+             UInt32 sequenceLength,
+             IList<Key> keys)
+        {
+            if (0 == keys.Count)
+            {
+                return MakeRecursionBaseFactory();
+            }
+
+            var key = keys[0];
+
+            var synthesizingFactoryForOperationSequence = MakeSynthesizingFactoryForOperationSequence
+                (sequenceLength, key, randomBehaviour);
+
+            var testVariableLevelFactoryForFinalOperationsListIndexCombinations =
+                MakeFactoryForFinalOperationsListIndexCombinations(keys, sequenceLength);
+
+            var factoryDealingWithRemainingKeys = MakeTestCaseEnumerableFactory
+                (randomBehaviour, sequenceLength, Algorithms.Range(keys, 0, keys.Count - 1));
+
+            return MakeRecursionInductiveCaseFactory
+                (synthesizingFactoryForOperationSequence,
+                 testVariableLevelFactoryForFinalOperationsListIndexCombinations,
+                 factoryDealingWithRemainingKeys);
+        }
+
+        private static ITestCaseEnumerableFactory MakeRecursionInductiveCaseFactory
+            (ITestCaseEnumerableFactory synthesizingFactoryForOperationSequence,
+             ITestCaseEnumerableFactory testVariableLevelFactoryForFinalOperationsListIndexCombinations,
+             ITestCaseEnumerableFactory factoryDealingWithRemainingKeys)
+        {
+            return SynthesizedTestCaseEnumerableFactory.Create
+                (new[]
+                     {
+                         synthesizingFactoryForOperationSequence,
+                         testVariableLevelFactoryForFinalOperationsListIndexCombinations, factoryDealingWithRemainingKeys
+                     },
+                 (InductiveCasePlacementBuilder) BuildInductiveCaseForPlacementOfOperationsIntoFinalOrder);
+        }
+
+        private static ITestCaseEnumerableFactory MakeRecursionBaseFactory()
+        {
+            return SynthesizedTestCaseEnumerableFactory.Create
+                (new ITestCaseEnumerableFactory[] {},
+                 (BaseCasePlacementBuilder) (() => BaseCaseForPlacementOfOperationsIntoFinalOrder));
+        }
+
+        private static ITestCaseEnumerableFactory MakeFactoryForFinalOperationsListIndexCombinations
+            (ICollection<Key> keys,
+             UInt32 sequenceLength)
+        {
+            var combinationSelector = BargainBasement.NumberOfCombinations
+                (sequenceLength, sequenceLength * (UInt32) keys.Count);
+
+            var combinationSelectors = new List<UInt32>();
+
+            while (0U != combinationSelector--)
+            {
+                combinationSelectors.Add(combinationSelector);
+            }
+
+            return TestVariableLevelEnumerableFactory.Create(combinationSelectors);
+        }
+
+        private static ITestCaseEnumerableFactory MakeSynthesizingFactoryForOperationSequence
+            (UInt32 sequenceLength,
+             Key key,
+             RandomBehaviour randomBehaviour)
+        {
+            var testVariableLevelFactoriesForOperationKinds = new List<ITestCaseEnumerableFactory>();
+
+            var numberOfFactoriesLeftToCreate = sequenceLength;
+
+            while (0U != numberOfFactoriesLeftToCreate--)
+            {
+                testVariableLevelFactoriesForOperationKinds.Add
+                    (TestVariableLevelEnumerableFactory.Create(OperationKinds));
+            }
+
+            return SynthesizedTestCaseEnumerableFactory.Create
+                (testVariableLevelFactoriesForOperationKinds,
+                 (OperationsCreator) ((operationKindOne,
+                                       operationKindTwo,
+                                       operationKindThree,
+                                       operationKindFour) =>
+                                      CreateOperationsAccordingToSequenceOfKinds
+                                          (new[]
+                                               {
+                                                   operationKindOne, operationKindTwo, operationKindThree,
+                                                   operationKindFour
+                                               },
+                                           key,
+                                           randomBehaviour)));
+        }
+
+        private const UInt32 SequenceLength = 4U;
+
+        private const UInt32 CombinationStrength = 3U;
+
+        ///<summary>
+        ///</summary>
+        [Test]
+        public void ManipulateIndexedSortedDictionary()
+        {
+            var numberOfKeys = Keys.Count;
+            var randomBehaviour = new RandomBehaviour(892893767);
+
+            var totalNumberOfOperations = (UInt32) numberOfKeys * SequenceLength;
+
+            var testCasesEnumerableFactory = MakeTestCaseEnumerableFactory(randomBehaviour, SequenceLength, Keys);
+
+            var operations = new Operation[totalNumberOfOperations];
+
+            foreach (PlacementOfOperationsIntoFinalOrder placementOfOperationsIntoFinalOrder in
+                testCasesEnumerableFactory.CreateEnumerable(CombinationStrength))
+            {
+                placementOfOperationsIntoFinalOrder(totalNumberOfOperations, index => index, operations);
+
+                var indexedSortedDictionary = new IndexedSortedDictionary<UInt32, Value>();
+
+                foreach (var operation in operations)
+                {
+                    operation(indexedSortedDictionary);
+                    Assert.IsTrue(BargainBasement.IsSorted(indexedSortedDictionary.Keys));
+                }
+            }
         }
     }
 }
