@@ -246,14 +246,9 @@ namespace SageSerpent.TestInfrastructureTests
                 return builder.ToString();
             }
 
-            struct Placeholder
+            class PermutingClosureAdapterSupport
             {
-                public Placeholder(PermutingClosure permutingClosure)
-                {
-                    _permutingClosure = permutingClosure;
-                }
-
-                private TestCase Invoke(TestCase x)
+                protected TestCase Invoke(TestCase x)
                 {
                     System.Collections.Generic.List<TestCase> argumentList = new System.Collections.Generic.List<TestCase>();
 
@@ -262,11 +257,12 @@ namespace SageSerpent.TestInfrastructureTests
                     return _permutingClosure(argumentList);
                 }
 
-                private delegate TestCase StronglyTypedDelegate(TestCase x);
-
-                public System.Delegate CreateDelegate()
+                public PermutingClosure PermutingClosure
                 {
-                    return new StronglyTypedDelegate(Invoke);
+                    set
+                    {
+                        _permutingClosure = value;
+                    }
                 }
 
                 private PermutingClosure _permutingClosure;
@@ -274,7 +270,57 @@ namespace SageSerpent.TestInfrastructureTests
 
             private static System.Delegate AdaptPermutingClosure(PermutingClosure permutingClosure, System.UInt32 numberOfArgumentsForAdaptedClosure)
             {
-                return new Placeholder(permutingClosure).CreateDelegate();
+                System.Type permutingClosureAdapterType;
+
+                if (!_arityToPermutingClosureAdapterTypeMap.TryGetValue(numberOfArgumentsForAdaptedClosure, out permutingClosureAdapterType))
+                {
+                    System.String arityAsString = numberOfArgumentsForAdaptedClosure.ToString();
+
+                    System.Reflection.Emit.TypeBuilder typeBuilder = _moduleBuilder.DefineType("_" + arityAsString + "_" + CreateUniqueIdentifier());
+
+                    typeBuilder.SetParent(typeof(PermutingClosureAdapterSupport));
+
+                    System.Type[] argumentTypes = new System.Type[numberOfArgumentsForAdaptedClosure];
+
+                    Wintellect.PowerCollections.Algorithms.Fill(argumentTypes, typeof(TestCase));
+
+                    System.Reflection.MethodAttributes methodAttributes = System.Reflection.MethodAttributes.Public;
+
+                    System.Reflection.Emit.MethodBuilder methodBuilder = typeBuilder.DefineMethod(_generatedMethodName,
+                                                                                                  methodAttributes,
+                                                                                                  typeof(TestCase),
+                                                                                                  argumentTypes);
+
+                    System.Reflection.Emit.ILGenerator codeGenerator = methodBuilder.GetILGenerator();
+
+                    System.Type collectionType = typeof(System.Collections.Generic.List<TestCase>);
+
+                    codeGenerator.Emit(System.Reflection.Emit.OpCodes.Newobj, collectionType.GetConstructor(System.Type.EmptyTypes));
+                    codeGenerator.Emit(System.Reflection.Emit.OpCodes.Stloc_0);
+
+                    for (System.Byte argumentIndex = 0; argumentIndex < numberOfArgumentsForAdaptedClosure; ++argumentIndex)
+                    {
+                        codeGenerator.Emit(System.Reflection.Emit.OpCodes.Ldloc_0);
+                        codeGenerator.Emit(System.Reflection.Emit.OpCodes.Ldarg_S, (System.Byte)(argumentIndex + 1U));
+                        codeGenerator.Emit(System.Reflection.Emit.OpCodes.Callvirt, collectionType.GetMethod("Add"));
+                    }
+
+                    codeGenerator.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
+                    codeGenerator.Emit(System.Reflection.Emit.OpCodes.Ldfld, typeBuilder.GetField("_permutingClosure"));
+                    codeGenerator.Emit(System.Reflection.Emit.OpCodes.Ldloc_0);
+                    codeGenerator.Emit(System.Reflection.Emit.OpCodes.Callvirt, typeof(PermutingClosure).GetMethod("Invoke"));
+                    codeGenerator.Emit(System.Reflection.Emit.OpCodes.Ret);
+                    
+                    permutingClosureAdapterType = typeBuilder.CreateType();
+
+                    _arityToPermutingClosureAdapterTypeMap.Add(numberOfArgumentsForAdaptedClosure, permutingClosureAdapterType);
+                }
+
+                PermutingClosureAdapterSupport adapter = (PermutingClosureAdapterSupport)permutingClosureAdapterType.GetConstructor(System.Type.EmptyTypes).Invoke(null);
+
+                adapter.PermutingClosure = permutingClosure;
+
+                return System.Delegate.CreateDelegate(permutingClosureAdapterType, adapter, permutingClosureAdapterType.GetMethod(_generatedMethodName));
             }
 
             public Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>>
@@ -311,7 +357,45 @@ namespace SageSerpent.TestInfrastructureTests
 
             private System.Collections.Generic.IList<SageSerpent.TestInfrastructure.ITestCaseGenerator> _testCaseGenerators;
 
-            static System.UInt32 _namespaceNameGenerationState = 0U;
+            private static System.UInt32 _namespaceNameGenerationState = 0U;
+
+            private static System.String _generatedMethodName = "Invoke";
+
+            private static System.Reflection.Emit.AssemblyBuilder _assemblyBuilder;
+
+            private static System.Reflection.Emit.ModuleBuilder _moduleBuilder;
+
+            static TestCaseFromCombinationGenerator()
+            {
+                System.Reflection.Assembly[] extantAssemblies = System.AppDomain.CurrentDomain.GetAssemblies();
+
+                do
+                {
+                    System.String assemblyName = CreateUniqueIdentifier();
+
+                    if (Wintellect.PowerCollections.Algorithms.FindFirstWhere(extantAssemblies,
+                                                                              delegate(System.Reflection.Assembly assembly)
+                                                                              {
+                                                                                  return assembly.GetName().Name == assemblyName;
+                                                                              }) == null)
+                    {
+                        break;
+                    }
+
+                    System.Reflection.AssemblyName assemblyNameThingie = new System.Reflection.AssemblyName();
+
+                    assemblyNameThingie.Name = assemblyName;
+
+                    _assemblyBuilder = System.AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyNameThingie, System.Reflection.Emit.AssemblyBuilderAccess.Run);
+
+                    const System.String moduleName = "theBigLebowski";
+
+                    _moduleBuilder = _assemblyBuilder.DefineDynamicModule(moduleName);
+                } while (true);
+            }
+
+            private static System.Collections.Generic.IDictionary<System.UInt32, System.Type> _arityToPermutingClosureAdapterTypeMap
+                = new System.Collections.Generic.Dictionary<System.UInt32, System.Type>();
         }
 
         class TestCaseGeneratorFactory
