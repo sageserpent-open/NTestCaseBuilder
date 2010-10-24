@@ -236,8 +236,6 @@ namespace SageSerpent.TestInfrastructure.Examples
             UInt32 combinationSelector,
             PlacementOfOperationsIntoFinalOrder placementOfOperationsForRemainingKeysIntoFinalOrder);
 
-        private delegate PlacementOfOperationsIntoFinalOrder BaseCasePlacementBuilder();
-
         private static void BaseCaseForPlacementOfOperationsIntoFinalOrder
             (UInt32 numberOfIndicesToChooseFrom,
              MappingToAvoidPreviouslyChosenIndices mappingToAvoidPreviouslyChosenIndices,
@@ -406,9 +404,8 @@ namespace SageSerpent.TestInfrastructure.Examples
 
         private static ITestCaseEnumerableFactory MakeRecursionBaseFactory()
         {
-            return SynthesizedTestCaseEnumerableFactory.Create
-                (new ITestCaseEnumerableFactory[] {},
-                 (BaseCasePlacementBuilder) (() => BaseCaseForPlacementOfOperationsIntoFinalOrder));
+            return SingletonTestCaseEnumerableFactory.Create
+                ((PlacementOfOperationsIntoFinalOrder) BaseCaseForPlacementOfOperationsIntoFinalOrder);
         }
 
         private static ITestCaseEnumerableFactory MakeSynthesizingFactoryForOperationSequenceEnumerable

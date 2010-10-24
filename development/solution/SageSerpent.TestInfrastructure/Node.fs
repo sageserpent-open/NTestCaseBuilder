@@ -41,22 +41,53 @@ namespace SageSerpent.TestInfrastructure
             this.TraverseTree   {
                                     TestVariableNodeResult = fun _ -> 1u
                                     CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
-                                    CombineResultsFromSynthesizingNodeSubtrees = Seq.fold (+) 0u
+                                    CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                                 }
         
         member this.SumLevelCountsFromAllTestVariables =
             this.TraverseTree   {
                                     TestVariableNodeResult = fun levels -> uint32 (Seq.length levels)
                                     CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
-                                    CombineResultsFromSynthesizingNodeSubtrees = Seq.fold (+) 0u
+                                    CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                                 }
       
         member this.MaximumStrengthOfTestVariableCombination =
             this.TraverseTree   {
                                     TestVariableNodeResult = fun _ -> 1u
                                     CombineResultsFromInterleavingNodeSubtrees = Seq.max
-                                    CombineResultsFromSynthesizingNodeSubtrees = Seq.fold (+) 0u
-                                }                                    
+                                    CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
+                                }
+                                
+        member this.PruneTree =
+            let rec walkTree node =
+                match node with
+                    TestVariableNode levels ->
+                        if Seq.isEmpty levels
+                        then None
+                        else Some node
+                  | InterleavingNode subtreeRootNodes ->
+                        let prunedSubtreeRootNodes =
+                            subtreeRootNodes
+                            |> Seq.map walkTree
+                            |> Seq.filter Option.isSome
+                            |> Seq.map Option.get
+                        if Seq.isEmpty prunedSubtreeRootNodes
+                            then None
+                            else Some (InterleavingNode prunedSubtreeRootNodes)
+                  | SynthesizingNode (subtreeRootNodes
+                                      , synthesisDelegate) ->
+                        let prunedSubtreeRootNodes =
+                            subtreeRootNodes
+                            |> Seq.map walkTree
+                            |> Seq.filter Option.isSome
+                            |> Seq.map Option.get
+                        if not (Seq.isEmpty prunedSubtreeRootNodes)
+                           && Seq.length prunedSubtreeRootNodes
+                              = Seq.length subtreeRootNodes
+                        then Some (SynthesizingNode (prunedSubtreeRootNodes
+                                                  , synthesisDelegate))
+                        else None
+            walkTree this
                                 
         member this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
             let rec walkTree node

@@ -49,6 +49,7 @@
     <Compile Include="InterleavedTestCaseEnumerableFactory.fs" />
     <Compile Include="SynthesizedTestCaseEnumerableFactory.fs" />
     <Compile Include="TestVariableLevelEnumerableFactory.fs" />
+    <Compile Include="SingletonTestCaseEnumerableFactory.fs" />
     <None Include="..\ThirdParty\PowerCollections\Binaries\PowerCollections.dll">
       <Link>PowerCollections.dll</Link>
     </None>

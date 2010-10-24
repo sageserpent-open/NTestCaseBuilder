@@ -6,6 +6,8 @@ module SageSerpent.TestInfrastructure.SynthesizedTestCaseEnumerableFactory
 
     let Create (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITestCaseEnumerableFactory>)
                (synthesisDelegate: Delegate) =
+        if Seq.isEmpty sequenceOfFactoriesProvidingInputsToSynthesis
+        then raise (PreconditionViolationException "Must provide at least one component.")               
         let node =
             SynthesizingNode ((sequenceOfFactoriesProvidingInputsToSynthesis
                               |> Seq.map (fun factory
