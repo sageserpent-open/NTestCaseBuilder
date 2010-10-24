@@ -26,3 +26,4 @@ namespace SageSerpent.Infrastructure
         inherit AdmissibleFailure(description)  // NOTE: there is no textual suffix added here as this exception
                                                 // is only here to serve as a sign for exception propagation layers
                                                 // in clients that they should provided the *basic* exception safety guarantee.
+                                                

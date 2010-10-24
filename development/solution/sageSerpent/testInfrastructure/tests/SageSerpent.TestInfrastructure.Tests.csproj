@@ -46,13 +46,21 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\thirdParty\PowerCollections\Binaries\PowerCollections.dll</HintPath>
     </Reference>
-    <Reference Condition=" '$(Configuration)' == 'Debug' " Include="sageserpent.infrastructure, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Condition=" '$(Configuration)' == 'Debug' " Include="Sageserpent.Infrastructure, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\infrastructure\Debug\sageserpent.infrastructure.dll</HintPath>
+      <HintPath>..\..\infrastructure\Debug\Sageserpent.Infrastructure.dll</HintPath>
     </Reference>
-    <Reference Condition=" '$(Configuration)' == 'Release' " Include="sageserpent.infrastructure, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Condition=" '$(Configuration)' == 'Release' " Include="Sageserpent.Infrastructure, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\infrastructure\Release\sageserpent.infrastructure.dll</HintPath>
+      <HintPath>..\..\infrastructure\Release\Sageserpent.Infrastructure.dll</HintPath>
+    </Reference>
+    <Reference Condition=" '$(Configuration)' == 'Debug' " Include="Sageserpent.TestInfrastructure, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Debug\Sageserpent.TestInfrastructure.dll</HintPath>
+    </Reference>
+    <Reference Condition=" '$(Configuration)' == 'Release' " Include="Sageserpent.TestInfrastructure, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Release\Sageserpent.TestInfrastructure.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -60,14 +68,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="driver.cs" />
-    <Compile Include="testCaseGeneratorsTests.cs" />
+    <Compile Include="testCaseEnumeratorFactoryTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\testInfrastructure.vcproj">
-      <Project>{D75E027E-9EB6-4CC2-A94C-ED49250CDD0E}</Project>
-      <Name>SageSerpent.TestInfrastructure</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -184,7 +184,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
         #endregion
 
-        private static SetOfCombinations MakeAtomicTestCasesCombinations(ITestCaseGenerator testCaseGenerator,
+        private static SetOfCombinations MakeAtomicTestCasesCombinations(ITestCaseEnumeratorFactory testCaseGenerator,
                                                                          Random randomChoice)
         {
             var numberOfCombinationsLeftToTry = 100U;
@@ -226,7 +226,7 @@ namespace SageSerpent.TestInfrastructure.Tests
         private static UInt32 ChooseHowManyDegreesOfFreedomRequiredToAllowAllCombinationsToBeCovered(
             SetOfCombinations atomicTestCasesCombinations,
             Random randomChoice,
-            ITestCaseGenerator testCaseGenerator)
+            ITestCaseEnumeratorFactory testCaseGenerator)
         {
             var maximumCombinationWidth =
                 Algorithms.Maximum(Algorithms.Convert(atomicTestCasesCombinations, combination => (UInt32)
@@ -235,7 +235,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             return
                 (UInt32)
                 randomChoice.Next((Int32) maximumCombinationWidth,
-                                  (Int32) (testCaseGenerator.MaximumDegreesOfFreedom + 1U));
+                                  (Int32) (testCaseGenerator.MaximumStrength + 1U));
         }
 
         private static void StrikeOffCombinationsCoveredByTestCase(AbstractTestCase testCase,
@@ -376,16 +376,9 @@ namespace SageSerpent.TestInfrastructure.Tests
             Assert.IsTrue(atomicTestCasesCombinationsToBeStruckOff.Count > 0U);
         }
 
-        // TODO: pruning and pruning tests!
-
-        // TODO: need to test precondition failures for when a test case generator tree is in pruned form
-        // has at least one of either a test case generator working with an empty collection or a test
-        // case generator with no child alternatives. Neither degrees of freedom nor test case generation
-        // is valid. Also expect precondition failures when attempting to prune a tree that cannot yield
-        // a valid pruned tree.
-
         private delegate void TestATestCaseGenerator(
-            ITestCaseGenerator testCaseGeneratorWithoutCollisions, ITestCaseGenerator testCaseGeneratorWithCollisions);
+            ITestCaseEnumeratorFactory testCaseGeneratorWithoutCollisions,
+            ITestCaseEnumeratorFactory testCaseGeneratorWithCollisions);
 
         private static void ForABunchOfTestCaseGenerators(TestATestCaseGenerator test)
         {
@@ -416,12 +409,12 @@ namespace SageSerpent.TestInfrastructure.Tests
             CombinationOfAtomicTestCases PickFeasibleCombinationOfAtomicTestCases(Random randomChoice);
         }
 
-        public class TestCaseFromCollectionGenerator : TestInfrastructure.TestCaseFromCollectionGenerator,
-                                                       ITestCaseGeneratorIntrusiveTestHooks
+        public class TestVariableLevelEnumeratorFactory : TestInfrastructure.TestVariableLevelEnumeratorFactory,
+                                                          ITestCaseGeneratorIntrusiveTestHooks
         {
             private readonly CollectionOwningAtomicTestCases _owningCollection = new HashBag<AtomicTestCase>();
 
-            private TestCaseFromCollectionGenerator(CollectionOwningAtomicTestCases owningCollection)
+            private TestVariableLevelEnumeratorFactory(CollectionOwningAtomicTestCases owningCollection)
                 : base(owningCollection.ToArray())
             {
                 if (!(owningCollection.Count > 0U))
@@ -461,7 +454,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             #endregion
 
-            public static TestCaseFromCollectionGenerator Create(Random randomChoice, Int32? equivalenceIndex)
+            public static TestVariableLevelEnumeratorFactory Create(Random randomChoice, Int32? equivalenceIndex)
             {
                 Console.WriteLine('E');
 
@@ -481,7 +474,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                     AtomicTestCase.PutNewTestCaseInto(owningCollection, equivalenceIndex.Value);
                 }
 
-                return new TestCaseFromCollectionGenerator(owningCollection);
+                return new TestVariableLevelEnumeratorFactory(owningCollection);
             }
         }
 
@@ -492,12 +485,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                        : equivalenceIndex - 1;
         }
 
-        public class TestCaseFromAlternativesGenerator : TestInfrastructure.TestCaseFromAlternativesGenerator,
-                                                         ITestCaseGeneratorIntrusiveTestHooks
+        public class InterleavedTestCaseEnumeratorFactory : TestInfrastructure.InterleavedTestCaseEnumeratorFactory,
+                                                            ITestCaseGeneratorIntrusiveTestHooks
         {
-            private readonly HashSet<ITestCaseGenerator> _testCaseGenerators;
+            private readonly HashSet<ITestCaseEnumeratorFactory> _testCaseGenerators;
 
-            private TestCaseFromAlternativesGenerator(HashSet<ITestCaseGenerator> testCaseGenerators)
+            private InterleavedTestCaseEnumeratorFactory(HashSet<ITestCaseEnumeratorFactory> testCaseGenerators)
                 : base(testCaseGenerators)
             {
                 if (!(testCaseGenerators.Count > 0U))
@@ -540,7 +533,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                         return
                             Algorithms.Maximum(
                                 Algorithms.Convert(_testCaseGenerators,
-                                                   testCaseGenerator => testCaseGenerator.MaximumDegreesOfFreedom));
+                                                   testCaseGenerator => testCaseGenerator.MaximumStrength));
                     }
                     else
                     {
@@ -560,14 +553,14 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             #endregion
 
-            public static TestCaseFromAlternativesGenerator Create(Random randomChoice,
-                                                                   UInt32 treeDepth,
-                                                                   UInt32 maximumDegreesOfFreedom,
-                                                                   Int32? equivalenceIndex)
+            public static InterleavedTestCaseEnumeratorFactory Create(Random randomChoice,
+                                                                      UInt32 treeDepth,
+                                                                      UInt32 maximumDegreesOfFreedom,
+                                                                      Int32? equivalenceIndex)
             {
                 Console.WriteLine('A');
 
-                var testCaseGenerators = new HashSet<ITestCaseGenerator>();
+                var testCaseGenerators = new HashSet<ITestCaseEnumeratorFactory>();
 
                 const UInt32 maximumNumberOfAlternativeTestCaseGenerators = 5;
 
@@ -584,12 +577,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                                                                  equivalenceIndex)));
                 }
 
-                return new TestCaseFromAlternativesGenerator(testCaseGenerators);
+                return new InterleavedTestCaseEnumeratorFactory(testCaseGenerators);
             }
         }
 
-        public class TestCaseFromCombinationGenerator : TestInfrastructure.TestCaseFromCombinationGenerator,
-                                                        ITestCaseGeneratorIntrusiveTestHooks
+        public class SynthesizedTestCaseEnumeratorFactory : TestInfrastructure.SynthesizedTestCaseEnumeratorFactory,
+                                                            ITestCaseGeneratorIntrusiveTestHooks
         {
             #region Delegates
 
@@ -606,9 +599,9 @@ namespace SageSerpent.TestInfrastructure.Tests
             private static readonly AssemblyBuilder _assemblyBuilder;
             private static readonly ModuleBuilder _moduleBuilder;
             private static UInt32 _namespaceNameGenerationState;
-            private readonly C5.IList<ITestCaseGenerator> _testCaseGenerators;
+            private readonly C5.IList<ITestCaseEnumeratorFactory> _testCaseGenerators;
 
-            static TestCaseFromCombinationGenerator()
+            static SynthesizedTestCaseEnumeratorFactory()
             {
                 var assemblyName = GetNonConflictingAssemblyName();
 
@@ -622,8 +615,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                 _moduleBuilder = _assemblyBuilder.DefineDynamicModule(moduleName);
             }
 
-            private TestCaseFromCombinationGenerator(C5.IList<ITestCaseGenerator> testCaseGenerators,
-                                                     PermutingClosure combiningClosure)
+            private SynthesizedTestCaseEnumeratorFactory(C5.IList<ITestCaseEnumeratorFactory> testCaseGenerators,
+                                                         PermutingClosure combiningClosure)
                 : base(testCaseGenerators, AdaptPermutingClosure(combiningClosure, (UInt32) testCaseGenerators.Count))
             {
                 _testCaseGenerators = testCaseGenerators;
@@ -654,7 +647,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                     // Where is the 'fold-left' algorithm for .NET? :-(
                     var result = 0U;
                     Algorithms.ForEach(_testCaseGenerators,
-                                       testCaseGenerator => result += testCaseGenerator.MaximumDegreesOfFreedom);
+                                       testCaseGenerator => result += testCaseGenerator.MaximumStrength);
 
                     if (!(result > 0U))
                     {
@@ -687,14 +680,14 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             #endregion
 
-            public static TestCaseFromCombinationGenerator Create(Random randomChoice,
-                                                                  UInt32 treeDepth,
-                                                                  UInt32 maximumDegreesOfFreedom,
-                                                                  Int32? equivalenceIndex)
+            public static SynthesizedTestCaseEnumeratorFactory Create(Random randomChoice,
+                                                                      UInt32 treeDepth,
+                                                                      UInt32 maximumDegreesOfFreedom,
+                                                                      Int32? equivalenceIndex)
             {
                 Console.WriteLine('C');
 
-                var testCaseGenerators = new C5.LinkedList<ITestCaseGenerator>();
+                var testCaseGenerators = new C5.LinkedList<ITestCaseEnumeratorFactory>();
 
                 var numberOfPartitionPoints = (UInt32) randomChoice.Next((Int32) maximumDegreesOfFreedom) + 1U;
 
@@ -749,7 +742,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                                                                  equivalenceIndex)));
                 }
 
-                return new TestCaseFromCombinationGenerator(testCaseGenerators, CreatePermutingClosure(randomChoice));
+                return new SynthesizedTestCaseEnumeratorFactory(testCaseGenerators, CreatePermutingClosure(randomChoice));
             }
 
             private static PermutingClosure CreatePermutingClosure(Random randomChoice)
@@ -858,8 +851,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                 var arityAsString = numberOfArgumentsForAdaptedClosure.ToString();
 
                 var typeAttributes = TypeAttributes.Class | TypeAttributes.Public | TypeAttributes.Sealed |
-                                                TypeAttributes.AnsiClass
-                                                | TypeAttributes.AutoClass;
+                                     TypeAttributes.AnsiClass
+                                     | TypeAttributes.AutoClass;
 
                 var typeBuilder =
                     _moduleBuilder.DefineType(
@@ -871,7 +864,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                 var constructorArgumentTypes = new[] {typeof (Object), typeof (IntPtr)};
 
                 var constructorAttributes = MethodAttributes.RTSpecialName | MethodAttributes.HideBySig |
-                                                         MethodAttributes.Public;
+                                            MethodAttributes.Public;
 
                 var constructorBuilder =
                     typeBuilder.DefineConstructor(constructorAttributes, CallingConventions.Standard,
@@ -883,8 +876,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                 var methodArgumentTypes = CreateArgumentTypesForAdaptedClosure(numberOfArgumentsForAdaptedClosure);
 
                 var methodAttributes = MethodAttributes.Public | MethodAttributes.HideBySig |
-                                                    MethodAttributes.NewSlot
-                                                    | MethodAttributes.Virtual;
+                                       MethodAttributes.NewSlot
+                                       | MethodAttributes.Virtual;
 
                 var invokeMethodName = "Invoke";
 
@@ -908,11 +901,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                 return result;
             }
 
-            private static void ConcatenateCrossProductOfSequences(C5.IList<ITestCaseGenerator> testCaseGenerators,
-                                                                   SequenceOfCollectionsOwningAtomicTestCases
-                                                                       sequenceBeingBuiltUp,
-                                                                   SetOfSequencesOfCollectionsOwningAtomicTestCases
-                                                                       result)
+            private static void ConcatenateCrossProductOfSequences(
+                C5.IList<ITestCaseEnumeratorFactory> testCaseGenerators,
+                SequenceOfCollectionsOwningAtomicTestCases
+                    sequenceBeingBuiltUp,
+                SetOfSequencesOfCollectionsOwningAtomicTestCases
+                    result)
             {
                 if (testCaseGenerators.Count == 0)
                 {
@@ -963,8 +957,8 @@ namespace SageSerpent.TestInfrastructure.Tests
             #endregion
         }
 
-        public static ITestCaseGenerator CreateRandomlyAssembledTestCaseGenerator(Random randomChoice,
-                                                                                  Boolean createDuplicatesAsWell)
+        public static ITestCaseEnumeratorFactory CreateRandomlyAssembledTestCaseGenerator(Random randomChoice,
+                                                                                          Boolean createDuplicatesAsWell)
         {
             Console.WriteLine();
 
@@ -979,10 +973,10 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                              : null);
         }
 
-        public static ITestCaseGenerator CreateRandomlyAssembledTestCaseGenerator(Random randomChoice,
-                                                                                  UInt32 parentTreeDepth,
-                                                                                  UInt32 maximumDegreesOfFreedom,
-                                                                                  Int32? equivalenceIndex)
+        public static ITestCaseEnumeratorFactory CreateRandomlyAssembledTestCaseGenerator(Random randomChoice,
+                                                                                          UInt32 parentTreeDepth,
+                                                                                          UInt32 maximumDegreesOfFreedom,
+                                                                                          Int32? equivalenceIndex)
         {
             if (maximumDegreesOfFreedom == 0U)
             {
@@ -1007,19 +1001,21 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             if (maximumDegreesOfFreedom == 1U && randomChoice.Next((Int32) maximumPermittedTreeDepth) + 1U <= treeDepth)
             {
-                return TestCaseFromCollectionGenerator.Create(randomChoice, equivalenceIndex);
+                return TestVariableLevelEnumeratorFactory.Create(randomChoice, equivalenceIndex);
             }
             else
             {
                 switch (randomChoice.Next(2))
                 {
                     case 0:
-                        return TestCaseFromAlternativesGenerator.Create(randomChoice, treeDepth, maximumDegreesOfFreedom,
-                                                                        equivalenceIndex);
+                        return InterleavedTestCaseEnumeratorFactory.Create(randomChoice, treeDepth,
+                                                                           maximumDegreesOfFreedom,
+                                                                           equivalenceIndex);
 
                     case 1:
-                        return TestCaseFromCombinationGenerator.Create(randomChoice, treeDepth, maximumDegreesOfFreedom,
-                                                                       equivalenceIndex);
+                        return SynthesizedTestCaseEnumeratorFactory.Create(randomChoice, treeDepth,
+                                                                           maximumDegreesOfFreedom,
+                                                                           equivalenceIndex);
 
                     default:
                         throw new InternalAssertionViolation("Default of this switch should not be executed.");
@@ -1037,10 +1033,10 @@ namespace SageSerpent.TestInfrastructure.Tests
                     {
                         var requestedDegreesOfFreedomForCombinationCoverage =
                             (UInt32)
-                            randomChoice.Next((Int32) (testCaseGeneratorWithoutCollisions.MaximumDegreesOfFreedom + 1U));
+                            randomChoice.Next((Int32) (testCaseGeneratorWithoutCollisions.MaximumStrength + 1U));
 
                         var testCaseIterator =
-                            testCaseGeneratorWithoutCollisions.CreateIterator(
+                            testCaseGeneratorWithoutCollisions.CreateEnumerator(
                                 requestedDegreesOfFreedomForCombinationCoverage);
 
                         var
@@ -1084,7 +1080,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
                         {
                             var testCaseEnumerator =
-                                testCaseGeneratorWithoutCollisions.CreateIterator(numberOfDegreesOfFreedom);
+                                testCaseGeneratorWithoutCollisions.CreateEnumerator(numberOfDegreesOfFreedom);
 
                             CheckThatAllCombinationsAreCovered(testCaseEnumerator,
                                                                atomicStateToContainingCombinationMultiMap,
@@ -1093,7 +1089,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
                         {
                             var testCaseEnumerator =
-                                testCaseGeneratorWithCollisions.CreateIterator(numberOfDegreesOfFreedom);
+                                testCaseGeneratorWithCollisions.CreateEnumerator(numberOfDegreesOfFreedom);
 
                             CheckThatAllCombinationsAreCovered(testCaseEnumerator,
                                                                atomicStateToContainingCombinationMultiMap,
@@ -1107,7 +1103,7 @@ namespace SageSerpent.TestInfrastructure.Tests
         {
             ForABunchOfTestCaseGenerators(
                 (testCaseGeneratorWithoutCollisions, testCaseGeneratorWithCollisions) =>
-                Assert.AreEqual(testCaseGeneratorWithoutCollisions.MaximumDegreesOfFreedom,
+                Assert.AreEqual(testCaseGeneratorWithoutCollisions.MaximumStrength,
                                 ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGeneratorWithoutCollisions).
                                     MaximumNumberOfOwningSetsInSequence));
         }
@@ -1122,12 +1118,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                     {
                         var maximumDegreesOfFreedom =
                             (UInt32)
-                            randomChoice.Next((Int32) testCaseGeneratorWithoutCollisions.MaximumDegreesOfFreedom) + 1U;
+                            randomChoice.Next((Int32) testCaseGeneratorWithoutCollisions.MaximumStrength) + 1U;
 
                         var testCases = new HashSet<AbstractTestCase>();
 
                         var testCaseEnumerator =
-                            testCaseGeneratorWithoutCollisions.CreateIterator(maximumDegreesOfFreedom);
+                            testCaseGeneratorWithoutCollisions.CreateEnumerator(maximumDegreesOfFreedom);
 
                         while (testCaseEnumerator.MoveNext())
                         {
@@ -1140,7 +1136,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                             PickTheLargestCombinationsOfSizeNotExceeding(testCaseToBeExcluded.AtomicTestCases(),
                                                                          maximumDegreesOfFreedom == 0U
                                                                              ? testCaseGeneratorWithoutCollisions
-                                                                                   .MaximumDegreesOfFreedom
+                                                                                   .MaximumStrength
                                                                              : maximumDegreesOfFreedom);
 
                         var atomicStateToContainingCombinationMultiMap =
@@ -1148,7 +1144,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
                         {
                             var testCaseEnumeratorTwo =
-                                testCaseGeneratorWithoutCollisions.CreateIterator(maximumDegreesOfFreedom);
+                                testCaseGeneratorWithoutCollisions.CreateEnumerator(maximumDegreesOfFreedom);
 
                             CheckThatAtLeastOneCombinationIsNotCovered(testCaseToBeExcluded, testCaseEnumeratorTwo,
                                                                        atomicStateToContainingCombinationMultiMap,
@@ -1157,7 +1153,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
                         {
                             var testCaseEnumeratorTwo =
-                                testCaseGeneratorWithCollisions.CreateIterator(maximumDegreesOfFreedom);
+                                testCaseGeneratorWithCollisions.CreateEnumerator(maximumDegreesOfFreedom);
 
                             CheckThatAtLeastOneCombinationIsNotCovered(testCaseToBeExcluded, testCaseEnumeratorTwo,
                                                                        atomicStateToContainingCombinationMultiMap,

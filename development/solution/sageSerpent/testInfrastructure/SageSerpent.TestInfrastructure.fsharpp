@@ -1,0 +1,68 @@
+"General"
+{
+"ProjectIdGuid" = "{92B57088-3887-40B4-8BDE-E838CC9D5AE1}"
+}
+"Configurations"
+{
+    "Debug|Win32"
+    {
+    "ProjectType" = "DLL"
+    "OptLevel" = "Off"
+    "StrongNamingLevel" = "None"
+    "OutputPath" = "Debug"
+    "SearchPath" = "-R ..\\infrastructure\\Debug\\SageSerpent.Infrastructure.dll"
+    "StrongNameFile" = ""
+    "OutputBase" = "SageSerpent.TestInfrastructure"
+    "CustomCommandLine" = ""
+    "CustomCompiler" = ""
+    "DebugCheck" = "TRUE"
+    "CustomCompilationCheck" = "FALSE"
+    "DebugStartMode" = "0"
+    "StartApp" = ""
+    "StartAppPath" = ""
+    "CustomStartupArguments" = ""
+    }
+    "Release|Win32"
+    {
+    "ProjectType" = "DLL"
+    "OptLevel" = "3"
+    "StrongNamingLevel" = "None"
+    "OutputPath" = "Release"
+    "SearchPath" = "-R ..\\infrastructure\\Release\\SageSerpent.Infrastructure.dll"
+    "StrongNameFile" = ""
+    "OutputBase" = "SageSerpent.TestInfrastructure"
+    "CustomCommandLine" = ""
+    "CustomCompiler" = ""
+    "DebugCheck" = "FALSE"
+    "CustomCompilationCheck" = "FALSE"
+    "DebugStartMode" = "0"
+    "StartApp" = ""
+    "StartAppPath" = ""
+    "CustomStartupArguments" = ""
+    }
+}
+"Files"
+{
+    "testCaseEnumeratorFactory.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "testVariableLevelEnumeratorFactory.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "interleavedTestCaseEnumeratorFactory.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "synthesizedTestCaseEnumeratorFactory.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+}
+"ProjStartupServices"
+{
+}
+"Globals"
+{
+}

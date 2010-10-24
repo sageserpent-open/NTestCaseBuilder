@@ -23,7 +23,7 @@ namespace SageSerpent.Infrastructure.Tests
         let contributionLimitsEquallingUpToLimitInTotal limit maximumLengthOfContributionLimits =
             List.flatten (Seq.map (function item -> contributionLimitsEquallingLimitInTotal item maximumLengthOfContributionLimits) [0u..limit])
             
-        let sumContributions (contributionList: uint32 list) = List.reduce_right (fun x y -> x + y) contributionList
+        let sumContributions (contributionList: System.UInt32 list) = List.reduce_right (fun x y -> x + y) contributionList
         
         [<Test>]
         member this.TestThatAttemptingToChooseContributionsFromAnEmptyListResultsInAnEmptyResultList () =
