@@ -21,15 +21,15 @@ namespace SageSerpent.TestInfrastructure.Tests
         
         let reciprocalOfProbabilityOfNotGeneratingAnyFurtherPartialTestVectors = 30u
         
-        let maximumNumberOfTestVariables = 50u
+        let maximumNumberOfTestVariables = 70u
         
-        let maximumNumberOfTestVectors = 200u
+        let maximumNumberOfTestVectors = 400u
         
         let maximumRandomWalkStep = 10u
         
         let maximumLevelDelta = 5u
         
-        let overallTestRepeats = 50u
+        let overallTestRepeats = 100u
         
         let maximumNumberOfIndicesToAvoid = 4u
         

@@ -126,7 +126,8 @@ namespace SageSerpent.TestInfrastructure
                         then if treeIsForNextTestVariableIndex
                              then raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that is already mergeable with or equivalent to a previous one.")
                                     // The above is really a precondition violation, but the precondition should have been enforced by the implementation and not by the client.
-                             else raise (InternalAssertionViolationException "Left or right subtrees should only be added to with a non-empty new partial test vector representation.")
+                             else raise (InternalAssertionViolationException ("Two problems: left or right subtrees should only be added to with a non-empty new partial test vector representation"
+                                                                              + " and a successful search cannot terminate on a left or right subtree."))
                         buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation ()                             
                   | UnsuccessfulSearchTerminationNode ->
                         if List.is_empty newPartialTestVectorRepresentation
