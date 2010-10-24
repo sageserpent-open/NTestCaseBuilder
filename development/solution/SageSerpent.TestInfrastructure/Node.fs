@@ -12,11 +12,13 @@ namespace SageSerpent.TestInfrastructure
     type ('Result, 'LevelUpperBoundType) NodeVisitOperations = // A 'visitor' by any other name. :-)
         {
             TestVariableNodeResult: seq<'LevelUpperBoundType> -> 'Result
+            SingletonNodeResult: unit -> 'Result
             CombineResultsFromInterleavingNodeSubtrees: seq<'Result> -> 'Result
             CombineResultsFromSynthesizingNodeSubtrees: seq<'Result> -> 'Result
         }
     and 'LevelUpperBoundType Node =
         TestVariableNode of seq<'LevelUpperBoundType>
+      | SingletonNode of Object
       | InterleavingNode of seq<'LevelUpperBoundType Node>
       | SynthesizingNode of seq<'LevelUpperBoundType Node> * Delegate
 
@@ -26,6 +28,8 @@ namespace SageSerpent.TestInfrastructure
                                             match node with
                                                 TestVariableNode levels ->
                                                     nodeOperations.TestVariableNodeResult levels
+                                              | SingletonNode _ ->
+                                                    nodeOperations.SingletonNodeResult ()
                                               | InterleavingNode subtrees ->
                                                     subtrees
                                                     |> Seq.map (fun subtreeHead -> memoizedCalculation subtreeHead)
@@ -40,6 +44,7 @@ namespace SageSerpent.TestInfrastructure
         member this.CountTestVariables =
             this.TraverseTree   {
                                     TestVariableNodeResult = fun _ -> 1u
+                                    SingletonNodeResult = fun () -> 0u
                                     CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
                                     CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                                 }
@@ -47,6 +52,7 @@ namespace SageSerpent.TestInfrastructure
         member this.SumLevelCountsFromAllTestVariables =
             this.TraverseTree   {
                                     TestVariableNodeResult = fun levels -> uint32 (Seq.length levels)
+                                    SingletonNodeResult = fun () -> 0u
                                     CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
                                     CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                                 }
@@ -54,6 +60,7 @@ namespace SageSerpent.TestInfrastructure
         member this.MaximumStrengthOfTestVariableCombination =
             this.TraverseTree   {
                                     TestVariableNodeResult = fun _ -> 1u
+                                    SingletonNodeResult = fun () -> 0u
                                     CombineResultsFromInterleavingNodeSubtrees = Seq.max
                                     CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                                 }
@@ -65,6 +72,8 @@ namespace SageSerpent.TestInfrastructure
                         if Seq.isEmpty levels
                         then None
                         else Some node
+                  | SingletonNode _ as node ->
+                        Some node
                   | InterleavingNode subtreeRootNodes ->
                         let prunedSubtreeRootNodes =
                             subtreeRootNodes
@@ -95,7 +104,7 @@ namespace SageSerpent.TestInfrastructure
                              interleavingTestVariableIndices
                              previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 match node with
-                    TestVariableNode levels ->
+                    TestVariableNode _ ->
                         let forwardInterleavingPairs =
                             interleavingTestVariableIndices
                             |> List.map (function interleavingTestVariableIndex ->
@@ -110,6 +119,9 @@ namespace SageSerpent.TestInfrastructure
                         , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
                           |> List.append forwardInterleavingPairs
                           |> List.append backwardInterleavingPairs
+                  | SingletonNode _ ->
+                        indexForLeftmostTestVariable
+                        , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
                   | InterleavingNode subtreeRootNodes ->
                         let mergeAssociationFromSubtree (indexForLeftmostTestVariable
                                                          , interleavingTestVariableIndicesFromTheLeftSiblings
@@ -160,7 +172,12 @@ namespace SageSerpent.TestInfrastructure
                             , indexForLeftmostTestVariable + 1u
                             , [(indexForLeftmostTestVariable, levels
                                                               |> Seq.map Some)]
-                            
+                      
+                      | SingletonNode _ ->
+                            []
+                            , indexForLeftmostTestVariable
+                            , []
+                      
                       | InterleavingNode subtreeRootNodes ->
                             let rec joinPairsAtEachStrength first second =
                                 match first, second with
@@ -309,6 +326,8 @@ namespace SageSerpent.TestInfrastructure
                 match node with
                     TestVariableNode levels ->
                         levels
+                  | SingletonNode _ ->
+                        raise (InternalAssertionViolationException "Recursion to isolate a test variable index should not terminate on singleton node.")
                   | InterleavingNode subtreeRootNodes ->
                         recurseOnAppropriateSubtree (subtreeRootNodes
                                                      |> LazyList.ofSeq)
@@ -383,6 +402,8 @@ namespace SageSerpent.TestInfrastructure
                                     levelFromVector :> Object
                               | None ->
                                     raise (PreconditionViolationException "Vector is inconsistent with the tree structure - the level from the vector has the sentinel value for an excluded test variable.")
+                      | SingletonNode testCase ->
+                            testCase                                    
                       | InterleavingNode subtreeRootNodes ->
                             let firstNonExcludedTestVariableIndex =
                                 let sectionOfFullTestVector =

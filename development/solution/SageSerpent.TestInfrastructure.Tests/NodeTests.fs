@@ -33,7 +33,11 @@
                 match node with
                     TestVariableNode levels ->
                         let subtreeGuiNode =
-                            TreeNode ("TreeNode\n" + sprintf "%A" levels)
+                            TreeNode ("TestVariableNode\n" + sprintf "%A" levels)
+                        treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
+                  | SingletonNode testCase ->
+                        let subtreeGuiNode =
+                            TreeNode ("SingletonNode\n" + sprintf "%A" testCase)
                         treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
                   | InterleavingNode subtrees ->
                         let subtreeGuiNode =
