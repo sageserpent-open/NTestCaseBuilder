@@ -53,70 +53,63 @@ namespace SageSerpent.TestInfrastructure
                                     }
                                     
             member this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
-                let rec walkTree node indexForLeftmostTestVariable =
+                let rec walkTree node indexForLeftmostTestVariable interleavingTestVariableIndices association =
                     match node with
                         TestVariableNode levels ->
-                            [(indexForLeftmostTestVariable, [])]
+                            (indexForLeftmostTestVariable, interleavingTestVariableIndices)
+                             :: association
                             , indexForLeftmostTestVariable + 1u
                       | InterleavingNode subtreeRootNodes ->
                             let association
                                 , maximumTestVariableFromSubtree
                                 , _ =
                                 let rec accumulateContributionsFromTheLeftAndThenJoinInContributionsFromTheRight subtreeRootNodes
-                                                                                                                 (contributionsFromTheLeft
-                                                                                                                  , indexForLeftmostTestVariable) =
+                                                                                                                 contributionsFromTheLeft
+                                                                                                                 indexForLeftmostTestVariable =
                                     match subtreeRootNodes with
                                         [] ->
-                                            []
+                                            association
                                             , indexForLeftmostTestVariable
                                             , []
                                       | head :: tail ->
-                                            let associationFromSubtreeItself
-                                                , maximumTestVariableIndexFromSubtree =
-                                                walkTree head indexForLeftmostTestVariable                                                    
                                             let numberOfTestVariablesFromNode =
-                                                maximumTestVariableIndexFromSubtree - indexForLeftmostTestVariable
+                                                (head: Node).CountTestVariables
                                             let testVariableIndicesFromNode =
                                                 List.init (int32 numberOfTestVariablesFromNode)
                                                           (fun variableCount -> uint32 variableCount + indexForLeftmostTestVariable)
-                                            let association
+                                            let partialAssociation
                                                 , maximumTestVariableIndex
                                                 , contributionsFromTheRight =
                                                 accumulateContributionsFromTheLeftAndThenJoinInContributionsFromTheRight tail
-                                                                                                                         (List.append testVariableIndicesFromNode contributionsFromTheLeft
-                                                                                                                          , maximumTestVariableIndexFromSubtree)
+                                                                                                                         (List.append testVariableIndicesFromNode contributionsFromTheLeft)
+                                                                                                                         (indexForLeftmostTestVariable + numberOfTestVariablesFromNode)
                                             let contributionsFromEitherSide =
                                                 List.append contributionsFromTheLeft contributionsFromTheRight
                                                 
-                                            let associationIncludingSiblingsActingOnSubtree
-                                                = associationFromSubtreeItself
-                                                  |> List.map (function testVariableIndex
-                                                                        , interleavedTestVariableIndices ->
-                                                                            testVariableIndex
-                                                                            , List.append contributionsFromEitherSide interleavedTestVariableIndices)
+                                            let resultAssociation
+                                                , _ =
+                                                walkTree head indexForLeftmostTestVariable contributionsFromEitherSide partialAssociation                                                 
+
                                                                     
-                                            List.append associationIncludingSiblingsActingOnSubtree association
+                                            resultAssociation
                                             , maximumTestVariableIndex
                                             , List.append testVariableIndicesFromNode contributionsFromTheRight
                                 accumulateContributionsFromTheLeftAndThenJoinInContributionsFromTheRight (List.of_seq subtreeRootNodes)
-                                                                                                             ([], indexForLeftmostTestVariable)
+                                                                                                         interleavingTestVariableIndices
+                                                                                                         indexForLeftmostTestVariable
                             association
                             , maximumTestVariableFromSubtree
                       | SynthesizingNode subtreeRootNodes ->
                             let mergeAssociationFromSubtree (previouslyMergedAssociationList
                                                              , indexForLeftmostTestVariable)
                                                             subtreeRootNode =
-                                let associationFromSubtree
-                                    , maximumTestVariableIndexFromSubtree =
-                                    walkTree subtreeRootNode indexForLeftmostTestVariable
-                                List.append associationFromSubtree previouslyMergedAssociationList
-                                , maximumTestVariableIndexFromSubtree
+                                walkTree subtreeRootNode indexForLeftmostTestVariable interleavingTestVariableIndices previouslyMergedAssociationList
                             subtreeRootNodes
                             |> Seq.fold mergeAssociationFromSubtree
-                                        ([], indexForLeftmostTestVariable)
+                                        (association, indexForLeftmostTestVariable)
                 let result,
                     _ =
-                        walkTree this 0u
+                        walkTree this 0u [] []
                 result
                                     
             member this.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding strength =
