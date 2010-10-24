@@ -349,7 +349,7 @@ namespace SageSerpent.TestInfrastructure
                         TestVariableNode _ ->
                             match fullTestVector.[int32 indexForLeftmostTestVariable] with
                                 Some levelFromVector ->
-                                    levelFromVector
+                                    levelFromVector :> Object
                               | None ->
                                     raise (PreconditionViolationException "Vector is inconsistent with the tree structure - the level from the vector has the sentinel value for an excluded test variable.")
                       | InterleavingNode subtreeRootNodes ->
@@ -406,7 +406,7 @@ namespace SageSerpent.TestInfrastructure
                                             let resultFromSubtree =
                                                 walkTree head
                                                          indexForLeftmostTestVariable
-                                            resultFromSubtree :> System.Object
+                                            resultFromSubtree
                                             :: collectResultsFromSubtrees tail
                                                                           indexForForLeftmostTestVariableInTail
                             let resultsFromSubtrees =
@@ -414,7 +414,7 @@ namespace SageSerpent.TestInfrastructure
                             let invocationArguments =
                                 resultsFromSubtrees
                                 |> List.toArray
-                            (synthesisDelegate.DynamicInvoke invocationArguments) :?> 'LevelUpperBoundType
+                            (synthesisDelegate.DynamicInvoke invocationArguments)
             if this.CountTestVariables > uint32 (Array.length fullTestVector)
             then raise (PreconditionViolationException "Vector is inconsistent with the tree structure - test vector has more entries than the number of test variables in the tree.")                                                             
             else walkTree this

@@ -59,7 +59,7 @@ namespace SageSerpent.TestInfrastructure.Examples
     {
         private enum OperationKind
         {
-            NoOperation,
+            DoNothing,
             Insertion,
             Deletion,
             Replacement,
@@ -98,6 +98,8 @@ namespace SageSerpent.TestInfrastructure.Examples
             private void AddStateTransitionsForWhenNoEntryExists()
             {
                 _operationKindToOperationCreatorMapWhereNoEntryExists.Add
+                    (OperationKind.DoNothing, AddDoNothingOperation);
+                _operationKindToOperationCreatorMapWhereNoEntryExists.Add
                     (OperationKind.Insertion, AddInsertionOperationThatShouldSucceed);
                 _operationKindToOperationCreatorMapWhereNoEntryExists.Add
                     (OperationKind.Deletion, AddDeletionOperationThatShouldFail);
@@ -110,6 +112,8 @@ namespace SageSerpent.TestInfrastructure.Examples
             private void AddStateTransitionsForWhenAnEntryAlreadyExists()
             {
                 _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add
+                    (OperationKind.DoNothing, AddDoNothingOperation);
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add
                     (OperationKind.Insertion, AddInsertionOperationThatShouldFail);
                 _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add
                     (OperationKind.Deletion, AddDeletionOperationThatShouldSucceed);
@@ -121,8 +125,6 @@ namespace SageSerpent.TestInfrastructure.Examples
 
             public void AppendNewOperationOfKind(OperationKind operationKind)
             {
-                if (OperationKind.NoOperation == operationKind) return;
-
                 if (null != _value)
                 {
                     _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists[operationKind]();
@@ -133,7 +135,9 @@ namespace SageSerpent.TestInfrastructure.Examples
                 }
             }
 
-            private void AddQueryOperationThatShouldFail() { Operations.Add(indexSortedDictionary => Assert.IsFalse(indexSortedDictionary.ContainsKey(_key))); }
+            private void AddDoNothingOperation() { Operations.Add(obj => { }); }
+
+            private void AddQueryOperationThatShouldFail() { Operations.Add(indexedSortedDictionary => Assert.IsFalse(indexedSortedDictionary.ContainsKey(_key))); }
 
             private void AddQueryOperationThatShouldSucceed()
             {
@@ -336,7 +340,7 @@ namespace SageSerpent.TestInfrastructure.Examples
                 (numberOfIndicesToChoose, indicesToChooseFrom, combinationSelector);
         }
 
-        private static readonly IList<Key> Keys = new List<UInt32> {0u, 1u};//, 2u, 67u, 68u, 387786776u, 45u};
+        private static readonly IList<Key> Keys = new List<UInt32> {0u, 1u, 2u, 67u, 68u, 387786776u, 45u};
 
         private static readonly IEnumerable<OperationKind> OperationKinds = Algorithms.Convert
             ((IList<Int32>) Enum.GetValues(typeof (OperationKind)), constant => (OperationKind) constant);
@@ -354,19 +358,36 @@ namespace SageSerpent.TestInfrastructure.Examples
 
             var key = keys[0];
 
-            var synthesizingFactoryForOperationSequence = MakeSynthesizingFactoryForOperationSequence
-                (sequenceLength, key, randomBehaviour);
+            var synthesizingFactoryForOperationSequenceEnumerable =
+                MakeSynthesizingFactoryForOperationSequenceEnumerable(sequenceLength, key, randomBehaviour);
 
-            var testVariableLevelFactoryForFinalOperationsListIndexCombinations =
-                MakeFactoryForFinalOperationsListIndexCombinations(keys, sequenceLength);
+            var numberOfCombinations = BargainBasement.NumberOfCombinations
+                (sequenceLength * (UInt32) keys.Count, sequenceLength);
+
+            var testVariableLevelFactoryForIndexCombinationEnumerable =
+                MakeTestVariableLevelFactoryForIndexCombinationEnumerable(numberOfCombinations);
 
             var factoryDealingWithRemainingKeys = MakeTestCaseEnumerableFactory
-                (randomBehaviour, sequenceLength, Algorithms.Range(keys, 0, keys.Count - 1));
+                (randomBehaviour, sequenceLength, Algorithms.Range(keys, 1, keys.Count - 1));
 
             return MakeRecursionInductiveCaseFactory
-                (synthesizingFactoryForOperationSequence,
-                 testVariableLevelFactoryForFinalOperationsListIndexCombinations,
+                (synthesizingFactoryForOperationSequenceEnumerable,
+                 testVariableLevelFactoryForIndexCombinationEnumerable,
                  factoryDealingWithRemainingKeys);
+        }
+
+        private static ITestCaseEnumerableFactory MakeTestVariableLevelFactoryForIndexCombinationEnumerable
+            (UInt32 numberOfCombinations)
+        {
+            var combinationSelector = numberOfCombinations;
+
+            var combinationSelectors = new List<UInt32>();
+
+            while (0U != combinationSelector--)
+            {
+                combinationSelectors.Add(combinationSelector);
+            }
+            return TestVariableLevelEnumerableFactory.Create(combinationSelectors);
         }
 
         private static ITestCaseEnumerableFactory MakeRecursionInductiveCaseFactory
@@ -390,24 +411,7 @@ namespace SageSerpent.TestInfrastructure.Examples
                  (BaseCasePlacementBuilder) (() => BaseCaseForPlacementOfOperationsIntoFinalOrder));
         }
 
-        private static ITestCaseEnumerableFactory MakeFactoryForFinalOperationsListIndexCombinations
-            (ICollection<Key> keys,
-             UInt32 sequenceLength)
-        {
-            var combinationSelector = BargainBasement.NumberOfCombinations
-                (sequenceLength, sequenceLength * (UInt32) keys.Count);
-
-            var combinationSelectors = new List<UInt32>();
-
-            while (0U != combinationSelector--)
-            {
-                combinationSelectors.Add(combinationSelector);
-            }
-
-            return TestVariableLevelEnumerableFactory.Create(combinationSelectors);
-        }
-
-        private static ITestCaseEnumerableFactory MakeSynthesizingFactoryForOperationSequence
+        private static ITestCaseEnumerableFactory MakeSynthesizingFactoryForOperationSequenceEnumerable
             (UInt32 sequenceLength,
              Key key,
              RandomBehaviour randomBehaviour)

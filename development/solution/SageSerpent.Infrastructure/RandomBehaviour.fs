@@ -5,7 +5,7 @@
 
     type RandomBehaviour (seed) =
         let randomBehaviour = Random seed
-        new (randomBehaviour: RandomBehaviour) = RandomBehaviour (int32 (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan UInt32.MaxValue))
+        new (randomBehaviour: RandomBehaviour) = RandomBehaviour (int32 (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 Int32.MaxValue)))
         member this.UnderlyingImplementationForClientUse =
             randomBehaviour
         member this.ChooseAnyNumberFromZeroToOneLessThan =
