@@ -7,3 +7,6 @@
 let a = Map.empty
 
 let b = Map.of_list [(1, "Hi"); (3, "Rabbit!"); (2, "there")]
+
+let o = 2:>obj
+
