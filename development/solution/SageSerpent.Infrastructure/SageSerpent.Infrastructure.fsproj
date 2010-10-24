@@ -43,11 +43,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInformation.fs" />
-    <Compile Include="CombinatoricUtilities.fs" />
     <Compile Include="Exceptions.fs" />
-    <Compile Include="NUnitTestSuiteDriver.fs" />
     <Compile Include="RandomBehaviour.fs" />
     <Compile Include="BargainBasement.fs" />
+    <Compile Include="CombinatoricUtilities.fs" />
+    <Compile Include="NUnitTestSuiteDriver.fs" />
     <None Include="Script.fsx" />
     <None Include="..\ThirdParty\PowerCollections\Binaries\PowerCollections.dll">
       <Link>PowerCollections.dll</Link>

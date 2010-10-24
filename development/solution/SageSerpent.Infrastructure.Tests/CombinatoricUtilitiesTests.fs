@@ -240,4 +240,25 @@ namespace SageSerpent.Infrastructure.Tests
                     let shouldBeTrue =
                         not (CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder size items
                              |> Seq.exists (not << BargainBasement.IsSorted))
-                    Assert.IsTrue shouldBeTrue                                                                
+                    Assert.IsTrue shouldBeTrue    
+                    
+        [<Test>]
+        member this.TestThatChoosingASpecificCombinationYieldsTheRightOne () =
+            for items in sequenceOfOrderedListsOfUniqueItems do
+                let maximumSize = 
+                    List.length items
+                    |> uint32
+                for size in 0u .. maximumSize do
+                    let combinationsObtainedEnMasse =
+                        CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder size items
+                        |> List.ofSeq
+                    let numberOfCombinations =
+                        List.length combinationsObtainedEnMasse
+                    let combinationsPickedOutSpecifically =
+                        List.init numberOfCombinations
+                                 (fun indexOfCombination
+                                    -> CombinatoricUtilities.GenerateCombinationOfGivenSizePreservingOrder size (List.toArray items) (uint32 indexOfCombination))
+                    let shouldBeTrue =
+                        combinationsObtainedEnMasse = combinationsPickedOutSpecifically
+                    printf "combinationsObtainedEnMasse: %A, combinationsPickedOutSpecifically: %A\n" combinationsObtainedEnMasse combinationsPickedOutSpecifically
+                    Assert.IsTrue shouldBeTrue                                                                      

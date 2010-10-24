@@ -2,6 +2,8 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
 
     open Microsoft.FSharp.Core.Operators.Checked
     
+    open System
+    
     /// <summary>Given a list of non-negative integer limits, create lists of contributions that sum up to a total
     /// such that each contribution cannot exceed its corresponding limit. The contribution lists are returned
     /// within a list: if the total is too high to be met given the limits, the result is an empty list.</summary>
@@ -47,7 +49,7 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
         if 0u = size
         then Seq.singleton []
         else match items with
-                head :: tail when size > 0u ->
+                head :: tail ->
                     let combinationsIncludingHead =
                         GenerateCombinationsOfGivenSizePreservingOrder (size - 1u) tail
                         |> Seq.map (fun combinationFromTail ->
@@ -57,4 +59,52 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
                     Seq.append combinationsIncludingHead combinationsExcludingHead
                | _ ->
                     Seq.empty
-                                    
+                               
+    /// <summary>This is an optimised form of 'GenerateCombinationsOfGivenSizePreservingOrder'
+    /// that creates just the specific sorted combination picked out from all the possible
+    /// sorted combinations by 'indexOfCombination'. So:-
+    ///     GenerateCombinationOfGivenSizePreservingOrder size items indexOfCombination =
+    ///         GenerateCombinationsOfGivenSizePreservingOrder size items
+    ///         |> Seq.nth indexOfCombination
+    /// However, the actual implementation does not create any combinations other than
+    /// the one requested.</summary>     
+    let GenerateCombinationOfGivenSizePreservingOrder size items indexOfCombination =
+        let numberOfItems =
+            Array.length items
+            |> uint32
+        if BargainBasement.NumberOfCombinations numberOfItems size <= indexOfCombination
+        then raise (PreconditionViolationException "'indexOfCombination' is too large: there are not enough combinations to support this choice.")
+        let rec generateCombinationOfIndicesOfGivenSizePreservingOrder size
+                                                                       startingIndex
+                                                                       indexOfCombination =
+            if 0u = size
+            then []
+            else let sizeLessOne =
+                     size - 1u
+                 let numberOfItemsLessOne =
+                     numberOfItems - 1u
+                 let startingIndexPlusOne =
+                     startingIndex + 1u
+                 let numberOfItemsToChooseFromAfterEitherPickingOrDiscardingTheOneAtTheStartingIndex =
+                     numberOfItems - startingIndexPlusOne
+                 let numberOfCombinationsIncludingHead =
+                     BargainBasement.NumberOfCombinations numberOfItemsToChooseFromAfterEitherPickingOrDiscardingTheOneAtTheStartingIndex sizeLessOne
+                 if numberOfCombinationsIncludingHead > indexOfCombination
+                 then startingIndex :: generateCombinationOfIndicesOfGivenSizePreservingOrder sizeLessOne
+                                                                                              startingIndexPlusOne
+                                                                                              indexOfCombination
+                 else generateCombinationOfIndicesOfGivenSizePreservingOrder size
+                                                                             startingIndexPlusOne
+                                                                             (indexOfCombination - numberOfCombinationsIncludingHead)
+        let combinationOfIndicesToPickOutAt =
+            generateCombinationOfIndicesOfGivenSizePreservingOrder size
+                                                                   0u
+                                                                   indexOfCombination
+        [for indexToPickItemAt in combinationOfIndicesToPickOutAt do
+         yield items.[int32 indexToPickItemAt]]
+
+
+                
+
+                    
+        
