@@ -26,7 +26,8 @@ namespace SageSerpent.TestInfrastructure
                                                         mergedPartialTestVectorRepresentations)
                                     partialTestVectors
                                     MergedPartialTestVectorRepresentations.initial
-                let randomBehaviour = RandomBehaviour 0
+                let randomBehaviour =
+                    RandomBehaviour 0
                 let sequenceOfFinalValues =
                     seq { for mergedPartialTestVector in mergedPartialTestVectorRepresentations do
                             yield node.FillOutPartialTestVectorRepresentation randomBehaviour mergedPartialTestVector
