@@ -458,16 +458,12 @@ namespace SageSerpent.TestInfrastructure
                                         raise (PreconditionViolationException "Vector is inconsistent with the tree structure - should have found at least one non-excluded test variable level contributing to an interleave.")
                                   | index ->
                                         uint32 index + indexForLeftmostTestVariable
-                            let subtreeRootNodes =
-                                subtreeRootNodes
-                                |> LazyList.ofSeq
                             let rec discardLeftmostSubtreesInvolvingOnlyExcludedTestVariables subtreeRootNodes
                                                                                               indexForLeftmostTestVariable =
                                 match subtreeRootNodes with
-                                        LazyList.Nil ->
+                                        [] ->
                                             raise (InternalAssertionViolationException "Ran out of subtree nodes but there should have definitely been enough of them.")
-                                      | LazyList.Cons (head
-                                                       , tail) ->
+                                      | head :: tail ->
                                             let indexForForLeftmostTestVariableInTail =
                                                 (head: Node).CountTestVariables + indexForLeftmostTestVariable
                                             if indexForForLeftmostTestVariableInTail > firstNonExcludedTestVariableIndex
@@ -479,20 +475,16 @@ namespace SageSerpent.TestInfrastructure
                                 , indexForLeftmostTestVariableInNodeContainingLeftmostNonExcludedTestVariable =
                                 discardLeftmostSubtreesInvolvingOnlyExcludedTestVariables subtreeRootNodes
                                                                                           indexForLeftmostTestVariable
-                            walkTree (LazyList.head subtreeRootNodesHeadedByNodeContainingLeftmostNonExcludedTestVariable)
+                            walkTree (List.head subtreeRootNodesHeadedByNodeContainingLeftmostNonExcludedTestVariable)
                                      indexForLeftmostTestVariableInNodeContainingLeftmostNonExcludedTestVariable
                       | SynthesizingNode (subtreeRootNodes
                                           , synthesisDelegate) ->
-                            let subtreeRootNodes =
-                                subtreeRootNodes
-                                |> LazyList.ofSeq
                             let rec collectResultsFromSubtrees subtreeRootNodes
                                                                indexForLeftmostTestVariable =
                                 match subtreeRootNodes with
-                                        LazyList.Nil ->
+                                        [] ->
                                             []
-                                      | LazyList.Cons (head
-                                                       , tail) ->
+                                      | head :: tail ->
                                             let indexForForLeftmostTestVariableInTail =
                                                 (head: Node).CountTestVariables + indexForLeftmostTestVariable
                                             let resultFromSubtree =
