@@ -12,8 +12,8 @@ namespace SageSerpent.TestInfrastructure.Tests
     open Wintellect.PowerCollections
     
     type private TestLevel =
-            Untracked of UInt32
-          | Tracked of UInt32 * UInt32
+            Untracked of UInt32                 // level
+          | Tracked of UInt32 * UInt32          // trackedVariable index, level
           
     type DistributionModeWrtInterleavingNode =
             BetweenSiblingSubtrees
@@ -21,6 +21,31 @@ namespace SageSerpent.TestInfrastructure.Tests
     
     [<TestFixture>]
     type DumpingGroundTestFixture () =
+        let dumpTree tree =
+            let form = new Form ()
+            form.AutoSizeMode <- AutoSizeMode.GrowOnly
+            form.AutoSize <- true
+            let treeView = new TreeView ()
+            form.Controls.Add treeView
+            treeView.Dock <- DockStyle.Fill
+            let treeGuiNode = TreeNode ()
+            treeView.Nodes.Add treeGuiNode |> ignore
+            let rec dumpNode node (treeGuiNode: TreeNode) =
+                match node with
+                    TestVariableNode levels -> let subtreeGuiNode = TreeNode ("TreeNode\n" + any_to_string levels)
+                                               treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
+                  | InterleavingNode subtrees -> let subtreeGuiNode = TreeNode ("InterleavingNode\n")
+                                                 treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
+                                                 for subtree in subtrees do
+                                                    dumpNode subtree subtreeGuiNode
+                  | SynthesizingNode subtrees -> let subtreeGuiNode = TreeNode ("SynthesizingNode\n")
+                                                 treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
+                                                 for subtree in subtrees do
+                                                    dumpNode subtree subtreeGuiNode
+            dumpNode tree treeGuiNode
+            treeView.ExpandAll ()
+            form.ShowDialog () |> ignore
+
         let maximumNumberOfTrackedTestVariables = 4u
         let maximumNumberOfTestLevelsForATestVariable = 3u
         let maximumNumberOfSubtreeHeadsPerAncestorNode = 5u
@@ -44,7 +69,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                 let rec createTree distributionModeWrtInterleavingNode
                                    indexForLeftmostTrackedTestVariable
                                    numberOfTrackedTestVariables
-                                   maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables =
+                                   maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables
+                                   interleavedTrackedVariablesFromSiblingsOfParents =
                     let thinkAboutTerminatingRecursion = numberOfTrackedTestVariables <= 1u
                     if headsItIs () && thinkAboutTerminatingRecursion
                        || maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 0u
@@ -117,10 +143,13 @@ namespace SageSerpent.TestInfrastructure.Tests
                                             (arbitrarilySpreadAcrossSubtreesDistributionMaker numberOfSubtrees (numberOfTrackedTestVariables - 1u))
                                     else arbitrarilySpreadAcrossSubtreesDistributionMaker numberOfSubtrees numberOfTrackedTestVariables
                               | _ -> allOnOneSubtreeDistributionMaker numberOfSubtrees numberOfTrackedTestVariables
-                         let generateNode nodeFactory distributionMaker =
+                         let generateNode nodeFactory 
+                                          distributionMaker
+                                          interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtreesOfNode =
                             let numberOfSubtrees =
                                 chooseAnyNumberFromOneTo maximumNumberOfSubtreeHeadsPerAncestorNode
-                            let gatherSubtree (previouslyGatheredSubtrees, indexForLeftmostTrackedTestVariable) numberOfTrackedVariables =
+                            let gatherSubtree (previouslyGatheredSubtrees, indexForLeftmostTrackedTestVariable)
+                                              (numberOfTrackedVariables, interleavedTrackedVariablesFromSiblings) =
                                 let subtree, maximumTrackingVariableIndexFromSubtree =
                                     createTree distributionModeWrtInterleavingNode
                                                indexForLeftmostTrackedTestVariable
@@ -128,20 +157,52 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                (if thinkAboutTerminatingRecursion
                                                 then maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables - 1u
                                                 else maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables)
+                                               interleavedTrackedVariablesFromSiblings
                                 subtree :: previouslyGatheredSubtrees, maximumTrackingVariableIndexFromSubtree
                             let distributionOfNumberOfTrackedTestVariablesForEachSubtree =
                                 distributionMaker numberOfSubtrees numberOfTrackedTestVariables
+                            let interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtrees =
+                                interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtreesOfNode distributionOfNumberOfTrackedTestVariablesForEachSubtree
+                                                                                                        interleavedTrackedVariablesFromSiblingsOfParents
                             let subtrees, maximumTrackingVariableIndex =
-                                distributionOfNumberOfTrackedTestVariablesForEachSubtree                      
+                                List.zip distributionOfNumberOfTrackedTestVariablesForEachSubtree interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtrees                     
                                 |> List.fold_left gatherSubtree ([], indexForLeftmostTrackedTestVariable)
                             nodeFactory subtrees, maximumTrackingVariableIndex
+                         let interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtreesOfInterleavingNode distribution contributionFromParentNode =
+                            let rec accumulateContributionsFromTheLeftAndThenJoinInContributionsFromTheRight distribution
+                                                                                                             (contributionsFromTheLeft, indexForLeftmostTrackedTestVariable) =
+                                match distribution with
+                                    [] ->
+                                        [],
+                                        []
+                                  | head :: tail ->
+                                        let trackedVariablesFromHead =
+                                            List.init (int32 head) (fun trackedVariableCount -> uint32 trackedVariableCount + indexForLeftmostTrackedTestVariable)
+                                        let partialResult, contributionsFromTheRight =
+                                            accumulateContributionsFromTheLeftAndThenJoinInContributionsFromTheRight tail
+                                                                                                                     (List.append trackedVariablesFromHead contributionsFromTheLeft
+                                                                                                                      , head + indexForLeftmostTrackedTestVariable)
+                                        List.append contributionsFromTheLeft contributionsFromTheRight :: partialResult
+                                        , List.append trackedVariablesFromHead contributionsFromTheRight
+                            let result, _ =
+                                accumulateContributionsFromTheLeftAndThenJoinInContributionsFromTheRight distribution
+                                                                                                         (contributionFromParentNode, indexForLeftmostTrackedTestVariable)
+                            result                                                                  
+                         let interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtreesOfSynthesizingNode distribution contributionFromParentNode =
+                            distribution
+                            |> List.map (fun _ -> contributionFromParentNode)
                          if headsItIs ()
-                         then generateNode (fun subtrees -> InterleavingNode subtrees) distributionMakerForInterleavedNodes
-                         else generateNode (fun subtrees -> SynthesizingNode subtrees) distributionMakerForSynthesizingNodes                          
+                         then generateNode (fun subtrees -> InterleavingNode subtrees)
+                                           distributionMakerForInterleavedNodes
+                                           interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtreesOfInterleavingNode
+                         else generateNode (fun subtrees -> SynthesizingNode subtrees)
+                                           distributionMakerForSynthesizingNodes
+                                           interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtreesOfSynthesizingNode                          
                 let tree, _ = createTree distributionModeWrtInterleavingNode
                                          0u
                                          numberOfTrackedTestVariables
                                          maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables
+                                         []
                 let maximumStrengthOfTestVariableCombination =
                     tree.MaximumStrengthOfTestVariableCombination
                 if maximumStrengthOfTestVariableCombination < 60u
@@ -157,19 +218,23 @@ namespace SageSerpent.TestInfrastructure.Tests
                             if numberOfTrackedTestVariables <= (uint32 results.Length)
                             then List.nth results (int32 numberOfTrackedTestVariables - 1)
                             else Seq.empty
+                        let extractLevelsForTrackedTestVariablesOnly testVectorRepresentation =
+                            let testVectorRepresentationForTrackedVariablesOnly = 
+                                    Map.fold_right (fun _ level partialResult ->
+                                                        match unbox level with
+                                                            Tracked (trackedTestVariableIndex, level) ->
+                                                                (trackedTestVariableIndex, level)
+                                                                 :: partialResult
+                                                          | _ ->
+                                                            partialResult)
+                                                   testVectorRepresentation []
+                            // Check for presence of sentinel level values for conflicting test variables here!!!!
+                            testVectorRepresentationForTrackedVariablesOnly
+                            |> Map.of_list  // Sort by the tracked test variable index - hence the roundtrip from list -> map -> list!
+                            |> Map.to_list
+                            |> List.map (function _, level -> level)
                         resultsAtDesiredStrength
-                        |> Seq.map (fun testVectorRepresentation ->
-                                        Map.fold_right (fun _ level partialResult ->
-                                                            match unbox level with
-                                                                Tracked (trackedTestVariableIndex, level) ->
-                                                                    (trackedTestVariableIndex, level)
-                                                                     :: partialResult
-                                                              | _ ->
-                                                                partialResult)
-                                                       testVectorRepresentation []
-                                        |> Map.of_list  // Sort by the tracked test variable index - hence the roundtrip from list -> map -> list!
-                                        |> Map.to_list
-                                        |> List.map (function _, level -> level))
+                        |> Seq.map extractLevelsForTrackedTestVariablesOnly
                         |> Seq.filter (fun levels -> uint32 levels.Length = numberOfTrackedTestVariables)
                         |> Set.of_seq
                      testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelsFromTrackedTestVariablesCombinedAtDesiredStrength
@@ -178,31 +243,6 @@ namespace SageSerpent.TestInfrastructure.Tests
             printf "**** TIME FOR TEST: %A\n" (timeAtEnd - timeAtStart)
             Assert.IsTrue !didTheSingleTestVariableEdgeCase                 
         
-        let dumpTree tree =
-            let form = new Form ()
-            form.AutoSizeMode <- AutoSizeMode.GrowOnly
-            form.AutoSize <- true
-            let treeView = new TreeView ()
-            form.Controls.Add treeView
-            treeView.Dock <- DockStyle.Fill
-            let treeGuiNode = TreeNode ()
-            treeView.Nodes.Add treeGuiNode |> ignore
-            let rec dumpNode node (treeGuiNode: TreeNode) =
-                match node with
-                    TestVariableNode levels -> let subtreeGuiNode = TreeNode ("TreeNode\n" + any_to_string levels)
-                                               treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
-                  | InterleavingNode subtrees -> let subtreeGuiNode = TreeNode ("InterleavingNode\n")
-                                                 treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
-                                                 for subtree in subtrees do
-                                                    dumpNode subtree subtreeGuiNode
-                  | SynthesizingNode subtrees -> let subtreeGuiNode = TreeNode ("SynthesizingNode\n")
-                                                 treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
-                                                 for subtree in subtrees do
-                                                    dumpNode subtree subtreeGuiNode
-            dumpNode tree treeGuiNode
-            treeView.ExpandAll ()
-            form.ShowDialog () |> ignore
-
         [<Test>]
         member this.TestThatARandomlyChosenNCombinationOfTestVariablesIsCoveredInTermsOfCrossProductOfLevels () =
             let testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelsFromTrackedTestVariablesAtDesiredStrength =
