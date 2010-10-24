@@ -138,7 +138,7 @@ namespace SageSerpent.TestInfrastructure.Tests
     type TestCaseEnumeratorFactoryTestFixture () =
         let mutable delegatesCache = Map.empty
         
-        let maximumCombinationStrength = 5u
+        let maximumCombinationStrength = 6u
         let maximumNumberOfSubtrees = 4u
         let maximumNumberOfTestLevels = 3u
         let maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving = 2u;
@@ -269,7 +269,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                 createSubtrees combinationStrengths
                                                testVariableIndexToCountMapping
                             let chosenTestVariableCombination =
-                                testVariableCombinationsFromSubtrees.[int32 (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 testVariableCombinationsFromSubtrees.Length))]
+                                randomBehaviour.ChooseOneOf testVariableCombinationsFromSubtrees
                                 
                             (InterleavedTestCaseEnumeratorFactory subtrees
                              :> ITestCaseEnumeratorFactory)
@@ -293,36 +293,161 @@ namespace SageSerpent.TestInfrastructure.Tests
             |> Seq.for_all (fun (lhs
                                  , rhs)
                                 -> lhs < rhs)
-        
-        [<Test>]
-        member this.TestCorrectOrderingOfLevelsFromDistinctTestVariablesInEachOutputTestCase () =
+                                
+        let createTreesAndHandOffToTest testHandoff =
             let randomBehaviour = RandomBehaviour randomBehaviourSeed
             for _ in 1u .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumeratorFactory
-                    , _
+                    , testVariableCombination
                     , testVariableIndexToCountMapping
                     = constructTestCaseEnumeratorFactoryWithAccompanyingTestVariableCombinations randomBehaviour
-                let numberOfTestVariables =
-                    uint32 testVariableIndexToCountMapping.Count
-                let maximumStrength = randomBehaviour.ChooseAnyNumberFromOneTo numberOfTestVariables
-                let testCaseEnumerator = testCaseEnumeratorFactory.CreateEnumerator maximumStrength
+                let maximumStrength =
+                    randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumeratorFactory.MaximumStrength
+                let testVariableCombinationConformingToMaximumStrength =
+                    if uint32 testVariableCombination.Count <= maximumStrength
+                    then testVariableCombination
+                    else randomBehaviour.ChooseSeveralOf testVariableCombination
+                                                         maximumStrength
+                         |> Set.of_array
+                let testCaseEnumerator () =
+                    testCaseEnumeratorFactory.CreateEnumerator maximumStrength
+                testHandoff testCaseEnumerator
+                            testVariableCombinationConformingToMaximumStrength
+                            testVariableIndexToCountMapping
+                            maximumStrength
+                            randomBehaviour
+        
+        [<Test>]
+        member this.TestCorrectOrderingOfLevelsFromDistinctTestVariablesInEachOutputTestCase () =
+            let testHandoff testCaseEnumerator
+                            testVariableCombination
+                            testVariableIndexToCountMapping
+                            _
+                            _ =
                 for testCase in
                     {
                         new Collections.IEnumerable with
-                            member this.GetEnumerator () = testCaseEnumerator
+                            member this.GetEnumerator () = testCaseEnumerator ()
                     } do
                     let testCase = unbox<List<TestVariableLevel>> testCase
-                    printf "testCase: %A\n" testCase
                     let shouldBeTrue = isSortedByTestVariableIndex testCase
                     Assert.IsTrue shouldBeTrue
+            createTreesAndHandOffToTest testHandoff 
             
         [<Test>]
         member this.TestCoverageOfNCombinationsOfVariableLevelsInFinalResultsIsComplete () =
-            () // Sort this out!!!!!!!!!!
+            let testHandoff testCaseEnumerator
+                            testVariableCombination
+                            testVariableIndexToCountMapping
+                            _
+                            _ =
+                let testVariableIndexToCountMappingForTestVariableCombination =
+                    testVariableCombination
+                    |> Set.to_list
+                    |> List.map (fun testVariable ->
+                                    testVariable
+                                    , Map.find testVariable testVariableIndexToCountMapping)
+                            
+                let expectedCombinationsOfTestLevels =
+                    testVariableIndexToCountMappingForTestVariableCombination
+                    |> List.map (fun (testVariableIndex, numberOfLevels) ->
+                                    List.init (int numberOfLevels)
+                                              (fun levelNumber ->
+                                                    (testVariableIndex, 1u + uint32 levelNumber)))
+                    |> BargainBasement.CrossProduct 
+                    |> List.map Set.of_list
+                    |> Set.of_list
+                  
+                let testCases =
+                    seq {for testCase in
+                            {
+                                new Collections.IEnumerable with
+                                    member this.GetEnumerator () = testCaseEnumerator ()
+                            } do
+                            yield unbox<List<TestVariableLevel>> testCase
+                                  |> Set.of_list}
+                                  
+                let unaccountedCombinationsOfTestLevels =
+                    Seq.fold (fun expectedCombinationsOfTestLevels
+                                  testCase ->
+                                    let expectedCombinationsOfTestLevelsSatisfiedByTestCase =
+                                        expectedCombinationsOfTestLevels
+                                        |> Set.filter (fun testLevelCombination ->
+                                                            (testCase: Set<_>).IsSupersetOf testLevelCombination)
+                                    Set.diff expectedCombinationsOfTestLevels expectedCombinationsOfTestLevelsSatisfiedByTestCase)
+                             expectedCombinationsOfTestLevels
+                             testCases
+                                                       
+                let shouldBeTrue =
+                    unaccountedCombinationsOfTestLevels               
+                    |> Set.count
+                     = 0
+                Assert.IsTrue shouldBeTrue            
+                         
+            createTreesAndHandOffToTest testHandoff 
             
         [<Test>]
-        member this.TestCoverageOfNCombinationsOfVariableLevelsInFinalResultsIsOptimal () =
-            () // Sort this out!!!!!!!!!!
-        
+        member this.TestCoverageOfHighestCombinationsOfVariableLevelsInFinalResultsIsOptimal () =
+            let randomBehaviour = RandomBehaviour randomBehaviourSeed
+            for _ in 1u .. overallTestRepeats do
+                printf "\n\n\n******************************\n\n\n"
+                let testCaseEnumeratorFactory
+                    , testVariableCombination
+                    , testVariableIndexToCountMapping
+                    = constructTestCaseEnumeratorFactoryWithAccompanyingTestVariableCombinations randomBehaviour
+                let maximumStrength =
+                    testCaseEnumeratorFactory.MaximumStrength
+                let testCaseEnumerator () =
+                    testCaseEnumeratorFactory.CreateEnumerator maximumStrength
+                let testCasesOfMaximumStrength =
+                    [for testCase in 
+                        {
+                            new Collections.IEnumerable with
+                                member this.GetEnumerator () = testCaseEnumerator ()
+                        } do
+                        let testCase = unbox<List<TestVariableLevel>> testCase
+                                       |> Set.of_list
+                        if uint32 testCase.Count = maximumStrength
+                        then yield testCase]
+                
+                let omittedTestCase =
+                    (randomBehaviour: RandomBehaviour).ChooseOneOf testCasesOfMaximumStrength
+                    
+                let combinationsCorrespondingToOmittedTestCase =
+                    BargainBasement.ChooseCombinationsOfItems (omittedTestCase
+                                                               |> Set.to_list)
+                                                              maximumStrength
+                    |> List.map Set.of_list
+                    |> Set.of_list
+                    
+                let testCasesExceptTheOmittedOne =
+                    seq {for testCase in
+                            {
+                                new Collections.IEnumerable with
+                                    member this.GetEnumerator () = testCaseEnumerator ()
+                            } do
+                            let testCase = unbox<List<TestVariableLevel>> testCase
+                                           |> Set.of_list
+                            if testCase <> omittedTestCase
+                            then yield testCase}
+                                  
+                let unaccountedCombinationsOfTestLevels =
+                    Seq.fold (fun expectedCombinationsOfTestLevels
+                                  testCase ->
+                                    let expectedCombinationsOfTestLevelsSatisfiedByTestCase =
+                                        expectedCombinationsOfTestLevels
+                                        |> Set.filter (fun testLevelCombination ->
+                                                            (testCase: Set<_>).IsSupersetOf testLevelCombination)
+                                    Set.diff expectedCombinationsOfTestLevels expectedCombinationsOfTestLevelsSatisfiedByTestCase)
+                             combinationsCorrespondingToOmittedTestCase
+                             testCasesExceptTheOmittedOne
+                                                       
+                let shouldBeTrue =
+                    unaccountedCombinationsOfTestLevels               
+                    |> Set.count
+                     > 0
+                printf "combinationsCorrespondingToOmittedTestCase.Count: %u, unaccountedCombinationsOfTestLevels.Count %u\n" combinationsCorrespondingToOmittedTestCase.Count
+                                                                                                                              unaccountedCombinationsOfTestLevels.Count         
+                Assert.IsTrue shouldBeTrue
 

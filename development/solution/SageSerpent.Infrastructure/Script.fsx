@@ -50,6 +50,8 @@ r.ChooseAnyNumberFromOneTo 10u;;
 
 let r2 = BargainBasement.PartitionItemsIntoSubgroupsOfRandomNonZeroLength [1u .. 10u] 3u r;;
 
+let result = BargainBasement.ChooseCombinationsOfItems [] 0u;;
+
 
 let simpleQuote = <@ 2 @>
 
@@ -122,20 +124,3 @@ printf "%A\n" (theType.GetMembers ())
 
 
 
-
-
-
-open System
-
-type RandomBehaviour () =
-    member this.ChooseOneOf candidates =
-        let a = (this.ChooseSeveralOf candidates 1u)
-        let v = a.[0]
-        v
-    member this.ChooseSeveralOf candidates (numberToChoose: UInt32) =
-        if numberToChoose > uint32 (Seq.length candidates)
-        then failwith "Insufficient number of candidates to satisfy number to choose."
-        else candidates
-             |> Seq.to_array
-             
-                                             

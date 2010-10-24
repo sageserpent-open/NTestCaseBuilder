@@ -35,13 +35,13 @@
     </OtherFlags>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="Script.fsx" />
     <Compile Include="AssemblyInformation.fs" />
     <Compile Include="CombinatoricUtilities.fs" />
     <Compile Include="Exceptions.fs" />
     <Compile Include="NUnitTestSuiteDriver.fs" />
     <Compile Include="RandomBehaviour.fs" />
     <Compile Include="BargainBasement.fs" />
+    <None Include="Script.fsx" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="nunit.core, Version=2.2.9.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">

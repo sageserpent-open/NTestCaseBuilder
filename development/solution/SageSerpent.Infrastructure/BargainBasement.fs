@@ -147,3 +147,34 @@ module SageSerpent.Infrastructure.BargainBasement
                                                            numberOfSubgroups
                                                            randomBehaviour
         ChopUpList items spans
+
+    let ChooseCombinationsOfItems items combinationSize =
+        let rec chooseCombinationsAndIndicateWhetherThereIsAtLeastOneMoreItemThanTheCombinationSize items combinationSize =
+            match items with
+                [] ->
+                    if combinationSize = 0u
+                    then [[]]
+                         , false
+                    else raise (PreconditionViolationException "Insufficient number of items to make up desired size of each combination.") 
+               | head :: tail ->
+                    if combinationSize = 0u
+                    then [[]]
+                         , true
+                    else    let subcombinationsFromTail
+                                , tailHasMoreItemsThanCombinationSize =
+                                chooseCombinationsAndIndicateWhetherThereIsAtLeastOneMoreItemThanTheCombinationSize tail (combinationSize - 1u)
+                            let combinationsIncludingHead =
+                                subcombinationsFromTail
+                                |> List.map (fun subcombinationFromTail ->
+                                                    head :: subcombinationFromTail)
+                            if tailHasMoreItemsThanCombinationSize
+                            then    let combinationsExcludingHead
+                                        , _ = 
+                                        chooseCombinationsAndIndicateWhetherThereIsAtLeastOneMoreItemThanTheCombinationSize tail combinationSize
+                                    List.append combinationsIncludingHead combinationsExcludingHead
+                                    , true
+                            else combinationsIncludingHead
+                                 , false
+        fst (chooseCombinationsAndIndicateWhetherThereIsAtLeastOneMoreItemThanTheCombinationSize items combinationSize)
+        
+        
