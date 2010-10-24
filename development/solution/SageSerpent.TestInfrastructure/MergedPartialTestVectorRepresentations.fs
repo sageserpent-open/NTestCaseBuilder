@@ -199,9 +199,9 @@ namespace SageSerpent.TestInfrastructure
                         then // It is tempting to try to optimise this case by checking to see whether the query partial test vector didn't need to have
                              // any of its wildcard levels filled out by merging from the matching stored vector: this would allow the detection of attempts
                              // to add a vector that has an existing stored vector as an exact prefix, or of duplicate additions of the same vector. Don't
-                             // bother: the client of this class is 'TestCaseEnumeratorFactoryCommonImplementation' and that will always add longer vectors
+                             // bother: the client of this class is 'TestCaseEnumerableFactoryCommonImplementation' and that will always add longer vectors
                              // before shorter ones, so the first variation of this case *never* occurs and the second variation has yet to be observed over
-                             // extensive testing of 'TestCaseEnumeratorFactoryCommonImplementation'.
+                             // extensive testing of 'TestCaseEnumerableFactoryCommonImplementation'.
                              Some (UnsuccessfulSearchTerminationNode
                                    , queryPartialTestVectorRepresentation)
                         else if List.is_empty queryPartialTestVectorRepresentation

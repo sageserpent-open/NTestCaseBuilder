@@ -7,9 +7,9 @@ namespace SageSerpent.TestInfrastructure
     open SageSerpent.Infrastructure
 
     [<AbstractClass>]
-    type TestCaseEnumeratorFactoryCommonImplementation () as this =
-        interface ITestCaseEnumeratorFactory with
-            override this.CreateEnumerator desiredStrength =
+    type TestCaseEnumerableFactoryCommonImplementation () as this =
+        interface ITestCaseEnumerableFactory with
+            override this.CreateEnumerable desiredStrength =
                 let node =
                     (this :> INodeWrapper).Node
                 let mergedPartialTestVectorRepresentations =
@@ -32,7 +32,7 @@ namespace SageSerpent.TestInfrastructure
                     seq {for mergedPartialTestVector in mergedPartialTestVectorRepresentations do
                             yield node.FillOutPartialTestVectorRepresentation randomBehaviour mergedPartialTestVector
                                   |> node.CreateFinalValueFrom}
-                (sequenceOfFinalValues :> IEnumerable).GetEnumerator ()
+                sequenceOfFinalValues :> IEnumerable
             override this.MaximumStrength =
                 (this:> INodeWrapper).Node.MaximumStrengthOfTestVariableCombination
 

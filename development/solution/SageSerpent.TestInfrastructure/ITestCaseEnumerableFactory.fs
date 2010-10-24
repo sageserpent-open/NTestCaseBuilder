@@ -46,9 +46,9 @@ namespace SageSerpent.TestInfrastructure
     /// will 'do its best' by creating combinations of up to the highest strength possible, falling short of the
     /// requested strength.
 
-    type ITestCaseEnumeratorFactory =
+    type ITestCaseEnumerableFactory =
         inherit INodeWrapper
         
-        abstract member CreateEnumerator: uint32 -> IEnumerator;
+        abstract member CreateEnumerable: uint32 -> IEnumerable;
         
         abstract member MaximumStrength: System.UInt32;

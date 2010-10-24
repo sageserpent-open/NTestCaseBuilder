@@ -1,12 +1,12 @@
 #light
 
-module SageSerpent.TestInfrastructure.SynthesizedTestCaseEnumeratorFactory
+module SageSerpent.TestInfrastructure.SynthesizedTestCaseEnumerableFactory
 
     open System.Collections
     open System
     open SageSerpent.Infrastructure
 
-    let Create (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITestCaseEnumeratorFactory>)
+    let Create (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITestCaseEnumerableFactory>)
                (synthesisDelegate: Delegate) =
         if Seq.is_empty sequenceOfFactoriesProvidingInputsToSynthesis
         then raise (PreconditionViolationException "Must provide at least one component.")
@@ -24,8 +24,8 @@ module SageSerpent.TestInfrastructure.SynthesizedTestCaseEnumeratorFactory
                                             -> factory.Node))
                               , synthesisDelegate)
         {
-            new TestCaseEnumeratorFactoryCommonImplementation ()
+            new TestCaseEnumerableFactoryCommonImplementation ()
                 interface INodeWrapper with
                     override this.Node =
                         node
-        } :> ITestCaseEnumeratorFactory
+        } :> ITestCaseEnumerableFactory

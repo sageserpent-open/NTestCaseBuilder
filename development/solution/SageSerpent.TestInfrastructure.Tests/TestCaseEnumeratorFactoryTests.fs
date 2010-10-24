@@ -135,7 +135,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                                     // function definitions.
 
     [<TestFixture>]
-    type TestCaseEnumeratorFactoryTestFixture () =
+    type TestCaseEnumerableFactoryTestFixture () =
         let mutable delegatesCache = Map.empty
         
         let maximumCombinationStrength = 6u
@@ -146,10 +146,10 @@ namespace SageSerpent.TestInfrastructure.Tests
         let delegateTypeBuilder =
             BargainBasement.Memoize (CodeGeneration.NAryDelegateTypeBuilder<list<TestVariableLevel>>)
                 
-        let constructTestCaseEnumeratorFactoryWithAccompanyingTestVariableCombinations randomBehaviour =
+        let constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour =
             let combinationStrength = 
                 (randomBehaviour: RandomBehaviour).ChooseAnyNumberFromOneTo maximumCombinationStrength
-            let rec constructTestCaseEnumeratorFactoryWithAccompanyingTestVariableCombinations combinationStrength
+            let rec constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                                                testVariableIndexToCountMapping
                                                                                                numberOfAncestorFactories =
                 match randomBehaviour.ChooseAnyNumberFromOneTo 3u with
@@ -158,7 +158,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                             uint32 (testVariableIndexToCountMapping: Map<_, _>).Count
                         let levelCountForTestVariableIntroducedHere =
                             randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevels
-                        TestVariableLevelEnumeratorFactory.Create (seq { for levelNumber in 1u .. levelCountForTestVariableIntroducedHere do
+                        TestVariableLevelEnumerableFactory.Create (seq { for levelNumber in 1u .. levelCountForTestVariableIntroducedHere do
                                                                             yield box [(indexForLeftmostTestVariable, levelNumber)] })
                         , Set.singleton indexForLeftmostTestVariable
                         , Map.add indexForLeftmostTestVariable
@@ -185,7 +185,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                         let subtree
                                             , testVariableCombinationFromSubtree
                                             , testVariableIndexToCountMappingFromSubtree =
-                                            constructTestCaseEnumeratorFactoryWithAccompanyingTestVariableCombinations headCombinationStrength
+                                            constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations headCombinationStrength
                                                                                                                        testVariableIndexToCountMapping
                                                                                                                        (numberOfAncestorFactories + 1u)
                                         let remainingSubtrees
@@ -221,7 +221,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                                                delegateTypeBuilder
                                                                                (undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels: List<List<TestVariableLevel> > -> List<TestVariableLevel>)
                                 
-                            SynthesizedTestCaseEnumeratorFactory.Create permutedSubtrees
+                            SynthesizedTestCaseEnumerableFactory.Create permutedSubtrees
                                                                         nAryCondensationDelegate
                             , testVariableCombination
                             , testVariableIndexToCountMappingFromSubtrees
@@ -250,7 +250,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                         let subtree
                                             , testVariableCombinationFromSubtree
                                             , testVariableIndexToCountMappingFromSubtree =
-                                            constructTestCaseEnumeratorFactoryWithAccompanyingTestVariableCombinations headCombinationStrength
+                                            constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations headCombinationStrength
                                                                                                                        testVariableIndexToCountMapping
                                                                                                                        (numberOfAncestorFactories + 1u)
                                         let remainingSubtrees
@@ -269,13 +269,13 @@ namespace SageSerpent.TestInfrastructure.Tests
                             let chosenTestVariableCombination =
                                 randomBehaviour.ChooseOneOf testVariableCombinationsFromSubtrees
                                 
-                            InterleavedTestCaseEnumeratorFactory.Create subtrees
+                            InterleavedTestCaseEnumerableFactory.Create subtrees
                             , chosenTestVariableCombination
                             , testVariableIndexToCountMappingFromSubtrees
                                                                                                            
                       | _ ->
                         raise (InternalAssertionViolationException "This case should never occur!")
-            constructTestCaseEnumeratorFactoryWithAccompanyingTestVariableCombinations combinationStrength
+            constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                                        Map.empty
                                                                                        0u
             
@@ -295,21 +295,21 @@ namespace SageSerpent.TestInfrastructure.Tests
             let randomBehaviour = RandomBehaviour randomBehaviourSeed
             for _ in 1u .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
-                let testCaseEnumeratorFactory
+                let testCaseEnumerableFactory
                     , testVariableCombination
                     , testVariableIndexToCountMapping
-                    = constructTestCaseEnumeratorFactoryWithAccompanyingTestVariableCombinations randomBehaviour
+                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour
                 let maximumStrength =
-                    randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumeratorFactory.MaximumStrength
+                    randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
                 let testVariableCombinationConformingToMaximumStrength =
                     if uint32 testVariableCombination.Count <= maximumStrength
                     then testVariableCombination
                     else randomBehaviour.ChooseSeveralOf testVariableCombination
                                                          maximumStrength
                          |> Set.of_array
-                let testCaseEnumerator () =
-                    testCaseEnumeratorFactory.CreateEnumerator maximumStrength
-                testHandoff testCaseEnumerator
+                let testCaseEnumerable () =
+                    testCaseEnumerableFactory.CreateEnumerable maximumStrength
+                testHandoff testCaseEnumerable
                             testVariableCombinationConformingToMaximumStrength
                             testVariableIndexToCountMapping
                             maximumStrength
@@ -317,16 +317,12 @@ namespace SageSerpent.TestInfrastructure.Tests
         
         [<Test>]
         member this.TestCorrectOrderingOfLevelsFromDistinctTestVariablesInEachOutputTestCase () =
-            let testHandoff testCaseEnumerator
+            let testHandoff (testCaseEnumerable: unit -> System.Collections.IEnumerable)
                             testVariableCombination
                             testVariableIndexToCountMapping
                             _
                             _ =
-                for testCase in
-                    {
-                        new Collections.IEnumerable with
-                            member this.GetEnumerator () = testCaseEnumerator ()
-                    } do
+                for testCase in testCaseEnumerable () do
                     let testCase = unbox<List<TestVariableLevel>> testCase
                     let shouldBeTrue = isSortedByTestVariableIndex testCase
                     Assert.IsTrue shouldBeTrue
@@ -334,7 +330,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             
         [<Test>]
         member this.TestCoverageOfNCombinationsOfVariableLevelsInFinalResultsIsComplete () =
-            let testHandoff testCaseEnumerator
+            let testHandoff (testCaseEnumerable: unit -> System.Collections.IEnumerable)
                             testVariableCombination
                             testVariableIndexToCountMapping
                             _
@@ -357,11 +353,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                     |> Set.of_list
                   
                 let testCases =
-                    seq {for testCase in
-                            {
-                                new Collections.IEnumerable with
-                                    member this.GetEnumerator () = testCaseEnumerator ()
-                            } do
+                    seq {for testCase in testCaseEnumerable () do
                             yield unbox<List<TestVariableLevel>> testCase
                                   |> Set.of_list}
                                   
@@ -389,20 +381,16 @@ namespace SageSerpent.TestInfrastructure.Tests
             let randomBehaviour = RandomBehaviour randomBehaviourSeed
             for _ in 1u .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
-                let testCaseEnumeratorFactory
+                let testCaseEnumerableFactory
                     , testVariableCombination
                     , testVariableIndexToCountMapping
-                    = constructTestCaseEnumeratorFactoryWithAccompanyingTestVariableCombinations randomBehaviour
+                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour
                 let maximumStrength =
-                    testCaseEnumeratorFactory.MaximumStrength
-                let testCaseEnumerator () =
-                    testCaseEnumeratorFactory.CreateEnumerator maximumStrength
+                    testCaseEnumerableFactory.MaximumStrength
+                let testCaseEnumerable () =
+                    testCaseEnumerableFactory.CreateEnumerable maximumStrength
                 let testCasesOfMaximumStrength =
-                    [for testCase in 
-                        {
-                            new Collections.IEnumerable with
-                                member this.GetEnumerator () = testCaseEnumerator ()
-                        } do
+                    [for testCase in testCaseEnumerable () do
                         let testCase = unbox<List<TestVariableLevel>> testCase
                                        |> Set.of_list
                         if uint32 testCase.Count = maximumStrength
@@ -419,11 +407,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                     |> Set.of_list
                     
                 let testCasesExceptTheOmittedOne =
-                    seq {for testCase in
-                            {
-                                new Collections.IEnumerable with
-                                    member this.GetEnumerator () = testCaseEnumerator ()
-                            } do
+                    seq {for testCase in testCaseEnumerable () do
                             let testCase = unbox<List<TestVariableLevel>> testCase
                                            |> Set.of_list
                             if testCase <> omittedTestCase
