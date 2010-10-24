@@ -15,6 +15,7 @@
     open Microsoft.FSharp.Reflection
     open System.Reflection.Emit
     open System.Reflection
+    open Wintellect
     
     type TestVariableLevel =
         UInt32 * UInt32 // Test variable index, value multiplicity of levels for a given test variable.
@@ -141,7 +142,8 @@
         let delegateTypeBuilder =
             BargainBasement.Memoize (CodeGeneration.NAryDelegateTypeBuilder<list<TestVariableLevel>>)
                 
-        let constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour =
+        let constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour
+                                                                                       allowDuplicatedLevels =
             let combinationStrength = 
                 (randomBehaviour: RandomBehaviour).ChooseAnyNumberFromOneTo maximumCombinationStrength
             let rec constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
@@ -157,8 +159,22 @@
                             then    randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (1u + maximumNumberOfTestLevels)
                             else    randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevels
                         let testVariableLevels =
-                            [ for levelNumber in 1u .. levelCountForTestVariableIntroducedHere do
-                                yield [(indexForLeftmostTestVariable, levelNumber)] ]
+                            let privateRandomBehaviourThatDoesNotPerturbTheMainOne =
+                                RandomBehaviour (randomBehaviour.UnderlyingImplementationForClientUse.Next())    
+                            if allowDuplicatedLevels
+                            then
+                                    List.init (int32 levelCountForTestVariableIntroducedHere) (fun _ -> 0u)
+                                    |> List.scan (fun previousLevel _ ->
+                                                    if privateRandomBehaviourThatDoesNotPerturbTheMainOne.HeadsItIs ()
+                                                    then previousLevel
+                                                    else 1u + previousLevel)
+                                                0u
+                                    |> List.tail
+                                    |> List.map (fun level -> [(indexForLeftmostTestVariable, level)])
+
+                            else
+                                    [ for level in 1u .. levelCountForTestVariableIntroducedHere do
+                                        yield [(indexForLeftmostTestVariable, level)] ]
                         TestVariableLevelEnumerableFactory.Create testVariableLevels
                         , Set.singleton indexForLeftmostTestVariable
                         , Map.add indexForLeftmostTestVariable
@@ -318,7 +334,7 @@
                 let testCaseEnumerableFactory
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping
-                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour
+                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour false
                 let maximumStrength =
                     randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
                 let testVariableCombinationConformingToMaximumStrength =
@@ -394,6 +410,46 @@
             createTreesAndHandOffToTest testHandoff 
             
         [<Test>]
+        member this.TestThatDuplicatedLevelValuesAreTreatedAsDistinctWhenMakingTestCases () =
+            let randomBehaviour = RandomBehaviour randomBehaviourSeed
+            for _ in 1u .. overallTestRepeats do
+                printf "\n\n\n******************************\n\n\n"
+                let sharedSeed =
+                    randomBehaviour.UnderlyingImplementationForClientUse.Next()
+                let copiedRandomBehaviourOne =
+                    RandomBehaviour sharedSeed
+                let copiedRandomBehaviourTwo =
+                    RandomBehaviour sharedSeed
+                let testCaseEnumerableFactory
+                    , _
+                    , _
+                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations copiedRandomBehaviourOne false
+                let testCaseEnumerableFactoryBasedOnDuplicateLevels
+                    , _
+                    , _
+                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations copiedRandomBehaviourTwo true
+                let maximumStrength =
+                    testCaseEnumerableFactory.MaximumStrength
+                let shouldBeTrue =
+                    maximumStrength = testCaseEnumerableFactoryBasedOnDuplicateLevels.MaximumStrength
+                Assert.IsTrue shouldBeTrue
+                let comparer = HashIdentity.Structural<_>
+                let bagCombinationsOfTestVariableIndicesDisregardingLevels testCases =
+                    let combinationsOfTestVariableIndices =
+                        testCases
+                        |> Seq.map (List.map fst)
+                    PowerCollections.Bag<_>(combinationsOfTestVariableIndices,
+                                            comparer)
+                let testCaseSequence (testCaseEnumerableFactory: ITestCaseEnumerableFactory) =
+                    seq {for testCase in testCaseEnumerableFactory.CreateEnumerable(maximumStrength) do
+                            yield unbox<List<TestVariableLevel>> testCase}
+                let shouldBeTrue = (testCaseSequence testCaseEnumerableFactory
+                                    |> bagCombinationsOfTestVariableIndicesDisregardingLevels).IsEqualTo
+                                     (testCaseSequence testCaseEnumerableFactoryBasedOnDuplicateLevels
+                                       |> bagCombinationsOfTestVariableIndicesDisregardingLevels)
+                Assert.IsTrue shouldBeTrue
+            
+        [<Test>]
         member this.TestCoverageOfHighestCombinationsOfVariableLevelsInFinalResultsIsOptimal () =
             let randomBehaviour = RandomBehaviour randomBehaviourSeed
             for _ in 1u .. overallTestRepeats do
@@ -401,7 +457,7 @@
                 let testCaseEnumerableFactory
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping
-                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour
+                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour false
                 let maximumStrength =
                     testCaseEnumerableFactory.MaximumStrength
                 let testCaseEnumerable =
