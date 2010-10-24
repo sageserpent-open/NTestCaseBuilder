@@ -13,17 +13,19 @@ module SageSerpent.Infrastructure.BargainBasement
 //                                    yield itemInHead :: itemInCrossProductOfTail] 
     
                                     
-    let rec CrossProduct lists =
+    let rec CrossProductWithCommonSuffix commonSuffix lists =
         match lists with
-            [] -> [[]]
-          | head :: tail -> let crossProductOfTail = CrossProduct tail
+            [] -> [commonSuffix]
+          | head :: tail -> let crossProductOfTail = CrossProductWithCommonSuffix commonSuffix tail
                             head
                             |> List.map (fun itemInHead ->
                                             crossProductOfTail
                                             |> List.map (fun itemInCrossProductOfTail ->
                                                             itemInHead :: itemInCrossProductOfTail))
                             |> List.concat
-
+                            
+    let CrossProduct lists =
+        CrossProductWithCommonSuffix [] lists
 
     let rec MergeSortedListsAllowingDuplicates first second =
         match first, second with

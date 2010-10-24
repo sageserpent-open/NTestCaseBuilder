@@ -220,7 +220,7 @@ namespace SageSerpent.TestInfrastructure
                         this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
                         |> Map.of_list
                      let createTestVectorRepresentations testVariableIndexList =
-                        let entriesForInterleavedTestVariableIndices =
+                        let sentinelEntriesForInterleavedTestVariableIndices =
                             testVariableIndexList
                             |> List.map (fun testVariableIndex ->
                                             if associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.ContainsKey testVariableIndex
@@ -231,14 +231,16 @@ namespace SageSerpent.TestInfrastructure
                             |> Set.to_list
                             |> List.map (fun testVariableIndex ->
                                             (testVariableIndex, None))
-                        testVariableIndexList
-                        |> List.map (fun testVariableIndex ->
-                                     associationFromTestVariableIndexToItsLevels.[testVariableIndex]
-                                     |> Seq.map (fun level -> testVariableIndex, level)
-                                     |> List.of_seq)
-                        |> BargainBasement.CrossProduct
+                        let levelEntriesForTestVariableIndicesFromList =
+                            testVariableIndexList
+                            |> List.map (fun testVariableIndex ->
+                                         associationFromTestVariableIndexToItsLevels.[testVariableIndex]
+                                         |> Seq.map (fun level -> testVariableIndex, level)
+                                         |> List.of_seq)
+                        levelEntriesForTestVariableIndicesFromList
+                        |> BargainBasement.CrossProductWithCommonSuffix sentinelEntriesForInterleavedTestVariableIndices
                         |> List.map (fun testVectorRepresentationAsList ->
-                                        Map.of_list (List.append testVectorRepresentationAsList entriesForInterleavedTestVariableIndices))
+                                        Map.of_list testVectorRepresentationAsList)
                      testVariableIndexListsGroupedByStrength
                      |> List.map (fun testVariableIndexLists ->
                                     testVariableIndexLists
