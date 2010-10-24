@@ -1,6 +1,7 @@
 #light
 
 #r "Z:/SageSerpent/workInProgress/development/solution/SageSerpent.Infrastructure/bin/Debug/SageSerpent.Infrastructure.dll"
+#r "C:/Program Files/FSharp-1.9.6.2/bin/FSharp.Compiler.CodeDom.dll"
 
 open SageSerpent.Infrastructure
 
@@ -48,3 +49,79 @@ r.ChooseAnyNumberFromOneTo 10u;;
 
 
 let r2 = BargainBasement.PartitionItemsIntoSubgroupsOfRandomNonZeroLength [1u .. 10u] 3u r;;
+
+
+let simpleQuote = <@ 2 @>
+
+
+let create () =
+    let notSoSimpleQuote = <@ [] @>
+    notSoSimpleQuote
+    
+type MyVeryOwnJustin = int * int *string
+    
+open System.CodeDom
+
+let typeRepresentation = CodeTypeReference (typeof<MyVeryOwnJustin>)
+
+let codeNamespace = CodeNamespace "_quiggly_"
+
+let codeCompileUnit = CodeCompileUnit ()
+
+codeCompileUnit.Namespaces.Add codeNamespace
+
+let codeTypeDeclaration = CodeTypeDeclaration "Vabbing"
+
+codeNamespace.Types.Add codeTypeDeclaration
+
+let codeMemberMethod = CodeMemberMethod ()
+
+codeMemberMethod.Name <- "Foo"
+
+codeMemberMethod.ReturnType <- CodeTypeReference (typeof<Unit>)
+
+codeMemberMethod.Parameters.Add (CodeParameterDeclarationExpression (typeRepresentation, "argument"))
+
+let codeMethodReturnStatement = CodeMethodReturnStatement ()
+
+codeMethodReturnStatement.Expression <- CodeObjectCreateExpression (codeMemberMethod.ReturnType, [||])
+
+codeMemberMethod.Statements.Add codeMethodReturnStatement
+
+codeTypeDeclaration.Members.Add codeMemberMethod
+
+open Microsoft.FSharp.Compiler.CodeDom
+
+
+let compileItAll () =
+    use codeProvider =
+        new Microsoft.CSharp.CSharpCodeProvider ()
+    codeProvider.GenerateCodeFromCompileUnit (codeCompileUnit, System.Console.Out, Compiler.CodeGeneratorOptions ())
+    let compilerParameters = Compiler.CompilerParameters (GenerateInMemory = true)
+    compilerParameters.GenerateInMemory <- true
+    let compilationResults = codeProvider.CompileAssemblyFromDom (compilerParameters, [| codeCompileUnit |])
+    printf "%A\n" compilationResults.Errors
+    let generatedAssembly = compilationResults.CompiledAssembly
+    
+    let generatedClass = generatedAssembly.GetType "Vabbing"
+    
+    let instanceOfGeneratedClass = System.Activator.CreateInstance generatedClass
+    
+    printf "%A\n" instanceOfGeneratedClass
+ 
+ 
+let someFunction x =
+    1u :: [ x ]
+    
+let theType = someFunction.GetType ()
+
+printf "%A\n" (theType.GetMembers ())
+
+
+
+
+
+
+
+
+

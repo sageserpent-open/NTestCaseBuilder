@@ -10,7 +10,6 @@ namespace SageSerpent.TestInfrastructure.Tests
     open System.Windows.Forms
     open System.Drawing
     open System.Collections.Generic
-    open Wintellect.PowerCollections
     open Microsoft.FSharp.Collections
     
     type private TestLevel =
@@ -84,6 +83,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                 let trackedTestVariableToNumberOfLevelsMap =
                     Map.of_list (List.init (int32 numberOfTrackedTestVariables)
                                            (fun testVariable -> testVariable, randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable))
+                // NOTE: the use of 'leftmost' for the test variable index is incorrect wrt to how the subtrees are ordered
+                // - the latter are created in right to left order! FIX THIS.
                 let rec createTree distributionModeWrtInterleavingNode
                                    indexForLeftmostTrackedTestVariable
                                    numberOfTrackedTestVariables
@@ -123,7 +124,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                     firstSum :: ((Seq.pairwise selectedSumsIncludingNumberOfTrackedTestVariables)
                                                  |> Seq.map (function first, second -> second - first)
                                                  |> List.of_seq)
-                                 Algorithms.RandomShuffle (leadingSumAndSubsequentDifferences, randomBehaviour.UnderlyingImplementationForClientUse)
+                                 randomBehaviour.Shuffle leadingSumAndSubsequentDifferences
                                  |> List.of_array
                          let distributionMakerForSynthesizingNodes =
                             // The following definition looks as if it is transposed - but it is not: the
@@ -237,6 +238,37 @@ namespace SageSerpent.TestInfrastructure.Tests
         let maximumStrengthOfCombination = 6u
         
         [<Test>]
+        member this.TestThatARandomlyChosenNCombinationOfTestVariablesIsCoveredInTermsOfCrossProductOfLevels () =
+            let testHandoff tree 
+                            trackedTestVariableToNumberOfLevelsMap
+                            resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
+                let crossProductOfLevelIndices =
+                    Map.fold_right (fun _ numberOfLevels partialResult ->
+                                        [1u .. numberOfLevels] :: partialResult)
+                                   trackedTestVariableToNumberOfLevelsMap []
+                    |> BargainBasement.CrossProduct
+                    |> Set.of_list
+                let shouldBeTrue =
+                    resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength = crossProductOfLevelIndices
+                if not shouldBeTrue
+                then dumpTree tree
+                Assert.IsTrue shouldBeTrue
+            createTreesTopDownAndHandEachOffToTest WithinOnlyASingleSubtree testHandoff
+
+        [<Test>]
+        member this.TestThatARandomlyChosenNCombinationOfTestVariablesSpanningSubtreesOfAnInterleavingNodeIsForbidden () =
+            let testHandoff tree
+                            trackedTestVariableToNumberOfLevelsMap
+                            resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
+                if (trackedTestVariableToNumberOfLevelsMap: Map<_, _>).Count > 1
+                then let shouldBeTrue =
+                        Set.is_empty resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength
+                     if not shouldBeTrue
+                     then dumpTree tree
+                     Assert.IsTrue shouldBeTrue
+            createTreesTopDownAndHandEachOffToTest BetweenSiblingSubtrees testHandoff
+            
+        [<Test>]
         member this.TestCorrectnessOfTestVariableIndicesAndThatASentinelLevelValueIsCreatedForInterleavedVariableIndicesNotChosenInACombination () =
             let randomBehaviour = RandomBehaviour randomBehaviourSeed
             let didTheSingleTestVariableEdgeCase = ref false
@@ -270,7 +302,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                                         nodeAndItsSpannedTestVariableIndicesPairs
                                         |> List.map (snd >> randomBehaviour.ChooseOneOf)
                                      let chosenPair =
-                                        Algorithms.RandomSubset (testVariableIndicesChosenFromSeparateSpans, 2, randomBehaviour.UnderlyingImplementationForClientUse)
+                                        randomBehaviour.ChooseSeveralOf testVariableIndicesChosenFromSeparateSpans
+                                                                        2u
                                      Some (chosenPair.[0], chosenPair.[1])
                                 else None                                 
                             let chosenPairsOfInterleavedTestVariableIndices =
@@ -355,34 +388,3 @@ namespace SageSerpent.TestInfrastructure.Tests
             printf "**** TIME FOR TEST: %A\n" (timeAtEnd - timeAtStart)
             Assert.IsTrue !didTheSingleTestVariableEdgeCase
                 
-        [<Test>]
-        member this.TestThatARandomlyChosenNCombinationOfTestVariablesIsCoveredInTermsOfCrossProductOfLevels () =
-            let testHandoff tree 
-                            trackedTestVariableToNumberOfLevelsMap
-                            resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
-                let crossProductOfLevelIndices =
-                    Map.fold_right (fun _ numberOfLevels partialResult ->
-                                        [1u .. numberOfLevels] :: partialResult)
-                                   trackedTestVariableToNumberOfLevelsMap []
-                    |> BargainBasement.CrossProduct
-                    |> Set.of_list
-                let shouldBeTrue =
-                    resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength = crossProductOfLevelIndices
-                if not shouldBeTrue
-                then dumpTree tree
-                Assert.IsTrue shouldBeTrue
-            createTreesTopDownAndHandEachOffToTest WithinOnlyASingleSubtree testHandoff
-
-        [<Test>]
-        member this.TestThatARandomlyChosenNCombinationOfTestVariablesSpanningSubtreesOfAnInterleavingNodeIsForbidden () =
-            let testHandoff tree
-                            trackedTestVariableToNumberOfLevelsMap
-                            resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
-                if (trackedTestVariableToNumberOfLevelsMap: Map<'Key, 'Value>).Count > 1
-                then let shouldBeTrue =
-                        Set.is_empty resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength
-                     if not shouldBeTrue
-                     then dumpTree tree
-                     Assert.IsTrue shouldBeTrue
-            createTreesTopDownAndHandEachOffToTest BetweenSiblingSubtrees testHandoff
-            

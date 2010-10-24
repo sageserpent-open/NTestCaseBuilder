@@ -10,7 +10,6 @@ namespace SageSerpent.TestInfrastructure.Tests
     open System.Windows.Forms
     open System.Drawing
     open System.Collections.Generic
-    open Wintellect.PowerCollections
     open Microsoft.FSharp.Collections
     
     
@@ -39,7 +38,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                 RandomBehaviour randomBehaviourSeed
             let createPartialTestVectors () =
                 let createShuffledUniqueLevels () =
-                    Algorithms.RandomShuffle (seq {1u .. maximumNumberOfTestVectors}, randomBehaviour.UnderlyingImplementationForClientUse)
+                    randomBehaviour.Shuffle (seq {1u .. maximumNumberOfTestVectors})
                 let shuffleForEachTestVariableIndex =
                     Array.init (int32 maximumNumberOfTestVariables) (fun _ -> createShuffledUniqueLevels ())
                 let numberOfTestVectors =
@@ -95,7 +94,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                 let partialTestVectors =
                     fillInPartialTestVectors (List.init (int32 numberOfTestVectors) (fun _ -> Map.empty))
                                              []
-                Algorithms.RandomShuffle (partialTestVectors, randomBehaviour.UnderlyingImplementationForClientUse)
+                randomBehaviour.Shuffle partialTestVectors
                 |> List.of_array               
             for _ in 1u .. overallTestRepeats do
                 testHandoff (createPartialTestVectors ())
@@ -177,9 +176,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                         let mutantOrCopy =
                             match randomBehaviour.ChooseAnyNumberFromOneTo 3u with
                                 1u ->
-                                    Algorithms.RandomSubset (Map.to_seq partialTestVector,
-                                                             int32 (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 partialTestVector.Count)),
-                                                             randomBehaviour.UnderlyingImplementationForClientUse)
+                                    randomBehaviour.ChooseSeveralOf (Map.to_seq partialTestVector)
+                                                                    (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 partialTestVector.Count))
                                  |> Map.of_seq
                               | 2u ->
                                     Map.to_seq partialTestVector
@@ -262,9 +260,8 @@ namespace SageSerpent.TestInfrastructure.Tests
             let randomBehaviour = RandomBehaviour randomBehaviourSeed
             let testHandoff partialTestVectorsThatDoNotOverlap =
                 let sortedIndicesToAvoid =
-                    Algorithms.RandomSubset (List.init (int32 maximumNumberOfTestVariables) (fun count -> uint32 count),
-                                             int32 (randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfIndicesToAvoid),
-                                             randomBehaviour.UnderlyingImplementationForClientUse)
+                    randomBehaviour.ChooseSeveralOf (List.init (int32 maximumNumberOfTestVariables) (fun count -> uint32 count))
+                                                    (randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfIndicesToAvoid)
                     |> List.of_array
                     |> List.sort compare
                 let remappedPartialTestVectors =
@@ -274,9 +271,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                     mergeOrAddPartialTestVectors remappedPartialTestVectors MergedPartialTestVectorRepresentations.initial
                 let possiblyAddLevelsForIndices indicesToAdd partialTestVector =
                     let chosenIndicesToAdd =
-                        Algorithms.RandomSubset (indicesToAdd,
-                                                 int32 (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 (Seq.length indicesToAdd) + 1u)),
-                                                 randomBehaviour.UnderlyingImplementationForClientUse)
+                        randomBehaviour.ChooseSeveralOf indicesToAdd
+                                                        (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 (Seq.length indicesToAdd) + 1u))
                     seq {for index in chosenIndicesToAdd do
                             yield index, index + uint32 (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumLevelDelta)}
                     |> (let addIndexAndLevel partialTestVector

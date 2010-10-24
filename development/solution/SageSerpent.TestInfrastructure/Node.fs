@@ -315,16 +315,12 @@ namespace SageSerpent.TestInfrastructure
                 if Set.count missingTestVariableIndices = 0
                 then []
                 else let chosenTestVariableIndex =
-                        (Algorithms.RandomSubset (missingTestVariableIndices,
-                                                  1,
-                                                  (randomBehaviour: RandomBehaviour).UnderlyingImplementationForClientUse)).[0]
+                        (randomBehaviour: RandomBehaviour).ChooseOneOf missingTestVariableIndices
                             
                      let chooseLevelFor testVariableIndex =
                         let levels =
                             this.LevelsFor testVariableIndex
-                        (Algorithms.RandomSubset (levels,
-                                                  1,
-                                                  (randomBehaviour: RandomBehaviour).UnderlyingImplementationForClientUse)).[0]
+                        (randomBehaviour: RandomBehaviour).ChooseOneOf levels
                             
                      let entryForChosenTestVariable =
                         chosenTestVariableIndex
@@ -404,6 +400,7 @@ namespace SageSerpent.TestInfrastructure
                                      indexForLeftmostTestVariableInNodeContainingLeftmostNonExcludedTestVariable
                       | SynthesizingNode (subtreeRootNodes
                                           , synthesisDelegate) ->
+                            let stash = Seq.length subtreeRootNodes
                             let subtreeRootNodes =
                                 subtreeRootNodes
                                 |> LazyList.of_seq
@@ -422,8 +419,10 @@ namespace SageSerpent.TestInfrastructure
                                             resultFromSubtree
                                             :: collectResultsFromSubtrees tail
                                                                           indexForForLeftmostTestVariableInTail
-                            synthesisDelegate.DynamicInvoke (collectResultsFromSubtrees subtreeRootNodes indexForLeftmostTestVariable
-                                                             |> List.to_array)
+                            let resultsFromSubtrees =
+                                collectResultsFromSubtrees subtreeRootNodes indexForLeftmostTestVariable
+                                |> List.to_array
+                            synthesisDelegate.DynamicInvoke resultsFromSubtrees
             if this.CountTestVariables > uint32 (Array.length fullTestVector)
             then raise (PreconditionViolationException "Vector is inconsistent with the tree structure - test vector has more entries than the number of test variables in the tree.")                                                             
             else walkTree this
