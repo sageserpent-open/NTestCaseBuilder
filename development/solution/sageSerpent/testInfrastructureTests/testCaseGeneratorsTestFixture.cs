@@ -702,16 +702,16 @@ namespace SageSerpent.TestInfrastructureTests
 
                 UInt32 numberOfPartitionPoints = (UInt32) randomChoice.Next((Int32) maximumDegreesOfFreedom) + 1U;
 
-                OrderedSet<UInt32> potentialPartitionPoints = new OrderedSet<UInt32>();
+                TreeSet<UInt32> potentialPartitionPoints = new TreeSet<UInt32>();
 
                 for (UInt32 potentialPartitionPoint = 1U; potentialPartitionPoint <= maximumDegreesOfFreedom; ++potentialPartitionPoint)
                 {
                     potentialPartitionPoints.Add(potentialPartitionPoint);
                 }
 
-                OrderedSet<UInt32> selectedPartitionPoints = new OrderedSet<UInt32>();
+                TreeSet<UInt32> selectedPartitionPoints = new TreeSet<UInt32>();
 
-                selectedPartitionPoints.AddMany(Algorithms.RandomSubset(potentialPartitionPoints, (Int32) numberOfPartitionPoints, randomChoice));
+                selectedPartitionPoints.AddAll(Algorithms.RandomSubset(potentialPartitionPoints, (Int32) numberOfPartitionPoints, randomChoice));
 
                 selectedPartitionPoints.Add(1U);
                 // We always put this into the set and use the iterator down below to pick it back out during set up
