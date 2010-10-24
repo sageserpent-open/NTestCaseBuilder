@@ -8,7 +8,7 @@
     
     type LevelRepresentation<'Level when 'Level: comparison> =
         Level of 'Level
-      | Indeterminate                     
+      | Indeterminate                  
     and InternalNodeRepresentation<'Level when 'Level: comparison> =
         {
             LevelForTestVariableIndex: LevelRepresentation<'Level>
@@ -147,7 +147,7 @@
                                 else raise (InternalAssertionViolationException "Left or right subtrees should only be added to with a non-empty new partial test vector representation.")
                           | headFromNewPartialTestVectorRepresentation :: tailFromNewPartialTestVectorRepresentation ->                            
                                 match compare headFromNewPartialTestVectorRepresentation levelForTestVariableIndex with
-                                    -1 ->
+                                    result when result < 0  ->
                                     InternalNode
                                         {
                                             LevelForTestVariableIndex =
@@ -159,7 +159,7 @@
                                             SubtreeForGreaterIndices =
                                                 subtreeForGreaterIndices
                                         }
-                                  | 0 ->
+                                  | _ ->
                                     InternalNode
                                         {
                                             LevelForTestVariableIndex =
@@ -171,7 +171,7 @@
                                             SubtreeForGreaterIndices =
                                                 add subtreeForGreaterIndices tailFromNewPartialTestVectorRepresentation true
                                         }
-                                  | 1 ->
+                                  | result when result > 0 ->
                                     InternalNode
                                         {
                                             LevelForTestVariableIndex =
@@ -183,7 +183,6 @@
                                             SubtreeForGreaterIndices =
                                                 subtreeForGreaterIndices
                                         }
-                                  | _ -> raise (InternalAssertionViolationException "Comparison violated postcondition.") 
             add this newPartialTestVectorRepresentation true
                            
         member private this.Remove queryPartialTestVectorRepresentation =
@@ -269,25 +268,24 @@
                               Level _
                               , Level _ ->
                                     match compare headFromQueryPartialTestVectorRepresentation levelForTestVariableIndex with
-                                        -1 ->
+                                        result when result < 0 ->
                                             remove subtreeWithLesserLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
                                                                                                      :: tailFromQueryPartialTestVectorRepresentation)
                                                                                                    false
                                                                                                    testVariableIndex
                                             |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex
-                                      | 0 ->
+                                      | _ ->
                                             remove subtreeForGreaterIndices
                                                    tailFromQueryPartialTestVectorRepresentation
                                                    true
                                                    (testVariableIndex + 1u)
                                             |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
-                                      | 1 -> 
+                                      | result when result > 0 ->
                                             remove subtreeWithGreaterLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
                                                                                                       :: tailFromQueryPartialTestVectorRepresentation)
                                                                                                     false
                                                                                                     testVariableIndex
                                             |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex
-                                      | _ -> raise (InternalAssertionViolationException "Comparison violated postcondition.")
                             | Level _
                               , Indeterminate ->
                                     remove subtreeForGreaterIndices
@@ -297,22 +295,20 @@
                                     |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
                                     |> BargainBasement.DeferredDefault (fun () ->
                                                                             match compare headFromQueryPartialTestVectorRepresentation levelForTestVariableIndex with
-                                                                                -1 ->
+                                                                                result when result < 0 ->
                                                                                     remove subtreeWithLesserLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
                                                                                                                                              :: tailFromQueryPartialTestVectorRepresentation)
                                                                                                                                            false
                                                                                                                                            testVariableIndex
                                                                                     |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex
-                                                                              | 0 ->
+                                                                              | _ ->
                                                                                     raise (InternalAssertionViolationException "Should not get an exact match as the query level is definite but the stored one is indeterminate.")
-                                                                              | 1 -> 
+                                                                              | result when result > 0 -> 
                                                                                     remove subtreeWithGreaterLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
                                                                                                                                               :: tailFromQueryPartialTestVectorRepresentation)
                                                                                                                                             false
                                                                                                                                             testVariableIndex
-                                                                                    |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex
-                                                                              | _ ->
-                                                                                    raise (InternalAssertionViolationException "Comparison violated postcondition."))
+                                                                                    |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex)
                             | _ ->
                                     remove subtreeForGreaterIndices
                                            tailFromQueryPartialTestVectorRepresentation

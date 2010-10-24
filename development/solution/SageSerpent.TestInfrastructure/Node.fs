@@ -16,6 +16,10 @@ namespace SageSerpent.TestInfrastructure
             CombineResultsFromInterleavingNodeSubtrees: seq<'Result> -> 'Result
             CombineResultsFromSynthesizingNodeSubtrees: seq<'Result> -> 'Result
         }
+    and LevelForTestVariable =
+        Index of Int32
+      | SingletonPlaceholder
+      | Exclusion
     and Node =
         TestVariableNode of array<Object>
       | SingletonNode of Object
@@ -94,7 +98,7 @@ namespace SageSerpent.TestInfrastructure
                            && Seq.length prunedSubtreeRootNodes
                               = Seq.length subtreeRootNodes
                         then Some (SynthesizingNode (prunedSubtreeRootNodes
-                                                  , synthesisDelegate))
+                                                     , synthesisDelegate))
                         else None
             walkTree this
                                 
@@ -170,7 +174,9 @@ namespace SageSerpent.TestInfrastructure
                         TestVariableNode levels ->
                             [[[indexForLeftmostTestVariable]]]
                             , indexForLeftmostTestVariable + 1u
-                            , [(indexForLeftmostTestVariable, uint32 (Array.length levels))]
+                            , [indexForLeftmostTestVariable
+                               , Array.length levels
+                                 |> uint32]
                             
                       | SingletonNode _ ->
                             []
@@ -285,7 +291,7 @@ namespace SageSerpent.TestInfrastructure
                         |> Set.ofList
                         |> Set.toList
                         |> List.map (fun testVariableIndex ->
-                                        (testVariableIndex, None))
+                                        (testVariableIndex, Exclusion))
                     let testVariableCombinationSortedByDecreasingNumberOfLevels = // Using this sort order optimizes the cross product later on.
                         let numberOfLevelsForTestVariable testVariableIndex
                             = associationFromTestVariableIndexToNumberOfItsLevels.[testVariableIndex]
@@ -298,8 +304,7 @@ namespace SageSerpent.TestInfrastructure
                         |> List.map (fun testVariableIndex ->
                                      associationFromTestVariableIndexToNumberOfItsLevels.[testVariableIndex]
                                      |> int32
-                                     |> (BargainBasement.Flip Seq.init) (fun level -> testVariableIndex, Some level)
-                                     |> List.ofSeq)
+                                     |> (BargainBasement.Flip List.init) (fun levelIndex -> testVariableIndex, Index levelIndex))
                     levelEntriesForTestVariableIndicesFromList
                     |> BargainBasement.CrossProductWithCommonSuffix sentinelEntriesForInterleavedTestVariableIndices
                     |> List.map (fun testVectorRepresentationAsList ->
@@ -339,14 +344,14 @@ namespace SageSerpent.TestInfrastructure
                             
                      let entryForChosenTestVariable =
                         chosenTestVariableIndex
-                        , Some (chooseLevelIndexFor chosenTestVariableIndex)
+                        , Index (chooseLevelIndexFor chosenTestVariableIndex)
                      let excludedTestVariableIndices =
                         associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.FindAll chosenTestVariableIndex
                      let entriesForExcludedTestVariableIndices =
                         excludedTestVariableIndices
                         |> List.map (fun excludedTestVariableIndex ->
                                         excludedTestVariableIndex
-                                        , None)
+                                        , Exclusion)
                      let missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions =
                         missingTestVariableIndices - Set.ofList (chosenTestVariableIndex
                                                                    :: excludedTestVariableIndices)
@@ -373,12 +378,20 @@ namespace SageSerpent.TestInfrastructure
                 else match node with
                         TestVariableNode levels ->
                             match fullTestVector.[int32 indexForLeftmostTestVariable] with
-                                Some levelIndexFromVector ->
+                                Index levelIndexFromVector ->
                                     levels.[levelIndexFromVector]
-                              | None ->
+                              | SingletonPlaceholder ->
+                                    raise (PreconditionViolationException "Vector is inconsistent with the tree structure - the level from the vector has the sentinel value for a singleton test case.")
+                              | Exclusion ->
                                     raise (PreconditionViolationException "Vector is inconsistent with the tree structure - the level from the vector has the sentinel value for an excluded test variable.")
                       | SingletonNode testCase ->
-                            testCase                                    
+                            match fullTestVector.[int32 indexForLeftmostTestVariable] with
+                                Index _ ->
+                                    raise (PreconditionViolationException "Vector is inconsistent with the tree structure - the level from the vector has a genuine test level value.")
+                              | SingletonPlaceholder ->
+                                    testCase
+                              | Exclusion ->
+                                    raise (PreconditionViolationException "Vector is inconsistent with the tree structure - the level from the vector has the sentinel value for an excluded test variable.")                                    
                       | InterleavingNode subtreeRootNodes ->
                             let firstNonExcludedTestVariableIndex =
                                 let sectionOfFullTestVector =
@@ -387,7 +400,10 @@ namespace SageSerpent.TestInfrastructure
                                                       int32 numberOfTestVariables)
                                 match Algorithms.FindFirstIndexWhere (sectionOfFullTestVector,
                                                                       (fun testVariableLevel ->
-                                                                            Option.isSome testVariableLevel)) with
+                                                                            match testVariableLevel with
+                                                                                Exclusion ->
+                                                                                    false
+                                                                              | _ -> true)) with
                                     -1 ->
                                         raise (PreconditionViolationException "Vector is inconsistent with the tree structure - should have found at least one non-excluded test variable level contributing to an interleave.")
                                   | index ->

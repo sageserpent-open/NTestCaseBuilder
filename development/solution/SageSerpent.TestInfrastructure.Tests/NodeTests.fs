@@ -220,14 +220,14 @@
                             let testVectorRepresentationForTrackedVariablesOnly = 
                                     Map.foldBack (fun testVariableIndex level partialResult ->
                                                     match level with
-                                                        Some testVariableLevelIndex ->
+                                                        Index testVariableLevelIndex ->
                                                             match trackedTestVariablesIndexedByTestVariable.[int32 testVariableIndex] with
                                                                 Some trackedTestVariableIndex ->
                                                                     (trackedTestVariableIndex, testVariableLevelIndex)
                                                                      :: partialResult
                                                               | _ ->
                                                                     partialResult
-                                                      | None ->
+                                                      | _ ->
                                                             partialResult)
                                                  testVectorRepresentation []
                             testVectorRepresentationForTrackedVariablesOnly
@@ -384,7 +384,7 @@
                     |> List.reduce Seq.append
                 let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap testVariableIndex testVariableLevelIndex =
                     match testVariableLevelIndex with
-                        Some testVariableLevelIndex ->
+                        Index testVariableLevelIndex ->
                             match Map.tryFind testVariableIndex testVariableIndexToMaximumLevelIndexMap with
                                 Some previousTestVariableLevelIndex ->
                                     if previousTestVariableLevelIndex < testVariableLevelIndex
@@ -402,13 +402,13 @@
                     Map.map (fun _ maximumTestVariableLevelIndex ->
                                 uint32 maximumTestVariableLevelIndex + 1u)
                             testVariableIndexToMaximumLevelIndexMap
-                let observedValues =
+                let observedNumberOfLevels =
                     observedNumberOfLevelsMap
                     |> Map.toList
                     |> List.map snd
                     
                 let shouldBeTrue =
-                    observedValues = testVariableLevelCounts
+                    observedNumberOfLevels = testVariableLevelCounts
                                     
                 Assert.IsTrue shouldBeTrue
                 
@@ -417,15 +417,15 @@
                         let testVariableIndex = entry.Key
                         let testVariableLevelIndex = entry.Value
                         match testVariableLevelIndex with
-                            Some _ ->
+                            Index _ ->
                                 if associationFromTestVariableIndexToInterleavedTestVariableIndices.ContainsKey testVariableIndex
                                 then let interleavedTestVariableIndices =
                                         associationFromTestVariableIndexToInterleavedTestVariableIndices.FindAll testVariableIndex
                                      for interleavedTestVariable in interleavedTestVariableIndices do
                                         let shouldBeTrue = 
-                                            result.[interleavedTestVariable] = None
+                                            result.[interleavedTestVariable] = Exclusion
                                         Assert.IsTrue shouldBeTrue 
-                          | None ->
+                          | _ ->
                                 ()
             let timeAtEnd = DateTime.Now
             printf "**** TIME FOR TEST: %A\n" (timeAtEnd - timeAtStart)

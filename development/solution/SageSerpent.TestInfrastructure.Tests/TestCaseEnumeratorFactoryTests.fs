@@ -145,27 +145,29 @@
             let combinationStrength = 
                 (randomBehaviour: RandomBehaviour).ChooseAnyNumberFromOneTo maximumCombinationStrength
             let rec constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
-                                                                                               testVariableIndexToCountMapping
+                                                                                               testVariableIndexToLevelsMapping
                                                                                                numberOfAncestorFactories
                                                                                                allowEmptyValueNodes =
                 match randomBehaviour.ChooseAnyNumberFromOneTo 3u with
                     1u when combinationStrength = 1u ->
                         let indexForLeftmostTestVariable =
-                            uint32 (testVariableIndexToCountMapping: Map<_, _>).Count
+                            uint32 (testVariableIndexToLevelsMapping: Map<_, _>).Count
                         let levelCountForTestVariableIntroducedHere =
                             if allowEmptyValueNodes
                             then    randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (1u + maximumNumberOfTestLevels)
                             else    randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevels
-                        TestVariableLevelEnumerableFactory.Create (seq { for levelNumber in 1u .. levelCountForTestVariableIntroducedHere do
-                                                                            yield [(indexForLeftmostTestVariable, levelNumber)] })
+                        let testVariableLevels =
+                            [ for levelNumber in 1u .. levelCountForTestVariableIntroducedHere do
+                                yield [(indexForLeftmostTestVariable, levelNumber)] ]
+                        TestVariableLevelEnumerableFactory.Create testVariableLevels
                         , Set.singleton indexForLeftmostTestVariable
                         , Map.add indexForLeftmostTestVariable
-                                  levelCountForTestVariableIntroducedHere
-                                  testVariableIndexToCountMapping
+                                  testVariableLevels
+                                  testVariableIndexToLevelsMapping
                   | _ when combinationStrength = 0u ->
                         SingletonTestCaseEnumerableFactory.Create ([]: List<TestVariableLevel>)
                         , Set.empty
-                        , testVariableIndexToCountMapping 
+                        , testVariableIndexToLevelsMapping 
                   | _ ->
                     if randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (2u * maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving)
                        < max maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving
@@ -186,33 +188,33 @@
                                 |> List.ofArray
                             
                             let rec createSubtrees combinationStrengthsForSubtrees
-                                                   testVariableIndexToCountMapping =
+                                                   testVariableIndexToLevelsMapping =
                                 match combinationStrengthsForSubtrees with
                                     [] ->
                                         []
                                         , []
-                                        , testVariableIndexToCountMapping
+                                        , testVariableIndexToLevelsMapping
                                   | headCombinationStrength :: tail ->
                                         let subtree
                                             , testVariableCombinationFromSubtree
-                                            , testVariableIndexToCountMappingFromSubtree =
+                                            , testVariableIndexToLevelsMappingFromSubtree =
                                             constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations headCombinationStrength
-                                                                                                                       testVariableIndexToCountMapping
+                                                                                                                       testVariableIndexToLevelsMapping
                                                                                                                        (numberOfAncestorFactories + 1u)
                                                                                                                        allowEmptyValueNodes
                                         let remainingSubtrees
                                             , testVariableCombinationsFromRemainingSubtrees
-                                            , testVariableIndexToCountMappingFromRemainingSubtrees =
+                                            , testVariableIndexToLevelsMappingFromRemainingSubtrees =
                                             createSubtrees tail
-                                                           testVariableIndexToCountMappingFromSubtree  
+                                                           testVariableIndexToLevelsMappingFromSubtree  
                                         subtree :: remainingSubtrees
                                         , testVariableCombinationFromSubtree :: testVariableCombinationsFromRemainingSubtrees
-                                        , testVariableIndexToCountMappingFromRemainingSubtrees
+                                        , testVariableIndexToLevelsMappingFromRemainingSubtrees
                             let subtrees
                                 , testVariableCombinationsFromSubtrees
-                                , testVariableIndexToCountMappingFromSubtrees =
+                                , testVariableIndexToLevelsMappingFromSubtrees =
                                 createSubtrees combinationStrengthsForSubtrees
-                                               testVariableIndexToCountMapping
+                                               testVariableIndexToLevelsMapping
                             let permutedSubtrees
                                 , inversePermutation =
                                 randomBehaviour.Shuffle (List.zip subtrees [0 .. subtrees.Length - 1])
@@ -236,7 +238,7 @@
                             SynthesizedTestCaseEnumerableFactory.Create permutedSubtrees
                                                                         nAryCondensationDelegate
                             , testVariableCombination
-                            , testVariableIndexToCountMappingFromSubtrees
+                            , testVariableIndexToLevelsMappingFromSubtrees
                     else    let numberOfSubtrees = 
                                 randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfNonZeroCombinationStrengthSubtrees
                             let rec chooseCombinationStrengths numberOfSubtrees =
@@ -260,39 +262,39 @@
                                 |> List.ofArray
                                 
                             let rec createSubtrees pairsOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice
-                                                   testVariableIndexToCountMapping =
+                                                   testVariableIndexToLevelsMapping =
                                 match pairsOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice with
                                     [] ->
                                         []
                                         , []
-                                        , testVariableIndexToCountMapping
+                                        , testVariableIndexToLevelsMapping
                                   | headPairOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice :: tailPairsOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice ->
                                         let subtree
                                             , testVariableCombinationFromSubtree
-                                            , testVariableIndexToCountMappingFromSubtree =
+                                            , testVariableIndexToLevelsMappingFromSubtree =
                                             constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations (fst headPairOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice)
-                                                                                                                       testVariableIndexToCountMapping
+                                                                                                                       testVariableIndexToLevelsMapping
                                                                                                                        (numberOfAncestorFactories + 1u)
                                                                                                                        (snd headPairOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice)
                                         let remainingSubtrees
                                             , testVariableCombinationsFromRemainingSubtrees
-                                            , testVariableIndexToCountMappingFromRemainingSubtrees =
+                                            , testVariableIndexToLevelsMappingFromRemainingSubtrees =
                                             createSubtrees tailPairsOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice
-                                                           testVariableIndexToCountMappingFromSubtree  
+                                                           testVariableIndexToLevelsMappingFromSubtree  
                                         subtree :: remainingSubtrees
                                         , testVariableCombinationFromSubtree :: testVariableCombinationsFromRemainingSubtrees
-                                        , testVariableIndexToCountMappingFromRemainingSubtrees
+                                        , testVariableIndexToLevelsMappingFromRemainingSubtrees
                             let subtrees
                                 , testVariableCombinationsFromSubtrees
-                                , testVariableIndexToCountMappingFromSubtrees =
+                                , testVariableIndexToLevelsMappingFromSubtrees =
                                 createSubtrees (List.zip combinationStrengths whetherToAllowEmptyValueNodeChoices)
-                                               testVariableIndexToCountMapping
+                                               testVariableIndexToLevelsMapping
                             let chosenTestVariableCombination =
                                 randomBehaviour.ChooseOneOf testVariableCombinationsFromSubtrees
                                 
                             InterleavedTestCaseEnumerableFactory.Create subtrees
                             , chosenTestVariableCombination
-                            , testVariableIndexToCountMappingFromSubtrees
+                            , testVariableIndexToLevelsMappingFromSubtrees
                                                                                                            
                       | _ ->
                         raise (InternalAssertionViolationException "This case should never occur!")
@@ -315,7 +317,7 @@
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumerableFactory
                     , testVariableCombination
-                    , testVariableIndexToCountMapping
+                    , testVariableIndexToLevelsMapping
                     = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour
                 let maximumStrength =
                     randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
@@ -329,15 +331,15 @@
                     testCaseEnumerableFactory.CreateEnumerable maximumStrength
                 testHandoff testCaseEnumerable
                             testVariableCombinationConformingToMaximumStrength
-                            testVariableIndexToCountMapping
+                            testVariableIndexToLevelsMapping
                             maximumStrength
                             randomBehaviour
         
         [<Test>]
         member this.TestCorrectOrderingOfLevelsFromDistinctTestVariablesInEachOutputTestCase () =
             let testHandoff (testCaseEnumerable: System.Collections.IEnumerable)
-                            testVariableCombination
-                            testVariableIndexToCountMapping
+                            _
+                            _
                             _
                             _ =
                 for testCase in testCaseEnumerable do
@@ -350,22 +352,19 @@
         member this.TestCoverageOfNCombinationsOfVariableLevelsInFinalResultsIsComplete () =
             let testHandoff (testCaseEnumerable: System.Collections.IEnumerable)
                             testVariableCombination
-                            testVariableIndexToCountMapping
+                            testVariableIndexToLevelsMapping
                             _
                             _ =
-                let testVariableIndexToCountMappingForTestVariableCombination =
+                let testVariableIndexToLevelsMappingForTestVariableCombination =
                     testVariableCombination
                     |> Set.toList
                     |> List.map (fun testVariable ->
                                     testVariable
-                                    , Map.find testVariable testVariableIndexToCountMapping)
+                                    , Map.find testVariable testVariableIndexToLevelsMapping)
                             
                 let expectedCombinationsOfTestLevels =
-                    testVariableIndexToCountMappingForTestVariableCombination
-                    |> List.map (fun (testVariableIndex, numberOfLevels) ->
-                                    List.init (int numberOfLevels)
-                                              (fun levelNumber ->
-                                                    (testVariableIndex, 1u + uint32 levelNumber)))
+                    testVariableIndexToLevelsMappingForTestVariableCombination
+                    |> List.map (snd >> List.head)
                     |> BargainBasement.CrossProduct 
                     |> List.map Set.ofList
                     |> Set.ofList
@@ -401,7 +400,7 @@
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumerableFactory
                     , testVariableCombination
-                    , testVariableIndexToCountMapping
+                    , testVariableIndexToLevelsMapping
                     = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour
                 let maximumStrength =
                     testCaseEnumerableFactory.MaximumStrength
