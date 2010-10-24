@@ -41,3 +41,7 @@ let q2 = BargainBasement.ChopUpList [3;4;7;8] [1u;2u];;
 let q3 = BargainBasement.BreakOff 4u [3;4;7;8];;
 
 let q4 = BargainBasement.ChopUpList [3;4;7;8] [];;
+
+let r = RandomBehaviour 2;;
+
+r.ChooseAnyNumberFromOneTo 10u;;

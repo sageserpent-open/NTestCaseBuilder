@@ -41,6 +41,7 @@
     <Compile Include="Exceptions.fs" />
     <Compile Include="NUnitTestSuiteDriver.fs" />
     <Compile Include="BargainBasement.fs" />
+    <Compile Include="RandomBehaviour.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="nunit.core, Version=2.2.9.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">

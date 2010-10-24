@@ -62,6 +62,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="NodeTests.fs" />
+    <Compile Include="MergedPartialTestVectorRepresentationsTests.fs" />
     <Compile Include="Driver.fs" />
   </ItemGroup>
   <ItemGroup>

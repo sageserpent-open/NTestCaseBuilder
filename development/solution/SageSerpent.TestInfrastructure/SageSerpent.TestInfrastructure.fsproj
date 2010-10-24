@@ -37,6 +37,7 @@
     <Compile Include="SynthesizedTestCaseEnumeratorFactory.fs" />
     <Compile Include="TestVariableLevelEnumeratorFactory.fs" />
     <Compile Include="Node.fs" />
+    <Compile Include="MergedPartialTestVectorRepresentations.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.PowerPack, Version=1.9.6.2, Culture=neutral, PublicKeyToken=a19089b1c74d0809">

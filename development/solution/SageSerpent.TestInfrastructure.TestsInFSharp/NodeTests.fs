@@ -21,21 +21,8 @@ namespace SageSerpent.TestInfrastructure.Tests
             BetweenSiblingSubtrees
           | WithinOnlyASingleSubtree
           
-    type RandomBehaviour (seed) =
-        let randomBehaviour = Random seed
-        member this.UnderlyingImplementationForClientUse =
-            randomBehaviour
-        member this.ChooseAnyNumberFromZeroToOneLessThan =
-            int32 >> randomBehaviour.Next >> uint32
-        member this.ChooseAnyNumberFromOneTo =
-            this.ChooseAnyNumberFromZeroToOneLessThan >> (+) 1u
-        member this.HeadsItIs () =
-            this.ChooseAnyNumberFromZeroToOneLessThan 2u = 0u
-        member this.ChooseOneOf candidates =
-            List.nth candidates (int32 (this.ChooseAnyNumberFromZeroToOneLessThan (uint32 (List.length candidates))))
-    
     [<TestFixture>]
-    type DumpingGroundTestFixture () =
+    type NodeTestFixture () =
         let dumpTree tree =
             let form = new Form ()
             form.AutoSizeMode <- AutoSizeMode.GrowOnly
@@ -200,7 +187,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                      //dumpTree tree
                      printf "Tree #%u\n" treeNumber
                      let results =
-                        tree.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding numberOfTrackedTestVariables
+                        tree.PartialTestVectorRepresentationsGroupedByStrengthUpToAndIncluding numberOfTrackedTestVariables
                      let resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
                         let resultsAtDesiredStrength =
                             if numberOfTrackedTestVariables = (uint32 results.Length)
@@ -342,8 +329,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                     HashMultiMap.Create (List.append interleavedTestVariableIndexPairs reversedInterleavedTestVariableIndexPairs)
                 printf "Tree #%u\n" treeNumber
                 let results =
-                    tree.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding (min tree.MaximumStrengthOfTestVariableCombination
-                                                                                         maximumStrengthOfCombination)
+                    tree.PartialTestVectorRepresentationsGroupedByStrengthUpToAndIncluding (min tree.MaximumStrengthOfTestVariableCombination
+                                                                                                maximumStrengthOfCombination)
                     |> List.reduce_left Seq.append
                 for result in results do
                     for entry in result do
