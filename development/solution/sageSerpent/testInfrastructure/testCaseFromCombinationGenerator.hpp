@@ -7,13 +7,18 @@ namespace SageSerpent
 {
     namespace TestInfrastructure
     {
+        generic <typename TestCase>
         public ref class TestCaseFromCombinationGenerator:
-            ITestCaseGenerator
+            ITestCaseGenerator<TestCase>
         {
         public:
-            TestCaseFromCombinationGenerator(System::Collections::Generic::IEnumerable<ITestCaseGenerator ^> ^componentTestCaseGenerators);
+            TestCaseFromCombinationGenerator(System::Collections::Generic::IEnumerable<ITestCaseGenerator<TestCase> ^> ^componentTestCaseGenerators,
+                                             System::Delegate combiningClosure);
 
-            virtual System::Collections::IEnumerator ^CreateIterator();
+            // NOTE: how about a design-by-contract smart pointer? It does the 'right-thing' as defined by Spec#.
+            // This then leads to doing something similar in .NET via impersonation.
+
+            virtual System::Collections::Generic::IEnumerator<TestCase> ^CreateIterator();
         };
     }
 }

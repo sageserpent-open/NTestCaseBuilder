@@ -7,13 +7,14 @@ namespace SageSerpent
 {
     namespace TestInfrastructure
     {
+        generic <typename TestCase>
         public ref class TestCaseFromCollectionGenerator:
-            ITestCaseGenerator
+            ITestCaseGenerator<TestCase>
         {
         public:
-            TestCaseFromCollectionGenerator(System::Collections::ICollection ^collection);
+            TestCaseFromCollectionGenerator(System::Collections::Generic::ICollection<TestCase> ^collection);
 
-            virtual System::Collections::IEnumerator ^CreateIterator();
+            virtual System::Collections::Generic::IEnumerator<TestCase> ^CreateIterator();
         };
     }
 }
