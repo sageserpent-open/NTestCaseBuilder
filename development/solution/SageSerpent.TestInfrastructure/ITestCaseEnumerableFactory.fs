@@ -51,7 +51,7 @@ namespace SageSerpent.TestInfrastructure
     /// strength requirements but create fewer collisions.</remarks>
 
     type ITestCaseEnumerableFactory =
-        abstract member CreateEnumerable: uint32 /// <param name="desiredStrength">Desired strength of combination of test levels from different test variables.</param>
+        abstract member CreateEnumerable: System.UInt32 /// <param name="desiredStrength">Desired strength of combination of test levels from different test variables.</param>
                                           -> IEnumerable;
                                           
         abstract member MaximumStrength: System.UInt32;

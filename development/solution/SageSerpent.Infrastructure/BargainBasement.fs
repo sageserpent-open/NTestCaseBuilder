@@ -173,30 +173,34 @@
         NumberOfPermutations originalSize combinationSize
         / Factorial combinationSize
         
-    let IsSorted<'a when 'a: comparison> =
-            Seq.pairwise
-            >> Seq.forall (fun (lhs: 'a
+    let IsSorted<'a when 'a: comparison> items =
+        // TODO: go back to a point-free definition once the associated compiler bug has been sorted out. Making
+        // this function point-free causes an incorrect diagnosis of a type mismatch in the following function
+        // 'MappingAvoidingIndices'. This occurs even when explicit types are given either a parameter constraints
+        // or as explicit generic type parameters.
+            items
+            |> Seq.pairwise
+            |> Seq.forall (fun (lhs: 'a
                                 , rhs)
                             -> lhs < rhs)
         
     let MappingAvoidingIndices sortedIndicesToAvoid =
-        if List.length sortedIndicesToAvoid = 0
+        if Seq.length sortedIndicesToAvoid = 0
         then raise (PreconditionViolationException "Must have at least one index to avoid.")
-        // TODO: reinstate the precondition when I've got a workaround / bug-fix / explanation of the
-        // strange type error that otherwise occurs.
-        //if not (IsSorted sortedIndicesToAvoid)
-        //then raise (PreconditionViolationException "Indices to avoid must be presented in ascending order.")
+        if not (IsSorted sortedIndicesToAvoid)
+        then raise (PreconditionViolationException "Indices to avoid must be presented in ascending order.")
         let sortedAssociationBetweenIndicesAndIncrementsToApply =
             let arrangeDeferredAssociations (runningIncrement
                                              , deferredActionsForPredecessors)
                                             indexToAvoid =
-                runningIncrement + 1u
+                let nextIncrement = runningIncrement + 1u
+                nextIncrement
                 , (fun associationBuiltSoFar ->
                     deferredActionsForPredecessors ((indexToAvoid - runningIncrement
-                                                    , runningIncrement + 1u)
+                                                    , nextIncrement)
                                                       :: associationBuiltSoFar))
             (sortedIndicesToAvoid
-             |> List.fold arrangeDeferredAssociations (0u, (fun result -> result))
+             |> Seq.fold arrangeDeferredAssociations (0u, (fun result -> result))
              |> snd) []
             |> Map.ofList   // This has the effect of eliminating all but the last entry for a group of associations
                             // for consecutive indices. Otherwise the associations for lesser indices in the group

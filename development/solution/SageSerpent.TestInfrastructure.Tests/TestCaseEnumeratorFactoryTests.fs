@@ -133,7 +133,8 @@
     [<TestFixture>]
     type TestCaseEnumerableFactoryTestFixture () =
         let maximumCombinationStrength = 6u
-        let maximumNumberOfSubtrees = 4u
+        let maximumNumberOfNonZeroCombinationStrengthSubtrees = 4u
+        let maximumNumberOfZeroCombinationStrengthSubtrees = 2u
         let maximumNumberOfTestLevels = 3u
         let maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving = 2u;
         
@@ -158,16 +159,34 @@
                         , Map.add indexForLeftmostTestVariable
                                   levelCountForTestVariableIntroducedHere
                                   testVariableIndexToCountMapping
+                  | _ when combinationStrength = 0u ->
+                        let zeroAryCondensationDelegate =
+                            CodeGeneration.NAryCondensationDelegateBuilder 0u
+                                                                           delegateTypeBuilder
+                                                                           ((fun _ -> []): List<List<TestVariableLevel> > -> List<TestVariableLevel>)
+                  
+                        SynthesizedTestCaseEnumerableFactory.Create [] zeroAryCondensationDelegate
+                        , Set.empty
+                        , testVariableIndexToCountMapping 
                   | _ ->
                     if randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (2u * maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving)
                        < max maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving
                              numberOfAncestorFactories
                     then    let numberOfSubtrees =
                                 randomBehaviour.ChooseAnyNumberFromOneTo combinationStrength
-                            let combinationStrengthsForSubtrees =
+                            let nonZeroCombinationStrengthsForSubtrees =
                                 BargainBasement.PartitionSizeIntoSectionsOfRandomNonZeroLength combinationStrength
                                                                                                numberOfSubtrees
                                                                                                randomBehaviour
+                            let numberOfZeroCombinationStrengthSubtrees =
+                                randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfZeroCombinationStrengthSubtrees
+                            
+                            let combinationStrengthsForSubtrees =
+                                Seq.append nonZeroCombinationStrengthsForSubtrees
+                                            (Seq.init (int32 numberOfZeroCombinationStrengthSubtrees) (fun _ -> 0u))
+                                |> randomBehaviour.Shuffle
+                                |> List.ofArray
+                            
                             let rec createSubtrees combinationStrengthsForSubtrees
                                                    testVariableIndexToCountMapping =
                                 match combinationStrengthsForSubtrees with
@@ -220,12 +239,12 @@
                             , testVariableCombination
                             , testVariableIndexToCountMappingFromSubtrees
                     else    let numberOfSubtrees = 
-                                randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfSubtrees
+                                randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfNonZeroCombinationStrengthSubtrees
                             let rec chooseCombinationStrengths numberOfSubtrees =
                                 if numberOfSubtrees > combinationStrength
-                                      then seq { yield! seq { 1u .. combinationStrength } 
+                                      then seq { yield! seq { 0u .. combinationStrength } 
                                                  yield! chooseCombinationStrengths (numberOfSubtrees - combinationStrength) }
-                                      else seq { yield! randomBehaviour.ChooseSeveralOf (seq { 1u .. combinationStrength - 1u })
+                                      else seq { yield! randomBehaviour.ChooseSeveralOf (seq { 0u .. combinationStrength - 1u })
                                                                                         (numberOfSubtrees - 1u)
                                                  yield combinationStrength }
                             let combinationStrengths =
@@ -297,7 +316,7 @@
                     else randomBehaviour.ChooseSeveralOf testVariableCombination
                                                          maximumStrength
                          |> Set.ofArray
-                let testCaseEnumerable () =
+                let testCaseEnumerable =
                     testCaseEnumerableFactory.CreateEnumerable maximumStrength
                 testHandoff testCaseEnumerable
                             testVariableCombinationConformingToMaximumStrength
@@ -307,12 +326,12 @@
         
         [<Test>]
         member this.TestCorrectOrderingOfLevelsFromDistinctTestVariablesInEachOutputTestCase () =
-            let testHandoff (testCaseEnumerable: unit -> System.Collections.IEnumerable)
+            let testHandoff (testCaseEnumerable: System.Collections.IEnumerable)
                             testVariableCombination
                             testVariableIndexToCountMapping
                             _
                             _ =
-                for testCase in testCaseEnumerable () do
+                for testCase in testCaseEnumerable do
                     let testCase = unbox<List<TestVariableLevel>> testCase
                     let shouldBeTrue = isSortedByTestVariableIndex testCase
                     Assert.IsTrue shouldBeTrue
@@ -320,7 +339,7 @@
             
         [<Test>]
         member this.TestCoverageOfNCombinationsOfVariableLevelsInFinalResultsIsComplete () =
-            let testHandoff (testCaseEnumerable: unit -> System.Collections.IEnumerable)
+            let testHandoff (testCaseEnumerable: System.Collections.IEnumerable)
                             testVariableCombination
                             testVariableIndexToCountMapping
                             _
@@ -343,7 +362,7 @@
                     |> Set.ofList
                   
                 let testCases =
-                    seq {for testCase in testCaseEnumerable () do
+                    seq {for testCase in testCaseEnumerable do
                             yield unbox<List<TestVariableLevel>> testCase
                                   |> Set.ofList}
                                   

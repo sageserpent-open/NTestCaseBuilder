@@ -41,21 +41,21 @@ namespace SageSerpent.TestInfrastructure
             this.TraverseTree   {
                                     TestVariableNodeResult = fun _ -> 1u
                                     CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
-                                    CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
+                                    CombineResultsFromSynthesizingNodeSubtrees = Seq.fold (+) 0u
                                 }
         
         member this.SumLevelCountsFromAllTestVariables =
             this.TraverseTree   {
                                     TestVariableNodeResult = fun levels -> uint32 (Seq.length levels)
                                     CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
-                                    CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
+                                    CombineResultsFromSynthesizingNodeSubtrees = Seq.fold (+) 0u
                                 }
       
         member this.MaximumStrengthOfTestVariableCombination =
             this.TraverseTree   {
                                     TestVariableNodeResult = fun _ -> 1u
                                     CombineResultsFromInterleavingNodeSubtrees = Seq.max
-                                    CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
+                                    CombineResultsFromSynthesizingNodeSubtrees = Seq.fold (+) 0u
                                 }                                    
                                 
         member this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
