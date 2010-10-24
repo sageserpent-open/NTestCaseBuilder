@@ -9,6 +9,7 @@ namespace SageSerpent.TestInfrastructure.Tests
     open System
     open System.Windows.Forms
     open System.Drawing
+    open Wintellect.PowerCollections
     
     type private TestLevel =
             Untracked of UInt32
@@ -28,7 +29,8 @@ namespace SageSerpent.TestInfrastructure.Tests
         
         [<Test>]
         member this.TestThatARandomlyChosenNCombinationOfTestVariablesIsCoveredInTermsOfCrossProductOfLevels () =
-            let chooseAnyNumberFromZeroToOneLessThan = int32 >> (Random randomSeed).Next >> uint32
+            let randomBehaviour = Random randomSeed
+            let chooseAnyNumberFromZeroToOneLessThan = int32 >> randomBehaviour.Next >> uint32
             let chooseAnyNumberFromOneTo = chooseAnyNumberFromZeroToOneLessThan >> (+) 1u
             let headsItIs () = chooseAnyNumberFromZeroToOneLessThan 2u = 0u
             for i in [0 .. 5] do
@@ -52,12 +54,38 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                     yield box (Untracked level)])
                               , indexForLeftmostTrackedTestVariable
                     else let distributionMakerForSynthesizingNodes numberOfSubtrees numberOfTrackedTestVariables =
-                            let distributionsOfNumberOfTrackedTestVariablesForEachSubtree =
-                                CombinatoricUtilities.ChooseContributionsToMeetTotal
-                                    (List.init (int32 numberOfSubtrees) (fun _ -> numberOfTrackedTestVariables)) numberOfTrackedTestVariables
-                            let chosenDistribution =
-                                chooseAnyNumberFromZeroToOneLessThan (uint32 distributionsOfNumberOfTrackedTestVariablesForEachSubtree.Length)
-                            List.nth distributionsOfNumberOfTrackedTestVariablesForEachSubtree (int32 chosenDistribution)
+                            if numberOfSubtrees = 1u
+                            then [numberOfTrackedTestVariables]
+                            else let rec generateAsManyCumulativeSumsAs numberOfSums cumulativeSum partialResult =
+                                    if numberOfSums = 0u
+                                    then partialResult
+                                    else let nextLowerCumulativeSum =
+                                            if cumulativeSum > 0u
+                                            then cumulativeSum - 1u
+                                            else 0u
+                                         generateAsManyCumulativeSumsAs (numberOfSums - 1u)
+                                                                        nextLowerCumulativeSum
+                                                                        (nextLowerCumulativeSum :: partialResult)
+                                 let cumulativeSumsUpToOneLessThanNumberOfTrackedTestVariables =
+                                    generateAsManyCumulativeSumsAs (max numberOfSubtrees numberOfTrackedTestVariables
+                                                                    - 1u) numberOfTrackedTestVariables []
+                                 let pickRandomlyAllowingRepetitionOfChoices sums =
+                                    let sums
+                                        = List.to_array sums
+                                    List.of_array [|for _ in [1u .. numberOfSubtrees - 1u] do
+                                                        yield sums.[int32 (chooseAnyNumberFromZeroToOneLessThan (uint32 sums.Length))]|]
+                                    
+                                 let selectedSumsIncludingNumberOfTrackedTestVariables =
+                                    List.append (pickRandomlyAllowingRepetitionOfChoices [0u .. numberOfTrackedTestVariables]
+                                                 |> List.sort compare) [numberOfTrackedTestVariables]
+                                 let firstSum
+                                    = List.hd selectedSumsIncludingNumberOfTrackedTestVariables
+                                 let leadingSumAndSubsequentDifferences =
+                                    firstSum :: ((Seq.pairwise selectedSumsIncludingNumberOfTrackedTestVariables)
+                                                 |> Seq.map (function first, second -> second - first)
+                                                 |> List.of_seq)
+                                 Algorithms.RandomShuffle (leadingSumAndSubsequentDifferences, randomBehaviour)
+                                 |> List.of_array
                          let distributionMakerForInterleavedNodes numberOfSubtrees numberOfTrackedTestVariables =
                             match distributionModeWrtInterleavingNode with
                                 BetweenSiblingSubtrees when numberOfSubtrees > 1u ->

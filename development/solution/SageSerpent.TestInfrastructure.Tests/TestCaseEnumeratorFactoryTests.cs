@@ -747,7 +747,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             private static PermutingClosure CreatePermutingClosure(Random randomChoice)
             {
-                int seed = randomChoice.Next();
+                var seed = randomChoice.Next();
                 return
                     input => ComposedTestCase.MakeShuffledCombination(input, seed);
             }
@@ -756,7 +756,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             {
                 const UInt32 rangeOfAlphabet = 26U;
 
-                uint numberToBeInterpretedAccordingToABase = _namespaceNameGenerationState++;
+                var numberToBeInterpretedAccordingToABase = _namespaceNameGenerationState++;
 
                 var builder = new StringBuilder();
 
