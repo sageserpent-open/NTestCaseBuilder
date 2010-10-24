@@ -28,11 +28,11 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
                                 
     let rec chooseContributionsToMeetTotalsUpToLimit contributionLimits limit =
         match contributionLimits with
-            [] -> Map.Empty ()
-            | head::[] -> Map.FromList [for contributionFromHead in [0u..(min head limit)] do
+            [] -> Map.empty
+            | head::[] -> Map.of_list [for contributionFromHead in [0u..(min head limit)] do
                                             yield (contributionFromHead, [[contributionFromHead]])]
             | head::tail -> let resultFromTail = chooseContributionsToMeetTotalsUpToLimit tail limit
-                            Map.FromList [for total in [0u..limit] do
+                            Map.of_list [for total in [0u..limit] do
                                             let resultForTotal = [for contributionFromHead in [0u..(min head total)] do
                                                                     let totalRequiredFromTail = total - contributionFromHead
                                                                     if resultFromTail.ContainsKey totalRequiredFromTail

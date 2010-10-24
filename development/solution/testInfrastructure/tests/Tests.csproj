@@ -19,7 +19,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>Debug\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -46,22 +46,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\thirdParty\PowerCollections\Binaries\PowerCollections.dll</HintPath>
     </Reference>
-    <Reference Condition=" '$(Configuration)' == 'Debug' " Include="Sageserpent.Infrastructure, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\infrastructure\Debug\Sageserpent.Infrastructure.dll</HintPath>
-    </Reference>
-    <Reference Condition=" '$(Configuration)' == 'Release' " Include="Sageserpent.Infrastructure, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\infrastructure\Release\Sageserpent.Infrastructure.dll</HintPath>
-    </Reference>
-    <Reference Condition=" '$(Configuration)' == 'Debug' " Include="Sageserpent.TestInfrastructure, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Debug\Sageserpent.TestInfrastructure.dll</HintPath>
-    </Reference>
-    <Reference Condition=" '$(Configuration)' == 'Release' " Include="Sageserpent.TestInfrastructure, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Release\Sageserpent.TestInfrastructure.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
@@ -70,6 +54,16 @@
     <Compile Include="driver.cs" />
     <Compile Include="testCaseEnumeratorFactoryTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Infrastructure\Infrastructure.fsproj">
+      <Project>{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}</Project>
+      <Name>Infrastructure %28SageSerpent\Infrastructure\Infrastructure%29</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TestInfrastructure.fsproj">
+      <Project>{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}</Project>
+      <Name>TestInfrastructure %28SageSerpent\TestInfrastructure\TestInfrastructure%29</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

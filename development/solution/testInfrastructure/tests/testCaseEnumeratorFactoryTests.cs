@@ -7,9 +7,9 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using C5;
 using NUnit.Framework;
+using Wintellect.PowerCollections;
 using SageSerpent.Infrastructure;
 using SageSerpent.TestInfrastructure;
-using Wintellect.PowerCollections;
 
 namespace SageSerpent.TestInfrastructure.Tests
 {

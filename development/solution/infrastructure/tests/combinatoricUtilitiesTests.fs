@@ -21,7 +21,7 @@ namespace SageSerpent.Infrastructure.Tests
                           contributionLimitsWithFirstContributionOf limit
                           
         let contributionLimitsEquallingUpToLimitInTotal limit maximumLengthOfContributionLimits =
-            List.flatten (Seq.map (function item -> contributionLimitsEquallingLimitInTotal item maximumLengthOfContributionLimits) [0u..limit])
+            List.concat (Seq.map (function item -> contributionLimitsEquallingLimitInTotal item maximumLengthOfContributionLimits) [0u..limit])
             
         let sumContributions (contributionList: System.UInt32 list) = List.reduce_right (fun x y -> x + y) contributionList
         
@@ -99,7 +99,7 @@ namespace SageSerpent.Infrastructure.Tests
             for total in [0u..5u] do
                 let inputExamples = contributionLimitsEquallingLimitInTotal total 5u
                 let combinedResultsFromAllPossibleInputExamplesSummingToTotal
-                    = Set.of_list (List.flatten (List.map (fun inputExample -> CombinatoricUtilities.chooseContributionsToMeetTotal inputExample total)
+                    = Set.of_list (List.concat (List.map (fun inputExample -> CombinatoricUtilities.chooseContributionsToMeetTotal inputExample total)
                                                            inputExamples))
                 let inputExamplesAsSet = Set.of_list inputExamples
                 printf "(TestCoverageOfAllPossibleContributionsThatCanMeetTheTotal) Number of input examples: %d, number of combined results: %d\n"
