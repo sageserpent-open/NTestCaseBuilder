@@ -144,7 +144,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                          maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables
                 let maximumStrengthOfTestVariableCombination =
                     tree.MaximumStrengthOfTestVariableCombination
-                if maximumStrengthOfTestVariableCombination < 30u
+                if maximumStrengthOfTestVariableCombination < 60u
                 then //printf "**** Tree:\n%A\n\n" tree
                      //printf "Number of test variables: %d\nNumber of levels overall: %d\nMaximum strength: %d\n\n"
                      //       tree.CountTestVariables
