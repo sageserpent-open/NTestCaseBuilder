@@ -5,7 +5,7 @@ namespace SageSerpent
 {
     namespace Infrastructure
     {
-        ref class LogicError:
+        public ref class LogicError:
             System::ApplicationException
         {
         public:
@@ -15,7 +15,7 @@ namespace SageSerpent
             }
         };
 
-        ref class AdmissibleFailure:
+        public ref class AdmissibleFailure:
             System::ApplicationException
         {
         public:
@@ -25,7 +25,7 @@ namespace SageSerpent
             }
         };
 
-        ref class PreconditionViolation:
+        public ref class PreconditionViolation:
             LogicError
         {
         public:
@@ -35,7 +35,7 @@ namespace SageSerpent
             }
         };
 
-        ref class InvariantViolation:
+        public ref class InvariantViolation:
             LogicError
         {
         public:
@@ -45,7 +45,7 @@ namespace SageSerpent
             }
         };
 
-        ref class InternalAssertionViolation:
+        public ref class InternalAssertionViolation:
             LogicError
         {
         public:
@@ -55,7 +55,7 @@ namespace SageSerpent
             }
         };
 
-        ref class StrongGuaranteeException:
+        public ref class StrongGuaranteeException:
             AdmissibleFailure
         {
             StrongGuaranteeException(System::String ^description):
@@ -64,7 +64,7 @@ namespace SageSerpent
             }
         };
 
-        ref class BasicGuaranteeException:
+        public ref class BasicGuaranteeException:
             AdmissibleFailure
         {
             BasicGuaranteeException(System::String ^description):

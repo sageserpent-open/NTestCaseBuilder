@@ -18,7 +18,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory="$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="1"
@@ -42,8 +42,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;$(SolutionDir)\sageSerpent\infrastructure&quot;"
-				AdditionalUsingDirectories="&quot;$(TargetDir)&quot;;&quot;$(SolutionDir)\thirdParty\PowerCollections\Binaries&quot;"
+				AdditionalIncludeDirectories=""
+				AdditionalUsingDirectories="&quot;$(SolutionDir)\thirdParty\PowerCollections\Binaries&quot;;&quot;$(TargetDir)&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG"
 				RuntimeLibrary="3"
 				GenerateXMLDocumentationFiles="true"

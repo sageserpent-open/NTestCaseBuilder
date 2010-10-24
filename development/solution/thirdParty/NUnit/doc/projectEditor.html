@@ -35,14 +35,11 @@ consists of a common area and two tabs, as seen in the image below.</p>
 
 <h3>Common Area</h3>
 
-<p>The common area of the Project Editor contains a label showing the full path 
-   to the project file. There is an edit box, allowing the user to change
-   the project AppBase, which defaults to the directory of the project file.
-   There is also a dropdown combo box permitting selection of the configuration 
-   to be edited and a button, which opens the 
-   <a href="configEditor.html">Configuration Editor</a>.</p>
+<p>The common area of the Project Editor contains a label showing the full path to the project file, a
+dropdown combo box allowing selection of the configuration to be edited and a button, which
+opens the <a href="configEditor.html">Configuration Editor</a>.</p>
 
-<div class="screenshot-left">
+<div class="screenshot">
 <img src="img/generalTab.jpg"></div>
 
 <h3>General Tab</h3>
@@ -65,44 +62,50 @@ specified manually or using this editor or placed in the configuration file.</p>
 
 <h3>Assemblies Tab</h3>
 
-<p>The assemblies tab contains the list of assemblies that form part of this test project.</p>
+<p>The assemblies tab contains the list of assemblies that form part of this test project. A checkbox is
+used to indicate which assemblies contain tests. This allows use of the automatically generated
+private bin path by including assemblies that the tests depend upon but leaving the box
+unchecked. The GUI does not attempt to load these unchecked assemblies but does use their
+locations in generating the PrivateBinPath and also watches them for changes, if automatic
+reloading of tests is enabled.</p>
 
 <p>Note: Although the dialog shows the location of assemblies as absolute paths, they are always
 persisted in the NUnit project file as paths relative to the application base. This allows moving
 projects as a whole to a different directory location.</p>
 
-<div class="screenshot-left">
+<div class="screenshot">
 <img src="img/assembliesTab.jpg"></div>
 
-<h4>Add...</h4>
-<p>Opens a dialog allowing adding an assembly to this configuration. If Visual
-Stuio support is enabled, you may also select and add a VS project.</p>
+<h4>Add Assembly</h4>
+<p>Opens a dialog allowing adding an assembly to this configuration.</p>
 
-<h4>Remove</h4>
-<p>After confirmation, removes the selected assembly from this configuration.</p>
+<h4>Add VS Project</h4>
+<p>Opens a dialog allowing selection of a VS project to be added to this project.</p>
 
-<h4>Assembly Path</h4>
-<p>This text box displays the full path to the selected assembly. You may edit
-the contents to change the path to the assembly.
+<h4>Edit Path</h4>
+<p>Opens a dialog allowing the user to change the path to the selected assembly in this
+configuration.</p>
+
+<h4>Remove Assembly</h4>
+<p>Removes the selected assembly from this configuration.</p>
 
 </div>
 
 <!-- Submenu -->
 <div id="subnav">
 <ul>
-<li><a href="index.html">NUnit 2.4.3</a></li>
+<li><a href="index.html">NUnit 2.2.9</a></li>
 <ul>
 <li><a href="getStarted.html">Getting&nbsp;Started</a></li>
 <li><a href="installation.html">Installation</a></li>
-<li><a href="features.html">Core&nbsp;Features</a></li>
-<li><a href="nunit-console.html">Console&nbsp;Runner</a></li>
-<li><a href="nunit-gui.html">Gui&nbsp;Runner</a></li>
+<li><a href="features.html">Features</a></li>
+<li><a href="nunit-console.html">NUnit-Console</a></li>
+<li><a href="nunit-gui.html">NUnit-Gui</a></li>
 <ul>
 <li><a href="guiCommandLine.html">Command-Line</a></li>
 <li><a href="mainMenu.html">Main&nbsp;Menu</a></li>
 <li><a href="contextMenu.html">Context&nbsp;Menu</a></li>
 <li><a href="optionsDialog.html">Options&nbsp;Dialog</a></li>
-<li><a href="addinsDialog.html">Addins&nbsp;Dialog</a></li>
 <li><a href="testProperties.html">Test&nbsp;Properties</a></li>
 <li><a href="configEditor.html">Configuration&nbsp;Editor</a></li>
 <li id="current"><a href="projectEditor.html">Project&nbsp;Editor</a></li>
@@ -117,8 +120,9 @@ the contents to change the path to the assembly.
 
 
 <!-- Standard Footer for NUnit.org -->
+<!-- public_html/nunit/footer.php -->
 <div id="footer">
-  Copyright &copy; 2007 Charlie Poole. All Rights Reserved.
+  Copyright &copy; 2002-2006 NUnit.org. All Rights Reserved.
 </div>
 <!-- End of Footer -->
 

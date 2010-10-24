@@ -6,10 +6,9 @@ namespace SageSerpent
 {
     namespace TestInfrastructure
     {
-        generic <typename TestCase>
         public interface class ITestCaseGenerator
         {
-            System::Collections::Generic::IEnumerator<TestCase> ^CreateIterator();
+            System::Collections::IEnumerator ^CreateIterator();
         };
     }
 }

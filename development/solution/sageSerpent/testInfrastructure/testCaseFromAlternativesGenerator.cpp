@@ -4,16 +4,15 @@ namespace SageSerpent
 {
     namespace TestInfrastructure
     {
-        generic <typename TestCase>
-        TestCaseFromAlternativesGenerator<TestCase>::TestCaseFromAlternativesGenerator(Wintellect::PowerCollections::Set<ITestCaseGenerator<TestCase> ^> ^componentTestCaseGenerators)
+        TestCaseFromAlternativesGenerator::TestCaseFromAlternativesGenerator(Wintellect::PowerCollections::Set<ITestCaseGenerator ^> ^componentTestCaseGenerators)
         {
-            throw gcnew System::NotImplementedException("*** Unimplemented stub! ***");
+            //throw gcnew System::NotImplementedException("*** Unimplemented stub! ***");
         }
 
-        generic <typename TestCase>
-        System::Collections::Generic::IEnumerator<TestCase> ^TestCaseFromAlternativesGenerator<TestCase>::CreateIterator()
+        System::Collections::IEnumerator ^TestCaseFromAlternativesGenerator::CreateIterator()
         {
-            throw gcnew System::NotImplementedException("*** Unimplemented stub! ***");
+            //throw gcnew System::NotImplementedException("*** Unimplemented stub! ***");
+            return nullptr;
         }
     }
 }

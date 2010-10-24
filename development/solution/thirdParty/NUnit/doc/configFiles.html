@@ -52,16 +52,10 @@ is run, specific naming conventions must be followed.</p>
 file with the config extension. For example, the configuration file used to run nunit.tests.dll must
 be named nunit.tests.dll.config and located in the same directory as the dll.</p>
 
-<p>If an NUnit project is being loaded into a single AppDomain, the configuration file uses the 
-name of the project file with the extension <i>changed</i> to config. For example, the project 
-AllTests.nunit would require a configuration file named AllTests.config, located in the same 
-directory as AllTests.nunit. The same rule is followed when loading Visual Studio projects or solutions.</p>
-
-<blockquote>
-<p><b>Note:</b> The above only applies if a single AppDomain is being used. If an NUnit 
-project is loaded using a separate AppDomain for each assembly, then the individual
-configuration files for each of the assemblies are used.
-</blockquote>
+<p>If an NUnit project is being loaded, the configuration file uses the name of the project file with
+the extension <i>changed</i> to config. For example, the project AllTests.nunit would require a
+configuration file named AllTests.config, located in the same directory as AllTests.nunit. The
+same rule is followed when loading Visual Studio projects or solutions.</p>
 
 <p>Generally, you should be able to simply copy your application config file and rename it as
 described above. However, see the next section if you wish to run tests compiled for an earlier
@@ -72,21 +66,20 @@ version of NUnit.</p>
 <!-- Submenu -->
 <div id="subnav">
 <ul>
-<li><a href="index.html">NUnit 2.4.3</a></li>
+<li><a href="index.html">NUnit 2.2.9</a></li>
 <ul>
 <li><a href="getStarted.html">Getting&nbsp;Started</a></li>
 <li><a href="installation.html">Installation</a></li>
-<li><a href="features.html">Core&nbsp;Features</a></li>
+<li><a href="features.html">Features</a></li>
 <ul>
 <li><a href="assertions.html">Assertions</a></li>
 <li><a href="attributes.html">Attributes</a></li>
 <li id="current"><a href="configFiles.html">Configuration&nbsp;Files</a></li>
 <li><a href="multiAssembly.html">Multiple&nbsp;Assemblies</a></li>
 <li><a href="vsSupport.html">Visual&nbsp;Studio&nbsp;Support</a></li>
-<li><a href="extensibility.html">Extensibility</a></li>
 </ul>
-<li><a href="nunit-console.html">Console&nbsp;Runner</a></li>
-<li><a href="nunit-gui.html">Gui&nbsp;Runner</a></li>
+<li><a href="nunit-console.html">NUnit-Console</a></li>
+<li><a href="nunit-gui.html">NUnit-Gui</a></li>
 <li><a href="releaseNotes.html">Release&nbsp;Notes</a></li>
 <li><a href="samples.html">Samples</a></li>
 <li><a href="license.html">License</a></li>
@@ -97,8 +90,9 @@ version of NUnit.</p>
 
 
 <!-- Standard Footer for NUnit.org -->
+<!-- public_html/nunit/footer.php -->
 <div id="footer">
-  Copyright &copy; 2007 Charlie Poole. All Rights Reserved.
+  Copyright &copy; 2002-2006 NUnit.org. All Rights Reserved.
 </div>
 <!-- End of Footer -->
 

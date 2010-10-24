@@ -87,7 +87,7 @@ framework. The Mono framework provides other means to specify the version
 to be used when running a command.</p>
 
 <h4>Specifying Test Categories to Include or Exclude</h4>
-<p>NUnit provides CategoryAttribute for use in marking tests as belonging to 
+<p>NUnit 2.2 provides CategoryAttribute for use in marking tests as belonging to 
 	one or more categories. Categories may be included or excluded in a test run 
 	using the <b>/include</b> and <b>/exclude</b> options. The following command 
 	runs only the tests in the BaseLine category:
@@ -100,11 +100,8 @@ to be used when running a command.</p>
 <p>
 Multiple categories may be specified on either option, by using commas to 
 separate them.
-<p><b>Note:</b> Beginning with NUnit 2.4, the /include and /exclude options may
-   be combined on the command line. When both are used, all tests with the included 
-   categories are run except for those with the excluded categories.</p>
-   
-<p>For a clear understanding of how category 
+<p><b>Note:</b>In the current release, you may choose to either include or exclude 
+	categories in a run, but not both. For a clear understanding of how category 
 	selection works, review the documentation for both the 
 	<a href="category.html">Category Attribute</a> and the 
 	<a href="explicit.html">Explicit Attribute</a>.</p>
@@ -156,31 +153,11 @@ separate them.
 	assembly2.dll and assembly3.dll.
 	<pre class="programtext">        nunit-console assembly1.dll assembly2.dll assembly3.dll</pre>
 </p>
-<p><b>Notes:</b> You may specify multiple assemblies, but not multiple NUnit or 
+<p><b>Note:</b> You may specify multiple assemblies, but not multiple NUnit or 
 	Visual Studio projects on the command line. Further, you may not specify an 
-	NUnit or Visual Studio project together with a list of assemblies.</p>
-<p>Beginning with NUnit 2.4, the console loads multiple assemblies specified
-   in this way into separate AppDomains by default. You may provide a separate
-   config file for each assembly. You may override the default by use of the
-   <b>/domain</b> option.
-<p>Beginning with NUnit 2.4, the <b>/fixture</b>
-	option, when used with multiple assemblies, will run tests matching the 
-	fixture name in all the assemblies. In earlier versions, only the first
-	test found was executed.</p>
-<h4>Controlling the Use of AppDomains</h4>
-<p>The <b>/domain</b> option controls of the creation of AppDomains for running tests.
-    The following values are recognized:</p>
-	<dl style="margin-left: 2em">
-	<dt><b>None</b>
-	<dd>No domain is created - the tests are run in the primary domain. This normally
-	requires copying the <b>NUnit</b> assemblies into the same directory as your tests.
-	<dt><b>Single</b>
-	<dd>A test domain is created - this is how NUnit worked prior to version 2.4
-	<dt><b>Multiple</b>
-	<dd>A separate test domain is created for each assembly
-	</dl>
-<p>The default is to use multiple domains if multiple assemblies are listed on 
-	the command line. Otherwise a single domain is used.</p>
+	NUnit or Visual Studio project together with a list of assemblies. The <b>/fixture</b>
+	option may be used with multiple assemblies but it's more efficient to simply 
+	specify the assembly that contains the fixture.</p>
 <h4>Other Options</h4>
 <p>The <b>/noshadow</b> option disables shadow copying of the assembly in order to 
 	provide improved performance.</p>
@@ -207,16 +184,16 @@ separate them.
 <!-- Submenu -->
 <div id="subnav">
 <ul>
-<li><a href="index.html">NUnit 2.4.3</a></li>
+<li><a href="index.html">NUnit 2.2.9</a></li>
 <ul>
 <li><a href="getStarted.html">Getting&nbsp;Started</a></li>
 <li><a href="installation.html">Installation</a></li>
-<li><a href="features.html">Core&nbsp;Features</a></li>
-<li><a href="nunit-console.html">Console&nbsp;Runner</a></li>
+<li><a href="features.html">Features</a></li>
+<li><a href="nunit-console.html">NUnit-Console</a></li>
 <ul>
 <li id="current"><a href="consoleCommandLine.html">Command-Line</a></li>
 </ul>
-<li><a href="nunit-gui.html">Gui&nbsp;Runner</a></li>
+<li><a href="nunit-gui.html">NUnit-Gui</a></li>
 <li><a href="releaseNotes.html">Release&nbsp;Notes</a></li>
 <li><a href="samples.html">Samples</a></li>
 <li><a href="license.html">License</a></li>
@@ -227,8 +204,9 @@ separate them.
 
 
 <!-- Standard Footer for NUnit.org -->
+<!-- public_html/nunit/footer.php -->
 <div id="footer">
-  Copyright &copy; 2007 Charlie Poole. All Rights Reserved.
+  Copyright &copy; 2002-2006 NUnit.org. All Rights Reserved.
 </div>
 <!-- End of Footer -->
 
