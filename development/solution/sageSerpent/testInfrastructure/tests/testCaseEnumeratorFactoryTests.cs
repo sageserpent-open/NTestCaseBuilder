@@ -13,17 +13,17 @@ using Wintellect.PowerCollections;
 
 namespace SageSerpent.TestInfrastructure.Tests
 {
-    using AtomicTestCaseToContainingCombinationMultiMap = MultiDictionary<AtomicTestCase, HashSet<AtomicTestCase>>;
-    using CombinationOfAtomicTestCases = HashSet<AtomicTestCase>;
-    using SequenceOfAtomicTestCases = C5.IList<AtomicTestCase>;
-    using CollectionOwningAtomicTestCases = C5.ICollection<AtomicTestCase>;
-    using SequenceOfCollectionsOwningAtomicTestCases = IEnumerable<C5.ICollection<AtomicTestCase>>;
-    using SetOfCombinations = HashSet<HashSet<AtomicTestCase>>;
-    using SetOfSequencesOfCollectionsOwningAtomicTestCases = HashSet<IEnumerable<C5.ICollection<AtomicTestCase>>>;
+    using TestVariableLevelToContainingCombinationMultiMap = MultiDictionary<TestVariableLevel, HashSet<TestVariableLevel>>;
+    using CombinationOfTestVariableLevels = HashSet<TestVariableLevel>;
+    using SequenceOfTestVariableLevels = C5.IList<TestVariableLevel>;
+    using CollectionOwningTestVariableLevels = C5.ICollection<TestVariableLevel>;
+    using SequenceOfCollectionsOwningTestVariableLevels = IEnumerable<C5.ICollection<TestVariableLevel>>;
+    using SetOfCombinations = HashSet<HashSet<TestVariableLevel>>;
+    using SetOfSequencesOfCollectionsOwningTestVariableLevels = HashSet<IEnumerable<C5.ICollection<TestVariableLevel>>>;
 
     public abstract class AbstractTestCase
     {
-        public abstract SequenceOfAtomicTestCases AtomicTestCases();
+        public abstract SequenceOfTestVariableLevels TestVariableLevels();
 
         public override Boolean Equals(Object another)
         {
@@ -50,39 +50,39 @@ namespace SageSerpent.TestInfrastructure.Tests
         public abstract HashSet<Int32> EquivalenceIndicies();
     }
 
-    public class AtomicTestCase : AbstractTestCase
+    public class TestVariableLevel : AbstractTestCase
     {
-        private readonly CollectionOwningAtomicTestCases _owningCollection;
+        private readonly CollectionOwningTestVariableLevels _owningCollection;
 
         private Int32 _equivalenceIndex;
         private Boolean _equivalenceIndexExists;
 
-        private AtomicTestCase(CollectionOwningAtomicTestCases owningCollection)
+        private TestVariableLevel(CollectionOwningTestVariableLevels owningCollection)
         {
             _owningCollection = owningCollection;
         }
 
-        public CollectionOwningAtomicTestCases OwningCollection
+        public CollectionOwningTestVariableLevels OwningCollection
         {
             get { return _owningCollection; }
         }
 
-        public override SequenceOfAtomicTestCases AtomicTestCases()
+        public override SequenceOfTestVariableLevels TestVariableLevels()
         {
-            var singletonSequence = new C5.LinkedList<AtomicTestCase> {this};
+            var singletonSequence = new C5.LinkedList<TestVariableLevel> {this};
 
             return singletonSequence;
         }
 
-        public static void PutNewTestCaseInto(CollectionOwningAtomicTestCases owningCollection)
+        public static void PutNewTestCaseInto(CollectionOwningTestVariableLevels owningCollection)
         {
-            var testCase = new AtomicTestCase(owningCollection);
+            var testCase = new TestVariableLevel(owningCollection);
             owningCollection.Add(testCase);
         }
 
-        public static void PutNewTestCaseInto(CollectionOwningAtomicTestCases owningCollection, Int32 equivalenceIndex)
+        public static void PutNewTestCaseInto(CollectionOwningTestVariableLevels owningCollection, Int32 equivalenceIndex)
         {
-            var testCase = new AtomicTestCase(owningCollection);
+            var testCase = new TestVariableLevel(owningCollection);
             testCase.SetEquivalenceIndex(equivalenceIndex);
             owningCollection.Add(testCase);
         }
@@ -95,7 +95,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
         protected override Boolean EqualWithoutConsideringCollisions(Object another)
         {
-            var anotherOfCompatibleType = another as AtomicTestCase;
+            var anotherOfCompatibleType = another as TestVariableLevel;
 
             return anotherOfCompatibleType != null && ReferenceEquals(this, anotherOfCompatibleType);
         }
@@ -123,15 +123,15 @@ namespace SageSerpent.TestInfrastructure.Tests
         private readonly HashSet<Int32> _equivalenceIndicies = new HashSet<int>();
         private IEnumerable<AbstractTestCase> _childTestCases;
 
-        public override SequenceOfAtomicTestCases AtomicTestCases()
+        public override SequenceOfTestVariableLevels TestVariableLevels()
         {
-            var result = new C5.LinkedList<AtomicTestCase>();
+            var result = new C5.LinkedList<TestVariableLevel>();
             result.AddAll
                 (
                 Algorithms.Concatenate(
                     Algorithms.ToArray(
                         Algorithms.Convert(_childTestCases,
-                                           testCase => testCase.AtomicTestCases()))));
+                                           testCase => testCase.TestVariableLevels()))));
 
             return result;
         }
@@ -184,7 +184,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
         #endregion
 
-        private static SetOfCombinations MakeAtomicTestCasesCombinations(ITestCaseEnumeratorFactory testCaseGenerator,
+        private static SetOfCombinations MakeTestVariableLevelsCombinations(ITestCaseEnumeratorFactory testCaseGenerator,
                                                                          Random randomChoice)
         {
             var numberOfCombinationsLeftToTry = 100U;
@@ -194,42 +194,42 @@ namespace SageSerpent.TestInfrastructure.Tests
             // it only occurs because there aren't enough combinations
             // to fulfill the test's expectations.
 
-            var atomicTestCasesCombinations = new SetOfCombinations();
+            var testVariableLevelsCombinations = new SetOfCombinations();
 
 
             while (numberOfCombinationsLeftToTry-- != 0U)
             {
-                var atomicTestCasesCombination =
-                    ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerator).PickFeasibleCombinationOfAtomicTestCases(
+                var testVariableLevelsCombination =
+                    ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerator).PickFeasibleCombinationOfTestVariableLevels(
                         randomChoice);
 
-                atomicTestCasesCombinations.Add(atomicTestCasesCombination);
+                testVariableLevelsCombinations.Add(testVariableLevelsCombination);
             }
 
-            return atomicTestCasesCombinations;
+            return testVariableLevelsCombinations;
         }
 
-        private static AtomicTestCaseToContainingCombinationMultiMap MakeAtomicStateToContainingCombinationMultiMap(
-            SetOfCombinations atomicTestCasesCombinations)
+        private static TestVariableLevelToContainingCombinationMultiMap MakeTestVariableLevelToContainingCombinationMultiMap(
+            SetOfCombinations testVariableLevelsCombinations)
         {
-            var atomicStateToContainingCombinationMultiMap =
-                new AtomicTestCaseToContainingCombinationMultiMap(false);
+            var testVariableLevelToContainingCombinationMultiMap =
+                new TestVariableLevelToContainingCombinationMultiMap(false);
 
-            Algorithms.ForEach(atomicTestCasesCombinations, combination => Algorithms.ForEach(combination,
+            Algorithms.ForEach(testVariableLevelsCombinations, combination => Algorithms.ForEach(combination,
                                                                                               testCase =>
-                                                                                              atomicStateToContainingCombinationMultiMap
+                                                                                              testVariableLevelToContainingCombinationMultiMap
                                                                                                   .Add(testCase,
                                                                                                        combination)));
-            return atomicStateToContainingCombinationMultiMap;
+            return testVariableLevelToContainingCombinationMultiMap;
         }
 
         private static UInt32 ChooseHowManyDegreesOfFreedomRequiredToAllowAllCombinationsToBeCovered(
-            SetOfCombinations atomicTestCasesCombinations,
+            SetOfCombinations testVariableLevelsCombinations,
             Random randomChoice,
             ITestCaseEnumeratorFactory testCaseGenerator)
         {
             var maximumCombinationWidth =
-                Algorithms.Maximum(Algorithms.Convert(atomicTestCasesCombinations, combination => (UInt32)
+                Algorithms.Maximum(Algorithms.Convert(testVariableLevelsCombinations, combination => (UInt32)
                                                                                                   combination.Count));
 
             return
@@ -239,71 +239,71 @@ namespace SageSerpent.TestInfrastructure.Tests
         }
 
         private static void StrikeOffCombinationsCoveredByTestCase(AbstractTestCase testCase,
-                                                                   AtomicTestCaseToContainingCombinationMultiMap
-                                                                       atomicStateToContainingCombinationMultiMap,
-                                                                   SetOfCombinations atomicTestCasesCombinations)
+                                                                   TestVariableLevelToContainingCombinationMultiMap
+                                                                       testVariableLevelToContainingCombinationMultiMap,
+                                                                   SetOfCombinations testVariableLevelsCombinations)
         {
-            C5.IDictionary<CombinationOfAtomicTestCases, UInt32>
-                combinationToNumberOfAtomicTestCaseComponentsLeftToFindMap =
-                    new HashDictionary<CombinationOfAtomicTestCases, UInt32>();
+            C5.IDictionary<CombinationOfTestVariableLevels, UInt32>
+                combinationToNumberOfTestVariableLevelComponentsLeftToFindMap =
+                    new HashDictionary<CombinationOfTestVariableLevels, UInt32>();
 
-            Algorithms.ForEach(atomicTestCasesCombinations,
-                               combination => combinationToNumberOfAtomicTestCaseComponentsLeftToFindMap[combination] =
+            Algorithms.ForEach(testVariableLevelsCombinations,
+                               combination => combinationToNumberOfTestVariableLevelComponentsLeftToFindMap[combination] =
                                               (UInt32) combination.Count);
 
-            Algorithms.ForEach(testCase.AtomicTestCases(), atomicTestCase =>
+            Algorithms.ForEach(testCase.TestVariableLevels(), testVariableLevel =>
                                                                {
                                                                    if (
-                                                                       atomicStateToContainingCombinationMultiMap.
-                                                                           ContainsKey(atomicTestCase))
+                                                                       testVariableLevelToContainingCombinationMultiMap.
+                                                                           ContainsKey(testVariableLevel))
                                                                    {
                                                                        Algorithms.ForEach(
-                                                                           atomicStateToContainingCombinationMultiMap[
-                                                                               atomicTestCase],
+                                                                           testVariableLevelToContainingCombinationMultiMap[
+                                                                               testVariableLevel],
                                                                            combination => --
-                                                                                          combinationToNumberOfAtomicTestCaseComponentsLeftToFindMap
+                                                                                          combinationToNumberOfTestVariableLevelComponentsLeftToFindMap
                                                                                               [combination]);
                                                                    }
                                                                });
 
-            Algorithms.ForEach<C5.KeyValuePair<CombinationOfAtomicTestCases, uint>>(
-                combinationToNumberOfAtomicTestCaseComponentsLeftToFindMap,
-                combinationAndNumberOfAtomicTestCaseComponentsLeftToFindPair =>
+            Algorithms.ForEach<C5.KeyValuePair<CombinationOfTestVariableLevels, uint>>(
+                combinationToNumberOfTestVariableLevelComponentsLeftToFindMap,
+                combinationAndNumberOfTestVariableLevelComponentsLeftToFindPair =>
                     {
-                        if (combinationAndNumberOfAtomicTestCaseComponentsLeftToFindPair.Value == 0U)
+                        if (combinationAndNumberOfTestVariableLevelComponentsLeftToFindPair.Value == 0U)
                         {
-                            atomicTestCasesCombinations.Remove(
-                                combinationAndNumberOfAtomicTestCaseComponentsLeftToFindPair.Key);
+                            testVariableLevelsCombinations.Remove(
+                                combinationAndNumberOfTestVariableLevelComponentsLeftToFindPair.Key);
                         }
                     });
         }
 
         private static void CheckThatAllCombinationsAreCovered(IEnumerator testCaseEnumerator,
-                                                               AtomicTestCaseToContainingCombinationMultiMap
-                                                                   atomicStateToContainingCombinationMultiMap,
-                                                               SetOfCombinations atomicTestCasesCombinations)
+                                                               TestVariableLevelToContainingCombinationMultiMap
+                                                                   testVariableLevelToContainingCombinationMultiMap,
+                                                               SetOfCombinations testVariableLevelsCombinations)
         {
-            var atomicTestCasesCombinationsToBeStruckOff = (SetOfCombinations) atomicTestCasesCombinations.Clone();
+            var testVariableLevelsCombinationsToBeStruckOff = (SetOfCombinations) testVariableLevelsCombinations.Clone();
 
             while (testCaseEnumerator.MoveNext())
             {
                 var testCase = (AbstractTestCase) testCaseEnumerator.Current;
 
-                StrikeOffCombinationsCoveredByTestCase(testCase, atomicStateToContainingCombinationMultiMap,
-                                                       atomicTestCasesCombinationsToBeStruckOff);
+                StrikeOffCombinationsCoveredByTestCase(testCase, testVariableLevelToContainingCombinationMultiMap,
+                                                       testVariableLevelsCombinationsToBeStruckOff);
             }
 
-            Assert.IsTrue(atomicTestCasesCombinationsToBeStruckOff.Count == 0U);
+            Assert.IsTrue(testVariableLevelsCombinationsToBeStruckOff.Count == 0U);
         }
 
         private static SetOfCombinations PickTheLargestCombinationsOfSizeNotExceeding(
-            SequenceOfAtomicTestCases testCases,
+            SequenceOfTestVariableLevels testCases,
             UInt32 maximumCombinationWidth)
         {
             return PickAllCombinationsOfSize(testCases, Math.Min(maximumCombinationWidth, (UInt32) testCases.Count));
         }
 
-        private static SetOfCombinations PickAllCombinationsOfSize(SequenceOfAtomicTestCases testCases,
+        private static SetOfCombinations PickAllCombinationsOfSize(SequenceOfTestVariableLevels testCases,
                                                                    UInt32 combinationSize)
         {
             if (!(testCases.Count >= combinationSize))
@@ -313,7 +313,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             if (0U == combinationSize)
             {
-                var trivialResult = new SetOfCombinations {new CombinationOfAtomicTestCases()};
+                var trivialResult = new SetOfCombinations {new CombinationOfTestVariableLevels()};
 
                 return trivialResult;
             }
@@ -322,7 +322,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             {
                 var trivialResult = new SetOfCombinations();
 
-                var onlyCombination = new CombinationOfAtomicTestCases();
+                var onlyCombination = new CombinationOfTestVariableLevels();
                 onlyCombination.AddAll(testCases);
 
                 trivialResult.Add(onlyCombination);
@@ -342,7 +342,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                 Algorithms.Convert(PickAllCombinationsOfSize(tailTestCases, combinationSize - 1U),
                                    combination =>
                                        {
-                                           var value = (CombinationOfAtomicTestCases) combination.Clone();
+                                           var value = (CombinationOfTestVariableLevels) combination.Clone();
 
                                            value.Add(headTestCase);
 
@@ -356,11 +356,11 @@ namespace SageSerpent.TestInfrastructure.Tests
 
         private static void CheckThatAtLeastOneCombinationIsNotCovered(AbstractTestCase testCaseToBeExcluded,
                                                                        IEnumerator testCaseEnumeratorTwo,
-                                                                       AtomicTestCaseToContainingCombinationMultiMap
-                                                                           atomicStateToContainingCombinationMultiMap,
-                                                                       SetOfCombinations atomicTestCasesCombinations)
+                                                                       TestVariableLevelToContainingCombinationMultiMap
+                                                                           testVariableLevelToContainingCombinationMultiMap,
+                                                                       SetOfCombinations testVariableLevelsCombinations)
         {
-            var atomicTestCasesCombinationsToBeStruckOff = (SetOfCombinations) atomicTestCasesCombinations.Clone();
+            var testVariableLevelsCombinationsToBeStruckOff = (SetOfCombinations) testVariableLevelsCombinations.Clone();
 
             while (testCaseEnumeratorTwo.MoveNext())
             {
@@ -368,12 +368,12 @@ namespace SageSerpent.TestInfrastructure.Tests
 
                 if (!testCase.Equals(testCaseToBeExcluded))
                 {
-                    StrikeOffCombinationsCoveredByTestCase(testCase, atomicStateToContainingCombinationMultiMap,
-                                                           atomicTestCasesCombinationsToBeStruckOff);
+                    StrikeOffCombinationsCoveredByTestCase(testCase, testVariableLevelToContainingCombinationMultiMap,
+                                                           testVariableLevelsCombinationsToBeStruckOff);
                 }
             }
 
-            Assert.IsTrue(atomicTestCasesCombinationsToBeStruckOff.Count > 0U);
+            Assert.IsTrue(testVariableLevelsCombinationsToBeStruckOff.Count > 0U);
         }
 
         private delegate void TestATestCaseGenerator(
@@ -394,33 +394,33 @@ namespace SageSerpent.TestInfrastructure.Tests
             }
         }
 
-        private static SequenceOfCollectionsOwningAtomicTestCases SequenceOfCollectionsOwningAtomicTestCases(
+        private static SequenceOfCollectionsOwningTestVariableLevels SequenceOfCollectionsOwningTestVariableLevels(
             AbstractTestCase testCase)
         {
-            return Algorithms.Convert(testCase.AtomicTestCases(),
-                                      atomicTestCase => atomicTestCase.OwningCollection);
+            return Algorithms.Convert(testCase.TestVariableLevels(),
+                                      testVariableLevel => testVariableLevel.OwningCollection);
         }
 
         public interface ITestCaseGeneratorIntrusiveTestHooks
         {
             UInt32 MaximumNumberOfOwningSetsInSequence { get; }
-            SetOfSequencesOfCollectionsOwningAtomicTestCases PossibleSequencesOfCollectionsOwningAtomicTestCases();
+            SetOfSequencesOfCollectionsOwningTestVariableLevels PossibleSequencesOfCollectionsOwningTestVariableLevels();
 
-            CombinationOfAtomicTestCases PickFeasibleCombinationOfAtomicTestCases(Random randomChoice);
+            CombinationOfTestVariableLevels PickFeasibleCombinationOfTestVariableLevels(Random randomChoice);
         }
 
         public class TestVariableLevelEnumeratorFactory : TestInfrastructure.TestVariableLevelEnumeratorFactory,
                                                           ITestCaseGeneratorIntrusiveTestHooks
         {
-            private readonly CollectionOwningAtomicTestCases _owningCollection = new HashBag<AtomicTestCase>();
+            private readonly CollectionOwningTestVariableLevels _owningCollection = new HashBag<TestVariableLevel>();
 
-            private TestVariableLevelEnumeratorFactory(CollectionOwningAtomicTestCases owningCollection)
+            private TestVariableLevelEnumeratorFactory(CollectionOwningTestVariableLevels owningCollection)
                 : base(owningCollection.ToArray())
             {
                 if (!(owningCollection.Count > 0U))
                 {
                     throw new PreconditionViolation(
-                        "The owning collection of atomic test cases must have at least one element.");
+                        "There must be at least one test variable level.");
                 }
 
                 _owningCollection = owningCollection;
@@ -428,12 +428,12 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             #region ITestCaseGeneratorIntrusiveTestHooks Members
 
-            public SetOfSequencesOfCollectionsOwningAtomicTestCases PossibleSequencesOfCollectionsOwningAtomicTestCases()
+            public SetOfSequencesOfCollectionsOwningTestVariableLevels PossibleSequencesOfCollectionsOwningTestVariableLevels()
             {
-                var result = new SetOfSequencesOfCollectionsOwningAtomicTestCases();
+                var result = new SetOfSequencesOfCollectionsOwningTestVariableLevels();
 
-                System.Collections.Generic.ICollection<CollectionOwningAtomicTestCases> singletonSequence =
-                    new List<CollectionOwningAtomicTestCases> {_owningCollection};
+                System.Collections.Generic.ICollection<CollectionOwningTestVariableLevels> singletonSequence =
+                    new List<CollectionOwningTestVariableLevels> {_owningCollection};
 
                 result.Add(singletonSequence);
 
@@ -445,9 +445,9 @@ namespace SageSerpent.TestInfrastructure.Tests
                 get { return 1U; }
             }
 
-            public CombinationOfAtomicTestCases PickFeasibleCombinationOfAtomicTestCases(Random randomChoice)
+            public CombinationOfTestVariableLevels PickFeasibleCombinationOfTestVariableLevels(Random randomChoice)
             {
-                var result = new CombinationOfAtomicTestCases();
+                var result = new CombinationOfTestVariableLevels();
                 result.AddAll(Algorithms.RandomSubset(_owningCollection, 1, randomChoice));
                 return result;
             }
@@ -460,18 +460,18 @@ namespace SageSerpent.TestInfrastructure.Tests
 
                 const UInt32 maximumNumberOfTestCasesInCollection = 10;
 
-                CollectionOwningAtomicTestCases owningCollection = new HashBag<AtomicTestCase>();
+                CollectionOwningTestVariableLevels owningCollection = new HashBag<TestVariableLevel>();
 
                 var countDown = (UInt32) randomChoice.Next((Int32) maximumNumberOfTestCasesInCollection) + 1U;
 
                 while (countDown-- != 0U)
                 {
-                    AtomicTestCase.PutNewTestCaseInto(owningCollection);
+                    TestVariableLevel.PutNewTestCaseInto(owningCollection);
                 }
 
                 if (equivalenceIndex.HasValue)
                 {
-                    AtomicTestCase.PutNewTestCaseInto(owningCollection, equivalenceIndex.Value);
+                    TestVariableLevel.PutNewTestCaseInto(owningCollection, equivalenceIndex.Value);
                 }
 
                 return new TestVariableLevelEnumeratorFactory(owningCollection);
@@ -504,15 +504,15 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             #region ITestCaseGeneratorIntrusiveTestHooks Members
 
-            public SetOfSequencesOfCollectionsOwningAtomicTestCases PossibleSequencesOfCollectionsOwningAtomicTestCases()
+            public SetOfSequencesOfCollectionsOwningTestVariableLevels PossibleSequencesOfCollectionsOwningTestVariableLevels()
             {
-                var result = new SetOfSequencesOfCollectionsOwningAtomicTestCases();
+                var result = new SetOfSequencesOfCollectionsOwningTestVariableLevels();
 
                 foreach (var testCaseGenerator in _testCaseGenerators)
                 {
                     result.AddAll(
                         ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerator).
-                            PossibleSequencesOfCollectionsOwningAtomicTestCases());
+                            PossibleSequencesOfCollectionsOwningTestVariableLevels());
                 }
 
                 return result;
@@ -543,12 +543,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                 }
             }
 
-            public CombinationOfAtomicTestCases PickFeasibleCombinationOfAtomicTestCases(Random randomChoice)
+            public CombinationOfTestVariableLevels PickFeasibleCombinationOfTestVariableLevels(Random randomChoice)
             {
                 return
                     ((ITestCaseGeneratorIntrusiveTestHooks)
                      Algorithms.RandomSubset(_testCaseGenerators, 1, randomChoice)[0]).
-                        PickFeasibleCombinationOfAtomicTestCases(randomChoice);
+                        PickFeasibleCombinationOfTestVariableLevels(randomChoice);
             }
 
             #endregion
@@ -624,11 +624,11 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             #region ITestCaseGeneratorIntrusiveTestHooks Members
 
-            public SetOfSequencesOfCollectionsOwningAtomicTestCases PossibleSequencesOfCollectionsOwningAtomicTestCases()
+            public SetOfSequencesOfCollectionsOwningTestVariableLevels PossibleSequencesOfCollectionsOwningTestVariableLevels()
             {
-                var result = new SetOfSequencesOfCollectionsOwningAtomicTestCases();
+                var result = new SetOfSequencesOfCollectionsOwningTestVariableLevels();
 
-                ConcatenateCrossProductOfSequences(_testCaseGenerators, new List<CollectionOwningAtomicTestCases>(),
+                ConcatenateCrossProductOfSequences(_testCaseGenerators, new List<CollectionOwningTestVariableLevels>(),
                                                    result);
 
                 return result;
@@ -659,21 +659,21 @@ namespace SageSerpent.TestInfrastructure.Tests
                 }
             }
 
-            public CombinationOfAtomicTestCases PickFeasibleCombinationOfAtomicTestCases(Random randomChoice)
+            public CombinationOfTestVariableLevels PickFeasibleCombinationOfTestVariableLevels(Random randomChoice)
             {
                 var numberOfChildren = (UInt32) randomChoice.Next(_testCaseGenerators.Count) + 1U;
 
-                var sequenceOfCombinationsOfAtomicTestCasesFromChildren =
+                var sequenceOfCombinationsOfTestVariableLevelsFromChildren =
                     Algorithms.Convert(
                         Algorithms.RandomSubset(_testCaseGenerators, (Int32) numberOfChildren, randomChoice),
                         testCaseGenerator => ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerator).
-                                                 PickFeasibleCombinationOfAtomicTestCases
+                                                 PickFeasibleCombinationOfTestVariableLevels
                                                  (randomChoice));
 
-                var result = new CombinationOfAtomicTestCases();
+                var result = new CombinationOfTestVariableLevels();
 
                 result.AddAll(
-                    Algorithms.Concatenate(Algorithms.ToArray(sequenceOfCombinationsOfAtomicTestCasesFromChildren)));
+                    Algorithms.Concatenate(Algorithms.ToArray(sequenceOfCombinationsOfTestVariableLevelsFromChildren)));
 
                 return result;
             }
@@ -903,9 +903,9 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             private static void ConcatenateCrossProductOfSequences(
                 C5.IList<ITestCaseEnumeratorFactory> testCaseGenerators,
-                SequenceOfCollectionsOwningAtomicTestCases
+                SequenceOfCollectionsOwningTestVariableLevels
                     sequenceBeingBuiltUp,
-                SetOfSequencesOfCollectionsOwningAtomicTestCases
+                SetOfSequencesOfCollectionsOwningTestVariableLevels
                     result)
             {
                 if (testCaseGenerators.Count == 0)
@@ -916,7 +916,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                 {
                     foreach (var sequence in
                         ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerators[0]).
-                            PossibleSequencesOfCollectionsOwningAtomicTestCases())
+                            PossibleSequencesOfCollectionsOwningTestVariableLevels())
                     {
                         ConcatenateCrossProductOfSequences(testCaseGenerators.View(1, testCaseGenerators.Count - 1),
                                                            Algorithms.Concatenate(sequenceBeingBuiltUp, sequence),
@@ -1024,7 +1024,7 @@ namespace SageSerpent.TestInfrastructure.Tests
         }
 
         [Test]
-        public void TestCorrectOrderingOfAtomicTestCasesWithinEachOutputTestCase()
+        public void TestCorrectOrderingOfTestVariableLevelsWithinEachOutputTestCase()
         {
             var randomChoice = new Random(0);
 
@@ -1040,9 +1040,9 @@ namespace SageSerpent.TestInfrastructure.Tests
                                 requestedDegreesOfFreedomForCombinationCoverage);
 
                         var
-                            possibleSequencesOfCollectionsOwningAtomicTestCases =
+                            possibleSequencesOfCollectionsOwningTestVariableLevels =
                                 ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGeneratorWithoutCollisions).
-                                    PossibleSequencesOfCollectionsOwningAtomicTestCases();
+                                    PossibleSequencesOfCollectionsOwningTestVariableLevels();
 
                         while (testCaseIterator.MoveNext())
                         {
@@ -1050,32 +1050,32 @@ namespace SageSerpent.TestInfrastructure.Tests
 
                             var
                                 sequenceOfOwningCollectionsThatContributedToThisTestCase =
-                                    SequenceOfCollectionsOwningAtomicTestCases(testCase);
+                                    SequenceOfCollectionsOwningTestVariableLevels(testCase);
 
                             Assert.IsTrue(
-                                possibleSequencesOfCollectionsOwningAtomicTestCases.Contains(
+                                possibleSequencesOfCollectionsOwningTestVariableLevels.Contains(
                                     sequenceOfOwningCollectionsThatContributedToThisTestCase));
                         }
                     });
         }
 
         [Test]
-        public void TestCoverageOfNWayCombinationsOfAtomicTestCasesOverAllOutputTestCases()
+        public void TestCoverageOfNWayCombinationsOfTestVariableLevelsOverAllOutputTestCases()
         {
             var randomChoice = new Random(0);
 
             ForABunchOfTestCaseGenerators(
                 (testCaseGeneratorWithoutCollisions, testCaseGeneratorWithCollisions) =>
                     {
-                        var atomicTestCasesCombinations =
-                            MakeAtomicTestCasesCombinations(testCaseGeneratorWithoutCollisions, randomChoice);
+                        var testVariableLevelsCombinations =
+                            MakeTestVariableLevelsCombinations(testCaseGeneratorWithoutCollisions, randomChoice);
 
-                        var atomicStateToContainingCombinationMultiMap =
-                            MakeAtomicStateToContainingCombinationMultiMap(atomicTestCasesCombinations);
+                        var testVariableLevelToContainingCombinationMultiMap =
+                            MakeTestVariableLevelToContainingCombinationMultiMap(testVariableLevelsCombinations);
 
                         var numberOfDegreesOfFreedom =
                             ChooseHowManyDegreesOfFreedomRequiredToAllowAllCombinationsToBeCovered(
-                                atomicTestCasesCombinations, randomChoice,
+                                testVariableLevelsCombinations, randomChoice,
                                 testCaseGeneratorWithoutCollisions);
 
                         {
@@ -1083,8 +1083,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                                 testCaseGeneratorWithoutCollisions.CreateEnumerator(numberOfDegreesOfFreedom);
 
                             CheckThatAllCombinationsAreCovered(testCaseEnumerator,
-                                                               atomicStateToContainingCombinationMultiMap,
-                                                               atomicTestCasesCombinations);
+                                                               testVariableLevelToContainingCombinationMultiMap,
+                                                               testVariableLevelsCombinations);
                         }
 
                         {
@@ -1092,8 +1092,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                                 testCaseGeneratorWithCollisions.CreateEnumerator(numberOfDegreesOfFreedom);
 
                             CheckThatAllCombinationsAreCovered(testCaseEnumerator,
-                                                               atomicStateToContainingCombinationMultiMap,
-                                                               atomicTestCasesCombinations);
+                                                               testVariableLevelToContainingCombinationMultiMap,
+                                                               testVariableLevelsCombinations);
                         }
                     });
         }
@@ -1109,7 +1109,7 @@ namespace SageSerpent.TestInfrastructure.Tests
         }
 
         [Test]
-        public void TestOptimalityOfCoverageOfAllNWayCombinationsOfAtomicTestCasesOverAllOutputTestCases()
+        public void TestOptimalityOfCoverageOfAllNWayCombinationsOfTestVariableLevelsOverAllOutputTestCases()
         {
             var randomChoice = new Random(0);
 
@@ -1132,23 +1132,23 @@ namespace SageSerpent.TestInfrastructure.Tests
 
                         var testCaseToBeExcluded = Algorithms.RandomSubset(testCases, 1, randomChoice)[0];
 
-                        var atomicTestCasesCombinations =
-                            PickTheLargestCombinationsOfSizeNotExceeding(testCaseToBeExcluded.AtomicTestCases(),
+                        var testVariableLevelsCombinations =
+                            PickTheLargestCombinationsOfSizeNotExceeding(testCaseToBeExcluded.TestVariableLevels(),
                                                                          maximumDegreesOfFreedom == 0U
                                                                              ? testCaseGeneratorWithoutCollisions
                                                                                    .MaximumStrength
                                                                              : maximumDegreesOfFreedom);
 
-                        var atomicStateToContainingCombinationMultiMap =
-                            MakeAtomicStateToContainingCombinationMultiMap(atomicTestCasesCombinations);
+                        var testVariableLevelToContainingCombinationMultiMap =
+                            MakeTestVariableLevelToContainingCombinationMultiMap(testVariableLevelsCombinations);
 
                         {
                             var testCaseEnumeratorTwo =
                                 testCaseGeneratorWithoutCollisions.CreateEnumerator(maximumDegreesOfFreedom);
 
                             CheckThatAtLeastOneCombinationIsNotCovered(testCaseToBeExcluded, testCaseEnumeratorTwo,
-                                                                       atomicStateToContainingCombinationMultiMap,
-                                                                       atomicTestCasesCombinations);
+                                                                       testVariableLevelToContainingCombinationMultiMap,
+                                                                       testVariableLevelsCombinations);
                         }
 
                         {
@@ -1156,8 +1156,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                                 testCaseGeneratorWithCollisions.CreateEnumerator(maximumDegreesOfFreedom);
 
                             CheckThatAtLeastOneCombinationIsNotCovered(testCaseToBeExcluded, testCaseEnumeratorTwo,
-                                                                       atomicStateToContainingCombinationMultiMap,
-                                                                       atomicTestCasesCombinations);
+                                                                       testVariableLevelToContainingCombinationMultiMap,
+                                                                       testVariableLevelsCombinations);
                         }
                     });
         }

@@ -23,9 +23,12 @@ namespace SageSerpent.TestInfrastructure
     /// 1. The number of distinct test variables is at least the requested combination strength (obviously).
     /// 2. For any combination in question above, the test variables that contribute the levels being combined
     /// all do so via paths up to the head of the tree that fuse together at synthesizing factories and *not*
-    /// at interleaving factories.  
-
-
+    /// at interleaving factories.
+    
+    /// So for example, creating a sequence of strength two for a tree composed solely of synthesizing factories
+    /// for the internal nodes and test variable leaf nodes would guarantee all-pairs coverage for all of the
+    /// test variables.</summary>
+    
     /// <remarks>1. Levels belonging to the same test variable are never combined together via any of the
     /// internal factory nodes.</remarks>
     /// <remarks>2. Sharing a single sequence of test variable levels between different leaf node factories
