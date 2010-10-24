@@ -245,8 +245,15 @@ namespace SageSerpent.TestInfrastructure
                             |> Set.to_list
                             |> List.map (fun testVariableIndex ->
                                             (testVariableIndex, None))
-                        let levelEntriesForTestVariableIndicesFromList =
+                        let testVariableCombinationSortedByDecreasingNumberOfLevels = // Using this sort order optimizes the cross product later on.
+                            let numberOfLevelsForTestVariable testVariableIndex
+                                = uint32 (Seq.length associationFromTestVariableIndexToItsLevels.[testVariableIndex])
                             testVariableCombination
+                            |> List.sort (fun first second ->
+                                            compare (numberOfLevelsForTestVariable second)
+                                                    (numberOfLevelsForTestVariable first))
+                        let levelEntriesForTestVariableIndicesFromList =
+                            testVariableCombinationSortedByDecreasingNumberOfLevels
                             |> List.map (fun testVariableIndex ->
                                          associationFromTestVariableIndexToItsLevels.[testVariableIndex]
                                          |> Seq.map (fun level -> testVariableIndex, level)
