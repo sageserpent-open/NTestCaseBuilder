@@ -9,7 +9,7 @@ namespace SageSerpent.TestInfrastructureTests
         [Test]
         public void TestCorrectOrderingOfComponentTestCasesWithinCombinedTestCase()
         {
-            System.UInt32 countDown = 51U;
+            System.UInt32 countDown = 201U;
 
             TestCaseGeneratorFactory factory = new TestCaseGeneratorFactory();
 
@@ -18,6 +18,8 @@ namespace SageSerpent.TestInfrastructureTests
                 factory.CreateRandomlyAssembledTestCaseGenerator();
             }
         }
+
+        // TODO: need to think about the impact of collisions due to transforms. Does this affect the validity of combinations being exhaustive?
 
         private class TestCase
         {
@@ -102,12 +104,14 @@ namespace SageSerpent.TestInfrastructureTests
             {
                 System.Console.WriteLine('E');
 
-                const System.Int32 maximumNumberOfTestCasesInCollection = 10;
+                const System.UInt32 maximumNumberOfTestCasesInCollection = 10;
 
                 Wintellect.PowerCollections.Set<TestCase> owningSet
                     = new Wintellect.PowerCollections.Set<TestCase>();
 
-                while (factory.RandomChoice.Next(maximumNumberOfTestCasesInCollection) != 0)
+                System.UInt32 countDown = (System.UInt32)factory.RandomChoice.Next((System.Int32)maximumNumberOfTestCasesInCollection);
+
+                while (countDown-- != 0U)
                 {
                     TestCase.PutNewTestCaseInto(owningSet);
                 }
@@ -154,9 +158,11 @@ namespace SageSerpent.TestInfrastructureTests
                 Wintellect.PowerCollections.Set<SageSerpent.TestInfrastructure.ITestCaseGenerator> testCaseGenerators
                     = new Wintellect.PowerCollections.Set<SageSerpent.TestInfrastructure.ITestCaseGenerator>();
 
-                const System.Int32 maximumNumberOfAlternativeTestCaseGenerators = 10;
+                const System.Int32 maximumNumberOfAlternativeTestCaseGenerators = 5;
 
-                while (factory.RandomChoice.Next(maximumNumberOfAlternativeTestCaseGenerators) != 0)
+                System.UInt32 countDown = (System.UInt32)factory.RandomChoice.Next((System.Int32)maximumNumberOfAlternativeTestCaseGenerators);
+
+                while (countDown-- != 0U)
                 {
                     testCaseGenerators.Add(factory.CreateRandomlyAssembledTestCaseGenerator(treeDepth));
                 }
@@ -204,7 +210,9 @@ namespace SageSerpent.TestInfrastructureTests
 
                 const System.Int32 maximumNumberOfCombinedTestCaseGenerators = 5;
 
-                while (factory.RandomChoice.Next(maximumNumberOfCombinedTestCaseGenerators) != 0)
+                System.UInt32 countDown = (System.UInt32)factory.RandomChoice.Next((System.Int32)maximumNumberOfCombinedTestCaseGenerators);
+
+                while (countDown-- != 0U)
                 {
                     testCaseGenerators.Add(factory.CreateRandomlyAssembledTestCaseGenerator(treeDepth));
                 }
