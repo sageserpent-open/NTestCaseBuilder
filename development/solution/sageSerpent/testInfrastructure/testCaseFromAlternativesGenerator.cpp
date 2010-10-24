@@ -19,5 +19,10 @@ namespace SageSerpent
         {
             return 0U;
         }
+
+        System::Boolean TestCaseFromAlternativesGenerator::IsDead::get()
+        {
+            return false;
+        }
     }
 }

@@ -27,9 +27,9 @@ namespace SageSerpent.TestInfrastructureTests
 
         public override Boolean Equals(Object another)
         {
-            AbstractTestCase anotherOfCompatibleType = another as AbstractTestCase;
+            AbstractTestCase anotherTestCase = another as AbstractTestCase;
 
-            if (null != anotherOfCompatibleType && !Algorithms.DisjointSets(EquivalenceIndicies(), anotherOfCompatibleType.EquivalenceIndicies()))
+            if (null != anotherTestCase && !Algorithms.DisjointSets(EquivalenceIndicies(), anotherTestCase.EquivalenceIndicies()))
             {
                 return true;
             }

@@ -26,6 +26,11 @@ namespace SageSerpent
             {
                 System::UInt32 get();
             }
+
+            virtual property System::Boolean IsDead
+            {
+                System::Boolean get();
+            }
         };
     }
 }

@@ -22,6 +22,11 @@ namespace SageSerpent
         {
             return 0U;
         }
+
+        System::Boolean TestCaseFromCombinationGenerator::IsDead::get()
+        {
+            return false;
+        }
     }
 }
 
