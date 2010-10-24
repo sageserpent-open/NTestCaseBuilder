@@ -1,11 +1,13 @@
 #include "testCaseFromCombinationGenerator.hpp"
 
+#using "infrastructure.dll"
+
 namespace SageSerpent
 {
     namespace TestInfrastructure
     {
         generic <typename TestCase>
-        TestCaseFromCombinationGenerator<TestCase>::TestCaseFromCombinationGenerator(System::Collections::Generic::IEnumerable<ITestCaseGenerator<TestCase> ^> ^componentTestCaseGenerators,
+        TestCaseFromCombinationGenerator<TestCase>::TestCaseFromCombinationGenerator(System::Collections::IEnumerable ^componentTestCaseGenerators,
                                                                                      System::Delegate combiningClosure)
         {
             throw gcnew System::NotImplementedException("*** Unimplemented stub! ***");

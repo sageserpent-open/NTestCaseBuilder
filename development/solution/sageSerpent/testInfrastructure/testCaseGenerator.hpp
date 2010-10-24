@@ -1,5 +1,5 @@
-#ifndef _TEST_CASE_GENERATOR_HPP_
-#define _TEST_CASE_GENERATOR_HPP_
+#ifndef __TEST_CASE_GENERATOR_HPP__
+#define __TEST_CASE_GENERATOR_HPP__
 
 
 namespace SageSerpent
