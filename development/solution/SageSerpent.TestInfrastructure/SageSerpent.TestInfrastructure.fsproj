@@ -36,7 +36,7 @@
     <Compile Include="InterleavedTestCaseEnumeratorFactory.fs" />
     <Compile Include="SynthesizedTestCaseEnumeratorFactory.fs" />
     <Compile Include="TestVariableLevelEnumeratorFactory.fs" />
-    <Compile Include="DumpingGround.fs" />
+    <Compile Include="Node.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

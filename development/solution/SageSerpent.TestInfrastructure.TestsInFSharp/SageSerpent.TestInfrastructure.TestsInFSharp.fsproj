@@ -61,7 +61,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DumpingGroundTests.fs" />
+    <Compile Include="NodeTests.fs" />
     <Compile Include="Driver.fs" />
   </ItemGroup>
   <ItemGroup>
