@@ -9,6 +9,11 @@ namespace SageSerpent
         public interface class ITestCaseGenerator
         {
             System::Collections::IEnumerator ^CreateIterator();
+            
+            property System::UInt32 MaximumDegreesOfFreedom
+            {
+                System::UInt32 get();
+            }
         };
     }
 }

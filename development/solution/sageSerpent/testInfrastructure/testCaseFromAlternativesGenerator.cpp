@@ -14,5 +14,10 @@ namespace SageSerpent
             //throw gcnew System::NotImplementedException("*** Unimplemented stub! ***");
             return nullptr;
         }
+        
+        System::UInt32 TestCaseFromAlternativesGenerator::MaximumDegreesOfFreedom::get()
+        {
+            return 0U;
+        }
     }
 }

@@ -21,6 +21,11 @@ namespace SageSerpent
             // all compatible test case generators will be included within as alternates. This is to do substitutability testing.
 
             virtual System::Collections::IEnumerator ^CreateIterator();
+            
+            virtual property System::UInt32 MaximumDegreesOfFreedom
+            {
+                System::UInt32 get();
+            }
         };
     }
 }

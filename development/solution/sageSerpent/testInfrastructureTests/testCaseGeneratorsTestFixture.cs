@@ -7,7 +7,7 @@ namespace SageSerpent.TestInfrastructureTests
     public class TestCaseGeneratorsTestFixture
     {
         [Test]
-        public void TestCorrectOrderingOfComponentTestCasesWithinCombinedTestCase()
+        public void TestCorrectOrderingOfAtomicTestCasesWithinEachOutputTestCase()
         {
             System.UInt32 countDown = 201U;
 
@@ -15,11 +15,49 @@ namespace SageSerpent.TestInfrastructureTests
 
             while (countDown-- != 0U)
             {
-                factory.CreateRandomlyAssembledTestCaseGenerator();
+                SageSerpent.TestInfrastructure.ITestCaseGenerator testCaseGenerator = factory.CreateRandomlyAssembledTestCaseGenerator();
+#if __ADDED_IN__
+                NUnit.Framework.Assert.AreEqual(testCaseGenerator.MaximumDegreesOfFreedom,
+                                                ((ITracksHowOwningSetsContributeToOutput)testCaseGenerator).MaximumNumberOfOwningSetsInSequence);
+#endif
             }
         }
 
+        [Test]
+        public void TestCoverageOfAllNWayCombinationsOfAtomicTestCasesOverAllOutputTestCases()
+        {
+        }
+
+        [Test]
+        public void TestOptimalityOfCoverageOfAllNWayCombinationsOfAtomicTestCasesOverAllOutputTestCases()
+        {
+        }
+
         // TODO: need to think about the impact of collisions due to transforms. Does this affect the validity of combinations being exhaustive?
+        // ANSWER: try adding in additional atomic test cases and then causing the transforms to collide any composite test case that contains
+        // any of these additional atomic test cases (regardless of which set contributed them, or how many turn up in any given composite).
+        // We should still see all of the atomic combinations that we originally had, but only one single composite containing a 'new' atomic test case.
+
+        [Test]
+        public void TestThatCoverageOfAllNWayCombinationsWorksAroundAnyCollisionsBetweenOutputTestCases()
+        {
+        }
+
+        [Test]
+        public void TestMaximumDegreesOfFreedom()
+        {
+            System.UInt32 countDown = 201U;
+
+            TestCaseGeneratorFactory factory = new TestCaseGeneratorFactory();
+
+            while (countDown-- != 0U)
+            {
+                SageSerpent.TestInfrastructure.ITestCaseGenerator testCaseGenerator = factory.CreateRandomlyAssembledTestCaseGenerator();
+
+                NUnit.Framework.Assert.AreEqual(testCaseGenerator.MaximumDegreesOfFreedom,
+                                                ((ITracksHowOwningSetsContributeToOutput)testCaseGenerator).MaximumNumberOfOwningSetsInSequence);
+            }
+        }
 
         public class TestCase
         {
@@ -88,6 +126,11 @@ namespace SageSerpent.TestInfrastructureTests
         {
             Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>>
                 PossibleSequencesOfOwningSets();
+
+            System.UInt32 MaximumNumberOfOwningSetsInSequence
+            {
+                get;
+            }
         }
 
         public class TestCaseFromCollectionGenerator :
@@ -109,7 +152,7 @@ namespace SageSerpent.TestInfrastructureTests
                 Wintellect.PowerCollections.Set<TestCase> owningSet
                     = new Wintellect.PowerCollections.Set<TestCase>();
 
-                System.UInt32 countDown = (System.UInt32)factory.RandomChoice.Next((System.Int32)maximumNumberOfTestCasesInCollection);
+                System.UInt32 countDown = (System.UInt32)factory.RandomChoice.Next((System.Int32)(maximumNumberOfTestCasesInCollection + 1U));
 
                 while (countDown-- != 0U)
                 {
@@ -136,6 +179,14 @@ namespace SageSerpent.TestInfrastructureTests
                 return result;
             }
 
+            public System.UInt32 MaximumNumberOfOwningSetsInSequence
+            {
+                get
+                {
+                    return 1U;
+                }
+            }
+
             private Wintellect.PowerCollections.Set<TestCase> _owningSet
                 = new Wintellect.PowerCollections.Set<TestCase>();
         }
@@ -160,7 +211,7 @@ namespace SageSerpent.TestInfrastructureTests
 
                 const System.Int32 maximumNumberOfAlternativeTestCaseGenerators = 5;
 
-                System.UInt32 countDown = (System.UInt32)factory.RandomChoice.Next((System.Int32)maximumNumberOfAlternativeTestCaseGenerators);
+                System.UInt32 countDown = (System.UInt32)factory.RandomChoice.Next((System.Int32)(maximumNumberOfAlternativeTestCaseGenerators + 1U));
 
                 while (countDown-- != 0U)
                 {
@@ -182,6 +233,15 @@ namespace SageSerpent.TestInfrastructureTests
                 }
 
                 return result;
+            }
+
+            public System.UInt32 MaximumNumberOfOwningSetsInSequence
+            {
+                get
+                {
+                    return Wintellect.PowerCollections.Algorithms.Maximum(Wintellect.PowerCollections.Algorithms.Convert(_testCaseGenerators,
+                                                                                                                         delegate(SageSerpent.TestInfrastructure.ITestCaseGenerator testCaseGenerator) { return testCaseGenerator.MaximumDegreesOfFreedom; }));
+                }
             }
 
             private Wintellect.PowerCollections.Set<SageSerpent.TestInfrastructure.ITestCaseGenerator> _testCaseGenerators;
@@ -210,7 +270,7 @@ namespace SageSerpent.TestInfrastructureTests
 
                 const System.Int32 maximumNumberOfCombinedTestCaseGenerators = 5;
 
-                System.UInt32 countDown = (System.UInt32)factory.RandomChoice.Next((System.Int32)maximumNumberOfCombinedTestCaseGenerators);
+                System.UInt32 countDown = (System.UInt32)factory.RandomChoice.Next((System.Int32)(maximumNumberOfCombinedTestCaseGenerators + 1U));
 
                 while (countDown-- != 0U)
                 {
@@ -393,10 +453,9 @@ namespace SageSerpent.TestInfrastructureTests
                 return result;
             }
 
-            private
-                void ConcatenateCrossProductOfSequences(System.Collections.Generic.IList<SageSerpent.TestInfrastructure.ITestCaseGenerator> testCaseGenerators,
-                                                        System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>> sequenceBeingBuiltUp,
-                                                        Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>> result)
+            private void ConcatenateCrossProductOfSequences(System.Collections.Generic.IList<SageSerpent.TestInfrastructure.ITestCaseGenerator> testCaseGenerators,
+                                                            System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>> sequenceBeingBuiltUp,
+                                                            Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>> result)
             {
                 if (testCaseGenerators.Count == 0)
                 {
@@ -411,6 +470,19 @@ namespace SageSerpent.TestInfrastructureTests
                                                                                                               sequence),
                                                            result);
                     }
+                }
+            }
+
+            public System.UInt32 MaximumNumberOfOwningSetsInSequence
+            {
+                get
+                {
+                    // Where is the 'fold-left' algorithm for .NET? :-(
+                    System.UInt32 result = 0U;
+                    Wintellect.PowerCollections.Algorithms.ForEach(_testCaseGenerators,
+                                                                   delegate(SageSerpent.TestInfrastructure.ITestCaseGenerator testCaseGenerator) { result += testCaseGenerator.MaximumDegreesOfFreedom; });
+
+                    return result;
                 }
             }
 

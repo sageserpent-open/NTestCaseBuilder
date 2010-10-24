@@ -16,6 +16,11 @@ namespace SageSerpent
             TestCaseFromAlternativesGenerator(Wintellect::PowerCollections::Set<ITestCaseGenerator ^> ^componentTestCaseGenerators);
 
             virtual System::Collections::IEnumerator ^CreateIterator();
+            
+            virtual property System::UInt32 MaximumDegreesOfFreedom
+            {
+                System::UInt32 get();
+            }
         };
     }
 }
