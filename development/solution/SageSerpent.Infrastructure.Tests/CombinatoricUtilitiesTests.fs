@@ -6,7 +6,7 @@ namespace SageSerpent.Infrastructure.Tests
     open SageSerpent.Infrastructure
 
     [<TestFixture>]
-    type CombinatoricUtilitiesTestFixture() =
+    type CombinatoricUtilitiesTestFixture () =
         let rec contributionLimitsEquallingLimitInTotal limit maximumLengthOfContributionLimits =
             if maximumLengthOfContributionLimits = 0u
                 then []
@@ -22,33 +22,33 @@ namespace SageSerpent.Infrastructure.Tests
                           contributionLimitsWithFirstContributionOf limit
                           
         let contributionLimitsEquallingUpToLimitInTotal limit maximumLengthOfContributionLimits =
-            [0u..limit]
+            [0u .. limit]
             |> Seq.map (function item -> contributionLimitsEquallingLimitInTotal item maximumLengthOfContributionLimits)
             |> List.concat
              
-        let sumContributions contributionList = List.reduce_right (+) contributionList
+        let sumContributions = List.reduce_right (+)
         
         [<Test>]
         member this.TestThatAttemptingToChooseContributionsFromAnEmptyListResultsInAnEmptyResultList () =
-            for limit in [0u..5u] do
+            for limit in [0u .. 5u] do
                 let results = CombinatoricUtilities.ChooseContributionsToMeetTotal [] limit
                 let shouldBeTrue = results = []
                 Assert.IsTrue shouldBeTrue
                 
         [<Test>]
         member this.TestThatSupplyingATotalGreaterThanTheSumOfTheInputContributionsResultsInAnEmptyList () =
-            for limit in [0u..5u] do
+            for limit in [0u .. 5u] do
                 for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
-                    for increment in [1u..2u] do
+                    for increment in [1u .. 2u] do
                         let results = CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample (limit + increment)
                         let shouldBeTrue = results = []
                         Assert.IsTrue shouldBeTrue
                     
         [<Test>]
         member this.TestThatSumOfChosenContributionsInEachResultIsTheSameAsTheTotal () =
-            for limit in [0u..3u] do
+            for limit in [0u .. 3u] do
                 for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
-                    for total in [0u..limit] do
+                    for total in [0u .. limit] do
                         let results = CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample total
                         for sum in List.map sumContributions results do
                             let shouldBeTrue = sum = total
@@ -58,18 +58,18 @@ namespace SageSerpent.Infrastructure.Tests
                         
         [<Test>]
         member this.TestThatSumOfChosenContributionsInEachResultCannotExceedSumOfInputContributions () =
-            for limit in [0u..3u] do
+            for limit in [0u .. 3u] do
                 for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
-                    for increment in [1u..3u] do
+                    for increment in [1u .. 3u] do
                         let results = CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample (limit + increment)
                         let shouldBeTrue = results.IsEmpty
                         Assert.IsTrue shouldBeTrue
                         
         [<Test>]
         member this.TestThatChosenContributionsInEachResultAreBoundedByInputContributions () =
-            for limit in [0u..3u] do
+            for limit in [0u .. 3u] do
                 for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
-                    for total in [0u..limit] do
+                    for total in [0u .. limit] do
                         let results = CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample total
                         for item in results do
                             for chosenAndInputContributionPair in List.zip item inputExample do
@@ -78,18 +78,18 @@ namespace SageSerpent.Infrastructure.Tests
                         
         [<Test>]
         member this.TestThatEachResultOccursOnlyOnce () =
-            for limit in [0u..3u] do
+            for limit in [0u .. 3u] do
                 for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
-                    for total in [0u..limit] do
+                    for total in [0u .. limit] do
                         let results = CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample total
                         let shouldBeTrue = results.Length = (Set.of_list results).Count
                         Assert.IsTrue shouldBeTrue
                
         [<Test>]
         member this.TestThatEachResultHasTheSameLengthAsTheInputContributionList () =
-            for limit in [0u..3u] do
+            for limit in [0u .. 3u] do
                 for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
-                    for total in [0u..limit] do
+                    for total in [0u .. limit] do
                         let results = CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample total
                         for item in results do
                             let shouldBeTrue = item.Length = inputExample.Length
@@ -99,7 +99,7 @@ namespace SageSerpent.Infrastructure.Tests
                
         [<Test>]
         member this.TestCoverageOfAllPossibleContributionsThatCanMeetTheTotal () =
-            for total in [0u..5u] do
+            for total in [0u .. 5u] do
                 let inputExamples = contributionLimitsEquallingLimitInTotal total 5u
                 let combinedResultsFromAllPossibleInputExamplesSummingToTotal
                     = inputExamples
@@ -118,11 +118,11 @@ namespace SageSerpent.Infrastructure.Tests
         
         [<Test>]
         member this.TestThatContributionsThatMeetUpToATotalProduceTheSameResultsAsContributionsThatEqualATotal () =
-            for limit in [0u..3u] do
+            for limit in [0u .. 3u] do
                 let inputExamples = contributionLimitsEquallingLimitInTotal limit 5u
                 for inputExample in inputExamples do
                     let enMasseResults = CombinatoricUtilities.ChooseContributionsToMeetTotalsUpToLimit inputExample limit
-                    for total in [0u..limit] do
+                    for total in [0u .. limit] do
                         let resultsFromEnMasseCalculationForTotal = enMasseResults.[total]
                         let resultsFromEnMasseCalculationForTotalAsSet = Set.of_list resultsFromEnMasseCalculationForTotal
                         let resultsFromIndividualCalculation = CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample total
@@ -136,10 +136,10 @@ namespace SageSerpent.Infrastructure.Tests
                         
         [<Test>]
         member this.TestThatCalculatingContributionsThatMeetUpToATotalNeverProduceEmptyResultsForAGivenTotal () =
-            for limit in [0u..3u] do
+            for limit in [0u .. 3u] do
                 let inputExamples = contributionLimitsEquallingLimitInTotal limit 5u
                 for inputExample in inputExamples do
-                    for increment in [1u..3u] do
+                    for increment in [1u .. 3u] do
                         let unachievableTotal = limit + increment
                         let enMasseResults = CombinatoricUtilities.ChooseContributionsToMeetTotalsUpToLimit inputExample unachievableTotal
                         let shouldBeTrue = not (enMasseResults.ContainsKey unachievableTotal)
