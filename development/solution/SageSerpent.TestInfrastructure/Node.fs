@@ -70,46 +70,47 @@ namespace SageSerpent.TestInfrastructure
                                 |> List.map (function interleavingTestVariableIndex ->
                                                         interleavingTestVariableIndex
                                                         , indexForLeftmostTestVariable)
-                            previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
-                            |> List.append forwardInterleavingPairs
-                            |> List.append backwardInterleavingPairs
-                            , indexForLeftmostTestVariable + 1u
+                            indexForLeftmostTestVariable + 1u
+                            , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
+                              |> List.append forwardInterleavingPairs
+                              |> List.append backwardInterleavingPairs
                       | InterleavingNode subtreeRootNodes ->
-                            let mergeAssociationFromSubtree (previouslyMergedAssociationList
-                                                             , indexForLeftmostTestVariable
-                                                             , interleavingTestVariableIndicesFromTheLeftSiblings)
+                            let mergeAssociationFromSubtree (indexForLeftmostTestVariable
+                                                             , interleavingTestVariableIndicesFromTheLeftSiblings
+                                                             , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt)
                                                             subtreeRootNode =
-                                let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
-                                    , maximumTestVariableFromSubtree =
+                                let maximumTestVariableFromSubtree
+                                    , associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                                     walkTree subtreeRootNode
                                              indexForLeftmostTestVariable
                                              interleavingTestVariableIndicesFromTheLeftSiblings
-                                             previouslyMergedAssociationList
+                                             previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
                                 let testVariableIndicesFromNode =
                                     List.init (int32 (maximumTestVariableFromSubtree - indexForLeftmostTestVariable))
                                               (fun variableCount -> uint32 variableCount + indexForLeftmostTestVariable)
-                                associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
-                                , maximumTestVariableFromSubtree
+                                maximumTestVariableFromSubtree
                                 , List.append testVariableIndicesFromNode interleavingTestVariableIndicesFromTheLeftSiblings
-                            let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
-                                , maximumTestVariableFromSubtree
-                                , _ = subtreeRootNodes
-                                      |> Seq.fold mergeAssociationFromSubtree (previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
-                                                                               , indexForLeftmostTestVariable
-                                                                               , interleavingTestVariableIndices)
-                            associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
-                            , maximumTestVariableFromSubtree
+                                , associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
+                            let maximumTestVariableFromSubtree
+                                , _
+                                , associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
+                                subtreeRootNodes
+                                |> Seq.fold mergeAssociationFromSubtree (indexForLeftmostTestVariable
+                                                                         , interleavingTestVariableIndices
+                                                                         , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt)
+                            maximumTestVariableFromSubtree
+                            , associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
+                            
                       | SynthesizingNode subtreeRootNodes ->
-                            let mergeAssociationFromSubtree (previouslyMergedAssociationList
-                                                             , indexForLeftmostTestVariable)
+                            let mergeAssociationFromSubtree (indexForLeftmostTestVariable
+                                                             , previouslyMergedAssociationList)
                                                             subtreeRootNode =
                                 walkTree subtreeRootNode indexForLeftmostTestVariable interleavingTestVariableIndices previouslyMergedAssociationList
                             subtreeRootNodes
-                            |> Seq.fold mergeAssociationFromSubtree
-                                        (previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
-                                         , indexForLeftmostTestVariable)
-                let result,
-                    _ =
+                            |> Seq.fold mergeAssociationFromSubtree (indexForLeftmostTestVariable
+                                                                     , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt)
+                let _,
+                    result =
                         walkTree this 0u [] []
                 HashMultiMap.Create result
                                     
