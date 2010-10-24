@@ -128,3 +128,17 @@ namespace SageSerpent.Infrastructure.Tests
                         let shouldBeTrue = resultsFromIndividualCalculationAsSet = resultsFromEnMasseCalculationForTotalAsSet
                                            && resultsFromEnMasseCalculationForTotal.Length = resultsFromIndividualCalculation.Length
                         Assert.IsTrue shouldBeTrue
+                        
+        [<Test>]
+        member this.TestThatCalculatingContributionsThatMeetUpToATotalNeverProduceEmptyResultsForAGivenTotal () =
+            for limit in [0u..3u] do
+                let inputExamples = contributionLimitsEquallingLimitInTotal limit 5u
+                for inputExample in inputExamples do
+                    for increment in [1u..3u] do
+                        let unachievableTotal = limit + increment
+                        let enMasseResults = CombinatoricUtilities.chooseContributionsToMeetTotalsUpToLimit inputExample unachievableTotal
+                        let shouldBeTrue = not (enMasseResults.ContainsKey unachievableTotal)
+                        Assert.IsTrue shouldBeTrue
+        
+                            
+        

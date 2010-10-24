@@ -5,6 +5,10 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
     open Microsoft.FSharp.Collections
     
     open Microsoft.FSharp.Core.Operators.Checked
+    
+    /// Given a list of non-negative integer limits, create lists of contributions that sum up to a total
+    /// such that each contribution cannot exceed its corresponding limit. The contribution lists are returned
+    /// within a list: if the total is too high to be met given the limits, the result is an empty list.
 
     let rec chooseContributionsToMeetTotal contributionLimits total =
         match contributionLimits with
@@ -17,7 +21,10 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
                                 if not resultFromTail.IsEmpty
                                 then yield! List.map (function item -> contributionFromHead::item) resultFromTail]
                             
-                                
+    /// Given a list of non-negative integer limits, create lists of contributions that sum up to a total
+    /// such that each contribution cannot exceed its corresponding limit: this calculation is repeated for
+    /// a range of totals from zero up to and including the limit. Each result for a given total is placed
+    /// into a map that associates totals with non-empty result lists.
                                 
     let rec chooseContributionsToMeetTotalsUpToLimit contributionLimits limit =
         match contributionLimits with
