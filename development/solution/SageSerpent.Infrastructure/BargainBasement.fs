@@ -84,3 +84,15 @@ module SageSerpent.Infrastructure.BargainBasement
                     , remainder =
                         BreakOff span listBeingChopped
                 section :: ChopUpList remainder tail                 
+        
+    let Memoize computation =
+        let cache =
+            System.Collections.Generic.Dictionary ()
+        fun input ->
+            if cache.ContainsKey input
+            then cache.[input]
+            else let result =
+                    computation input
+                 cache.Add (input, result)
+                 result
+                 

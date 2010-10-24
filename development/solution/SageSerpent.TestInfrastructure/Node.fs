@@ -19,39 +19,50 @@ namespace SageSerpent.TestInfrastructure
           | InterleavingNode of seq<Node>
           | SynthesizingNode of seq<Node>
           
-            member private this.TraverseTree nodeOperations =
-                match this with
-                    TestVariableNode levels ->
-                        nodeOperations.TestVariableNodeResult levels
-                  | InterleavingNode subtreeRootNodes ->
-                        subtreeRootNodes
-                        |> Seq.map (fun subtreeRootNode -> subtreeRootNode.TraverseTree nodeOperations)
-                        |> nodeOperations.CombineResultsFromInterleavingNodeSubtrees
-                  | SynthesizingNode subtreeRootNodes ->
-                        subtreeRootNodes
-                        |> Seq.map (fun subtreeRootNode -> subtreeRootNode.TraverseTree nodeOperations)
-                        |> nodeOperations.CombineResultsFromSynthesizingNodeSubtrees
+            static member private TraverseTree nodeOperations =
+                let rec memoizedCalculation =
+                    BargainBasement.Memoize (fun node ->
+                                                match node with
+                                                    TestVariableNode levels ->
+                                                        nodeOperations.TestVariableNodeResult levels
+                                                  | InterleavingNode subtrees ->
+                                                        subtrees
+                                                        |> Seq.map (fun subtreeHead -> memoizedCalculation subtreeHead)
+                                                        |> nodeOperations.CombineResultsFromInterleavingNodeSubtrees
+                                                  | SynthesizingNode subtrees ->
+                                                        subtrees
+                                                        |> Seq.map (fun subtreeHead -> memoizedCalculation subtreeHead)
+                                                        |> nodeOperations.CombineResultsFromSynthesizingNodeSubtrees)
+                memoizedCalculation
           
-            member this.CountTestVariables =
-                this.TraverseTree   {
+            static member private CountTestVariablesFor =
+                Node.TraverseTree   {
                                         TestVariableNodeResult = fun _ -> 1u
                                         CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
                                         CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                                     }
+                                    
+            member this.CountTestVariables = Node.CountTestVariablesFor this
+            
           
-            member this.SumLevelCountsFromAllTestVariables =
-                this.TraverseTree   {
+            static member private SumLevelCountsFromAllTestVariablesFor =
+                Node.TraverseTree   {
                                         TestVariableNodeResult = fun levels -> uint32 (Seq.length levels)
                                         CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
                                         CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                                     }
+                                    
+            member this.SumLevelCountsFromAllTestVariables = Node.SumLevelCountsFromAllTestVariablesFor this
+            
           
-            member this.MaximumStrengthOfTestVariableCombination =
-                this.TraverseTree   {
+            static member private MaximumStrengthOfTestVariableCombinationFor = 
+                Node.TraverseTree   {
                                         TestVariableNodeResult = fun _ -> 1u
                                         CombineResultsFromInterleavingNodeSubtrees = Seq.max
                                         CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                                     }
+                                    
+            member this.MaximumStrengthOfTestVariableCombination = Node.MaximumStrengthOfTestVariableCombinationFor this                                    
                                     
             member this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 let rec walkTree node

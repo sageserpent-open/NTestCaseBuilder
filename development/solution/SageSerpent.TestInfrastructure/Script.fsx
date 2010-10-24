@@ -53,6 +53,42 @@ let debug results =
     results
     |> List.fold_left printResultsAtStrength 1u
             
-            
 [1;4;5]
 |> List.scan_left (fun testVariableIndex _ -> testVariableIndex + 1u) 0u            
+       
+        
+open System.Collections
+
+let cache =
+    Hashtable ()
+    
+    
+let cachedComputation (computation: unit -> 'a) =
+    printf "%A\n" ((box computation).GetHashCode ())
+    if cache.ContainsKey (box computation)
+    then unbox cache.[computation]
+    else let result = computation ()
+         cache.Add (computation, box result)
+         result
+         
+         
+type 'a Barry (z: 'a list) =
+    static let a = ref []
+    
+    member this.Compute () = a := List.append z !a
+                             !a
+                             
+    
+    
+let z = Barry [2]
+
+let zz = Barry ["East Enders"];;
+
+printf "%A %A\n" (z.Compute ()) (z.Compute ())
+
+printf "%A %A\n" (zz.Compute ()) (zz.Compute ())
+
+
+let foooble = BargainBasement.Memoize (fun x -> printf "Calculating for: %A\n" x; 2 * x)
+
+
