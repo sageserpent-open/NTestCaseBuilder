@@ -24,38 +24,11 @@ namespace SageSerpent.TestInfrastructure.Tests
     public abstract class AbstractTestCase
     {
         public abstract SequenceOfTestVariableLevels TestVariableLevels();
-
-        public override Boolean Equals(Object another)
-        {
-            var anotherTestCase = another as AbstractTestCase;
-
-            if (null != anotherTestCase &&
-                !Algorithms.DisjointSets(EquivalenceIndicies(), anotherTestCase.EquivalenceIndicies()))
-            {
-                return true;
-            }
-
-            return EqualWithoutConsideringCollisions(another);
-        }
-
-        public override Int32 GetHashCode()
-        {
-            return EquivalenceIndicies().Count > 0U
-                       ? 0
-                       : GetHashCodeWithoutConsideringCollisions();
-        }
-
-        protected abstract Boolean EqualWithoutConsideringCollisions(Object another);
-        public abstract Int32 GetHashCodeWithoutConsideringCollisions();
-        public abstract HashSet<Int32> EquivalenceIndicies();
     }
 
     public class TestVariableLevel : AbstractTestCase
     {
         private readonly CollectionOwningTestVariableLevels _owningCollection;
-
-        private Int32 _equivalenceIndex;
-        private Boolean _equivalenceIndexExists;
 
         private TestVariableLevel(CollectionOwningTestVariableLevels owningCollection)
         {
@@ -80,39 +53,14 @@ namespace SageSerpent.TestInfrastructure.Tests
             owningCollection.Add(testCase);
         }
 
-        public static void PutNewTestCaseInto(CollectionOwningTestVariableLevels owningCollection, Int32 equivalenceIndex)
-        {
-            var testCase = new TestVariableLevel(owningCollection);
-            testCase.SetEquivalenceIndex(equivalenceIndex);
-            owningCollection.Add(testCase);
-        }
-
-        public void SetEquivalenceIndex(Int32 equivalenceIndex)
-        {
-            _equivalenceIndex = equivalenceIndex;
-            _equivalenceIndexExists = true;
-        }
-
-        protected override Boolean EqualWithoutConsideringCollisions(Object another)
+        public override Boolean Equals(Object another)
         {
             var anotherOfCompatibleType = another as TestVariableLevel;
 
             return anotherOfCompatibleType != null && ReferenceEquals(this, anotherOfCompatibleType);
         }
 
-        public override HashSet<Int32> EquivalenceIndicies()
-        {
-            var result = new HashSet<Int32>();
-
-            if (_equivalenceIndexExists)
-            {
-                result.Add(_equivalenceIndex);
-            }
-
-            return result;
-        }
-
-        public override Int32 GetHashCodeWithoutConsideringCollisions()
+        public override Int32 GetHashCode()
         {
             return RuntimeHelpers.GetHashCode(this);
         }
@@ -120,7 +68,6 @@ namespace SageSerpent.TestInfrastructure.Tests
 
     public class ComposedTestCase : AbstractTestCase
     {
-        private readonly HashSet<Int32> _equivalenceIndicies = new HashSet<int>();
         private IEnumerable<AbstractTestCase> _childTestCases;
 
         public override SequenceOfTestVariableLevels TestVariableLevels()
@@ -138,17 +85,15 @@ namespace SageSerpent.TestInfrastructure.Tests
 
         public static ComposedTestCase MakeShuffledCombination(IEnumerable<AbstractTestCase> testCases, Int32 seed)
         {
-            var result = new ComposedTestCase();
-
-            result._childTestCases = Algorithms.RandomShuffle(testCases, new Random(seed));
-
-            Algorithms.ForEach(result._childTestCases,
-                               childTestCase => result._equivalenceIndicies.AddAll(childTestCase.EquivalenceIndicies()));
+            var result = new ComposedTestCase
+                             {
+                                 _childTestCases = Algorithms.RandomShuffle(testCases, new Random(seed))
+                             };
 
             return result;
         }
 
-        protected override Boolean EqualWithoutConsideringCollisions(Object another)
+        public override Boolean Equals(Object another)
         {
             var anotherOfCompatibleType = another as ComposedTestCase;
 
@@ -156,17 +101,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                    Algorithms.EqualCollections(_childTestCases, anotherOfCompatibleType._childTestCases);
         }
 
-        public override HashSet<Int32> EquivalenceIndicies()
-        {
-            return _equivalenceIndicies;
-        }
-
-        public override Int32 GetHashCodeWithoutConsideringCollisions()
+        public override Int32 GetHashCode()
         {
             var result = 0;
 
             Algorithms.ForEach(_childTestCases,
-                               childTestCase => result ^= childTestCase.GetHashCodeWithoutConsideringCollisions());
+                               childTestCase => result ^= childTestCase.GetHashCode());
 
             return result;
         }
@@ -377,8 +317,7 @@ namespace SageSerpent.TestInfrastructure.Tests
         }
 
         private delegate void TestATestCaseGenerator(
-            ITestCaseEnumeratorFactory testCaseGeneratorWithoutCollisions,
-            ITestCaseEnumeratorFactory testCaseGeneratorWithCollisions);
+            ITestCaseEnumeratorFactory testCaseGeneratorWithoutCollisions);
 
         private static void ForABunchOfTestCaseGenerators(TestATestCaseGenerator test)
         {
@@ -389,8 +328,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             while (countDown-- != 0U)
             {
                 var sharedSeed = randomChoice.Next();
-                test(CreateRandomlyAssembledTestCaseGenerator(new Random(sharedSeed), false),
-                     CreateRandomlyAssembledTestCaseGenerator(new Random(sharedSeed), true));
+                test(CreateRandomlyAssembledTestCaseGenerator(new Random(sharedSeed)));
             }
         }
 
@@ -454,7 +392,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             #endregion
 
-            public static TestVariableLevelEnumeratorFactory Create(Random randomChoice, Int32? equivalenceIndex)
+            public static TestVariableLevelEnumeratorFactory Create(Random randomChoice)
             {
                 Console.WriteLine('E');
 
@@ -469,20 +407,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                     TestVariableLevel.PutNewTestCaseInto(owningCollection);
                 }
 
-                if (equivalenceIndex.HasValue)
-                {
-                    TestVariableLevel.PutNewTestCaseInto(owningCollection, equivalenceIndex.Value);
-                }
-
                 return new TestVariableLevelEnumeratorFactory(owningCollection);
             }
-        }
-
-        private static int? RandomlySteppedEquivalenceIndex(Random randomChoice, int? equivalenceIndex)
-        {
-            return randomChoice.Next(2) == 1
-                       ? equivalenceIndex + 1
-                       : equivalenceIndex - 1;
         }
 
         public class InterleavedTestCaseEnumeratorFactory : TestInfrastructure.InterleavedTestCaseEnumeratorFactory,
@@ -555,8 +481,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             public static InterleavedTestCaseEnumeratorFactory Create(Random randomChoice,
                                                                       UInt32 treeDepth,
-                                                                      UInt32 maximumDegreesOfFreedom,
-                                                                      Int32? equivalenceIndex)
+                                                                      UInt32 maximumDegreesOfFreedom)
             {
                 Console.WriteLine('A');
 
@@ -572,9 +497,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                         (UInt32) randomChoice.Next((Int32) (maximumDegreesOfFreedom)) + 1U;
                     testCaseGenerators.Add(
                         CreateRandomlyAssembledTestCaseGenerator(randomChoice, treeDepth,
-                                                                 maximumDegreesOfFreedomForChild,
-                                                                 RandomlySteppedEquivalenceIndex(randomChoice,
-                                                                                                 equivalenceIndex)));
+                                                                 maximumDegreesOfFreedomForChild));
                 }
 
                 return new InterleavedTestCaseEnumeratorFactory(testCaseGenerators);
@@ -682,8 +605,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             public static SynthesizedTestCaseEnumeratorFactory Create(Random randomChoice,
                                                                       UInt32 treeDepth,
-                                                                      UInt32 maximumDegreesOfFreedom,
-                                                                      Int32? equivalenceIndex)
+                                                                      UInt32 maximumDegreesOfFreedom)
             {
                 Console.WriteLine('C');
 
@@ -728,18 +650,14 @@ namespace SageSerpent.TestInfrastructure.Tests
                         var nextPartitionStart = partitionPointIterator.Current;
                         testCaseGenerators.Add(
                             CreateRandomlyAssembledTestCaseGenerator(randomChoice, treeDepth,
-                                                                     nextPartitionStart - partitionStart,
-                                                                     RandomlySteppedEquivalenceIndex(randomChoice,
-                                                                                                     equivalenceIndex)));
+                                                                     nextPartitionStart - partitionStart));
                         partitionStart = nextPartitionStart;
                     } while (partitionPointIterator.MoveNext());
                 }
                 else
                 {
                     testCaseGenerators.Add(
-                        CreateRandomlyAssembledTestCaseGenerator(randomChoice, treeDepth, partitionStart,
-                                                                 RandomlySteppedEquivalenceIndex(randomChoice,
-                                                                                                 equivalenceIndex)));
+                        CreateRandomlyAssembledTestCaseGenerator(randomChoice, treeDepth, partitionStart));
                 }
 
                 return new SynthesizedTestCaseEnumeratorFactory(testCaseGenerators, CreatePermutingClosure(randomChoice));
@@ -957,8 +875,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             #endregion
         }
 
-        public static ITestCaseEnumeratorFactory CreateRandomlyAssembledTestCaseGenerator(Random randomChoice,
-                                                                                          Boolean createDuplicatesAsWell)
+        public static ITestCaseEnumeratorFactory CreateRandomlyAssembledTestCaseGenerator(Random randomChoice)
         {
             Console.WriteLine();
 
@@ -967,16 +884,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                 CreateRandomlyAssembledTestCaseGenerator(randomChoice, 0U,
                                                          (UInt32)
                                                          randomChoice.Next((Int32) upperBoundOfMaximumDegreesOfFreedom) +
-                                                         1U,
-                                                         createDuplicatesAsWell
-                                                             ? new Int32?(0)
-                                                             : null);
+                                                         1U);
         }
 
         public static ITestCaseEnumeratorFactory CreateRandomlyAssembledTestCaseGenerator(Random randomChoice,
                                                                                           UInt32 parentTreeDepth,
-                                                                                          UInt32 maximumDegreesOfFreedom,
-                                                                                          Int32? equivalenceIndex)
+                                                                                          UInt32 maximumDegreesOfFreedom)
         {
             if (maximumDegreesOfFreedom == 0U)
             {
@@ -987,7 +900,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             var treeDepth = parentTreeDepth + 1U;
 
             {
-                UInt32 countDown = treeDepth;
+                var countDown = treeDepth;
 
                 Console.Write(treeDepth);
 
@@ -1001,7 +914,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             if (maximumDegreesOfFreedom == 1U && randomChoice.Next((Int32) maximumPermittedTreeDepth) + 1U <= treeDepth)
             {
-                return TestVariableLevelEnumeratorFactory.Create(randomChoice, equivalenceIndex);
+                return TestVariableLevelEnumeratorFactory.Create(randomChoice);
             }
             else
             {
@@ -1009,13 +922,11 @@ namespace SageSerpent.TestInfrastructure.Tests
                 {
                     case 0:
                         return InterleavedTestCaseEnumeratorFactory.Create(randomChoice, treeDepth,
-                                                                           maximumDegreesOfFreedom,
-                                                                           equivalenceIndex);
+                                                                           maximumDegreesOfFreedom);
 
                     case 1:
                         return SynthesizedTestCaseEnumeratorFactory.Create(randomChoice, treeDepth,
-                                                                           maximumDegreesOfFreedom,
-                                                                           equivalenceIndex);
+                                                                           maximumDegreesOfFreedom);
 
                     default:
                         throw new InternalAssertionViolationException("Default of this switch should not be executed.");
@@ -1029,19 +940,19 @@ namespace SageSerpent.TestInfrastructure.Tests
             var randomChoice = new Random(0);
 
             ForABunchOfTestCaseGenerators(
-                (testCaseGeneratorWithoutCollisions, testCaseGeneratorWithCollisions) =>
+                testCaseGenerator =>
                     {
                         var requestedDegreesOfFreedomForCombinationCoverage =
                             (UInt32)
-                            randomChoice.Next((Int32) (testCaseGeneratorWithoutCollisions.MaximumStrength + 1U));
+                            randomChoice.Next((Int32) (testCaseGenerator.MaximumStrength + 1U));
 
                         var testCaseIterator =
-                            testCaseGeneratorWithoutCollisions.CreateEnumerator(
+                            testCaseGenerator.CreateEnumerator(
                                 requestedDegreesOfFreedomForCombinationCoverage);
 
                         var
                             possibleSequencesOfCollectionsOwningTestVariableLevels =
-                                ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGeneratorWithoutCollisions).
+                                ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerator).
                                     PossibleSequencesOfCollectionsOwningTestVariableLevels();
 
                         while (testCaseIterator.MoveNext())
@@ -1065,10 +976,10 @@ namespace SageSerpent.TestInfrastructure.Tests
             var randomChoice = new Random(0);
 
             ForABunchOfTestCaseGenerators(
-                (testCaseGeneratorWithoutCollisions, testCaseGeneratorWithCollisions) =>
+                testCaseGenerator =>
                     {
                         var testVariableLevelsCombinations =
-                            MakeTestVariableLevelsCombinations(testCaseGeneratorWithoutCollisions, randomChoice);
+                            MakeTestVariableLevelsCombinations(testCaseGenerator, randomChoice);
 
                         var testVariableLevelToContainingCombinationMultiMap =
                             MakeTestVariableLevelToContainingCombinationMultiMap(testVariableLevelsCombinations);
@@ -1076,25 +987,14 @@ namespace SageSerpent.TestInfrastructure.Tests
                         var numberOfDegreesOfFreedom =
                             ChooseHowManyDegreesOfFreedomRequiredToAllowAllCombinationsToBeCovered(
                                 testVariableLevelsCombinations, randomChoice,
-                                testCaseGeneratorWithoutCollisions);
+                                testCaseGenerator);
 
-                        {
-                            var testCaseEnumerator =
-                                testCaseGeneratorWithoutCollisions.CreateEnumerator(numberOfDegreesOfFreedom);
+                        var testCaseEnumerator =
+                            testCaseGenerator.CreateEnumerator(numberOfDegreesOfFreedom);
 
-                            CheckThatAllCombinationsAreCovered(testCaseEnumerator,
-                                                               testVariableLevelToContainingCombinationMultiMap,
-                                                               testVariableLevelsCombinations);
-                        }
-
-                        {
-                            var testCaseEnumerator =
-                                testCaseGeneratorWithCollisions.CreateEnumerator(numberOfDegreesOfFreedom);
-
-                            CheckThatAllCombinationsAreCovered(testCaseEnumerator,
-                                                               testVariableLevelToContainingCombinationMultiMap,
-                                                               testVariableLevelsCombinations);
-                        }
+                        CheckThatAllCombinationsAreCovered(testCaseEnumerator,
+                                                           testVariableLevelToContainingCombinationMultiMap,
+                                                           testVariableLevelsCombinations);
                     });
         }
 
@@ -1102,9 +1002,9 @@ namespace SageSerpent.TestInfrastructure.Tests
         public void TestMaximumDegreesOfFreedom()
         {
             ForABunchOfTestCaseGenerators(
-                (testCaseGeneratorWithoutCollisions, testCaseGeneratorWithCollisions) =>
-                Assert.AreEqual(testCaseGeneratorWithoutCollisions.MaximumStrength,
-                                ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGeneratorWithoutCollisions).
+                testCaseGenerator =>
+                Assert.AreEqual(testCaseGenerator.MaximumStrength,
+                                ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerator).
                                     MaximumNumberOfOwningSetsInSequence));
         }
 
@@ -1114,16 +1014,16 @@ namespace SageSerpent.TestInfrastructure.Tests
             var randomChoice = new Random(0);
 
             ForABunchOfTestCaseGenerators(
-                (testCaseGeneratorWithoutCollisions, testCaseGeneratorWithCollisions) =>
+                testCaseGenerator =>
                     {
                         var maximumDegreesOfFreedom =
                             (UInt32)
-                            randomChoice.Next((Int32) testCaseGeneratorWithoutCollisions.MaximumStrength) + 1U;
+                            randomChoice.Next((Int32) testCaseGenerator.MaximumStrength) + 1U;
 
                         var testCases = new HashSet<AbstractTestCase>();
 
                         var testCaseEnumerator =
-                            testCaseGeneratorWithoutCollisions.CreateEnumerator(maximumDegreesOfFreedom);
+                            testCaseGenerator.CreateEnumerator(maximumDegreesOfFreedom);
 
                         while (testCaseEnumerator.MoveNext())
                         {
@@ -1135,30 +1035,19 @@ namespace SageSerpent.TestInfrastructure.Tests
                         var testVariableLevelsCombinations =
                             PickTheLargestCombinationsOfSizeNotExceeding(testCaseToBeExcluded.TestVariableLevels(),
                                                                          maximumDegreesOfFreedom == 0U
-                                                                             ? testCaseGeneratorWithoutCollisions
+                                                                             ? testCaseGenerator
                                                                                    .MaximumStrength
                                                                              : maximumDegreesOfFreedom);
 
                         var testVariableLevelToContainingCombinationMultiMap =
                             MakeTestVariableLevelToContainingCombinationMultiMap(testVariableLevelsCombinations);
 
-                        {
-                            var testCaseEnumeratorTwo =
-                                testCaseGeneratorWithoutCollisions.CreateEnumerator(maximumDegreesOfFreedom);
+                        var testCaseEnumeratorTwo =
+                            testCaseGenerator.CreateEnumerator(maximumDegreesOfFreedom);
 
-                            CheckThatAtLeastOneCombinationIsNotCovered(testCaseToBeExcluded, testCaseEnumeratorTwo,
-                                                                       testVariableLevelToContainingCombinationMultiMap,
-                                                                       testVariableLevelsCombinations);
-                        }
-
-                        {
-                            var testCaseEnumeratorTwo =
-                                testCaseGeneratorWithCollisions.CreateEnumerator(maximumDegreesOfFreedom);
-
-                            CheckThatAtLeastOneCombinationIsNotCovered(testCaseToBeExcluded, testCaseEnumeratorTwo,
-                                                                       testVariableLevelToContainingCombinationMultiMap,
-                                                                       testVariableLevelsCombinations);
-                        }
+                        CheckThatAtLeastOneCombinationIsNotCovered(testCaseToBeExcluded, testCaseEnumeratorTwo,
+                                                                   testVariableLevelToContainingCombinationMultiMap,
+                                                                   testVariableLevelsCombinations);
                     });
         }
     }
