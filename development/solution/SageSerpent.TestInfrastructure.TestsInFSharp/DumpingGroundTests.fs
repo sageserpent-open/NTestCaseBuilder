@@ -33,7 +33,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             let chooseAnyNumberFromZeroToOneLessThan = int32 >> randomBehaviour.Next >> uint32
             let chooseAnyNumberFromOneTo = chooseAnyNumberFromZeroToOneLessThan >> (+) 1u
             let headsItIs () = chooseAnyNumberFromZeroToOneLessThan 2u = 0u
-            for i in [0 .. 5] do
+            for i in [0 .. 100] do
                 let numberOfTestVariables = chooseAnyNumberFromOneTo maximumNumberOfTestVariables
                 let numberOfTrackedTestVariables = chooseAnyNumberFromOneTo numberOfTestVariables
                 let trackedTestVariableToNumberOfLevelsMap =
@@ -152,7 +152,38 @@ namespace SageSerpent.TestInfrastructure.Tests
                     dumpNode tree treeGuiNode
                     treeView.ExpandAll ()
                     form.ShowDialog () |> ignore
-                dumpTree tree
-            ()
+                //dumpTree tree
+                let results =
+                    tree.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding numberOfTrackedTestVariables
+                let resultsAtMaximumStrength =
+                    List.nth results (results.Length - 1)
+                let retainOnlyLevelsFromTrackedTestVariables result =
+                    result
+                    |> Seq.map (fun testVectorRepresentation ->
+                                    Map.fold_right (fun _ level partialResult ->
+                                                        match unbox level with
+                                                            Tracked (trackedTestVariableIndex, level) ->
+                                                                (trackedTestVariableIndex, level)
+                                                                 :: partialResult
+                                                          | _ ->
+                                                            partialResult)
+                                                   testVectorRepresentation []
+                                    |> Map.of_list  // Sort by the tracked test variable index - hence the roundtrip from list -> map -> list!
+                                    |> Map.to_list
+                                    |> List.map (function _, level -> level))
+                    |> Set.of_seq
+                    |> Set.to_list
+                let resultsWithOnlyLevelsFromTrackedTestVariables =
+                    retainOnlyLevelsFromTrackedTestVariables resultsAtMaximumStrength
+                let crossProductOfTrackedTestVariableLevels =
+                    Map.fold_right (fun _ level partialResult ->
+                                        [1u .. level]::partialResult)
+                                   trackedTestVariableToNumberOfLevelsMap []
+                    |> Set.of_list
+                    |> Set.to_list
+                    |> BargainBasement.CrossProduct
+                let shouldBeTrue =
+                    resultsWithOnlyLevelsFromTrackedTestVariables = crossProductOfTrackedTestVariableLevels
+                Assert.IsTrue shouldBeTrue
        
     
