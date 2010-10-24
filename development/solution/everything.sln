@@ -1,17 +1,18 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SageSerpent.Infrastructure", "SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj", "{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}"
+# SharpDevelop 3.0.0.3437
+Project("{982E8BC1-ACD7-4dbf-96AB-B2CE67D6A008}") = "SageSerpent.Infrastructure", "SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj", "{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SageSerpent.Infrastructure.Tests", "SageSerpent.Infrastructure.Tests\SageSerpent.Infrastructure.Tests.fsproj", "{7BBB577A-83A1-40C9-8129-D8B1F1A45666}"
+Project("{982E8BC1-ACD7-4dbf-96AB-B2CE67D6A008}") = "SageSerpent.Infrastructure.Tests", "SageSerpent.Infrastructure.Tests\SageSerpent.Infrastructure.Tests.fsproj", "{7BBB577A-83A1-40C9-8129-D8B1F1A45666}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SageSerpent.TestInfrastructure", "SageSerpent.TestInfrastructure\SageSerpent.TestInfrastructure.fsproj", "{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}"
+Project("{982E8BC1-ACD7-4dbf-96AB-B2CE67D6A008}") = "SageSerpent.TestInfrastructure", "SageSerpent.TestInfrastructure\SageSerpent.TestInfrastructure.fsproj", "{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SageSerpent.TestInfrastructure.Tests", "SageSerpent.TestInfrastructure.Tests\SageSerpent.TestInfrastructure.Tests.csproj", "{797A2442-8A16-4DB3-AD44-42DB3EAA9D48}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SageSerpent.TestInfrastructure.TestsInFSharp", "SageSerpent.TestInfrastructure.TestsInFSharp\SageSerpent.TestInfrastructure.TestsInFSharp.fsproj", "{75F3B456-3BBD-41E9-8AC4-FE6C6BA0D8CF}"
+Project("{982E8BC1-ACD7-4dbf-96AB-B2CE67D6A008}") = "SageSerpent.TestInfrastructure.TestsInFSharp", "SageSerpent.TestInfrastructure.TestsInFSharp\SageSerpent.TestInfrastructure.TestsInFSharp.fsproj", "{75F3B456-3BBD-41E9-8AC4-FE6C6BA0D8CF}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "BugReproduction", "BugReproduction\BugReproduction.fsproj", "{1F564E57-D8C0-4888-A54A-5D623513E908}"
+Project("{982E8BC1-ACD7-4dbf-96AB-B2CE67D6A008}") = "BugReproduction", "BugReproduction\BugReproduction.fsproj", "{1F564E57-D8C0-4888-A54A-5D623513E908}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -83,6 +84,18 @@ Global
 		{1F564E57-D8C0-4888-A54A-5D623513E908}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{1F564E57-D8C0-4888-A54A-5D623513E908}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{1F564E57-D8C0-4888-A54A-5D623513E908}.Release|Win32.ActiveCfg = Release|Any CPU
+		{1F564E57-D8C0-4888-A54A-5D623513E908}.Debug|Win32.Build.0 = Debug|Win32
+		{1F564E57-D8C0-4888-A54A-5D623513E908}.Release|Win32.Build.0 = Release|Win32
+		{75F3B456-3BBD-41E9-8AC4-FE6C6BA0D8CF}.Debug|Win32.Build.0 = Debug|Win32
+		{75F3B456-3BBD-41E9-8AC4-FE6C6BA0D8CF}.Release|Win32.Build.0 = Release|Win32
+		{797A2442-8A16-4DB3-AD44-42DB3EAA9D48}.Debug|Win32.Build.0 = Debug|Win32
+		{797A2442-8A16-4DB3-AD44-42DB3EAA9D48}.Release|Win32.Build.0 = Release|Win32
+		{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}.Debug|Win32.Build.0 = Debug|Win32
+		{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}.Release|Win32.Build.0 = Release|Win32
+		{7BBB577A-83A1-40C9-8129-D8B1F1A45666}.Debug|Win32.Build.0 = Debug|Win32
+		{7BBB577A-83A1-40C9-8129-D8B1F1A45666}.Release|Win32.Build.0 = Release|Win32
+		{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}.Debug|Win32.Build.0 = Debug|Win32
+		{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

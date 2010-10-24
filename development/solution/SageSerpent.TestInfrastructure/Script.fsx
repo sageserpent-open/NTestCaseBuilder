@@ -10,6 +10,8 @@
 open System.Collections.Generic
 open SageSerpent.Infrastructure
 open SageSerpent.TestInfrastructure
+open Microsoft.FSharp.Collections
+open System
 
 
 let joinMaps first second =
@@ -90,5 +92,7 @@ printf "%A %A\n" (zz.Compute ()) (zz.Compute ())
 
 
 let foooble = BargainBasement.Memoize (fun x -> printf "Calculating for: %A\n" x; 2 * x)
+
+let wazzock = Map<UInt32, option<Object>> []
 
 

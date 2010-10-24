@@ -34,6 +34,11 @@ namespace SageSerpent.TestInfrastructure.Tests
         
         let maximumNumberOfIndicesToAvoid = 4u
         
+        let boxAssociatedLevel (testVariableIndex
+                                , associatedLevel) =
+            testVariableIndex
+            , box associatedLevel
+        
         let createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff =
             let randomBehaviour =
                 RandomBehaviour randomBehaviourSeed
@@ -66,6 +71,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                         (testVariableIndex
                          , testVariableIndex)
                          :: chooseTestVariableIndicesAndTheirLevelsAvoidingTheUniqueLevelForEachIndex 0u
+                        |> List.map boxAssociatedLevel
                         |> Map.of_list
                      printf "%A\n" partialTestVector
                      partialTestVector :: createPartialTestVectorsUsingUniqueLevelForTestVariableIndex (testVariableIndex + 1u)
@@ -185,7 +191,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                              (testVariableIndex
                                               , level)
                                              =
-                            Map.add testVariableIndex level partialTestVector
+                            Map.add testVariableIndex (box level) partialTestVector
                         Seq.fold addIndexAndLevel partialTestVector)
                 let partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices =
                     partialTestVectorsThatDoNotOverlap
@@ -199,10 +205,6 @@ namespace SageSerpent.TestInfrastructure.Tests
             
         [<Test>]
         member this.TestVectorsAreEitherAddedOrMerged () =
-            // TEST PLAN: add a bunch of partial test vectors to a collection of merged vectors. There should
-            // be at most the number of original partial test vectors in the collections, in some cases fewer.
-            // Each retrieved vector should completely cover at least one the original vectors, and all of the
-            // original vectors should be covered.
             let randomBehaviour =
                 RandomBehaviour randomBehaviourSeed
             for _ in 1u .. overallTestRepeats do
@@ -228,6 +230,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                      :: chooseTestVariableIndicesAndTheirLevels (recursionDepth + 1u)
                              let partialTestVector =
                                 chooseTestVariableIndicesAndTheirLevels 0u
+                                |> List.map boxAssociatedLevel
                                 |> Map.of_list
                              printf "%A\n" partialTestVector
                              partialTestVector :: createPartialTestVectors (testVariableIndex + 1u)
