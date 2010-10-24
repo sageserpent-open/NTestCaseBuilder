@@ -99,28 +99,6 @@ namespace SageSerpent.TestInfrastructure
                 |> fillInNonConsecutiveIndicesWithIndeterminateEntries  
             fillIfNecessary 0u lowestTestVariableIndex partialTestVectorPossiblyWithLeadingEntriesMissing
                                  
-        static member private Merge first second =
-            match first
-                  , second with
-                (headFromFirst :: tailFromFirst)
-                , (headFromSecond :: tailFromSecond) ->
-                    (match headFromFirst
-                           , headFromSecond with
-                        Level _
-                        , _ ->
-                            headFromFirst
-                      | _ ->
-                        headFromSecond) :: MergedPartialTestVectorRepresentations.Merge tailFromFirst tailFromSecond
-              | (_ :: _)
-                , [] ->
-                    first
-              | []
-                , (_ :: _) ->
-                    second
-              | []
-                , [] ->
-                    []   
-                                
         member private this.Add newPartialTestVectorRepresentation =
             let rec add tree newPartialTestVectorRepresentation treeIsForNextTestVariableIndex =
                 match tree with
@@ -199,7 +177,7 @@ namespace SageSerpent.TestInfrastructure
                     LeafNode ->
                         if treeIsForNextTestVariableIndex
                         then Some (LeafNode
-                                   , [])
+                                   , queryPartialTestVectorRepresentation)
                         else if List.is_empty queryPartialTestVectorRepresentation
                              then raise (InternalAssertionViolationException "Left or right subtrees should only be searched with a non-empty query partial test vector representation.")
                              else None                        
@@ -232,27 +210,13 @@ namespace SageSerpent.TestInfrastructure
                                             SubtreeForGreaterIndices =
                                                 subtreeForGreaterIndices
                                         }
-                        let buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex =
-                            Option.bind (fun (modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
-                                              , removedPartialTestVector) ->
-                                                Some (buildResultSubtreeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                              subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                              subtreeForGreaterIndices
-                                                      , removedPartialTestVector))
-                        let buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex =
-                            Option.bind (fun (modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                              , removedPartialTestVector) ->
-                                                Some (buildResultSubtreeWithPruningOfDegenerateLinearSubtrees subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                              modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                              subtreeForGreaterIndices
-                                                      , removedPartialTestVector))
-                        let buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices =
+                        let buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndicesUsingPadding =
                             Option.bind (fun (modifiedSubtreeForGreaterIndices
-                                              , removedPartialTestVector) ->
+                                              , mergedPartialTestVector) ->
                                                 Some (buildResultSubtreeWithPruningOfDegenerateLinearSubtrees subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                               subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                               modifiedSubtreeForGreaterIndices
-                                                      , (levelForTestVariableIndex :: removedPartialTestVector)))
+                                                      , (levelForTestVariableIndex :: mergedPartialTestVector)))
                         match queryPartialTestVectorRepresentation with
                             [] ->
                                 if treeIsForNextTestVariableIndex
@@ -261,9 +225,30 @@ namespace SageSerpent.TestInfrastructure
                                         // the end of the matching stored partial test vector. This allows us to match query vectors that
                                         // are prefixes of stored ones.
                                      remove subtreeForGreaterIndices [] true (testVariableIndex + 1u)
-                                     |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices                  
+                                     |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndicesUsingPadding                  
                                 else raise (InternalAssertionViolationException "Left or right subtrees should only be searched with a non-empty query partial test vector representation.") 
                           | headFromQueryPartialTestVectorRepresentation :: tailFromQueryPartialTestVectorRepresentation ->
+                                let buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex =
+                                    Option.bind (fun (modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
+                                                      , removedPartialTestVector) ->
+                                                        Some (buildResultSubtreeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                      subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                      subtreeForGreaterIndices
+                                                              , removedPartialTestVector))
+                                let buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex =
+                                    Option.bind (fun (modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                                      , removedPartialTestVector) ->
+                                                        Some (buildResultSubtreeWithPruningOfDegenerateLinearSubtrees subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                      modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                      subtreeForGreaterIndices
+                                                              , removedPartialTestVector))
+                                let buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices mergedLevelForTestVariableIndex =
+                                    Option.bind (fun (modifiedSubtreeForGreaterIndices
+                                                      , removedPartialTestVector) ->
+                                                        Some (buildResultSubtreeWithPruningOfDegenerateLinearSubtrees subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                      subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                      modifiedSubtreeForGreaterIndices
+                                                              , (mergedLevelForTestVariableIndex :: removedPartialTestVector)))
                                 match headFromQueryPartialTestVectorRepresentation
                                       , levelForTestVariableIndex with
                                   Level _
@@ -274,7 +259,7 @@ namespace SageSerpent.TestInfrastructure
                                                 |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex
                                           | 0 ->
                                                 remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
-                                                |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices
+                                                |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
                                           | 1 -> 
                                                 remove subtreeWithGreaterLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
                                                 |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex
@@ -282,7 +267,7 @@ namespace SageSerpent.TestInfrastructure
                                 | Level _
                                   , Indeterminate ->
                                         remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
-                                        |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices
+                                        |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
                                         |> BargainBasement.DeferredDefault (fun () ->
                                                                                 match compare headFromQueryPartialTestVectorRepresentation levelForTestVariableIndex with
                                                                                     -1 ->
@@ -293,10 +278,11 @@ namespace SageSerpent.TestInfrastructure
                                                                                   | 1 -> 
                                                                                         remove subtreeWithGreaterLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
                                                                                         |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex
-                                                                                  | _ -> raise (InternalAssertionViolationException "Comparison violated postcondition."))
+                                                                                  | _ ->
+                                                                                        raise (InternalAssertionViolationException "Comparison violated postcondition."))
                                 | _ ->
                                         remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
-                                        |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices
+                                        |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
                                         |> BargainBasement.DeferredDefault (fun () ->
                                                                                 remove subtreeWithLesserLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
                                                                                 |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex)
@@ -316,9 +302,7 @@ namespace SageSerpent.TestInfrastructure
                     MergedPartialTestVectorRepresentations.FillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation
                  match this.Remove partialTestVectorRepresentation with
                     Some (thisWithoutMergeCandidate
-                          , mergeCandidate) ->
-                        let mergedPartialTestVectorRepresentation =
-                            MergedPartialTestVectorRepresentations.Merge mergeCandidate partialTestVectorRepresentation
+                          , mergedPartialTestVectorRepresentation) ->
                         thisWithoutMergeCandidate.Add mergedPartialTestVectorRepresentation
                   | None ->
                         this.Add partialTestVectorRepresentation
