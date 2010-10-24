@@ -46,6 +46,17 @@ namespace SageSerpent.TestInfrastructure.Tests
             dumpNode tree treeGuiNode
             treeView.ExpandAll ()
             form.ShowDialog () |> ignore
+            
+        let dumpTestVectorRepresentation testVectorRepresentation =
+            printf "**************************\n"
+            testVectorRepresentation
+            |> Map.iter (fun testVariableIndex level ->
+                            printf "Index: %d, " testVariableIndex
+                            match level with
+                                Some actualLevel ->
+                                    printf "value: %A.\n" actualLevel
+                              | None ->
+                                    printf "sentinel for an interleaved situation.\n")
 
         let maximumNumberOfTrackedTestVariables = 4u
         let maximumNumberOfTestLevelsForATestVariable = 3u
@@ -80,7 +91,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                     yield box (Tracked (indexForLeftmostTrackedTestVariable, level))])
                               , indexForLeftmostTrackedTestVariable + 1u
                               , interleavedTrackedVariablesFromSiblingsOfParents  
-                         else TestVariableNode ([for level in 1u .. chooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable do
+                         else // TODO: add in a synthesizing node with no subtrees as an occasional alternative here.
+                              TestVariableNode ([for level in 1u .. chooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable do
                                                     yield box (Untracked (level, uint32 (List.length interleavedTrackedVariablesFromSiblingsOfParents)))])
                               , indexForLeftmostTrackedTestVariable
                               , interleavedTrackedVariablesFromSiblingsOfParents
@@ -242,9 +254,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                         tree.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding numberOfTrackedTestVariables
                      let resultsWithOnlyLevelsFromTrackedTestVariablesCombinedAtDesiredStrength =
                         let resultsAtDesiredStrength =
-                            if numberOfTrackedTestVariables <= (uint32 results.Length)
+                            if numberOfTrackedTestVariables = (uint32 results.Length)
                             then List.nth results (int32 numberOfTrackedTestVariables - 1)
-                            else Seq.empty
+                            else if numberOfTrackedTestVariables > (uint32 results.Length)
+                                 then Seq.empty
+                                 else raise (InternalAssertionViolationException
+                                                "The maximum requested strength of combination is the number of tracked variables, but there are higher strength results.")
                         let checkPresenceOfSentinelLevelsForTrackedVariablesExcludedInAnInterleave testVectorRepresentation =
                             let numberOfSentinelLevels =
                                 testVectorRepresentation

@@ -22,13 +22,13 @@ namespace SageSerpent.TestInfrastructure
                 match this with
                     TestVariableNode levels ->
                         nodeOperations.TestVariableNodeResult levels
-                  | InterleavingNode subtrees ->
-                        subtrees
-                        |> Seq.map (fun subtreeHead -> subtreeHead.TraverseTree nodeOperations)
+                  | InterleavingNode subtreeRootNodes ->
+                        subtreeRootNodes
+                        |> Seq.map (fun subtreeRootNode -> subtreeRootNode.TraverseTree nodeOperations)
                         |> nodeOperations.CombineResultsFromInterleavingNodeSubtrees
-                  | SynthesizingNode subtrees ->
-                        subtrees
-                        |> Seq.map (fun subtreeHead -> subtreeHead.TraverseTree nodeOperations)
+                  | SynthesizingNode subtreeRootNodes ->
+                        subtreeRootNodes
+                        |> Seq.map (fun subtreeRootNode -> subtreeRootNode.TraverseTree nodeOperations)
                         |> nodeOperations.CombineResultsFromSynthesizingNodeSubtrees
           
             member this.CountTestVariables =
@@ -51,6 +51,73 @@ namespace SageSerpent.TestInfrastructure
                                         CombineResultsFromInterleavingNodeSubtrees = Seq.max
                                         CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                                     }
+                                    
+            member this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
+                let rec walkTree node indexForLeftmostTestVariable =
+                    match node with
+                        TestVariableNode levels ->
+                            [(indexForLeftmostTestVariable, [])]
+                            , indexForLeftmostTestVariable + 1u
+                      | InterleavingNode subtreeRootNodes ->
+                            let association
+                                , maximumTestVariableFromSubtree
+                                , _ =
+                                let rec accumulateContributionsFromTheLeftAndThenJoinInContributionsFromTheRight subtreeRootNodes
+                                                                                                                 (contributionsFromTheLeft
+                                                                                                                  , indexForLeftmostTestVariable) =
+                                    match subtreeRootNodes with
+                                        [] ->
+                                            []
+                                            , indexForLeftmostTestVariable
+                                            , []
+                                      | head :: tail ->
+                                            let associationFromSubtreeItself
+                                                , maximumTestVariableIndexFromSubtree =
+                                                walkTree head indexForLeftmostTestVariable                                                    
+                                            let numberOfTestVariablesFromNode =
+                                                maximumTestVariableIndexFromSubtree - indexForLeftmostTestVariable
+                                            let testVariableIndicesFromNode =
+                                                List.init (int32 numberOfTestVariablesFromNode)
+                                                          (fun variableCount -> uint32 variableCount + indexForLeftmostTestVariable)
+                                            let association
+                                                , maximumTestVariableIndex
+                                                , contributionsFromTheRight =
+                                                accumulateContributionsFromTheLeftAndThenJoinInContributionsFromTheRight tail
+                                                                                                                         (List.append testVariableIndicesFromNode contributionsFromTheLeft
+                                                                                                                          , maximumTestVariableIndexFromSubtree)
+                                            let contributionsFromEitherSide =
+                                                List.append contributionsFromTheLeft contributionsFromTheRight
+                                                
+                                            let associationIncludingSiblingsActingOnSubtree
+                                                = associationFromSubtreeItself
+                                                  |> List.map (function testVariableIndex
+                                                                        , interleavedTestVariableIndices ->
+                                                                            testVariableIndex
+                                                                            , List.append contributionsFromEitherSide interleavedTestVariableIndices)
+                                                                    
+                                            List.append associationIncludingSiblingsActingOnSubtree association
+                                            , maximumTestVariableIndex
+                                            , List.append testVariableIndicesFromNode contributionsFromTheRight
+                                accumulateContributionsFromTheLeftAndThenJoinInContributionsFromTheRight (List.of_seq subtreeRootNodes)
+                                                                                                             ([], indexForLeftmostTestVariable)
+                            association
+                            , maximumTestVariableFromSubtree
+                      | SynthesizingNode subtreeRootNodes ->
+                            let mergeAssociationFromSubtree (previouslyMergedAssociationList
+                                                             , indexForLeftmostTestVariable)
+                                                            subtreeRootNode =
+                                let associationFromSubtree
+                                    , maximumTestVariableIndexFromSubtree =
+                                    walkTree subtreeRootNode indexForLeftmostTestVariable
+                                List.append associationFromSubtree previouslyMergedAssociationList
+                                , maximumTestVariableIndexFromSubtree
+                            subtreeRootNodes
+                            |> Seq.fold mergeAssociationFromSubtree
+                                        ([], indexForLeftmostTestVariable)
+                let result,
+                    _ =
+                        walkTree this 0u
+                result
                                     
             member this.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding strength =
                 if strength = 0u
@@ -107,9 +174,10 @@ namespace SageSerpent.TestInfrastructure
                                     , maximumTestVariableIndexFromSubtree
                                     , associationFromTestVariableIndexToItsLevels
                                 // Using 'fold' causes 'resultsFromSubtrees' to be built up in reverse to the subtree sequence,
-                                // and this reversal propagates consistently through the code below. The only place it could
-                                // cause a problem is where the maps are joined, but because the map joining is commutative *and*
-                                // because the test variable indices are already correctly calculated, it doesn't matter.
+                                // and this reversal propagates consistently through the code below. The only way it could
+                                // cause a problem would be due to the order of processing the subtrees, but because the combinations
+                                // from sibling subtrees are simply placed in a list and because the test variable indices are already
+                                // correctly calculated, it doesn't matter.
                                 let testVariableIndexListsGroupedBySubtreeAndThenByStrength
                                     , maximumTestVariableIndex
                                     , associationFromTestVariableIndexToItsLevels =
@@ -122,17 +190,20 @@ namespace SageSerpent.TestInfrastructure
                                 let testVariableIndexListsGroupedBySubtreeAndThenByStrength =
                                     testVariableIndexListsGroupedBySubtreeAndThenByStrength
                                     |> List.map List.to_array
-                                // Remove the key for zero; we are not interested in zero strength entries, as they yield no testVariableIndexLists!
+                                // Remove the key for zero: we are not interested in zero strength combinations!
+                                // Not even if we consider the case where a synthesizing node has no subtrees,
+                                // because in that case there is nothing to apply a zero-total distribution to.
                                 let distributionsOfStrengthsOverSubtreesAtEachTotalStrength =
                                     Map.remove 0u (CombinatoricUtilities.ChooseContributionsToMeetTotalsUpToLimit maximumStrengthsFromSubtrees strength)
                                 let addInTestVariableIndexListsForGivenStrength strength distributions partialResult =
                                     let addInTestVariableIndexListsForAGivenDistribution partialResult distribution =
                                         let testVariableIndexListsBySubtree =
                                             (List.zip distribution testVariableIndexListsGroupedBySubtreeAndThenByStrength)
-                                            |> List.map (function strength, resultFromSubtree ->
-                                                                    if strength > 0u
-                                                                    then resultFromSubtree.[int32 (strength - 1u)]
-                                                                    else [[]])
+                                            |> List.map (function strength
+                                                                  , resultFromSubtree ->
+                                                                        if strength > 0u
+                                                                        then resultFromSubtree.[int32 (strength - 1u)]
+                                                                        else [[]])
                                         let joinTestVariableIndexLists first second =
                                             List.append first second
                                         let testVariableIndexListsBuiltFromCrossProduct =
@@ -150,8 +221,23 @@ namespace SageSerpent.TestInfrastructure
                          , associationFromTestVariableIndexToItsLevels =
                          walkTree this strength 0u
                      let associationFromTestVariableIndexToItsLevels =
-                        Map.of_list associationFromTestVariableIndexToItsLevels
+                        associationFromTestVariableIndexToItsLevels
+                        |> Map.of_list 
+                     let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
+                        this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
+                        |> Map.of_list
                      let createTestVectorRepresentations testVariableIndexList =
+                        let entriesForInterleavedTestVariableIndices =
+                            testVariableIndexList
+                            |> List.map (fun testVariableIndex ->
+                                            if associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.ContainsKey testVariableIndex
+                                            then associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.[testVariableIndex]
+                                            else [])
+                            |> List.concat
+                            |> Set.of_list
+                            |> Set.to_list
+                            |> List.map (fun testVariableIndex ->
+                                            (testVariableIndex, None))
                         testVariableIndexList
                         |> List.map (fun testVariableIndex ->
                                      associationFromTestVariableIndexToItsLevels.[testVariableIndex]
@@ -159,10 +245,7 @@ namespace SageSerpent.TestInfrastructure
                                      |> List.of_seq)
                         |> BargainBasement.CrossProduct
                         |> List.map (fun testVectorRepresentationAsList ->
-                                        let result = Map.of_list testVectorRepresentationAsList
-                                        if result.Count = testVariableIndexList.Length
-                                        then result
-                                        else raise (InternalAssertionViolationException "Found a test vector representation that had colliding test variable keys."))
+                                        Map.of_list (List.append testVectorRepresentationAsList entriesForInterleavedTestVariableIndices))
                      testVariableIndexListsGroupedByStrength
                      |> List.map (fun testVariableIndexLists ->
                                     testVariableIndexLists
