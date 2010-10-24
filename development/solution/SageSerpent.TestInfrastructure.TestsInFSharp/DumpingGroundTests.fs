@@ -21,9 +21,9 @@ namespace SageSerpent.TestInfrastructure.Tests
     
     [<TestFixture>]
     type DumpingGroundTestFixture () =
-        let maximumNumberOfTrackedTestVariables = 5u
+        let maximumNumberOfTrackedTestVariables = 4u
         let maximumNumberOfTestLevelsForATestVariable = 10u
-        let maximumNumberOfSubtreeHeadsPerAncestorNode = 5u
+        let maximumNumberOfSubtreeHeadsPerAncestorNode = 3u
         let maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 1u
         let randomSeed = 23
         
@@ -33,7 +33,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             let chooseAnyNumberFromZeroToOneLessThan = int32 >> randomBehaviour.Next >> uint32
             let chooseAnyNumberFromOneTo = chooseAnyNumberFromZeroToOneLessThan >> (+) 1u
             let headsItIs () = chooseAnyNumberFromZeroToOneLessThan 2u = 0u
-            for _ in [0u .. 10u] do
+            for _ in [0u .. 50u] do
                 let numberOfTrackedTestVariables = chooseAnyNumberFromOneTo maximumNumberOfTrackedTestVariables
                 let trackedTestVariableToNumberOfLevelsMap =
                     Map.of_list (List.init (int32 numberOfTrackedTestVariables)
