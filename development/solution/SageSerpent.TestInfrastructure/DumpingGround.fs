@@ -11,14 +11,14 @@ namespace SageSerpent.TestInfrastructure
             TestVariableNode of seq<Object>
           | InterleavingNode of seq<Node>
           | SynthesizingNode of seq<Node>
-            member this.CombinationsOfTestLevelsGroupedByStrengthUpToAndIncluding strength =
+            member this.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding strength =
                 let rec walkTree node strength indexForLeftmostTestVariable =
                     if strength = 0u
                     then raise (PreconditionViolationException "Strength must be non-zero.")
                     else match node with
                             TestVariableNode levels ->
                                 [levels
-                                 |> Seq.map (fun level -> Map.of_list [(indexForLeftmostTestVariable, level)])]
+                                 |> Seq.map (fun level -> [(indexForLeftmostTestVariable, level)])]
                                 , indexForLeftmostTestVariable + 1u
                                 
                           | InterleavingNode subtreeRootNodes ->
@@ -28,63 +28,65 @@ namespace SageSerpent.TestInfrastructure
                                       | [], _ -> second
                                       | headFromFirst::tailFromFirst, headFromSecond::tailFromSecond ->
                                             (Seq.append headFromFirst headFromSecond)::(joinPairsAtEachStrength tailFromFirst tailFromSecond)
-                                let mergeCombinationsFromSubtree (previouslyMergedCombinations, indexForLeftmostTestVariable) subtreeRootNode =
-                                    let combinationsGroupedByStrengthFromSubtree, maximumTestVariableIndexFromSubtree =
+                                let mergeTestVectorRepresentationsFromSubtree (previouslyMergedTestVectorRepresentations, indexForLeftmostTestVariable) subtreeRootNode =
+                                    let testVectorRepresentationsGroupedByStrengthFromSubtree, maximumTestVariableIndexFromSubtree =
                                         (walkTree subtreeRootNode strength indexForLeftmostTestVariable)
-                                    let mergedCombinationsGroupedByStrength =
-                                        joinPairsAtEachStrength previouslyMergedCombinations combinationsGroupedByStrengthFromSubtree
-                                    mergedCombinationsGroupedByStrength, maximumTestVariableIndexFromSubtree                                
+                                    let mergedTestVectorRepresentationsGroupedByStrength =
+                                        joinPairsAtEachStrength previouslyMergedTestVectorRepresentations testVectorRepresentationsGroupedByStrengthFromSubtree
+                                    mergedTestVectorRepresentationsGroupedByStrength, maximumTestVariableIndexFromSubtree                                
                                 subtreeRootNodes
-                                |> Seq.fold mergeCombinationsFromSubtree ([], indexForLeftmostTestVariable)
+                                |> Seq.fold mergeTestVectorRepresentationsFromSubtree ([], indexForLeftmostTestVariable)
                             
                           | SynthesizingNode subtreeRootNodes ->
-                                let gatherCombinationsFromSubtree (prevouslyGatheredCombinations, indexForLeftmostTestVariable) subtreeRootNode =
-                                    let combinationsGroupedByStrengthFromSubtree, maximumTestVariableIndexFromSubtree =
+                                let gatherTestVectorRepresentationsFromSubtree (prevouslyGatheredTestVectorRepresentations, indexForLeftmostTestVariable) subtreeRootNode =
+                                    let testVectorRepresentationsGroupedByStrengthFromSubtree, maximumTestVariableIndexFromSubtree =
                                         (walkTree subtreeRootNode strength indexForLeftmostTestVariable)
-                                    let gatheredCombinationsGroupedBySubtreeAndThenByStrength =
-                                        combinationsGroupedByStrengthFromSubtree::prevouslyGatheredCombinations
-                                    gatheredCombinationsGroupedBySubtreeAndThenByStrength, maximumTestVariableIndexFromSubtree
+                                    let gatheredTestVectorRepresentationsGroupedBySubtreeAndThenByStrength =
+                                        testVectorRepresentationsGroupedByStrengthFromSubtree::prevouslyGatheredTestVectorRepresentations
+                                    gatheredTestVectorRepresentationsGroupedBySubtreeAndThenByStrength, maximumTestVariableIndexFromSubtree
                                 // Using 'fold' causes 'resultsFromSubtrees' to be built up in reverse to the subtree sequence,
                                 // and this reversal propagates consistently through the code below. The only place it could
                                 // cause a problem is where the maps are joined, but because the map joining is commutative *and*
                                 // because the test variable indices are already correctly calculated, it doesn't matter.
-                                let combinationsGroupedBySubtreeAndThenByStrength, maximumTestVariableIndex =
+                                let testVectorRepresentationsGroupedBySubtreeAndThenByStrength, maximumTestVariableIndex =
                                     subtreeRootNodes
-                                    |> Seq.fold gatherCombinationsFromSubtree ([], indexForLeftmostTestVariable)
+                                    |> Seq.fold gatherTestVectorRepresentationsFromSubtree ([], indexForLeftmostTestVariable)
                                 let maximumStrengthsFromSubtrees =
-                                    combinationsGroupedBySubtreeAndThenByStrength
-                                    |> List.map (fun combinationsForOneSubtreeGroupedByStrength
-                                                    -> uint32 (List.length combinationsForOneSubtreeGroupedByStrength))
-                                let combinationsGroupedBySubtreeAndThenByStrength =
-                                    combinationsGroupedBySubtreeAndThenByStrength
+                                    testVectorRepresentationsGroupedBySubtreeAndThenByStrength
+                                    |> List.map (fun testVectorRepresentationsForOneSubtreeGroupedByStrength
+                                                    -> uint32 (List.length testVectorRepresentationsForOneSubtreeGroupedByStrength))
+                                let testVectorRepresentationsGroupedBySubtreeAndThenByStrength =
+                                    testVectorRepresentationsGroupedBySubtreeAndThenByStrength
                                     |> List.map List.to_array
-                                // Remove the key for zero; we are not interested in zero strength entries, as they yield no combinations!
+                                // Remove the key for zero; we are not interested in zero strength entries, as they yield no testVectorRepresentations!
                                 let distributionsOfStrengthsOverSubtreesAtEachTotalStrength =
                                     Map.remove 0u (CombinatoricUtilities.ChooseContributionsToMeetTotalsUpToLimit maximumStrengthsFromSubtrees strength)
-                                let addInCombinationsForGivenStrength strength distributions partialResult =
-                                    let addInCombinationsForAGivenDistribution partialResult distribution =
-                                        let combinationsBySubtree =
-                                            (List.zip distribution combinationsGroupedBySubtreeAndThenByStrength)
+                                let addInTestVectorRepresentationsForGivenStrength strength distributions partialResult =
+                                    let addInTestVectorRepresentationsForAGivenDistribution partialResult distribution =
+                                        let testVectorRepresentationsBySubtree =
+                                            (List.zip distribution testVectorRepresentationsGroupedBySubtreeAndThenByStrength)
                                             |> List.map (function strength, resultFromSubtree ->
                                                                     if strength > 0u
                                                                     then resultFromSubtree.[int32 (strength - 1u)]
-                                                                    else Seq.singleton Map.empty)
-                                        let joinMaps first second =
-                                            let keys map =
-                                                Set.of_seq (seq { for key in (map:> IDictionary<'Key, 'Value>).Keys do yield key })
-                                            if not (Set.intersect (keys first) (keys second)).IsEmpty
-                                            then raise (InternalAssertionViolationException
-                                                            "Maps from test variable indices to levels contributed by separate subtrees should not share common keys.")
-                                            else Seq.append (Map.to_seq first) (Map.to_seq second)
-                                                 |> Map.of_seq
-                                        let combinationsBuiltFromCrossProduct =
-                                            (BargainBasement.CrossProduct combinationsBySubtree)
-                                            |> List.map (List.reduce_left joinMaps)
-                                        Seq.append combinationsBuiltFromCrossProduct partialResult
-                                    (distributions |> Seq.fold addInCombinationsForAGivenDistribution Seq.empty)::partialResult
-                                let combinationsGroupedByStrength =
-                                    Map.fold_right addInCombinationsForGivenStrength distributionsOfStrengthsOverSubtreesAtEachTotalStrength []
-                                combinationsGroupedByStrength, maximumTestVariableIndex
-                fst (walkTree this strength 0u)
+                                                                    else Seq.singleton [])
+                                        let joinTestVectorRepresentations first second =
+                                            List.append first second
+                                        let testVectorRepresentationsBuiltFromCrossProduct =
+                                            (BargainBasement.CrossProduct testVectorRepresentationsBySubtree)
+                                            |> List.map (List.reduce_left joinTestVectorRepresentations)
+                                        Seq.append testVectorRepresentationsBuiltFromCrossProduct partialResult
+                                    (distributions |> Seq.fold addInTestVectorRepresentationsForAGivenDistribution Seq.empty)::partialResult
+                                let testVectorRepresentationsGroupedByStrength =
+                                    Map.fold_right addInTestVectorRepresentationsForGivenStrength distributionsOfStrengthsOverSubtreesAtEachTotalStrength []
+                                testVectorRepresentationsGroupedByStrength, maximumTestVariableIndex
+                let testVectorRepresentationsGroupedByStrength, _ = walkTree this strength 0u
+                let expressTestVectorRepresentationAsMap testVectorRepresentation =
+                    let result = Map.of_list testVectorRepresentation
+                    if result.Count = testVectorRepresentation.Length
+                    then result
+                    else raise (PreconditionViolationException "Found a test vector representation that had colliding test variable keys.")
+                testVectorRepresentationsGroupedByStrength
+                |> List.map (fun testVectorRepresentations -> testVectorRepresentations
+                                                              |> Seq.map expressTestVectorRepresentationAsMap)
             
                                 
