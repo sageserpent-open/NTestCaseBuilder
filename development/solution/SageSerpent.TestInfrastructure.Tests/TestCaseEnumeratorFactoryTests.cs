@@ -470,8 +470,8 @@ namespace SageSerpent.TestInfrastructure.Tests
             {
                 var result = new SetOfSequencesOfLevelsBelongingToTestVariables();
 
-                System.Collections.Generic.ICollection<LevelsBelongingToTestVariable> singletonSequence =
-                    new List<LevelsBelongingToTestVariable> {_owningCollection};
+                C5.IList<LevelsBelongingToTestVariable> singletonSequence =
+                    new C5.LinkedList<LevelsBelongingToTestVariable> {_owningCollection};
 
                 result.Add(singletonSequence);
 
@@ -656,7 +656,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             {
                 var result = new SetOfSequencesOfLevelsBelongingToTestVariables();
 
-                ConcatenateCrossProductOfSequences(_testCaseGenerators, new List<LevelsBelongingToTestVariable>(),
+                ConcatenateCrossProductOfSequences(_testCaseGenerators, new C5.LinkedList<LevelsBelongingToTestVariable>(),
                                                    result);
 
                 return result;
@@ -940,7 +940,9 @@ namespace SageSerpent.TestInfrastructure.Tests
             {
                 if (testCaseGenerators.Count == 0)
                 {
-                    result.Add(sequenceBeingBuiltUp);
+                    var convertedSequence = new C5.LinkedList<LevelsBelongingToTestVariable>();
+                    convertedSequence.AddAll(sequenceBeingBuiltUp);
+                    result.Add(convertedSequence);
                 }
                 else
                 {
