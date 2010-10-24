@@ -7,50 +7,51 @@ namespace SageSerpent.TestInfrastructure
     open System
     open SageSerpent.Infrastructure
     
-    type Node =
+    type 'Result NodeVisitOperations = // A 'visitor' by any other name. :-)
+        {
+            TestVariableNodeResult: seq<Object> -> 'Result
+            CombineResultsFromInterleavingNodeSubtrees: seq<'Result> -> 'Result
+            CombineResultsFromSynthesizingNodeSubtrees: seq<'Result> -> 'Result
+        }
+    and Node =
             TestVariableNode of seq<Object>
           | InterleavingNode of seq<Node>
           | SynthesizingNode of seq<Node>
           
-            member this.CountTestVariables =
+            member private this.TraverseTree nodeOperations =
                 match this with
-                    TestVariableNode _ ->
-                        1u
+                    TestVariableNode levels ->
+                        nodeOperations.TestVariableNodeResult levels
                   | InterleavingNode subtrees ->
                         subtrees
-                        |> Seq.map (fun subtreeHead -> subtreeHead.CountTestVariables)
-                        |> Seq.reduce (+)
+                        |> Seq.map (fun subtreeHead -> subtreeHead.TraverseTree nodeOperations)
+                        |> nodeOperations.CombineResultsFromInterleavingNodeSubtrees
                   | SynthesizingNode subtrees ->
                         subtrees
-                        |> Seq.map (fun subtreeHead -> subtreeHead.CountTestVariables)
-                        |> Seq.reduce (+)          
+                        |> Seq.map (fun subtreeHead -> subtreeHead.TraverseTree nodeOperations)
+                        |> nodeOperations.CombineResultsFromSynthesizingNodeSubtrees
+          
+            member this.CountTestVariables =
+                this.TraverseTree   {
+                                        TestVariableNodeResult = fun _ -> 1u
+                                        CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
+                                        CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
+                                    }
           
             member this.SumLevelCountsFromAllTestVariables =
-                match this with
-                    TestVariableNode levels ->
-                        uint32 (Seq.length levels)
-                  | InterleavingNode subtrees ->
-                        subtrees
-                        |> Seq.map (fun subtreeHead -> subtreeHead.SumLevelCountsFromAllTestVariables)
-                        |> Seq.reduce (+)
-                  | SynthesizingNode subtrees ->
-                        subtrees
-                        |> Seq.map (fun subtreeHead -> subtreeHead.SumLevelCountsFromAllTestVariables)
-                        |> Seq.reduce (+)          
+                this.TraverseTree   {
+                                        TestVariableNodeResult = fun levels -> uint32 (Seq.length levels)
+                                        CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
+                                        CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
+                                    }
           
             member this.MaximumStrengthOfTestVariableCombination =
-                match this with
-                    TestVariableNode levels ->
-                        1u
-                  | InterleavingNode subtrees ->
-                        subtrees
-                        |> Seq.map (fun subtreeHead -> subtreeHead.MaximumStrengthOfTestVariableCombination)
-                        |> Seq.max
-                  | SynthesizingNode subtrees ->
-                        subtrees
-                        |> Seq.map (fun subtreeHead -> subtreeHead.MaximumStrengthOfTestVariableCombination)
-                        |> Seq.reduce (+)
-                        
+                this.TraverseTree   {
+                                        TestVariableNodeResult = fun _ -> 1u
+                                        CombineResultsFromInterleavingNodeSubtrees = Seq.max
+                                        CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
+                                    }
+                                    
             member this.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding strength =
                 if strength = 0u
                 then raise (PreconditionViolationException "Strength must be non-zero.")
