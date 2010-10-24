@@ -13,8 +13,8 @@ namespace SageSerpent.TestInfrastructure.Tests
     open Wintellect.PowerCollections
     
     type private TestLevel =
-            Untracked of UInt32
-          | Tracked of UInt32 * UInt32          // Tracked variable index, level
+            Untracked of UInt32                 // Index to distinguish the level.
+          | Tracked of UInt32 * UInt32          // Tracked variable index, index to distinguish the level.
           
     type DistributionModeWrtInterleavingNode =
             BetweenSiblingSubtrees
@@ -86,12 +86,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                     if headsItIs () && thinkAboutTerminatingRecursion
                        || maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 0u
                     then if numberOfTrackedTestVariables = 1u
-                         then TestVariableNode ([for level in 1u .. trackedTestVariableToNumberOfLevelsMap.[int32 indexForLeftmostTrackedTestVariable] do
-                                                    yield box (Tracked (indexForLeftmostTrackedTestVariable, level))])
+                         then TestVariableNode ([for levelIndex in 1u .. trackedTestVariableToNumberOfLevelsMap.[int32 indexForLeftmostTrackedTestVariable] do
+                                                    yield box (Tracked (indexForLeftmostTrackedTestVariable, levelIndex))])
                               , indexForLeftmostTrackedTestVariable + 1u  
                          else // TODO: add in a synthesizing node with no subtrees as an occasional alternative here.
-                              TestVariableNode ([for level in 1u .. chooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable do
-                                                    yield box (Untracked level)])
+                              TestVariableNode ([for levelIndex in 1u .. chooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable do
+                                                    yield box (Untracked levelIndex)])
                               , indexForLeftmostTrackedTestVariable
                     else let allOnOneSubtreeDistributionMaker numberOfSubtrees numberOfTrackedTestVariables =
                             let choice =
@@ -202,7 +202,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                      
                      let results =
                         tree.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding numberOfTrackedTestVariables
-                     let resultsWithOnlyLevelsFromTrackedTestVariablesCombinedAtDesiredStrength =
+                     let resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
                         let resultsAtDesiredStrength =
                             if numberOfTrackedTestVariables = (uint32 results.Length)
                             then List.nth results (int32 numberOfTrackedTestVariables - 1)
@@ -210,14 +210,14 @@ namespace SageSerpent.TestInfrastructure.Tests
                                  then Seq.empty
                                  else raise (InternalAssertionViolationException
                                                 "The maximum requested strength of combination is the number of tracked variables, but there are higher strength results.")
-                        let extractLevelsForTrackedTestVariablesOnly testVectorRepresentation =
+                        let extractLevelIndicesFromTrackedTestVariablesOnly testVectorRepresentation =
                             let testVectorRepresentationForTrackedVariablesOnly = 
                                     Map.fold_right (fun _ level partialResult ->
                                                         match level with
                                                             Some actualLevel ->
                                                                 match unbox actualLevel with
-                                                                    Tracked (trackedTestVariableIndex, level) ->
-                                                                        (trackedTestVariableIndex, level)
+                                                                    Tracked (trackedTestVariableIndex, levelIndex) ->
+                                                                        (trackedTestVariableIndex, levelIndex)
                                                                          :: partialResult
                                                                     | _ ->
                                                                         partialResult
@@ -227,12 +227,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                             testVectorRepresentationForTrackedVariablesOnly
                             |> Map.of_list  // Sort by the tracked test variable index - hence the roundtrip from list -> map -> list!
                             |> Map.to_list
-                            |> List.map (function _, level -> level)
+                            |> List.map (function _, levelIndex -> levelIndex)
                         resultsAtDesiredStrength
-                        |> Seq.map extractLevelsForTrackedTestVariablesOnly
-                        |> Seq.filter (fun levels -> uint32 levels.Length = numberOfTrackedTestVariables)
+                        |> Seq.map extractLevelIndicesFromTrackedTestVariablesOnly
+                        |> Seq.filter (fun levelIndices -> uint32 levelIndices.Length = numberOfTrackedTestVariables)
                         |> Set.of_seq
-                     testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelsFromTrackedTestVariablesCombinedAtDesiredStrength
+                     testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength
                 else printf "Rejected tree of strength %d as it would take too long!\n" maximumStrengthOfTestVariableCombination
             let timeAtEnd = DateTime.Now
             printf "**** TIME FOR TEST: %A\n" (timeAtEnd - timeAtStart)
@@ -240,15 +240,17 @@ namespace SageSerpent.TestInfrastructure.Tests
         
         [<Test>]
         member this.TestThatARandomlyChosenNCombinationOfTestVariablesIsCoveredInTermsOfCrossProductOfLevels () =
-            let testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelsFromTrackedTestVariablesAtDesiredStrength =
-                let crossProductOfTrackedTestVariableLevels =
-                    Map.fold_right (fun _ level partialResult ->
-                                        [1u .. level] :: partialResult)
+            let testHandoff tree 
+                            trackedTestVariableToNumberOfLevelsMap
+                            resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
+                let crossProductOfLevelIndices =
+                    Map.fold_right (fun _ numberOfLevels partialResult ->
+                                        [1u .. numberOfLevels] :: partialResult)
                                    trackedTestVariableToNumberOfLevelsMap []
                     |> BargainBasement.CrossProduct
                     |> Set.of_list
                 let shouldBeTrue =
-                    resultsWithOnlyLevelsFromTrackedTestVariablesAtDesiredStrength = crossProductOfTrackedTestVariableLevels
+                    resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength = crossProductOfLevelIndices
                 if not shouldBeTrue
                 then dumpTree tree
                 Assert.IsTrue shouldBeTrue
@@ -256,10 +258,12 @@ namespace SageSerpent.TestInfrastructure.Tests
 
         [<Test>]
         member this.TestThatARandomlyChosenNCombinationOfTestVariablesSpanningSubtreesOfAnInterleavingNodeIsForbidden () =
-            let testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelsFromTrackedTestVariablesAtDesiredStrength =
+            let testHandoff tree
+                            trackedTestVariableToNumberOfLevelsMap
+                            resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
                 if (trackedTestVariableToNumberOfLevelsMap: Map<'Key, 'Value>).Count > 1
                 then let shouldBeTrue =
-                        Set.is_empty resultsWithOnlyLevelsFromTrackedTestVariablesAtDesiredStrength
+                        Set.is_empty resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength
                      if not shouldBeTrue
                      then dumpTree tree
                      Assert.IsTrue shouldBeTrue

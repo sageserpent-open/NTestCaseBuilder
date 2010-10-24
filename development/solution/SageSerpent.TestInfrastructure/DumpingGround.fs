@@ -132,38 +132,38 @@ namespace SageSerpent.TestInfrastructure
                                             second
                                       | headFromFirst :: tailFromFirst, headFromSecond :: tailFromSecond ->
                                             (List.append headFromFirst headFromSecond) :: (joinPairsAtEachStrength tailFromFirst tailFromSecond)
-                                let mergeTestVariableIndexListsFromSubtree (previouslyMergedTestVariableIndexLists
-                                                                            , indexForLeftmostTestVariable
-                                                                            , previousAssociationFromTestVariableIndexToItsLevels)
-                                                                            subtreeRootNode =
-                                    let testVariableIndexListsGroupedByStrengthFromSubtree
+                                let mergeTestVariableCombinationsFromSubtree (previouslyMergedTestVariableCombinations
+                                                                              , indexForLeftmostTestVariable
+                                                                              , previousAssociationFromTestVariableIndexToItsLevels)
+                                                                             subtreeRootNode =
+                                    let testVariableCombinationsGroupedByStrengthFromSubtree
                                         , maximumTestVariableIndexFromSubtree
                                         , associationFromTestVariableIndexToItsLevelsFromSubtree =
                                         walkTree subtreeRootNode strength indexForLeftmostTestVariable
-                                    let mergedTestVariableIndexListsGroupedByStrength =
-                                        joinPairsAtEachStrength previouslyMergedTestVariableIndexLists testVariableIndexListsGroupedByStrengthFromSubtree
+                                    let mergedTestVariableCombinationsGroupedByStrength =
+                                        joinPairsAtEachStrength previouslyMergedTestVariableCombinations testVariableCombinationsGroupedByStrengthFromSubtree
                                     let associationFromTestVariableIndexToItsLevels =
                                         List.append associationFromTestVariableIndexToItsLevelsFromSubtree previousAssociationFromTestVariableIndexToItsLevels
-                                    mergedTestVariableIndexListsGroupedByStrength
+                                    mergedTestVariableCombinationsGroupedByStrength
                                     , maximumTestVariableIndexFromSubtree
                                     , associationFromTestVariableIndexToItsLevels                               
                                 subtreeRootNodes
-                                |> Seq.fold mergeTestVariableIndexListsFromSubtree ([], indexForLeftmostTestVariable, [])
+                                |> Seq.fold mergeTestVariableCombinationsFromSubtree ([], indexForLeftmostTestVariable, [])
                             
                           | SynthesizingNode subtreeRootNodes ->
-                                let gatherTestVariableIndexListsFromSubtree (previouslyGatheredTestVariableIndexLists
-                                                                             , indexForLeftmostTestVariable
-                                                                             , previousAssociationFromTestVariableIndexToItsLevels)
-                                                                             subtreeRootNode =
-                                    let testVariableIndexListsGroupedByStrengthFromSubtree
+                                let gatherTestVariableCombinationsFromSubtree (previouslyGatheredTestVariableCombinations
+                                                                               , indexForLeftmostTestVariable
+                                                                               , previousAssociationFromTestVariableIndexToItsLevels)
+                                                                              subtreeRootNode =
+                                    let testVariableCombinationsGroupedByStrengthFromSubtree
                                         , maximumTestVariableIndexFromSubtree
                                         , associationFromTestVariableIndexToItsLevelsFromSubtree =
                                         walkTree subtreeRootNode strength indexForLeftmostTestVariable
-                                    let gatheredTestVariableIndexListsGroupedBySubtreeAndThenByStrength =
-                                        testVariableIndexListsGroupedByStrengthFromSubtree :: previouslyGatheredTestVariableIndexLists
+                                    let gatheredTestVariableCombinationsGroupedBySubtreeAndThenByStrength =
+                                        testVariableCombinationsGroupedByStrengthFromSubtree :: previouslyGatheredTestVariableCombinations
                                     let associationFromTestVariableIndexToItsLevels =
                                         List.append associationFromTestVariableIndexToItsLevelsFromSubtree previousAssociationFromTestVariableIndexToItsLevels
-                                    gatheredTestVariableIndexListsGroupedBySubtreeAndThenByStrength
+                                    gatheredTestVariableCombinationsGroupedBySubtreeAndThenByStrength
                                     , maximumTestVariableIndexFromSubtree
                                     , associationFromTestVariableIndexToItsLevels
                                 // Using 'fold' causes 'resultsFromSubtrees' to be built up in reverse to the subtree sequence,
@@ -171,45 +171,45 @@ namespace SageSerpent.TestInfrastructure
                                 // cause a problem would be due to the order of processing the subtrees, but because the combinations
                                 // from sibling subtrees are simply placed in a list and because the test variable indices are already
                                 // correctly calculated, it doesn't matter.
-                                let testVariableIndexListsGroupedBySubtreeAndThenByStrength
+                                let testVariableCombinationsGroupedBySubtreeAndThenByStrength
                                     , maximumTestVariableIndex
                                     , associationFromTestVariableIndexToItsLevels =
                                     subtreeRootNodes
-                                    |> Seq.fold gatherTestVariableIndexListsFromSubtree ([], indexForLeftmostTestVariable, [])
+                                    |> Seq.fold gatherTestVariableCombinationsFromSubtree ([], indexForLeftmostTestVariable, [])
                                 let maximumStrengthsFromSubtrees =
-                                    testVariableIndexListsGroupedBySubtreeAndThenByStrength
-                                    |> List.map (fun testVariableIndexListsForOneSubtreeGroupedByStrength ->
-                                                    uint32 (List.length testVariableIndexListsForOneSubtreeGroupedByStrength))
-                                let testVariableIndexListsGroupedBySubtreeAndThenByStrength =
-                                    testVariableIndexListsGroupedBySubtreeAndThenByStrength
+                                    testVariableCombinationsGroupedBySubtreeAndThenByStrength
+                                    |> List.map (fun testVariableCombinationsForOneSubtreeGroupedByStrength ->
+                                                    uint32 (List.length testVariableCombinationsForOneSubtreeGroupedByStrength))
+                                let testVariableCombinationsGroupedBySubtreeAndThenByStrength =
+                                    testVariableCombinationsGroupedBySubtreeAndThenByStrength
                                     |> List.map List.to_array
                                 // Remove the key for zero: we are not interested in zero strength combinations!
                                 // Not even if we consider the case where a synthesizing node has no subtrees,
                                 // because in that case there is nothing to apply a zero-total distribution to.
                                 let distributionsOfStrengthsOverSubtreesAtEachTotalStrength =
                                     Map.remove 0u (CombinatoricUtilities.ChooseContributionsToMeetTotalsUpToLimit maximumStrengthsFromSubtrees strength)
-                                let addInTestVariableIndexListsForGivenStrength strength distributions partialResult =
-                                    let addInTestVariableIndexListsForAGivenDistribution partialResult distribution =
-                                        let testVariableIndexListsBySubtree =
-                                            (List.zip distribution testVariableIndexListsGroupedBySubtreeAndThenByStrength)
+                                let addInTestVariableCombinationsForGivenStrength strength distributions partialResult =
+                                    let addInTestVariableCombinationsForAGivenDistribution partialResult distribution =
+                                        let testVariableCombinationsBySubtree =
+                                            (List.zip distribution testVariableCombinationsGroupedBySubtreeAndThenByStrength)
                                             |> List.map (function strength
                                                                   , resultFromSubtree ->
                                                                         if strength > 0u
                                                                         then resultFromSubtree.[int32 (strength - 1u)]
                                                                         else [[]])
-                                        let joinTestVariableIndexLists first second =
+                                        let joinTestVariableCombinations first second =
                                             List.append first second
-                                        let testVariableIndexListsBuiltFromCrossProduct =
-                                            (BargainBasement.CrossProduct testVariableIndexListsBySubtree)
-                                            |> List.map (List.reduce_left joinTestVariableIndexLists)
-                                        List.append testVariableIndexListsBuiltFromCrossProduct partialResult
-                                    (distributions |> Seq.fold addInTestVariableIndexListsForAGivenDistribution [])::partialResult
-                                let testVariableIndexListsGroupedByStrength =
-                                    Map.fold_right addInTestVariableIndexListsForGivenStrength distributionsOfStrengthsOverSubtreesAtEachTotalStrength []
-                                testVariableIndexListsGroupedByStrength
+                                        let testVariableCombinationsBuiltFromCrossProduct =
+                                            (BargainBasement.CrossProduct testVariableCombinationsBySubtree)
+                                            |> List.map (List.reduce_left joinTestVariableCombinations)
+                                        List.append testVariableCombinationsBuiltFromCrossProduct partialResult
+                                    (distributions |> Seq.fold addInTestVariableCombinationsForAGivenDistribution [])::partialResult
+                                let testVariableCombinationsGroupedByStrength =
+                                    Map.fold_right addInTestVariableCombinationsForGivenStrength distributionsOfStrengthsOverSubtreesAtEachTotalStrength []
+                                testVariableCombinationsGroupedByStrength
                                 , maximumTestVariableIndex
                                 , associationFromTestVariableIndexToItsLevels
-                     let testVariableIndexListsGroupedByStrength
+                     let testVariableCombinationsGroupedByStrength
                          , _
                          , associationFromTestVariableIndexToItsLevels =
                          walkTree this strength 0u
@@ -219,9 +219,9 @@ namespace SageSerpent.TestInfrastructure
                      let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                         this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
                         |> Map.of_list
-                     let createTestVectorRepresentations testVariableIndexList =
+                     let createTestVectorRepresentations testVariableCombination =
                         let sentinelEntriesForInterleavedTestVariableIndices =
-                            testVariableIndexList
+                            testVariableCombination
                             |> List.map (fun testVariableIndex ->
                                             if associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.ContainsKey testVariableIndex
                                             then associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.[testVariableIndex]
@@ -232,7 +232,7 @@ namespace SageSerpent.TestInfrastructure
                             |> List.map (fun testVariableIndex ->
                                             (testVariableIndex, None))
                         let levelEntriesForTestVariableIndicesFromList =
-                            testVariableIndexList
+                            testVariableCombination
                             |> List.map (fun testVariableIndex ->
                                          associationFromTestVariableIndexToItsLevels.[testVariableIndex]
                                          |> Seq.map (fun level -> testVariableIndex, level)
@@ -241,9 +241,9 @@ namespace SageSerpent.TestInfrastructure
                         |> BargainBasement.CrossProductWithCommonSuffix sentinelEntriesForInterleavedTestVariableIndices
                         |> List.map (fun testVectorRepresentationAsList ->
                                         Map.of_list testVectorRepresentationAsList)
-                     testVariableIndexListsGroupedByStrength
-                     |> List.map (fun testVariableIndexLists ->
-                                    testVariableIndexLists
+                     testVariableCombinationsGroupedByStrength
+                     |> List.map (fun testVariableCombinations ->
+                                    testVariableCombinations
                                     |> Seq.map createTestVectorRepresentations
                                     |> Seq.concat)
             
