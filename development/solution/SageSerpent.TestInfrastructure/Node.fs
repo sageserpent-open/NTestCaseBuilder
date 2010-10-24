@@ -9,18 +9,18 @@ namespace SageSerpent.TestInfrastructure
     open Microsoft.FSharp.Collections
     open Wintellect.PowerCollections
     
-    type ('Result, 'LevelUpperBoundType) NodeVisitOperations = // A 'visitor' by any other name. :-)
+    type 'Result NodeVisitOperations = // A 'visitor' by any other name. :-)
         {
-            TestVariableNodeResult: seq<'LevelUpperBoundType> -> 'Result
+            TestVariableNodeResult: array<Object> -> 'Result
             SingletonNodeResult: unit -> 'Result
             CombineResultsFromInterleavingNodeSubtrees: seq<'Result> -> 'Result
             CombineResultsFromSynthesizingNodeSubtrees: seq<'Result> -> 'Result
         }
-    and 'LevelUpperBoundType Node =
-        TestVariableNode of seq<'LevelUpperBoundType>
+    and Node =
+        TestVariableNode of array<Object>
       | SingletonNode of Object
-      | InterleavingNode of seq<'LevelUpperBoundType Node>
-      | SynthesizingNode of seq<'LevelUpperBoundType Node> * Delegate
+      | InterleavingNode of seq<Node>
+      | SynthesizingNode of seq<Node> * Delegate
 
         member private this.TraverseTree nodeOperations =
             let rec memoizedCalculation =
@@ -170,9 +170,8 @@ namespace SageSerpent.TestInfrastructure
                         TestVariableNode levels ->
                             [[[indexForLeftmostTestVariable]]]
                             , indexForLeftmostTestVariable + 1u
-                            , [(indexForLeftmostTestVariable, levels
-                                                              |> Seq.map Some)]
-                      
+                            , [(indexForLeftmostTestVariable, uint32 (Array.length levels))]
+                            
                       | SingletonNode _ ->
                             []
                             , indexForLeftmostTestVariable
@@ -189,19 +188,19 @@ namespace SageSerpent.TestInfrastructure
                                         (List.append headFromFirst headFromSecond) :: (joinPairsAtEachStrength tailFromFirst tailFromSecond)
                             let mergeTestVariableCombinationsFromSubtree (previouslyMergedTestVariableCombinations
                                                                           , indexForLeftmostTestVariable
-                                                                          , previousAssociationFromTestVariableIndexToItsLevels)
+                                                                          , previousAssociationFromTestVariableIndexToNumberOfItsLevels)
                                                                          subtreeRootNode =
                                 let testVariableCombinationsGroupedByStrengthFromSubtree
                                     , maximumTestVariableIndexFromSubtree
-                                    , associationFromTestVariableIndexToItsLevelsFromSubtree =
+                                    , associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree =
                                     walkTree subtreeRootNode strength indexForLeftmostTestVariable
                                 let mergedTestVariableCombinationsGroupedByStrength =
                                     joinPairsAtEachStrength previouslyMergedTestVariableCombinations testVariableCombinationsGroupedByStrengthFromSubtree
-                                let associationFromTestVariableIndexToItsLevels =
-                                    List.append associationFromTestVariableIndexToItsLevelsFromSubtree previousAssociationFromTestVariableIndexToItsLevels
+                                let associationFromTestVariableIndexToNumberOfItsLevels =
+                                    List.append associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree previousAssociationFromTestVariableIndexToNumberOfItsLevels
                                 mergedTestVariableCombinationsGroupedByStrength
                                 , maximumTestVariableIndexFromSubtree
-                                , associationFromTestVariableIndexToItsLevels                               
+                                , associationFromTestVariableIndexToNumberOfItsLevels                               
                             subtreeRootNodes
                             |> Seq.fold mergeTestVariableCombinationsFromSubtree ([], indexForLeftmostTestVariable, [])
                         
@@ -209,19 +208,19 @@ namespace SageSerpent.TestInfrastructure
                                           , _) ->
                             let gatherTestVariableCombinationsFromSubtree (previouslyGatheredTestVariableCombinations
                                                                            , indexForLeftmostTestVariable
-                                                                           , previousAssociationFromTestVariableIndexToItsLevels)
+                                                                           , previousAssociationFromTestVariableIndexToNumberOfItsLevels)
                                                                           subtreeRootNode =
                                 let testVariableCombinationsGroupedByStrengthFromSubtree
                                     , maximumTestVariableIndexFromSubtree
-                                    , associationFromTestVariableIndexToItsLevelsFromSubtree =
+                                    , associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree =
                                     walkTree subtreeRootNode strength indexForLeftmostTestVariable
                                 let gatheredTestVariableCombinationsGroupedBySubtreeAndThenByStrength =
                                     testVariableCombinationsGroupedByStrengthFromSubtree :: previouslyGatheredTestVariableCombinations
-                                let associationFromTestVariableIndexToItsLevels =
-                                    List.append associationFromTestVariableIndexToItsLevelsFromSubtree previousAssociationFromTestVariableIndexToItsLevels
+                                let associationFromTestVariableIndexToNumberOfItsLevels =
+                                    List.append associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree previousAssociationFromTestVariableIndexToNumberOfItsLevels
                                 gatheredTestVariableCombinationsGroupedBySubtreeAndThenByStrength
                                 , maximumTestVariableIndexFromSubtree
-                                , associationFromTestVariableIndexToItsLevels
+                                , associationFromTestVariableIndexToNumberOfItsLevels
                             // Using 'fold' causes 'resultsFromSubtrees' to be built up in reverse to the subtree sequence,
                             // and this reversal propagates consistently through the code below. The only way it could
                             // cause a problem would be due to the order of processing the subtrees, but because the combinations
@@ -229,7 +228,7 @@ namespace SageSerpent.TestInfrastructure
                             // correctly calculated, it doesn't matter.
                             let testVariableCombinationsGroupedBySubtreeAndThenByStrength
                                 , maximumTestVariableIndex
-                                , associationFromTestVariableIndexToItsLevels =
+                                , associationFromTestVariableIndexToNumberOfItsLevels =
                                 subtreeRootNodes
                                 |> Seq.fold gatherTestVariableCombinationsFromSubtree ([], indexForLeftmostTestVariable, [])
                             let maximumStrengthsFromSubtrees =
@@ -265,13 +264,13 @@ namespace SageSerpent.TestInfrastructure
                                 Map.foldBack addInTestVariableCombinationsForGivenStrength distributionsOfStrengthsOverSubtreesAtEachTotalStrength []
                             testVariableCombinationsGroupedByStrength
                             , maximumTestVariableIndex
-                            , associationFromTestVariableIndexToItsLevels
+                            , associationFromTestVariableIndexToNumberOfItsLevels
                  let testVariableCombinationsGroupedByStrength
                      , _
-                     , associationFromTestVariableIndexToItsLevels =
+                     , associationFromTestVariableIndexToNumberOfItsLevels =
                      walkTree this strength 0u
-                 let associationFromTestVariableIndexToItsLevels =
-                    associationFromTestVariableIndexToItsLevels
+                 let associationFromTestVariableIndexToNumberOfItsLevels =
+                    associationFromTestVariableIndexToNumberOfItsLevels
                     |> Map.ofList 
                  let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                     this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
@@ -289,7 +288,7 @@ namespace SageSerpent.TestInfrastructure
                                         (testVariableIndex, None))
                     let testVariableCombinationSortedByDecreasingNumberOfLevels = // Using this sort order optimizes the cross product later on.
                         let numberOfLevelsForTestVariable testVariableIndex
-                            = uint32 (Seq.length associationFromTestVariableIndexToItsLevels.[testVariableIndex])
+                            = associationFromTestVariableIndexToNumberOfItsLevels.[testVariableIndex]
                         testVariableCombination
                         |> List.sortWith (fun first second ->
                                             compare (numberOfLevelsForTestVariable second)
@@ -297,8 +296,9 @@ namespace SageSerpent.TestInfrastructure
                     let levelEntriesForTestVariableIndicesFromList =
                         testVariableCombinationSortedByDecreasingNumberOfLevels
                         |> List.map (fun testVariableIndex ->
-                                     associationFromTestVariableIndexToItsLevels.[testVariableIndex]
-                                     |> Seq.map (fun level -> testVariableIndex, level)
+                                     associationFromTestVariableIndexToNumberOfItsLevels.[testVariableIndex]
+                                     |> int32
+                                     |> (BargainBasement.Flip Seq.init) (fun level -> testVariableIndex, Some level)
                                      |> List.ofSeq)
                     levelEntriesForTestVariableIndicesFromList
                     |> BargainBasement.CrossProductWithCommonSuffix sentinelEntriesForInterleavedTestVariableIndices
@@ -309,37 +309,11 @@ namespace SageSerpent.TestInfrastructure
                                 testVariableCombinations
                                 |> Seq.map createTestVectorRepresentations
                                 |> Seq.concat)
+                 , associationFromTestVariableIndexToNumberOfItsLevels
                                 
-        member private this.LevelsFor testVariableIndex =
-            let rec walkTree node indexForLeftmostTestVariable =
-                let rec recurseOnAppropriateSubtree subtreeRootNodes indexForLeftmostTestVariable =
-                    match subtreeRootNodes with
-                        LazyList.Nil ->
-                            raise (PreconditionViolationException "'testVariableIndex' is too large - there are not enough test variables in the tree.")
-                      | LazyList.Cons (head
-                                       , tail) ->
-                            let indexForForLeftmostTestVariableInTail =
-                                (head: Node<_>).CountTestVariables + indexForLeftmostTestVariable
-                            if testVariableIndex < indexForForLeftmostTestVariableInTail
-                            then walkTree head indexForLeftmostTestVariable
-                            else recurseOnAppropriateSubtree tail indexForForLeftmostTestVariableInTail                            
-                match node with
-                    TestVariableNode levels ->
-                        levels
-                  | SingletonNode _ ->
-                        raise (InternalAssertionViolationException "Recursion to isolate a test variable index should not terminate on singleton node.")
-                  | InterleavingNode subtreeRootNodes ->
-                        recurseOnAppropriateSubtree (subtreeRootNodes
-                                                     |> LazyList.ofSeq)
-                                                    indexForLeftmostTestVariable
-                  | SynthesizingNode (subtreeRootNodes
-                                      , _) ->
-                        recurseOnAppropriateSubtree (subtreeRootNodes
-                                                     |> LazyList.ofSeq)
-                                                    indexForLeftmostTestVariable
-            walkTree this 0u
-
-        member this.FillOutPartialTestVectorRepresentation randomBehaviour partialTestVectorRepresentation =
+        member this.FillOutPartialTestVectorRepresentation randomBehaviour
+                                                           associationFromTestVariableIndexToNumberOfItsLevels
+                                                           partialTestVectorRepresentation =
             let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
             let testVariableIndices =
@@ -357,14 +331,15 @@ namespace SageSerpent.TestInfrastructure
                 else let chosenTestVariableIndex =
                         (randomBehaviour: RandomBehaviour).ChooseOneOf missingTestVariableIndices
                             
-                     let chooseLevelFor testVariableIndex =
-                        let levels =
-                            this.LevelsFor testVariableIndex
-                        (randomBehaviour: RandomBehaviour).ChooseOneOf levels
+                     let chooseLevelIndexFor testVariableIndex =
+                        let numberOfLevels =
+                            (associationFromTestVariableIndexToNumberOfItsLevels: Map<_, _>).[testVariableIndex]
+                        (randomBehaviour: RandomBehaviour).ChooseAnyNumberFromZeroToOneLessThan numberOfLevels
+                        |> int32
                             
                      let entryForChosenTestVariable =
                         chosenTestVariableIndex
-                        , Some (chooseLevelFor chosenTestVariableIndex)
+                        , Some (chooseLevelIndexFor chosenTestVariableIndex)
                      let excludedTestVariableIndices =
                         associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.FindAll chosenTestVariableIndex
                      let entriesForExcludedTestVariableIndices =
@@ -388,18 +363,18 @@ namespace SageSerpent.TestInfrastructure
                             // just established above.
             |> List.toArray
                             
-        member this.CreateFinalValueFrom (fullTestVector: 'LevelUpperBoundType option []) =
+        member this.CreateFinalValueFrom fullTestVector =
             let rec walkTree node
                              indexForLeftmostTestVariable =
                 let numberOfTestVariables =
-                    (node: Node<_>).CountTestVariables
+                    (node: Node).CountTestVariables
                 if indexForLeftmostTestVariable + numberOfTestVariables > uint32 (Array.length fullTestVector)
                 then raise (InternalAssertionViolationException "No longer have enough entries in what's left of the vector.")
                 else match node with
-                        TestVariableNode _ ->
+                        TestVariableNode levels ->
                             match fullTestVector.[int32 indexForLeftmostTestVariable] with
-                                Some levelFromVector ->
-                                    levelFromVector :> Object
+                                Some levelIndexFromVector ->
+                                    levels.[levelIndexFromVector]
                               | None ->
                                     raise (PreconditionViolationException "Vector is inconsistent with the tree structure - the level from the vector has the sentinel value for an excluded test variable.")
                       | SingletonNode testCase ->
@@ -428,7 +403,7 @@ namespace SageSerpent.TestInfrastructure
                                       | LazyList.Cons (head
                                                        , tail) ->
                                             let indexForForLeftmostTestVariableInTail =
-                                                (head: Node<_>).CountTestVariables + indexForLeftmostTestVariable
+                                                (head: Node).CountTestVariables + indexForLeftmostTestVariable
                                             if indexForForLeftmostTestVariableInTail > firstNonExcludedTestVariableIndex
                                             then subtreeRootNodes
                                                  , indexForLeftmostTestVariable
@@ -454,7 +429,7 @@ namespace SageSerpent.TestInfrastructure
                                       | LazyList.Cons (head
                                                        , tail) ->
                                             let indexForForLeftmostTestVariableInTail =
-                                                (head: Node<_>).CountTestVariables + indexForLeftmostTestVariable
+                                                (head: Node).CountTestVariables + indexForLeftmostTestVariable
                                             let resultFromSubtree =
                                                 walkTree head
                                                          indexForLeftmostTestVariable

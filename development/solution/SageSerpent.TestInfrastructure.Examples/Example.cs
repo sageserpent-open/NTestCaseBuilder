@@ -20,7 +20,7 @@ namespace SageSerpent.TestInfrastructure.Examples
         private delegate Value Synthesis(Key resultOne,
                                          Key resultTwo);
 
-        private static readonly Key[] LevelsOne = {0u, 56u, 789u}, LevelsTwo = {100u, 123u};
+        private static readonly Key[] LevelsOne = {0u, 56u, 789u, 789u}, LevelsTwo = {100u, 123u};
 
         ///<summary>
         ///</summary>
