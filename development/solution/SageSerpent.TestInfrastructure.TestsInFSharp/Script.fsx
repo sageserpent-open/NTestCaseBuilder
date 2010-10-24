@@ -127,4 +127,10 @@ type Drat<'X> =
 let klf = new Drat<int> (fun _ _ a _ _ -> 2 * a)
 
 printf "Type of klf: %A\n" (klf.GetType ())
+
+let methodInfo = klf.Method
+
+let huh = methodInfo.GetParameters ()
+
+printf "Parameters: %A\n" huh
                

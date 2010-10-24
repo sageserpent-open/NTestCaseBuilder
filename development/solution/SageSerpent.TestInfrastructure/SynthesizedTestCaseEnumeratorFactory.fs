@@ -8,10 +8,17 @@ namespace SageSerpent.TestInfrastructure
 
     type SynthesizedTestCaseEnumeratorFactory (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITestCaseEnumeratorFactory>,
                                                synthesisDelegate: Delegate) =
-        // TODO - add a precondition that checks the arity of the synthesis closure against the number of factories provided.
         inherit TestCaseEnumeratorFactoryCommonImplementation ()
         do if Seq.is_empty sequenceOfFactoriesProvidingInputsToSynthesis
            then raise (PreconditionViolationException "Must provide at least one component.")
+        let delegateInternalMethodArity =
+            (synthesisDelegate.Method.GetParameters ()).Length
+        let numberOfArgumentsRequiredByDelegate =
+            if synthesisDelegate.Target <> null
+            then delegateInternalMethodArity - 1
+            else delegateInternalMethodArity
+        do if numberOfArgumentsRequiredByDelegate <> Seq.length sequenceOfFactoriesProvidingInputsToSynthesis
+           then raise (PreconditionViolationException "Delegate for synthesis takes the wrong number of arguments: it should match the number of factories provided.")
         let node =
             SynthesizingNode ((sequenceOfFactoriesProvidingInputsToSynthesis
                               |> Seq.map (fun factory
