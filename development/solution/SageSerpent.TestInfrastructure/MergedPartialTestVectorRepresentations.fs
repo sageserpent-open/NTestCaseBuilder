@@ -159,18 +159,6 @@
                                             SubtreeForGreaterIndices =
                                                 subtreeForGreaterIndices
                                         }
-                                  | _ ->
-                                    InternalNode
-                                        {
-                                            LevelForTestVariableIndex =
-                                                levelForTestVariableIndex
-                                            SubtreeWithLesserLevelsForSameTestVariableIndex =
-                                                subtreeWithLesserLevelsForSameTestVariableIndex
-                                            SubtreeWithGreaterLevelsForSameTestVariableIndex =
-                                                subtreeWithGreaterLevelsForSameTestVariableIndex
-                                            SubtreeForGreaterIndices =
-                                                add subtreeForGreaterIndices tailFromNewPartialTestVectorRepresentation true
-                                        }
                                   | result when result > 0 ->
                                     InternalNode
                                         {
@@ -182,6 +170,18 @@
                                                 add subtreeWithGreaterLevelsForSameTestVariableIndex newPartialTestVectorRepresentation false
                                             SubtreeForGreaterIndices =
                                                 subtreeForGreaterIndices
+                                        }
+                                  | _ ->
+                                    InternalNode
+                                        {
+                                            LevelForTestVariableIndex =
+                                                levelForTestVariableIndex
+                                            SubtreeWithLesserLevelsForSameTestVariableIndex =
+                                                subtreeWithLesserLevelsForSameTestVariableIndex
+                                            SubtreeWithGreaterLevelsForSameTestVariableIndex =
+                                                subtreeWithGreaterLevelsForSameTestVariableIndex
+                                            SubtreeForGreaterIndices =
+                                                add subtreeForGreaterIndices tailFromNewPartialTestVectorRepresentation true
                                         }
             add this newPartialTestVectorRepresentation true
                            
@@ -274,18 +274,18 @@
                                                                                                    false
                                                                                                    testVariableIndex
                                             |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex
-                                      | _ ->
-                                            remove subtreeForGreaterIndices
-                                                   tailFromQueryPartialTestVectorRepresentation
-                                                   true
-                                                   (testVariableIndex + 1u)
-                                            |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
                                       | result when result > 0 ->
                                             remove subtreeWithGreaterLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
                                                                                                       :: tailFromQueryPartialTestVectorRepresentation)
                                                                                                     false
                                                                                                     testVariableIndex
                                             |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex
+                                      | _ ->
+                                            remove subtreeForGreaterIndices
+                                                   tailFromQueryPartialTestVectorRepresentation
+                                                   true
+                                                   (testVariableIndex + 1u)
+                                            |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
                             | Level _
                               , Indeterminate ->
                                     remove subtreeForGreaterIndices
@@ -301,14 +301,14 @@
                                                                                                                                            false
                                                                                                                                            testVariableIndex
                                                                                     |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex
-                                                                              | _ ->
-                                                                                    raise (InternalAssertionViolationException "Should not get an exact match as the query level is definite but the stored one is indeterminate.")
                                                                               | result when result > 0 -> 
                                                                                     remove subtreeWithGreaterLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
                                                                                                                                               :: tailFromQueryPartialTestVectorRepresentation)
                                                                                                                                             false
                                                                                                                                             testVariableIndex
-                                                                                    |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex)
+                                                                                    |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex
+                                                                              | _ ->
+                                                                                    raise (InternalAssertionViolationException "Should not get an exact match as the query level is definite but the stored one is indeterminate."))
                             | _ ->
                                     remove subtreeForGreaterIndices
                                            tailFromQueryPartialTestVectorRepresentation

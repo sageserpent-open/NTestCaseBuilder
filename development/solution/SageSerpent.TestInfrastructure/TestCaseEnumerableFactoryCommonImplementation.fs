@@ -14,9 +14,6 @@
                         let partialTestVectors
                             , associationFromTestVariableIndexToNumberOfItsLevels =
                             prunedNode.PartialTestVectorRepresentationsGroupedByStrengthUpToAndIncluding desiredStrength
-                        List.iter (fun partialTestVectors ->
-                                        Seq.iter (fun partialTestVector -> printf "Partial test vector: %A\n" partialTestVector) partialTestVectors) partialTestVectors
-                            
                         let mergedPartialTestVectorRepresentations =
                             // Do a fold back so that high strength combinations get in there first. Hopefully the lesser strength combinations
                             // should have a greater chance of finding an earlier, larger vector to merge with this way. 
@@ -31,7 +28,6 @@
                                             MergedPartialTestVectorRepresentations.initial
                         let randomBehaviour =
                             RandomBehaviour 0
-                        Seq.iter (fun mergedPartialTestVectorRepresentation -> printf "Merged partial test vector representation: %A\n" mergedPartialTestVectorRepresentation) mergedPartialTestVectorRepresentations
                         let sequenceOfFinalValues =
                             seq {for mergedPartialTestVector in mergedPartialTestVectorRepresentations do
                                     yield prunedNode.FillOutPartialTestVectorRepresentation randomBehaviour
