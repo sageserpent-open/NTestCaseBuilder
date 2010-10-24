@@ -158,9 +158,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                             uint32 (testVariableIndexToCountMapping: Map<_, _>).Count
                         let levelCountForTestVariableIntroducedHere =
                             randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevels
-                        (TestVariableLevelEnumeratorFactory (seq { for levelNumber in 1u .. levelCountForTestVariableIntroducedHere do
-                                                                    yield box [(indexForLeftmostTestVariable, levelNumber)] })
-                         :> ITestCaseEnumeratorFactory)
+                        TestVariableLevelEnumeratorFactory.Create (seq { for levelNumber in 1u .. levelCountForTestVariableIntroducedHere do
+                                                                            yield box [(indexForLeftmostTestVariable, levelNumber)] })
                         , Set.singleton indexForLeftmostTestVariable
                         , Map.add indexForLeftmostTestVariable
                                   levelCountForTestVariableIntroducedHere
@@ -222,9 +221,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                                                delegateTypeBuilder
                                                                                (undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels: List<List<TestVariableLevel> > -> List<TestVariableLevel>)
                                 
-                            (SynthesizedTestCaseEnumeratorFactory (permutedSubtrees,
-                                                                   nAryCondensationDelegate)
-                             :> ITestCaseEnumeratorFactory)
+                            SynthesizedTestCaseEnumeratorFactory.Create permutedSubtrees
+                                                                        nAryCondensationDelegate
                             , testVariableCombination
                             , testVariableIndexToCountMappingFromSubtrees
                     else    let numberOfSubtrees = 
@@ -271,8 +269,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                             let chosenTestVariableCombination =
                                 randomBehaviour.ChooseOneOf testVariableCombinationsFromSubtrees
                                 
-                            (InterleavedTestCaseEnumeratorFactory subtrees
-                             :> ITestCaseEnumeratorFactory)
+                            InterleavedTestCaseEnumeratorFactory.Create subtrees
                             , chosenTestVariableCombination
                             , testVariableIndexToCountMappingFromSubtrees
                                                                                                            

@@ -1,15 +1,20 @@
 #light
 
-namespace SageSerpent.TestInfrastructure
+module SageSerpent.TestInfrastructure.TestVariableLevelEnumeratorFactory
 
     open System.Collections
     open System
 
-    type TestVariableLevelEnumeratorFactory (levels: seq<Object>) =
-        inherit TestCaseEnumeratorFactoryCommonImplementation ()
+    let Create levels =
+        let weaklyTypedLevels =
+            levels
+            |> Seq.map box
         let node =
-            SageSerpent.TestInfrastructure.TestVariableNode levels
-        interface INodeWrapper with
-            override this.Node = node
+            SageSerpent.TestInfrastructure.TestVariableNode weaklyTypedLevels
+        {
+            new TestCaseEnumeratorFactoryCommonImplementation ()
+                interface INodeWrapper with
+                    override this.Node = node
+        } :> ITestCaseEnumeratorFactory
 
         
