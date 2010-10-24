@@ -6,17 +6,17 @@
     open SageSerpent.Infrastructure
     open Microsoft.FSharp.Collections
     
-    type LevelRepresentation<'Level> =
+    type LevelRepresentation<'Level when 'Level: comparison> =
         Level of 'Level
       | Indeterminate                     
-    and InternalNodeRepresentation<'Level> =
+    and InternalNodeRepresentation<'Level when 'Level: comparison> =
         {
             LevelForTestVariableIndex: LevelRepresentation<'Level>
             SubtreeWithLesserLevelsForSameTestVariableIndex: MergedPartialTestVectorRepresentations<'Level>
             SubtreeWithGreaterLevelsForSameTestVariableIndex: MergedPartialTestVectorRepresentations<'Level>
             SubtreeForGreaterIndices: MergedPartialTestVectorRepresentations<'Level>
         }
-    and MergedPartialTestVectorRepresentations<'Level> =
+    and MergedPartialTestVectorRepresentations<'Level when 'Level: comparison> =
         SuccessfulSearchTerminationNode
       | UnsuccessfulSearchTerminationNode
       | InternalNode of InternalNodeRepresentation<'Level>
@@ -40,7 +40,7 @@
                         seq {if subtreeIsForANewTestVariableIndex
                              then if not (List.isEmpty partialTestVectorBeingBuilt)
                                   then yield partialTestVectorBeingBuilt
-                                             |> Map.of_list
+                                             |> Map.ofList
                                   else raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors result in the original collection.")
                              else raise (InternalAssertionViolationException "A successful search cannot terminate on a left or right subtree.")}
                   | UnsuccessfulSearchTerminationNode ->
@@ -100,7 +100,7 @@
             let partialTestVectorPossiblyWithLeadingEntriesMissing
                 , lowestTestVariableIndex =
                 partialTestVectorRepresentation
-                |> Map.to_list
+                |> Map.toList
                 |> fillInNonConsecutiveIndicesWithIndeterminateEntries  
             fillIfNecessary 0u lowestTestVariableIndex partialTestVectorPossiblyWithLeadingEntriesMissing
                                  

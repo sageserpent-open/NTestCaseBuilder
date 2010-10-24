@@ -79,7 +79,7 @@
                 if numberOfTrackedTestVariables = 1u
                 then didTheSingleTestVariableEdgeCase := true
                 let trackedTestVariableToNumberOfLevelsMap =
-                    Map.of_list (List.init (int32 numberOfTrackedTestVariables)
+                    Map.ofList (List.init (int32 numberOfTrackedTestVariables)
                                            (fun testVariable -> testVariable, randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable))
                 let rec createTree distributionModeWrtInterleavingNode
                                    indexForRightmostTrackedTestVariable
@@ -108,20 +108,20 @@
                             then [numberOfTrackedTestVariables]
                             else let pickRandomlyAllowingRepetitionOfChoices sums =
                                     let sums
-                                        = List.to_array sums
-                                    List.of_array [|for _ in 1u .. numberOfSubtrees - 1u do
+                                        = List.toArray sums
+                                    List.ofArray [|for _ in 1u .. numberOfSubtrees - 1u do
                                                         yield sums.[int32 (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 sums.Length))]|]
                                  let selectedSumsIncludingNumberOfTrackedTestVariables =
                                     List.append (pickRandomlyAllowingRepetitionOfChoices [0u .. numberOfTrackedTestVariables]
                                                  |> List.sort) [numberOfTrackedTestVariables]
                                  let firstSum
-                                    = List.hd selectedSumsIncludingNumberOfTrackedTestVariables
+                                    = List.head selectedSumsIncludingNumberOfTrackedTestVariables
                                  let leadingSumAndSubsequentDifferences =
                                     firstSum :: ((Seq.pairwise selectedSumsIncludingNumberOfTrackedTestVariables)
                                                  |> Seq.map (function first, second -> second - first)
-                                                 |> List.of_seq)
+                                                 |> List.ofSeq)
                                  randomBehaviour.Shuffle leadingSumAndSubsequentDifferences
-                                 |> List.of_array
+                                 |> List.ofArray
                          let distributionMakerForSynthesizingNodes =
                             // The following definition looks as if it is transposed - but it is not: the
                             // modes being matched refer to *interleaving* nodes. The crucial point here
@@ -217,13 +217,13 @@
                                                             partialResult)
                                                  testVectorRepresentation []
                             testVectorRepresentationForTrackedVariablesOnly
-                            |> Map.of_list  // Sort by the tracked test variable index - hence the roundtrip from list -> map -> list!
-                            |> Map.to_list
+                            |> Map.ofList  // Sort by the tracked test variable index - hence the roundtrip from list -> map -> list!
+                            |> Map.toList
                             |> List.map (function _, levelIndex -> levelIndex)
                         resultsAtDesiredStrength
                         |> Seq.map extractLevelIndicesFromTrackedTestVariablesOnly
                         |> Seq.filter (fun levelIndices -> uint32 levelIndices.Length = numberOfTrackedTestVariables)
-                        |> Set.of_seq
+                        |> Set.ofSeq
                      testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength
                 else printf "Rejected tree of strength %d as it would take too long!\n" maximumStrengthOfTestVariableCombination
             let timeAtEnd = DateTime.Now
@@ -244,7 +244,7 @@
                                     [1u .. numberOfLevels] :: partialResult)
                                  trackedTestVariableToNumberOfLevelsMap []
                     |> BargainBasement.CrossProduct
-                    |> Set.of_list
+                    |> Set.ofList
                 let shouldBeTrue =
                     resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength = crossProductOfLevelIndices
                 if not shouldBeTrue
@@ -311,7 +311,7 @@
                             let subtreeRootFromSpannedNodes (nodeAndItsSpannedTestVariableIndicesPairs
                                                              , whetherInterleavedNodeChoice) =
                                 if List.length nodeAndItsSpannedTestVariableIndicesPairs = 1
-                                then List.hd nodeAndItsSpannedTestVariableIndicesPairs  // Pass up 'as is' to the next level: this way we can get
+                                then List.head nodeAndItsSpannedTestVariableIndicesPairs  // Pass up 'as is' to the next level: this way we can get
                                                                                         // variable-length paths from the overall root down to
                                                                                         // the test variable leaves.
                                 else let nodes =
@@ -354,9 +354,9 @@
                     interleavedTestVariableIndexPairs
                     |> List.map (function first, second -> second, first)
                 let tree =
-                    fst (List.hd nodeAndItsSpannedTestVariableIndicesPairs)
+                    fst (List.head nodeAndItsSpannedTestVariableIndicesPairs)
                 let associationFromTestVariableIndexToInterleavedTestVariableIndices =
-                    HashMultiMap (List.append interleavedTestVariableIndexPairs reversedInterleavedTestVariableIndexPairs)
+                    HashMultiMap (List.append interleavedTestVariableIndexPairs reversedInterleavedTestVariableIndexPairs, HashIdentity.Structural)
                 printf "Tree #%u\n" treeNumber
                 let results =
                     tree.PartialTestVectorRepresentationsGroupedByStrengthUpToAndIncluding (min tree.MaximumStrengthOfTestVariableCombination

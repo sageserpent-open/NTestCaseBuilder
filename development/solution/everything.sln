@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SageSerpent.Infrastructure", "SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj", "{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SageSerpent.Infrastructure.Tests", "SageSerpent.Infrastructure.Tests\SageSerpent.Infrastructure.Tests.fsproj", "{7BBB577A-83A1-40C9-8129-D8B1F1A45666}"

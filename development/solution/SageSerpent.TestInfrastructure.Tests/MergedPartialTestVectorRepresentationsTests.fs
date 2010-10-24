@@ -93,7 +93,7 @@
                     fillInPartialTestVectors (List.init (int32 numberOfTestVectors) (fun _ -> Map.empty))
                                              []
                 randomBehaviour.Shuffle partialTestVectors
-                |> List.of_array               
+                |> List.ofArray               
             for _ in 1u .. overallTestRepeats do
                 testHandoff (createPartialTestVectors ())
                 
@@ -123,7 +123,7 @@
                                  :: chooseTestVariableIndicesAndTheirLevels (recursionDepth + 1u)
                          let partialTestVector =
                             chooseTestVariableIndicesAndTheirLevels 0u
-                            |> Map.of_list
+                            |> Map.ofList
                          partialTestVector :: createPartialTestVectors (testVariableIndex + 1u)
                 createPartialTestVectors 0u
             for _ in 1u .. overallTestRepeats do
@@ -148,10 +148,10 @@
                 let mergedPartialTestVectors =
                     mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap MergedPartialTestVectorRepresentations.initial
                 let shouldBeTrue =
-                    Set.of_list partialTestVectorsThatDoNotOverlap = Set.of_seq mergedPartialTestVectors
+                    Set.ofList partialTestVectorsThatDoNotOverlap = Set.ofSeq mergedPartialTestVectors
                 if not shouldBeTrue
-                then let originals = Set.of_list partialTestVectorsThatDoNotOverlap
-                     let merged = Set.of_seq mergedPartialTestVectors
+                then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
+                     let merged = Set.ofSeq mergedPartialTestVectors
                      let common = Set.intersect originals merged
                      printf "Only in originals:-\n"
                      (originals - common) |> Set.iter dumpPartialTestVector  
@@ -174,13 +174,13 @@
                         let mutantOrCopy =
                             match randomBehaviour.ChooseAnyNumberFromOneTo 3u with
                                 1u ->
-                                    randomBehaviour.ChooseSeveralOf (Map.to_seq partialTestVector)
+                                    randomBehaviour.ChooseSeveralOf (Map.toSeq partialTestVector)
                                                                     (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 partialTestVector.Count))
-                                 |> Map.of_seq
+                                 |> Map.ofSeq
                               | 2u ->
-                                    Map.to_seq partialTestVector
+                                    Map.toSeq partialTestVector
                                     |> Seq.take (int32 (randomBehaviour.ChooseAnyNumberFromOneTo (uint32 partialTestVector.Count - 1u)))
-                                    |> Map.of_seq
+                                    |> Map.ofSeq
                               | 3u ->
                                     partialTestVector
                               | _ ->
@@ -198,10 +198,10 @@
                 let remergedPartialTestVectors =
                     mergeOrAddPartialTestVectors partialTestVectorsThatAddNoNewInformation mergedPartialTestVectors
                 let shouldBeTrue =
-                    (Set.of_list partialTestVectorsThatDoNotOverlap).Count = (Set.of_seq remergedPartialTestVectors).Count
+                    (Set.ofList partialTestVectorsThatDoNotOverlap).Count = (Set.ofSeq remergedPartialTestVectors).Count
                 if not shouldBeTrue
-                then let originals = Set.of_list partialTestVectorsThatDoNotOverlap
-                     let remerged = Set.of_seq remergedPartialTestVectors
+                then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
+                     let remerged = Set.ofSeq remergedPartialTestVectors
                      let common = Set.intersect originals remerged
                      printf "Only in originals:-\n"
                      (originals - common) |> Set.iter dumpPartialTestVector  
@@ -229,10 +229,10 @@
                     (sortedIndicesToAvoid
                      |> List.fold arrangeDeferredAssociations (0u, (fun result -> result))
                      |> snd) []
-                    |> Map.of_list  // This has the effect of eliminating all but the last entry for a group of associations
+                    |> Map.ofList  // This has the effect of eliminating all but the last entry for a group of associations
                                     // for consectutive indices. Otherwise the associations for lesser indices in the group
                                     // would just map onto the next higher index, which we are also trying to avoid.
-                    |> Map.to_array
+                    |> Map.toArray
                 let remapIndex (index
                                 , level) =
                     let foundIndex =
@@ -254,13 +254,13 @@
                              else 0u
                     index + incrementToApplyToIndex
                     , level
-                Map.to_list >> List.map remapIndex >> Map.of_list
+                Map.toList >> List.map remapIndex >> Map.ofList
             let randomBehaviour = RandomBehaviour randomBehaviourSeed
             let testHandoff partialTestVectorsThatDoNotOverlap =
                 let sortedIndicesToAvoid =
                     randomBehaviour.ChooseSeveralOf (List.init (int32 maximumNumberOfTestVariables) (fun count -> uint32 count))
                                                     (randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfIndicesToAvoid)
-                    |> List.of_array
+                    |> List.ofArray
                     |> List.sort
                 let remappedPartialTestVectors =
                     partialTestVectorsThatDoNotOverlap
@@ -285,15 +285,15 @@
                 let remergedPartialTestVectors =
                     mergeOrAddPartialTestVectors partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices mergedPartialTestVectors
                 let shouldBeTrue =
-                    Set.of_list partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices = Set.of_seq remergedPartialTestVectors
+                    Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices = Set.ofSeq remergedPartialTestVectors
 //                if not shouldBeTrue
-//                then let originals = Set.of_list partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
-//                     let remerged = Set.of_seq remergedPartialTestVectors
+//                then let originals = Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
+//                     let remerged = Set.ofSeq remergedPartialTestVectors
 //                     let common = Set.intersect originals remerged
 //                     printf "remappedPartialTestVectors:\n"
-//                     Set.of_list remappedPartialTestVectors |> Set.iter dumpPartialTestVector
+//                     Set.ofList remappedPartialTestVectors |> Set.iter dumpPartialTestVector
 //                     printf "mergedPartialTestVectors:\n"
-//                     Set.of_seq mergedPartialTestVectors |> Set.iter dumpPartialTestVector
+//                     Set.ofSeq mergedPartialTestVectors |> Set.iter dumpPartialTestVector
 //                     printf "Only in originals:-\n"
 //                     (originals - common) |> Set.iter dumpPartialTestVector  
 //                     printf "Only in remerged:-\n"
@@ -314,18 +314,18 @@
                 let shouldBeTrue = numberOfMergedPartialTestVectors <= partialTestVectors.Length
                 Assert.IsTrue shouldBeTrue
                 let mergedPartialTestVectors =
-                    Set.of_seq mergedPartialTestVectors
+                    Set.ofSeq mergedPartialTestVectors
                 let partialVectorsThatWereChanged =
                     partialTestVectors
                     |> List.filter (fun partialTestVector -> not (mergedPartialTestVectors.Contains partialTestVector))
-                    |> Set.of_seq
+                    |> Set.ofSeq
                 let checkInclusionInAtLeastOneMergedPartialTestVector partialTestVector =
                     let firstIncludesSecond first second =
                         (first
-                         |> Map.to_list
-                         |> Set.of_list).IsSupersetOf (second
-                                                       |> Map.to_list
-                                                       |> Set.of_list)
+                         |> Map.toList
+                         |> Set.ofList).IsSupersetOf (second
+                                                       |> Map.toList
+                                                       |> Set.ofList)
                     let shouldBeTrue =
                         mergedPartialTestVectors
                         |> Set.exists (fun mergedPartialTestVector
@@ -343,7 +343,7 @@
                 let remergedPartialTestVectors =
                         mergeOrAddPartialTestVectors [Map.empty] mergedPartialTestVectors
                 let shouldBeTrue =
-                    Set.of_seq remergedPartialTestVectors = Set.of_seq mergedPartialTestVectors
+                    Set.ofSeq remergedPartialTestVectors = Set.ofSeq mergedPartialTestVectors
                 Assert.IsTrue shouldBeTrue
             createOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
                 
@@ -353,7 +353,7 @@
                 MergedPartialTestVectorRepresentations.initial
             let containedPartialTestVectors =
                 initial
-                |> List.of_seq
+                |> List.ofSeq
             let shouldBeTrue =
                 containedPartialTestVectors.Length = 0
             Assert.IsTrue shouldBeTrue

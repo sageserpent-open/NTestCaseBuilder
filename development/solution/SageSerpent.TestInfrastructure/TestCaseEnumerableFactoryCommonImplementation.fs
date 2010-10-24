@@ -4,7 +4,7 @@
     open System
     open SageSerpent.Infrastructure
 
-    type internal TestCaseEnumerableFactoryCommonImplementation(node: Node) =
+    type internal TestCaseEnumerableFactoryCommonImplementation (node: Node<IComparable>) =
         member this.Node = node
         
         interface ITestCaseEnumerableFactory with

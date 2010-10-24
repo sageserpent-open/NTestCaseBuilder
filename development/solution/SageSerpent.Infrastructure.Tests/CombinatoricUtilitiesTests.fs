@@ -80,7 +80,7 @@ namespace SageSerpent.Infrastructure.Tests
                 for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
                     for total in 0u .. limit do
                         let results = CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample total
-                        let shouldBeTrue = results.Length = (Set.of_list results).Count
+                        let shouldBeTrue = results.Length = (Set.ofList results).Count
                         Assert.IsTrue shouldBeTrue
                
         [<Test>]
@@ -103,8 +103,8 @@ namespace SageSerpent.Infrastructure.Tests
                     = inputExamples
                       |> List.map (fun inputExample -> CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample total)
                       |> List.concat
-                      |> Set.of_list
-                let inputExamplesAsSet = Set.of_list inputExamples
+                      |> Set.ofList
+                let inputExamplesAsSet = Set.ofList inputExamples
                 printf "(TestCoverageOfAllPossibleContributionsThatCanMeetTheTotal) Number of input examples: %d, number of combined results: %d\n"
                        inputExamplesAsSet.Count
                        combinedResultsFromAllPossibleInputExamplesSummingToTotal.Count
@@ -122,9 +122,9 @@ namespace SageSerpent.Infrastructure.Tests
                     let enMasseResults = CombinatoricUtilities.ChooseContributionsToMeetTotalsUpToLimit inputExample limit
                     for total in 0u .. limit do
                         let resultsFromEnMasseCalculationForTotal = enMasseResults.[total]
-                        let resultsFromEnMasseCalculationForTotalAsSet = Set.of_list resultsFromEnMasseCalculationForTotal
+                        let resultsFromEnMasseCalculationForTotalAsSet = Set.ofList resultsFromEnMasseCalculationForTotal
                         let resultsFromIndividualCalculation = CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample total
-                        let resultsFromIndividualCalculationAsSet = Set.of_list resultsFromIndividualCalculation
+                        let resultsFromIndividualCalculationAsSet = Set.ofList resultsFromIndividualCalculation
                         printf "(TestThatContributionsThatMeetUpToATotalProduceTheSameResultsAsContributionsThatEqualATotal) Number of results from en-masse calculation: %d, number of results from individual calculation: %d\n"
                                resultsFromEnMasseCalculationForTotal.Length
                                resultsFromIndividualCalculation.Length

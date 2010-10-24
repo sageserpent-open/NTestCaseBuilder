@@ -132,7 +132,7 @@
                 |> Seq.pairwise
                 |> Seq.map (function lesserPartitionPoint
                                      , greaterPartitionPoint -> greaterPartitionPoint - lesserPartitionPoint)
-                |> List.of_seq
+                |> List.ofSeq
                  
                  
     let PartitionItemsIntoSubgroupsOfRandomNonZeroLength items

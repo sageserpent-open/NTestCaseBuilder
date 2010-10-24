@@ -6,7 +6,7 @@ module SageSerpent.TestInfrastructure.TestVariableLevelEnumerableFactory
     let Create levels =
         let weaklyTypedLevels =
             levels
-            |> Seq.map box
+            |> Seq.map (fun level -> level :> IComparable)
         let node =
             SageSerpent.TestInfrastructure.TestVariableNode weaklyTypedLevels
         TestCaseEnumerableFactoryCommonImplementation node :> ITestCaseEnumerableFactory

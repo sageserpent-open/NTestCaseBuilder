@@ -153,7 +153,7 @@
                         let levelCountForTestVariableIntroducedHere =
                             randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevels
                         TestVariableLevelEnumerableFactory.Create (seq { for levelNumber in 1u .. levelCountForTestVariableIntroducedHere do
-                                                                            yield box [(indexForLeftmostTestVariable, levelNumber)] })
+                                                                            yield [(indexForLeftmostTestVariable, levelNumber)] })
                         , Set.singleton indexForLeftmostTestVariable
                         , Map.add indexForLeftmostTestVariable
                                   levelCountForTestVariableIntroducedHere
@@ -231,7 +231,7 @@
                             let combinationStrengths =
                                 chooseCombinationStrengths numberOfSubtrees
                                 |> randomBehaviour.Shuffle
-                                |> List.of_array
+                                |> List.ofArray
                                 
                             let rec createSubtrees combinationStrengths
                                                    testVariableIndexToCountMapping =
@@ -300,7 +300,7 @@
                     then testVariableCombination
                     else randomBehaviour.ChooseSeveralOf testVariableCombination
                                                          maximumStrength
-                         |> Set.of_array
+                         |> Set.ofArray
                 let testCaseEnumerable () =
                     testCaseEnumerableFactory.CreateEnumerable maximumStrength
                 testHandoff testCaseEnumerable
@@ -331,7 +331,7 @@
                             _ =
                 let testVariableIndexToCountMappingForTestVariableCombination =
                     testVariableCombination
-                    |> Set.to_list
+                    |> Set.toList
                     |> List.map (fun testVariable ->
                                     testVariable
                                     , Map.find testVariable testVariableIndexToCountMapping)
@@ -343,13 +343,13 @@
                                               (fun levelNumber ->
                                                     (testVariableIndex, 1u + uint32 levelNumber)))
                     |> BargainBasement.CrossProduct 
-                    |> List.map Set.of_list
-                    |> Set.of_list
+                    |> List.map Set.ofList
+                    |> Set.ofList
                   
                 let testCases =
                     seq {for testCase in testCaseEnumerable () do
                             yield unbox<List<TestVariableLevel>> testCase
-                                  |> Set.of_list}
+                                  |> Set.ofList}
                                   
                 let unaccountedCombinationsOfTestLevels =
                     Seq.fold (fun expectedCombinationsOfTestLevels
@@ -386,7 +386,7 @@
                 let testCasesOfMaximumStrength =
                     [for testCase in testCaseEnumerable () do
                         let testCase = unbox<List<TestVariableLevel>> testCase
-                                       |> Set.of_list
+                                       |> Set.ofList
                         if uint32 testCase.Count = maximumStrength
                         then yield testCase]
                 
@@ -395,15 +395,15 @@
                     
                 let combinationsCorrespondingToOmittedTestCase =
                     BargainBasement.ChooseCombinationsOfItems (omittedTestCase
-                                                               |> Set.to_list)
+                                                               |> Set.toList)
                                                               maximumStrength
-                    |> List.map Set.of_list
-                    |> Set.of_list
+                    |> List.map Set.ofList
+                    |> Set.ofList
                     
                 let testCasesExceptTheOmittedOne =
                     seq {for testCase in testCaseEnumerable () do
                             let testCase = unbox<List<TestVariableLevel>> testCase
-                                           |> Set.of_list
+                                           |> Set.ofList
                             if testCase <> omittedTestCase
                             then yield testCase}
                                   
