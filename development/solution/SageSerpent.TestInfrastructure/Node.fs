@@ -342,4 +342,9 @@ namespace SageSerpent.TestInfrastructure
                         (partialTestVectorRepresentation
                          |> Map.to_list)
             |> Map.of_list
+            |> Map.to_list  // This ensures the entries are sorted in ascending test variable index order.
+            |> List.map snd // This is more roundabout than using the 'Values' property, but the latter
+                            // makes no guarantee about the ordering - we want to preserve the order we
+                            // just established above.
+            |> List.to_array
                             
