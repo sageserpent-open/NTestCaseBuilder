@@ -83,23 +83,21 @@ namespace SageSerpent.TestInfrastructure.Tests
                 let trackedTestVariableToNumberOfLevelsMap =
                     Map.of_list (List.init (int32 numberOfTrackedTestVariables)
                                            (fun testVariable -> testVariable, randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable))
-                // NOTE: the use of 'leftmost' for the test variable index is incorrect wrt to how the subtrees are ordered
-                // - the latter are created in right to left order! FIX THIS.
                 let rec createTree distributionModeWrtInterleavingNode
-                                   indexForLeftmostTrackedTestVariable
+                                   indexForRightmostTrackedTestVariable
                                    numberOfTrackedTestVariables
                                    maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables =
                     let thinkAboutTerminatingRecursion = numberOfTrackedTestVariables <= 1u
                     if randomBehaviour.HeadsItIs () && thinkAboutTerminatingRecursion
                        || maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 0u
                     then if numberOfTrackedTestVariables = 1u
-                         then TestVariableNode ([for levelIndex in 1u .. trackedTestVariableToNumberOfLevelsMap.[int32 indexForLeftmostTrackedTestVariable] do
-                                                    yield box (Tracked (indexForLeftmostTrackedTestVariable, levelIndex))])
-                              , indexForLeftmostTrackedTestVariable + 1u  
+                         then TestVariableNode ([for levelIndex in 1u .. trackedTestVariableToNumberOfLevelsMap.[int32 indexForRightmostTrackedTestVariable] do
+                                                    yield box (Tracked (indexForRightmostTrackedTestVariable, levelIndex))])
+                              , indexForRightmostTrackedTestVariable + 1u  
                          else // TODO: add in a synthesizing node with no subtrees as an occasional alternative here.
                               TestVariableNode ([for levelIndex in 1u .. randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable do
                                                     yield box (Untracked levelIndex)])
-                              , indexForLeftmostTrackedTestVariable
+                              , indexForRightmostTrackedTestVariable
                     else let allOnOneSubtreeDistributionMaker numberOfSubtrees numberOfTrackedTestVariables =
                             let choice =
                                 randomBehaviour.ChooseAnyNumberFromOneTo numberOfSubtrees
@@ -154,12 +152,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                             let numberOfSubtrees =
                                 randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfSubtreeHeadsPerAncestorNode
                             let gatherSubtree (previouslyGatheredSubtrees
-                                               , indexForLeftmostTrackedTestVariable)
+                                               , indexForRightmostTrackedTestVariable)
                                               numberOfTrackedVariables =
                                 let subtree
                                     , maximumTrackingVariableIndexFromSubtree =
                                     createTree distributionModeWrtInterleavingNode
-                                               indexForLeftmostTrackedTestVariable
+                                               indexForRightmostTrackedTestVariable
                                                numberOfTrackedVariables
                                                (if thinkAboutTerminatingRecursion
                                                 then maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables - 1u
@@ -171,7 +169,8 @@ namespace SageSerpent.TestInfrastructure.Tests
                             let subtrees
                                 , maximumTrackingVariableIndex =
                                 distributionOfNumberOfTrackedTestVariablesForEachSubtree                     
-                                |> List.fold_left gatherSubtree ([], indexForLeftmostTrackedTestVariable)
+                                |> List.fold_left gatherSubtree ([], indexForRightmostTrackedTestVariable)
+                                    // NOTE: this is why the test variable indices increase from right to left across subtrees.
                             nodeFactory subtrees
                             , maximumTrackingVariableIndex
                          if randomBehaviour.HeadsItIs ()

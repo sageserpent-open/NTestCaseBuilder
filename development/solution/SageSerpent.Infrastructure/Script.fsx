@@ -50,7 +50,7 @@ r.ChooseAnyNumberFromOneTo 10u;;
 
 let r2 = BargainBasement.PartitionItemsIntoSubgroupsOfRandomNonZeroLength [1u .. 10u] 3u r;;
 
-let result = BargainBasement.ChooseCombinationsOfItems [] 0u;;
+let result = BargainBasement.ChooseCombinationsOfItems [2] 0u;;
 
 
 let simpleQuote = <@ 2 @>
