@@ -7,7 +7,7 @@ namespace SageSerpent.TestInfrastructure
     /// <summary>Test case enumerable factories form a composite data structure, where a factory is the root
     /// of a tree of simpler factories, and can itself be part of a larger tree (or even part of several trees,
     /// as sharing is permitted). Ultimately a valid tree of test case enumerable factories will have leaf node
-    /// factories based on sequences of test variable levels: such a leaf node factory produces a trivial
+    /// factories based on sequences of test variable levels: each leaf node factory produces a trivial
     /// sequence of test cases that are just the levels of its own test variable.
     
     /// Factories that are internal nodes in the tree belong to two types. The first type is a synthesizing
@@ -46,11 +46,11 @@ namespace SageSerpent.TestInfrastructure
     /// enough test variables but not enough that are combined by synthesizing factories, then the sequence
     /// will 'do its best' by creating combinations of up to the highest strength possible, falling short of the
     /// requested strength.
-    /// <remarks>6. A factory only makes guarantees as to the strength of combination of <b>levels</b> that contribute
-    /// via synthesis to a final test case: so if for example a sythesizing factory causes 'collisions' to occur between
+    /// <remarks>6. A factory only makes guarantees as to the strength of combination of levels that contribute
+    /// via synthesis to a final test case: so if for example a synthesizing factory causes 'collisions' to occur between
     /// several distinct combinations of simpler test cases by creating the same output test case for all of those
     /// combinations, then no attempt will be made to work around this behaviour and try alternative combinations that
-    /// satisfy the strength requirements but create fewer collisions. <b>However, </b> a factory takes an unsigned
+    /// satisfy the strength requirements but create fewer collisions. However, a factory takes an unsigned
     /// integer parameter to create a test case enumerable: if there are too many collisions in the enumerable's sequence
     /// of test cases, then the client can retry with a different enumerable created using a different parameter value.
 
