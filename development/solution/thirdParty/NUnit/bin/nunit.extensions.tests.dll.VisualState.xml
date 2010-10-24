@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VisualState xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" ShowCheckBoxes="false">
+  <TopNode>[0-1006]Z:\SageSerpent\workInProgress\development\solution\thirdParty\NUnit\bin\nunit.extensions.tests.dll</TopNode>
+  <SelectedNode>[0-1006]Z:\SageSerpent\workInProgress\development\solution\thirdParty\NUnit\bin\nunit.extensions.tests.dll</SelectedNode>
+  <ExcludeCategories>false</ExcludeCategories>
+  <Nodes>
+    <Node UniqueName="[0-1006]Z:\SageSerpent\workInProgress\development\solution\thirdParty\NUnit\bin\nunit.extensions.tests.dll" Expanded="true">
+      <Nodes>
+        <Node UniqueName="[0-1007]NUnit" Expanded="true">
+          <Nodes>
+            <Node UniqueName="[0-1008]NUnit.Core" Expanded="true">
+              <Nodes>
+                <Node UniqueName="[0-1009]NUnit.Core.Extensions" Expanded="true">
+                  <Nodes>
+                    <Node UniqueName="[0-1010]NUnit.Core.Extensions.Tests" Expanded="true">
+                      <Nodes>
+                        <Node UniqueName="[0-1000]NUnit.Core.Extensions.Tests.RepeatedTestFixture" Expanded="true">
+                          <Nodes>
+                            <Node UniqueName="[0-1005]NUnit.Core.Extensions.Tests.RepeatedTestFixture.IgnoreWorksWithRepeatedTest" />
+                            <Node UniqueName="[0-1001]NUnit.Core.Extensions.Tests.RepeatedTestFixture.RepeatedTestIsBuiltCorrectly" />
+                            <Node UniqueName="[0-1003]NUnit.Core.Extensions.Tests.RepeatedTestFixture.RepeatFailOnFirst" />
+                            <Node UniqueName="[0-1004]NUnit.Core.Extensions.Tests.RepeatedTestFixture.RepeatFailOnThird" />
+                            <Node UniqueName="[0-1002]NUnit.Core.Extensions.Tests.RepeatedTestFixture.RepeatSuccess" />
+                          </Nodes>
+                        </Node>
+                      </Nodes>
+                    </Node>
+                  </Nodes>
+                </Node>
+              </Nodes>
+            </Node>
+          </Nodes>
+        </Node>
+      </Nodes>
+    </Node>
+  </Nodes>
+</VisualState>

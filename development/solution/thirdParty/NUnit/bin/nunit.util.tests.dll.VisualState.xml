@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VisualState xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" ShowCheckBoxes="false">
+  <TopNode>[0-1268]Z:\SageSerpent\workInProgress\development\solution\thirdParty\NUnit\bin\nunit.util.tests.dll</TopNode>
+  <SelectedNode>[0-1268]Z:\SageSerpent\workInProgress\development\solution\thirdParty\NUnit\bin\nunit.util.tests.dll</SelectedNode>
+  <ExcludeCategories>false</ExcludeCategories>
+  <Nodes>
+    <Node UniqueName="[0-1268]Z:\SageSerpent\workInProgress\development\solution\thirdParty\NUnit\bin\nunit.util.tests.dll" Expanded="true">
+      <Nodes>
+        <Node UniqueName="[0-1269]NUnit" Expanded="true">
+          <Nodes>
+            <Node UniqueName="[0-1270]NUnit.Util" Expanded="true">
+              <Nodes>
+                <Node UniqueName="[0-1271]NUnit.Util.Tests" Expanded="true">
+                  <Nodes>
+                    <Node UniqueName="[0-1030]NUnit.Util.Tests.AssemblyListTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1034]NUnit.Util.Tests.AssemblyListTests.AddFiresChangedEvent" />
+                        <Node UniqueName="[0-1032]NUnit.Util.Tests.AssemblyListTests.CanAddAssemblies" />
+                        <Node UniqueName="[0-1035]NUnit.Util.Tests.AssemblyListTests.CanRemoveAssemblies" />
+                        <Node UniqueName="[0-1031]NUnit.Util.Tests.AssemblyListTests.EmptyList" />
+                        <Node UniqueName="[0-1033]NUnit.Util.Tests.AssemblyListTests.MustAddAbsolutePath" />
+                        <Node UniqueName="[0-1036]NUnit.Util.Tests.AssemblyListTests.RemoveAtFiresChangedEvent" />
+                        <Node UniqueName="[0-1037]NUnit.Util.Tests.AssemblyListTests.RemoveFiresChangedEvent" />
+                        <Node UniqueName="[0-1038]NUnit.Util.Tests.AssemblyListTests.SettingFullPathFiresChangedEvent" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1161]NUnit.Util.Tests.CategoryManagerTest">
+                      <Nodes>
+                        <Node UniqueName="[0-1166]NUnit.Util.Tests.CategoryManagerTest.CanAddAllAvailableCategoriesInTestTree" />
+                        <Node UniqueName="[0-1163]NUnit.Util.Tests.CategoryManagerTest.CanAddStrings" />
+                        <Node UniqueName="[0-1162]NUnit.Util.Tests.CategoryManagerTest.CanAddStringsWithoutDuplicating" />
+                        <Node UniqueName="[0-1165]NUnit.Util.Tests.CategoryManagerTest.CanAddTestCategories" />
+                        <Node UniqueName="[0-1164]NUnit.Util.Tests.CategoryManagerTest.CanClearEntries" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1058]NUnit.Util.Tests.EventDispatcherTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1060]NUnit.Util.Tests.EventDispatcherTests.ProjectLoaded" />
+                        <Node UniqueName="[0-1061]NUnit.Util.Tests.EventDispatcherTests.ProjectLoadFailed" />
+                        <Node UniqueName="[0-1059]NUnit.Util.Tests.EventDispatcherTests.ProjectLoading" />
+                        <Node UniqueName="[0-1063]NUnit.Util.Tests.EventDispatcherTests.ProjectUnloaded" />
+                        <Node UniqueName="[0-1064]NUnit.Util.Tests.EventDispatcherTests.ProjectUnloadFailed" />
+                        <Node UniqueName="[0-1062]NUnit.Util.Tests.EventDispatcherTests.ProjectUnloading" />
+                        <Node UniqueName="[0-1076]NUnit.Util.Tests.EventDispatcherTests.RunFailed" />
+                        <Node UniqueName="[0-1075]NUnit.Util.Tests.EventDispatcherTests.RunFinished" />
+                        <Node UniqueName="[0-1074]NUnit.Util.Tests.EventDispatcherTests.RunStarting" />
+                        <Node UniqueName="[0-1078]NUnit.Util.Tests.EventDispatcherTests.SuiteFinished" />
+                        <Node UniqueName="[0-1077]NUnit.Util.Tests.EventDispatcherTests.SuiteStarting" />
+                        <Node UniqueName="[0-1080]NUnit.Util.Tests.EventDispatcherTests.TestFinished" />
+                        <Node UniqueName="[0-1066]NUnit.Util.Tests.EventDispatcherTests.TestLoaded" />
+                        <Node UniqueName="[0-1067]NUnit.Util.Tests.EventDispatcherTests.TestLoadFailed" />
+                        <Node UniqueName="[0-1065]NUnit.Util.Tests.EventDispatcherTests.TestLoading" />
+                        <Node UniqueName="[0-1072]NUnit.Util.Tests.EventDispatcherTests.TestReloaded" />
+                        <Node UniqueName="[0-1073]NUnit.Util.Tests.EventDispatcherTests.TestReloadFailed" />
+                        <Node UniqueName="[0-1071]NUnit.Util.Tests.EventDispatcherTests.TestReloading" />
+                        <Node UniqueName="[0-1079]NUnit.Util.Tests.EventDispatcherTests.TestStarting" />
+                        <Node UniqueName="[0-1069]NUnit.Util.Tests.EventDispatcherTests.TestUnloaded" />
+                        <Node UniqueName="[0-1070]NUnit.Util.Tests.EventDispatcherTests.TestUnloadFailed" />
+                        <Node UniqueName="[0-1068]NUnit.Util.Tests.EventDispatcherTests.TestUnloading" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1081]NUnit.Util.Tests.FileWatcherTest">
+                      <Nodes>
+                        <Node UniqueName="[0-1084]NUnit.Util.Tests.FileWatcherTest.ChangingAttributesDoesNotTriggerWatcher" />
+                        <Node UniqueName="[0-1083]NUnit.Util.Tests.FileWatcherTest.ChangingFileTriggersWatcher" />
+                        <Node UniqueName="[0-1085]NUnit.Util.Tests.FileWatcherTest.CopyingFileDoesNotTriggerWatcher" />
+                        <Node UniqueName="[0-1082]NUnit.Util.Tests.FileWatcherTest.MultipleCloselySpacedChangesTriggerWatcherOnlyOnce" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1023]NUnit.Util.Tests.MemorySettingsStorageTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1024]NUnit.Util.Tests.MemorySettingsStorageTests.MakeStorage" />
+                        <Node UniqueName="[0-1027]NUnit.Util.Tests.MemorySettingsStorageTests.MakeSubStorages" />
+                        <Node UniqueName="[0-1026]NUnit.Util.Tests.MemorySettingsStorageTests.RemoveSettings" />
+                        <Node UniqueName="[0-1025]NUnit.Util.Tests.MemorySettingsStorageTests.SaveAndLoadSettings" />
+                        <Node UniqueName="[0-1028]NUnit.Util.Tests.MemorySettingsStorageTests.SubstorageSettings" />
+                        <Node UniqueName="[0-1029]NUnit.Util.Tests.MemorySettingsStorageTests.TypeSafeSettings" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1086]NUnit.Util.Tests.NUnitProjectLoad">
+                      <Nodes>
+                        <Node UniqueName="[0-1091]NUnit.Util.Tests.NUnitProjectLoad.FromAssembly" />
+                        <Node UniqueName="[0-1096]NUnit.Util.Tests.NUnitProjectLoad.FromCppProject" />
+                        <Node UniqueName="[0-1093]NUnit.Util.Tests.NUnitProjectLoad.FromCSharpProject" />
+                        <Node UniqueName="[0-1095]NUnit.Util.Tests.NUnitProjectLoad.FromJsharpProject" />
+                        <Node UniqueName="[0-1102]NUnit.Util.Tests.NUnitProjectLoad.FromMakefileProject" />
+                        <Node UniqueName="[0-1097]NUnit.Util.Tests.NUnitProjectLoad.FromProjectWithHebrewFileIncluded" />
+                        <Node UniqueName="[0-1094]NUnit.Util.Tests.NUnitProjectLoad.FromVBProject" />
+                        <Node UniqueName="[0-1098]NUnit.Util.Tests.NUnitProjectLoad.FromVSSolution2003" />
+                        <Node UniqueName="[0-1099]NUnit.Util.Tests.NUnitProjectLoad.FromVSSolution2005" />
+                        <Node UniqueName="[0-1100]NUnit.Util.Tests.NUnitProjectLoad.FromWebApplication" />
+                        <Node UniqueName="[0-1088]NUnit.Util.Tests.NUnitProjectLoad.LoadEmptyConfigs" />
+                        <Node UniqueName="[0-1087]NUnit.Util.Tests.NUnitProjectLoad.LoadEmptyProject" />
+                        <Node UniqueName="[0-1089]NUnit.Util.Tests.NUnitProjectLoad.LoadNormalProject" />
+                        <Node UniqueName="[0-1090]NUnit.Util.Tests.NUnitProjectLoad.LoadProjectWithManualBinPath" />
+                        <Node UniqueName="[0-1092]NUnit.Util.Tests.NUnitProjectLoad.SaveClearsAssemblyWrapper" />
+                        <Node UniqueName="[0-1101]NUnit.Util.Tests.NUnitProjectLoad.WithUnmanagedCpp" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1103]NUnit.Util.Tests.NUnitProjectSave">
+                      <Nodes>
+                        <Node UniqueName="[0-1105]NUnit.Util.Tests.NUnitProjectSave.SaveEmptyConfigs" />
+                        <Node UniqueName="[0-1104]NUnit.Util.Tests.NUnitProjectSave.SaveEmptyProject" />
+                        <Node UniqueName="[0-1106]NUnit.Util.Tests.NUnitProjectSave.SaveNormalProject" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1107]NUnit.Util.Tests.NUnitProjectTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1125]NUnit.Util.Tests.NUnitProjectTests.AddConfigMakesProjectDirty" />
+                        <Node UniqueName="[0-1124]NUnit.Util.Tests.NUnitProjectTests.CanAddAssemblies" />
+                        <Node UniqueName="[0-1122]NUnit.Util.Tests.NUnitProjectTests.CanAddConfigs" />
+                        <Node UniqueName="[0-1123]NUnit.Util.Tests.NUnitProjectTests.CanSetActiveConfig" />
+                        <Node UniqueName="[0-1121]NUnit.Util.Tests.NUnitProjectTests.CanSetAppBase" />
+                        <Node UniqueName="[0-1118]NUnit.Util.Tests.NUnitProjectTests.ConfigurationFileFromAssemblies" />
+                        <Node UniqueName="[0-1117]NUnit.Util.Tests.NUnitProjectTests.ConfigurationFileFromAssembly" />
+                        <Node UniqueName="[0-1127]NUnit.Util.Tests.NUnitProjectTests.DefaultActiveConfig" />
+                        <Node UniqueName="[0-1115]NUnit.Util.Tests.NUnitProjectTests.DefaultApplicationBase" />
+                        <Node UniqueName="[0-1116]NUnit.Util.Tests.NUnitProjectTests.DefaultConfigurationFile" />
+                        <Node UniqueName="[0-1119]NUnit.Util.Tests.NUnitProjectTests.DefaultProjectName" />
+                        <Node UniqueName="[0-1108]NUnit.Util.Tests.NUnitProjectTests.IsProjectFile" />
+                        <Node UniqueName="[0-1120]NUnit.Util.Tests.NUnitProjectTests.LoadMakesProjectNotDirty" />
+                        <Node UniqueName="[0-1111]NUnit.Util.Tests.NUnitProjectTests.NewProjectDefaultPath" />
+                        <Node UniqueName="[0-1109]NUnit.Util.Tests.NUnitProjectTests.NewProjectIsEmpty" />
+                        <Node UniqueName="[0-1110]NUnit.Util.Tests.NUnitProjectTests.NewProjectIsNotDirty" />
+                        <Node UniqueName="[0-1112]NUnit.Util.Tests.NUnitProjectTests.NewProjectNotLoadable" />
+                        <Node UniqueName="[0-1130]NUnit.Util.Tests.NUnitProjectTests.RemoveActiveConfig" />
+                        <Node UniqueName="[0-1129]NUnit.Util.Tests.NUnitProjectTests.RemoveConfigMakesProjectDirty" />
+                        <Node UniqueName="[0-1128]NUnit.Util.Tests.NUnitProjectTests.RenameActiveConfig" />
+                        <Node UniqueName="[0-1126]NUnit.Util.Tests.NUnitProjectTests.RenameConfigMakesProjectDirty" />
+                        <Node UniqueName="[0-1134]NUnit.Util.Tests.NUnitProjectTests.SaveAndLoadConfigsWithAssemblies" />
+                        <Node UniqueName="[0-1133]NUnit.Util.Tests.NUnitProjectTests.SaveAndLoadEmptyConfigs" />
+                        <Node UniqueName="[0-1132]NUnit.Util.Tests.NUnitProjectTests.SaveAndLoadEmptyProject" />
+                        <Node UniqueName="[0-1113]NUnit.Util.Tests.NUnitProjectTests.SaveMakesProjectNotDirty" />
+                        <Node UniqueName="[0-1114]NUnit.Util.Tests.NUnitProjectTests.SaveSetsProjectPath" />
+                        <Node UniqueName="[0-1131]NUnit.Util.Tests.NUnitProjectTests.SettingActiveConfigMakesProjectDirty" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1135]NUnit.Util.Tests.NUnitRegistryTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1136]NUnit.Util.Tests.NUnitRegistryTests.CurrentUser" />
+                        <Node UniqueName="[0-1138]NUnit.Util.Tests.NUnitRegistryTests.CurrentUserTestMode" />
+                        <Node UniqueName="[0-1137]NUnit.Util.Tests.NUnitRegistryTests.LocalMachine" />
+                        <Node UniqueName="[0-1139]NUnit.Util.Tests.NUnitRegistryTests.LocalMachineTestMode" />
+                        <Node UniqueName="[0-1140]NUnit.Util.Tests.NUnitRegistryTests.TestClearRoutines" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1141]NUnit.Util.Tests.PathUtilTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1142]NUnit.Util.Tests.PathUtilTests.CheckDefaults" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1149]NUnit.Util.Tests.PathUtilTests_Unix">
+                      <Nodes>
+                        <Node UniqueName="[0-1151]NUnit.Util.Tests.PathUtilTests_Unix.Canonicalize" />
+                        <Node UniqueName="[0-1150]NUnit.Util.Tests.PathUtilTests_Unix.IsAssemblyFileType" />
+                        <Node UniqueName="[0-1152]NUnit.Util.Tests.PathUtilTests_Unix.RelativePath" />
+                        <Node UniqueName="[0-1153]NUnit.Util.Tests.PathUtilTests_Unix.SamePath" />
+                        <Node UniqueName="[0-1154]NUnit.Util.Tests.PathUtilTests_Unix.SamePathOrUnder" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1143]NUnit.Util.Tests.PathUtilTests_Windows">
+                      <Nodes>
+                        <Node UniqueName="[0-1145]NUnit.Util.Tests.PathUtilTests_Windows.Canonicalize" />
+                        <Node UniqueName="[0-1144]NUnit.Util.Tests.PathUtilTests_Windows.IsAssemblyFileType" />
+                        <Node UniqueName="[0-1146]NUnit.Util.Tests.PathUtilTests_Windows.RelativePath" />
+                        <Node UniqueName="[0-1147]NUnit.Util.Tests.PathUtilTests_Windows.SamePath" />
+                        <Node UniqueName="[0-1148]NUnit.Util.Tests.PathUtilTests_Windows.SamePathOrUnder" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1155]NUnit.Util.Tests.ProjectConfigCollectionTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1157]NUnit.Util.Tests.ProjectConfigCollectionTests.AddConfig" />
+                        <Node UniqueName="[0-1158]NUnit.Util.Tests.ProjectConfigCollectionTests.AddMakesProjectDirty" />
+                        <Node UniqueName="[0-1160]NUnit.Util.Tests.ProjectConfigCollectionTests.AddTwoConfigs" />
+                        <Node UniqueName="[0-1159]NUnit.Util.Tests.ProjectConfigCollectionTests.BuildConfigAndAdd" />
+                        <Node UniqueName="[0-1156]NUnit.Util.Tests.ProjectConfigCollectionTests.EmptyCollection" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1039]NUnit.Util.Tests.ProjectConfigTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1047]NUnit.Util.Tests.ProjectConfigTests.AbsoluteBasePath" />
+                        <Node UniqueName="[0-1052]NUnit.Util.Tests.ProjectConfigTests.AbsoluteConfigurationFile" />
+                        <Node UniqueName="[0-1043]NUnit.Util.Tests.ProjectConfigTests.AddMarksProjectDirty" />
+                        <Node UniqueName="[0-1041]NUnit.Util.Tests.ProjectConfigTests.CanAddAssemblies" />
+                        <Node UniqueName="[0-1051]NUnit.Util.Tests.ProjectConfigTests.DefaultConfigurationFile" />
+                        <Node UniqueName="[0-1040]NUnit.Util.Tests.ProjectConfigTests.EmptyConfig" />
+                        <Node UniqueName="[0-1057]NUnit.Util.Tests.ProjectConfigTests.ManualPrivateBinPath" />
+                        <Node UniqueName="[0-1049]NUnit.Util.Tests.ProjectConfigTests.NoBasePathSet" />
+                        <Node UniqueName="[0-1056]NUnit.Util.Tests.ProjectConfigTests.NoPrivateBinPath" />
+                        <Node UniqueName="[0-1048]NUnit.Util.Tests.ProjectConfigTests.RelativeBasePath" />
+                        <Node UniqueName="[0-1053]NUnit.Util.Tests.ProjectConfigTests.RelativeConfigurationFile" />
+                        <Node UniqueName="[0-1045]NUnit.Util.Tests.ProjectConfigTests.RemoveMarksProjectDirty" />
+                        <Node UniqueName="[0-1044]NUnit.Util.Tests.ProjectConfigTests.RenameMarksProjectDirty" />
+                        <Node UniqueName="[0-1046]NUnit.Util.Tests.ProjectConfigTests.SettingApplicationBaseMarksProjectDirty" />
+                        <Node UniqueName="[0-1055]NUnit.Util.Tests.ProjectConfigTests.SettingBinPathTypeMarksProjectDirty" />
+                        <Node UniqueName="[0-1050]NUnit.Util.Tests.ProjectConfigTests.SettingConfigurationFileMarksProjectDirty" />
+                        <Node UniqueName="[0-1054]NUnit.Util.Tests.ProjectConfigTests.SettingPrivateBinPathMarksProjectDirty" />
+                        <Node UniqueName="[0-1042]NUnit.Util.Tests.ProjectConfigTests.ToArray" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1260]NUnit.Util.Tests.RecentFileEntryTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1262]NUnit.Util.Tests.RecentFileEntryTests.CanCreateFromFileNameAndVersion" />
+                        <Node UniqueName="[0-1261]NUnit.Util.Tests.RecentFileEntryTests.CanCreateFromSimpleFileName" />
+                        <Node UniqueName="[0-1266]NUnit.Util.Tests.RecentFileEntryTests.CanParseFileNamePlusVersionString" />
+                        <Node UniqueName="[0-1267]NUnit.Util.Tests.RecentFileEntryTests.CanParseFileNameWithCommaPlusVersionString" />
+                        <Node UniqueName="[0-1264]NUnit.Util.Tests.RecentFileEntryTests.CanParseSimpleFileName" />
+                        <Node UniqueName="[0-1265]NUnit.Util.Tests.RecentFileEntryTests.CanParseSimpleFileNameWithComma" />
+                        <Node UniqueName="[0-1263]NUnit.Util.Tests.RecentFileEntryTests.EntryCanDisplayItself" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1000]NUnit.Util.Tests.RecentFilesTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1008]NUnit.Util.Tests.RecentFilesTests.AddMaxItems" />
+                        <Node UniqueName="[0-1007]NUnit.Util.Tests.RecentFilesTests.AddSingleItem" />
+                        <Node UniqueName="[0-1009]NUnit.Util.Tests.RecentFilesTests.AddTooManyItems" />
+                        <Node UniqueName="[0-1004]NUnit.Util.Tests.RecentFilesTests.CountAtMax" />
+                        <Node UniqueName="[0-1005]NUnit.Util.Tests.RecentFilesTests.CountAtMin" />
+                        <Node UniqueName="[0-1001]NUnit.Util.Tests.RecentFilesTests.CountDefault" />
+                        <Node UniqueName="[0-1002]NUnit.Util.Tests.RecentFilesTests.CountOverMax" />
+                        <Node UniqueName="[0-1003]NUnit.Util.Tests.RecentFilesTests.CountUnderMin" />
+                        <Node UniqueName="[0-1006]NUnit.Util.Tests.RecentFilesTests.EmptyList" />
+                        <Node UniqueName="[0-1010]NUnit.Util.Tests.RecentFilesTests.IncreaseSize" />
+                        <Node UniqueName="[0-1012]NUnit.Util.Tests.RecentFilesTests.IncreaseSizeAfterAdd" />
+                        <Node UniqueName="[0-1011]NUnit.Util.Tests.RecentFilesTests.ReduceSize" />
+                        <Node UniqueName="[0-1013]NUnit.Util.Tests.RecentFilesTests.ReduceSizeAfterAdd" />
+                        <Node UniqueName="[0-1019]NUnit.Util.Tests.RecentFilesTests.RemoveFirstProject" />
+                        <Node UniqueName="[0-1022]NUnit.Util.Tests.RecentFilesTests.RemoveLastProject" />
+                        <Node UniqueName="[0-1021]NUnit.Util.Tests.RecentFilesTests.RemoveMultipleProjects" />
+                        <Node UniqueName="[0-1020]NUnit.Util.Tests.RecentFilesTests.RemoveOneProject" />
+                        <Node UniqueName="[0-1014]NUnit.Util.Tests.RecentFilesTests.ReorderLastProject" />
+                        <Node UniqueName="[0-1016]NUnit.Util.Tests.RecentFilesTests.ReorderMultipleProjects" />
+                        <Node UniqueName="[0-1017]NUnit.Util.Tests.RecentFilesTests.ReorderSameProject" />
+                        <Node UniqueName="[0-1015]NUnit.Util.Tests.RecentFilesTests.ReorderSingleProject" />
+                        <Node UniqueName="[0-1018]NUnit.Util.Tests.RecentFilesTests.ReorderWithListNotFull" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1167]NUnit.Util.Tests.RegistrySettingsStorageTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1171]NUnit.Util.Tests.RegistrySettingsStorageTests.MakeSubStorages" />
+                        <Node UniqueName="[0-1170]NUnit.Util.Tests.RegistrySettingsStorageTests.RemoveSettings" />
+                        <Node UniqueName="[0-1169]NUnit.Util.Tests.RegistrySettingsStorageTests.SaveAndLoadSettings" />
+                        <Node UniqueName="[0-1168]NUnit.Util.Tests.RegistrySettingsStorageTests.StorageHasCorrectKey" />
+                        <Node UniqueName="[0-1172]NUnit.Util.Tests.RegistrySettingsStorageTests.SubstorageSettings" />
+                        <Node UniqueName="[0-1173]NUnit.Util.Tests.RegistrySettingsStorageTests.TypeSafeSettings" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1257]NUnit.Util.Tests.RemoteTestResultTest">
+                      <Nodes>
+                        <Node UniqueName="[0-1259]NUnit.Util.Tests.RemoteTestResultTest.AppDomainUnloadedBug" />
+                        <Node UniqueName="[0-1258]NUnit.Util.Tests.RemoteTestResultTest.ResultStillValidAfterDomainUnload" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1174]NUnit.Util.Tests.SettingsGroupTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1179]NUnit.Util.Tests.SettingsGroupTests.BadSetting" />
+                        <Node UniqueName="[0-1178]NUnit.Util.Tests.SettingsGroupTests.DefaultSettings" />
+                        <Node UniqueName="[0-1176]NUnit.Util.Tests.SettingsGroupTests.SubGroupSettings" />
+                        <Node UniqueName="[0-1175]NUnit.Util.Tests.SettingsGroupTests.TopLevelSettings" />
+                        <Node UniqueName="[0-1177]NUnit.Util.Tests.SettingsGroupTests.TypeSafeSettings" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1180]NUnit.Util.Tests.SummaryResultFixture">
+                      <Nodes>
+                        <Node UniqueName="[0-1183]NUnit.Util.Tests.SummaryResultFixture.Failure" />
+                        <Node UniqueName="[0-1181]NUnit.Util.Tests.SummaryResultFixture.TestCountNotRunSuites" />
+                        <Node UniqueName="[0-1184]NUnit.Util.Tests.SummaryResultFixture.TestTime" />
+                        <Node UniqueName="[0-1182]NUnit.Util.Tests.SummaryResultFixture.TotalCountSuccess" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1185]NUnit.Util.Tests.TestDomainFixture">
+                      <Nodes>
+                        <Node UniqueName="[0-1187]NUnit.Util.Tests.TestDomainFixture.AppDomainIsSetUpCorrectly" />
+                        <Node UniqueName="[0-1186]NUnit.Util.Tests.TestDomainFixture.AssemblyIsLoadedCorrectly" />
+                        <Node UniqueName="[0-1188]NUnit.Util.Tests.TestDomainFixture.CanRunMockAssemblyTests" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1189]NUnit.Util.Tests.TestDomainRunnerTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1190]NUnit.Util.Tests.TestDomainRunnerTests.CheckRunnerID" />
+                        <Node UniqueName="[0-1195]NUnit.Util.Tests.TestDomainRunnerTests.CountTestCases" />
+                        <Node UniqueName="[0-1199]NUnit.Util.Tests.TestDomainRunnerTests.CountTestCasesAcrossMultipleAssemblies" />
+                        <Node UniqueName="[0-1191]NUnit.Util.Tests.TestDomainRunnerTests.LoadAssembly" />
+                        <Node UniqueName="[0-1193]NUnit.Util.Tests.TestDomainRunnerTests.LoadAssemblyWithFixture" />
+                        <Node UniqueName="[0-1192]NUnit.Util.Tests.TestDomainRunnerTests.LoadAssemblyWithoutNamespaces" />
+                        <Node UniqueName="[0-1194]NUnit.Util.Tests.TestDomainRunnerTests.LoadAssemblyWithSuite" />
+                        <Node UniqueName="[0-1196]NUnit.Util.Tests.TestDomainRunnerTests.LoadMultipleAssemblies" />
+                        <Node UniqueName="[0-1197]NUnit.Util.Tests.TestDomainRunnerTests.LoadMultipleAssembliesWithFixture" />
+                        <Node UniqueName="[0-1198]NUnit.Util.Tests.TestDomainRunnerTests.LoadMultipleAssembliesWithSuite" />
+                        <Node UniqueName="[0-1200]NUnit.Util.Tests.TestDomainRunnerTests.RunAssembly" />
+                        <Node UniqueName="[0-1201]NUnit.Util.Tests.TestDomainRunnerTests.RunAssemblyUsingBeginAndEndRun" />
+                        <Node UniqueName="[0-1202]NUnit.Util.Tests.TestDomainRunnerTests.RunMultipleAssemblies" />
+                        <Node UniqueName="[0-1203]NUnit.Util.Tests.TestDomainRunnerTests.RunMultipleAssembliesUsingBeginAndEndRun" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1204]NUnit.Util.Tests.TestDomainTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1209]NUnit.Util.Tests.TestDomainTests.BasePathOverrideIsHonored" />
+                        <Node UniqueName="[0-1210]NUnit.Util.Tests.TestDomainTests.BinPathOverrideIsHonored" />
+                        <Node UniqueName="[0-1208]NUnit.Util.Tests.TestDomainTests.ConfigFileOverrideIsHonored" />
+                        <Node UniqueName="[0-1205]NUnit.Util.Tests.TestDomainTests.FileNotFound" />
+                        <Node UniqueName="[0-1206]NUnit.Util.Tests.TestDomainTests.InvalidTestFixture" />
+                        <Node UniqueName="[0-1207]NUnit.Util.Tests.TestDomainTests.SpecificTestFixture" />
+                        <Node UniqueName="[0-1211]NUnit.Util.Tests.TestDomainTests.TurnOffShadowCopy" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1212]NUnit.Util.Tests.TestDomainTests_Multiple">
+                      <Nodes>
+                        <Node UniqueName="[0-1215]NUnit.Util.Tests.TestDomainTests_Multiple.AssemblyNodes" />
+                        <Node UniqueName="[0-1213]NUnit.Util.Tests.TestDomainTests_Multiple.BuildSuite" />
+                        <Node UniqueName="[0-1214]NUnit.Util.Tests.TestDomainTests_Multiple.RootNode" />
+                        <Node UniqueName="[0-1217]NUnit.Util.Tests.TestDomainTests_Multiple.RunMultipleAssemblies" />
+                        <Node UniqueName="[0-1216]NUnit.Util.Tests.TestDomainTests_Multiple.TestCaseCount" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1218]NUnit.Util.Tests.TestDomainTests_MultipleFixture">
+                      <Nodes>
+                        <Node UniqueName="[0-1219]NUnit.Util.Tests.TestDomainTests_MultipleFixture.LoadFixture" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1220]NUnit.Util.Tests.TestLoaderAssemblyTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1226]NUnit.Util.Tests.TestLoaderAssemblyTests.AssemblyWithNoTests" />
+                        <Node UniqueName="[0-1225]NUnit.Util.Tests.TestLoaderAssemblyTests.FileNotFound" />
+                        <Node UniqueName="[0-1221]NUnit.Util.Tests.TestLoaderAssemblyTests.LoadProject" />
+                        <Node UniqueName="[0-1223]NUnit.Util.Tests.TestLoaderAssemblyTests.LoadTest" />
+                        <Node UniqueName="[0-1227]NUnit.Util.Tests.TestLoaderAssemblyTests.RunTest" />
+                        <Node UniqueName="[0-1222]NUnit.Util.Tests.TestLoaderAssemblyTests.UnloadProject" />
+                        <Node UniqueName="[0-1224]NUnit.Util.Tests.TestLoaderAssemblyTests.UnloadTest" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1228]NUnit.Util.Tests.VSProjectTests">
+                      <Nodes>
+                        <Node UniqueName="[0-1244]NUnit.Util.Tests.VSProjectTests.FileNotFoundError" />
+                        <Node UniqueName="[0-1242]NUnit.Util.Tests.VSProjectTests.GenerateCorrectExtensionsFromVCProjectVS2005" />
+                        <Node UniqueName="[0-1246]NUnit.Util.Tests.VSProjectTests.InvalidProjectFormat" />
+                        <Node UniqueName="[0-1245]NUnit.Util.Tests.VSProjectTests.InvalidXmlFormat" />
+                        <Node UniqueName="[0-1238]NUnit.Util.Tests.VSProjectTests.LoadCppProject" />
+                        <Node UniqueName="[0-1239]NUnit.Util.Tests.VSProjectTests.LoadCppProjectVS2005" />
+                        <Node UniqueName="[0-1241]NUnit.Util.Tests.VSProjectTests.LoadCppProjectWithMacros" />
+                        <Node UniqueName="[0-1232]NUnit.Util.Tests.VSProjectTests.LoadCsharpProject" />
+                        <Node UniqueName="[0-1233]NUnit.Util.Tests.VSProjectTests.LoadCsharpProjectVS2005" />
+                        <Node UniqueName="[0-1243]NUnit.Util.Tests.VSProjectTests.LoadInvalidFileType" />
+                        <Node UniqueName="[0-1236]NUnit.Util.Tests.VSProjectTests.LoadJsharpProject" />
+                        <Node UniqueName="[0-1237]NUnit.Util.Tests.VSProjectTests.LoadJsharpProjectVS2005" />
+                        <Node UniqueName="[0-1240]NUnit.Util.Tests.VSProjectTests.LoadProjectWithHebrewFileIncluded" />
+                        <Node UniqueName="[0-1234]NUnit.Util.Tests.VSProjectTests.LoadVbProject" />
+                        <Node UniqueName="[0-1235]NUnit.Util.Tests.VSProjectTests.LoadVbProjectVS2005" />
+                        <Node UniqueName="[0-1247]NUnit.Util.Tests.VSProjectTests.MissingAttributes" />
+                        <Node UniqueName="[0-1248]NUnit.Util.Tests.VSProjectTests.NoConfigurations" />
+                        <Node UniqueName="[0-1231]NUnit.Util.Tests.VSProjectTests.NotWebProject" />
+                        <Node UniqueName="[0-1230]NUnit.Util.Tests.VSProjectTests.ProjectExtensions" />
+                        <Node UniqueName="[0-1229]NUnit.Util.Tests.VSProjectTests.SolutionExtension" />
+                      </Nodes>
+                    </Node>
+                    <Node UniqueName="[0-1249]NUnit.Util.Tests.XmlResultVisitorTest">
+                      <Nodes>
+                        <Node UniqueName="[0-1253]NUnit.Util.Tests.XmlResultVisitorTest.HasMultipleCategories" />
+                        <Node UniqueName="[0-1254]NUnit.Util.Tests.XmlResultVisitorTest.HasMultipleProperties" />
+                        <Node UniqueName="[0-1251]NUnit.Util.Tests.XmlResultVisitorTest.HasSingleCategory" />
+                        <Node UniqueName="[0-1252]NUnit.Util.Tests.XmlResultVisitorTest.HasSingleProperty" />
+                        <Node UniqueName="[0-1250]NUnit.Util.Tests.XmlResultVisitorTest.SuiteResultHasCategories" />
+                        <Node UniqueName="[0-1256]NUnit.Util.Tests.XmlResultVisitorTest.TestHasCultureInfo" />
+                        <Node UniqueName="[0-1255]NUnit.Util.Tests.XmlResultVisitorTest.TestHasEnvironmentInfo" />
+                      </Nodes>
+                    </Node>
+                  </Nodes>
+                </Node>
+              </Nodes>
+            </Node>
+          </Nodes>
+        </Node>
+      </Nodes>
+    </Node>
+  </Nodes>
+</VisualState>
