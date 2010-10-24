@@ -35,4 +35,17 @@ let rec MergeSortedListsAllowingDuplicates first second =
             headFromSecond :: MergeSortedListsAllowingDuplicates first tailFromSecond
       | headFromFirst :: tailFromFirst, headFromSecond :: tailFromSecond ->
             headFromFirst :: headFromSecond :: MergeSortedListsAllowingDuplicates tailFromFirst tailFromSecond
-            
+
+
+let CountDuplicatesInSortedList list =
+    let rec produceItemCountPairs list =
+        match list with
+            [] ->
+                []
+          | head :: next :: tail when head = next ->
+                match produceItemCountPairs (next :: tail) with
+                    (duplicatedItem, count) :: partialResultTail -> (duplicatedItem, count + 1u) :: partialResultTail
+                  | _ -> raise (InternalAssertionViolationException "The partial result in this situation should be non-empty.")
+          | head :: tail ->
+                (head, 1u) :: produceItemCountPairs tail
+    produceItemCountPairs list

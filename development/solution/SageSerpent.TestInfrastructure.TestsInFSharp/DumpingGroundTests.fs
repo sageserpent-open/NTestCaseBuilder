@@ -220,6 +220,10 @@ namespace SageSerpent.TestInfrastructure.Tests
                                numberOfTrackedTestVariables
                                maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables
                                []
+                let associationFromTrackedVariablesToNumberOfConflictingUntrackedVariables =
+                    trackedVariablesThatConflictWithUntrackedOnesWithDuplicateEntries
+                    |> BargainBasement.CountDuplicatesInSortedList
+                    |> Map.of_list
                 let maximumStrengthOfTestVariableCombination =
                     tree.MaximumStrengthOfTestVariableCombination
                 if maximumStrengthOfTestVariableCombination < 60u

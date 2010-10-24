@@ -17,3 +17,19 @@ let o = 2:>obj
 let p = BargainBasement.CrossProduct [[1;2;3];[67; -23];[0]]
 
 let q = BargainBasement.MergeSortedListsAllowingDuplicates [1;2;3;4] [2;2;4;78]
+
+let v1 = BargainBasement.CountDuplicatesInSortedList [1;2;3]
+
+let v2 = BargainBasement.CountDuplicatesInSortedList [1;2;2;3]
+
+let v3 = BargainBasement.CountDuplicatesInSortedList [2;2;2;3]
+
+let v4 = BargainBasement.CountDuplicatesInSortedList ([]: int list)
+
+let v5 = BargainBasement.CountDuplicatesInSortedList [1;2;2;2]
+
+let v6 = BargainBasement.CountDuplicatesInSortedList [2;2;2;2]
+
+let v7 = BargainBasement.CountDuplicatesInSortedList [1]
+
+let v8 = BargainBasement.CountDuplicatesInSortedList [1;2]
