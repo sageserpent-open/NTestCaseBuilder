@@ -24,13 +24,13 @@ namespace SageSerpent.TestInfrastructure.Tests
         
         let maximumNumberOfTestVariables = 50u
         
-        let maximumNumberOfTestVectors = 50u
+        let maximumNumberOfTestVectors = 200u
         
         let maximumRandomWalkStep = 10u
         
         let maximumLevelDelta = 5u
         
-        let overallTestRepeats = 30u
+        let overallTestRepeats = 50u
         
         let maximumNumberOfIndicesToAvoid = 4u
         
@@ -233,7 +233,10 @@ namespace SageSerpent.TestInfrastructure.Tests
                     (sortedIndicesToAvoid
                      |> List.fold_left arrangeDeferredAssociations (0u, (fun result -> result))
                      |> snd) []
-                    |> List.to_array
+                    |> Map.of_list  // This has the effect of eliminating all but the last entry for a group of associations
+                                    // for consectutive indices. Otherwise the associations for lesser indices in the group
+                                    // would just map onto the next higher index, which we are also trying to avoid.
+                    |> Map.to_array
                 let remapIndex (index
                                 , level) =
                     let foundIndex =
@@ -269,26 +272,6 @@ namespace SageSerpent.TestInfrastructure.Tests
                     |> List.map (avoidCertainIndicesByRemapping sortedIndicesToAvoid)
                 let mergedPartialTestVectors =
                     mergeOrAddPartialTestVectors remappedPartialTestVectors MergedPartialTestVectorRepresentations.initial
-//                let setOfTestVectors =
-//                    Set.of_list remappedPartialTestVectors
-//                let setOfMergedTestVectors =
-//                    Set.of_seq mergedPartialTestVectors
-//                let commonSet = 
-//                    Set.intersect setOfTestVectors setOfMergedTestVectors
-//                let leftDifference =
-//                    setOfTestVectors - commonSet
-//                let rightDifference =
-//                    setOfMergedTestVectors - commonSet
-//                printf "-------------------------------------------------\n"
-//                printf "commonSet: \n"
-//                commonSet |> Set.iter dumpPartialTestVector
-//                printf "\n"
-//                printf "leftDifference: \n"
-//                leftDifference |> Set.iter dumpPartialTestVector
-//                printf "\n"
-//                printf "rightDifference: \n"
-//                rightDifference |> Set.iter dumpPartialTestVector
-//                printf "\n"
                 let possiblyAddLevelsForIndices indicesToAdd partialTestVector =
                     let chosenIndicesToAdd =
                         Algorithms.RandomSubset (indicesToAdd,
@@ -309,16 +292,21 @@ namespace SageSerpent.TestInfrastructure.Tests
                     mergeOrAddPartialTestVectors partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices mergedPartialTestVectors
                 let shouldBeTrue =
                     Set.of_list partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices = Set.of_seq remergedPartialTestVectors
-                if not shouldBeTrue
-                then let originals = Set.of_list partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
-                     let remerged = Set.of_seq remergedPartialTestVectors
-                     let common = Set.intersect originals remerged
-                     printf "Only in originals:-\n"
-                     (originals - common) |> Set.iter dumpPartialTestVector  
-                     printf "Only in remerged:-\n"
-                     (remerged - common) |> Set.iter dumpPartialTestVector
-                     printf "Common:-\n"
-                     common |> Set.iter dumpPartialTestVector
+//                if not shouldBeTrue
+//                then let originals = Set.of_list partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
+//                     let remerged = Set.of_seq remergedPartialTestVectors
+//                     let common = Set.intersect originals remerged
+//                     printf "remappedPartialTestVectors:\n"
+//                     Set.of_list remappedPartialTestVectors |> Set.iter dumpPartialTestVector
+//                     printf "mergedPartialTestVectors:\n"
+//                     Set.of_seq mergedPartialTestVectors |> Set.iter dumpPartialTestVector
+//                     printf "Only in originals:-\n"
+//                     (originals - common) |> Set.iter dumpPartialTestVector  
+//                     printf "Only in remerged:-\n"
+//                     (remerged - common) |> Set.iter dumpPartialTestVector
+//                     printf "Common:-\n"
+//                     common |> Set.iter dumpPartialTestVector
+//                     printf "Indices to avoid: %A\n" sortedIndicesToAvoid
                 Assert.IsTrue shouldBeTrue
             createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
             
