@@ -50,8 +50,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="driver.cs" />
-    <Compile Include="testCaseEnumeratorFactoryTests.cs" />
+    <Compile Include="Driver.cs" />
+    <Compile Include="TestCaseEnumeratorFactoryTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

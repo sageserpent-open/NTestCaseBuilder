@@ -13,17 +13,20 @@ namespace SageSerpent.Infrastructure.Tests
                 else if maximumLengthOfContributionLimits = 1u
                      then [[limit]]
                      else let rec contributionLimitsWithFirstContributionOf firstContribution =
-                            let partialResult = List.map (fun item -> firstContribution::item)
-                                                         (contributionLimitsEquallingLimitInTotal (limit - firstContribution) (maximumLengthOfContributionLimits - 1u))
+                            let partialResult =
+                                (contributionLimitsEquallingLimitInTotal (limit - firstContribution) (maximumLengthOfContributionLimits - 1u))
+                                |> List.map (fun item -> firstContribution::item)
                             if firstContribution = 0u
                             then partialResult
                             else List.append (contributionLimitsWithFirstContributionOf (firstContribution - 1u)) partialResult
                           contributionLimitsWithFirstContributionOf limit
                           
         let contributionLimitsEquallingUpToLimitInTotal limit maximumLengthOfContributionLimits =
-            List.concat (Seq.map (function item -> contributionLimitsEquallingLimitInTotal item maximumLengthOfContributionLimits) [0u..limit])
-            
-        let sumContributions (contributionList: System.UInt32 list) = List.reduce_right (fun x y -> x + y) contributionList
+            [0u..limit]
+            |> Seq.map (function item -> contributionLimitsEquallingLimitInTotal item maximumLengthOfContributionLimits)
+            |> List.concat
+             
+        let sumContributions contributionList = List.reduce_right (+) contributionList
         
         [<Test>]
         member this.TestThatAttemptingToChooseContributionsFromAnEmptyListResultsInAnEmptyResultList () =
@@ -74,7 +77,7 @@ namespace SageSerpent.Infrastructure.Tests
                                 Assert.IsTrue shouldBeTrue
                         
         [<Test>]
-        member this.TestThatEachResultHasTheSameLengthAsTheInputContributionList () =
+        member this.TestThatEachResultOccursOnlyOnce () =
             for limit in [0u..3u] do
                 for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
                     for total in [0u..limit] do
@@ -83,7 +86,7 @@ namespace SageSerpent.Infrastructure.Tests
                         Assert.IsTrue shouldBeTrue
                
         [<Test>]
-        member this.TestThatEachResultOccursOnlyOnce () =
+        member this.TestThatEachResultHasTheSameLengthAsTheInputContributionList () =
             for limit in [0u..3u] do
                 for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
                     for total in [0u..limit] do
@@ -99,8 +102,10 @@ namespace SageSerpent.Infrastructure.Tests
             for total in [0u..5u] do
                 let inputExamples = contributionLimitsEquallingLimitInTotal total 5u
                 let combinedResultsFromAllPossibleInputExamplesSummingToTotal
-                    = Set.of_list (List.concat (List.map (fun inputExample -> CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample total)
-                                                           inputExamples))
+                    = inputExamples
+                      |> List.map (fun inputExample -> CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample total)
+                      |> List.concat
+                      |> Set.of_list
                 let inputExamplesAsSet = Set.of_list inputExamples
                 printf "(TestCoverageOfAllPossibleContributionsThatCanMeetTheTotal) Number of input examples: %d, number of combined results: %d\n"
                        inputExamplesAsSet.Count

@@ -32,11 +32,11 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="Script.fsx" />
-    <Compile Include="testCaseEnumeratorFactory.fs" />
-    <Compile Include="interleavedTestCaseEnumeratorFactory.fs" />
-    <Compile Include="synthesizedTestCaseEnumeratorFactory.fs" />
-    <Compile Include="testVariableLevelEnumeratorFactory.fs" />
-    <Compile Include="dumpingGround.fs" />
+    <Compile Include="TestCaseEnumeratorFactory.fs" />
+    <Compile Include="InterleavedTestCaseEnumeratorFactory.fs" />
+    <Compile Include="SynthesizedTestCaseEnumeratorFactory.fs" />
+    <Compile Include="TestVariableLevelEnumeratorFactory.fs" />
+    <Compile Include="DumpingGround.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

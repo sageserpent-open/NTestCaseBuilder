@@ -2,8 +2,6 @@
 
 module SageSerpent.Infrastructure.CombinatoricUtilities
 
-    open Microsoft.FSharp.Collections
-    
     open Microsoft.FSharp.Core.Operators.Checked
     
     /// <summary>Given a list of non-negative integer limits, create lists of contributions that sum up to a total
@@ -33,10 +31,11 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
                                             yield (contributionFromHead, [[contributionFromHead]])]
             | head::tail -> let resultFromTail = ChooseContributionsToMeetTotalsUpToLimit tail limit
                             Map.of_list [for total in [0u..limit] do
-                                            let resultForTotal = [for contributionFromHead in [0u..(min head total)] do
-                                                                    let totalRequiredFromTail = total - contributionFromHead
-                                                                    if resultFromTail.ContainsKey totalRequiredFromTail
-                                                                    then yield! List.map (function item -> contributionFromHead::item) resultFromTail.[totalRequiredFromTail]]
+                                            let resultForTotal =
+                                                [for contributionFromHead in [0u..(min head total)] do
+                                                    let totalRequiredFromTail = total - contributionFromHead
+                                                    if resultFromTail.ContainsKey totalRequiredFromTail
+                                                    then yield! List.map (function item -> contributionFromHead::item) resultFromTail.[totalRequiredFromTail]]
                                             if not resultForTotal.IsEmpty
                                             then yield (total, resultForTotal)]
                             

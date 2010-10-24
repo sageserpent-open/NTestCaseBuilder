@@ -6,8 +6,8 @@ namespace SageSerpent.TestInfrastructure
     open System
     open SageSerpent.Infrastructure
 
-    type InterleavedTestCaseEnumeratorFactory(sequenceOfAlternatives: SageSerpent.TestInfrastructure.ITestCaseEnumeratorFactory seq) = // TODO: see if we can lose this poxy type annotation!
-        let alternatives = Seq.to_list sequenceOfAlternatives
+    type InterleavedTestCaseEnumeratorFactory(sequenceOfFactoriesProvidingSubsequencesToInterleave: seq<SageSerpent.TestInfrastructure.ITestCaseEnumeratorFactory>) = // TODO: see if we can lose this poxy type annotation!
+        let alternatives = Seq.to_list sequenceOfFactoriesProvidingSubsequencesToInterleave
         do if alternatives.IsEmpty
            then raise (PreconditionViolationException "Must provide at least one alternative.")
         interface SageSerpent.TestInfrastructure.ITestCaseEnumeratorFactory with

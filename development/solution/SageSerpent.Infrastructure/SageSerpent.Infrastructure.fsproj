@@ -36,10 +36,11 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="Script.fsx" />
-    <Compile Include="assemblyInformation.fs" />
-    <Compile Include="combinatoricUtilities.fs" />
-    <Compile Include="exceptions.fs" />
-    <Compile Include="nUnitTestSuiteDriver.fs" />
+    <Compile Include="AssemblyInformation.fs" />
+    <Compile Include="CombinatoricUtilities.fs" />
+    <Compile Include="Exceptions.fs" />
+    <Compile Include="NUnitTestSuiteDriver.fs" />
+    <Compile Include="BargainBasement.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="nunit.core, Version=2.2.9.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">

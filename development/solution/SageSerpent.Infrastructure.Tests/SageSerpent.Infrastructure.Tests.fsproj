@@ -43,8 +43,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="combinatoricUtilitiesTests.fs" />
-    <Compile Include="driver.fs" />
+    <Compile Include="CombinatoricUtilitiesTests.fs" />
+    <Compile Include="Driver.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj">
