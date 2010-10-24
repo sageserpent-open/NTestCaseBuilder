@@ -42,7 +42,7 @@ namespace SageSerpent.Infrastructure.Tests
                         Assert.IsTrue shouldBeTrue
                     
         [<Test>]
-        member this.TestThatSumOfChosenContributionsInEachResultIsTheSameAsTheLimit () =
+        member this.TestThatSumOfChosenContributionsInEachResultIsTheSameAsTheTotal () =
             for limit in [0u..3u] do
                 for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
                     for total in [0u..limit] do
@@ -55,6 +55,15 @@ namespace SageSerpent.Infrastructure.Tests
                         
         [<Test>]
         member this.TestThatEachResultHasTheSameLengthAsTheInputContributionList () =
+            for limit in [0u..3u] do
+                for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
+                    for total in [0u..limit] do
+                        let results = CombinatoricUtilities.chooseContributionsToMeetTotal inputExample total
+                        let shouldBeTrue = results.Length = (Set.of_list results).Count
+                        Assert.IsTrue shouldBeTrue
+               
+        [<Test>]
+        member this.TestThatEachResultOccursOnlyOnce () =
             for limit in [0u..3u] do
                 for inputExample in contributionLimitsEquallingLimitInTotal limit 4u do
                     for total in [0u..limit] do
