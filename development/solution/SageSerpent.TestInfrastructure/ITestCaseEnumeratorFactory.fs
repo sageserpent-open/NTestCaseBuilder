@@ -47,6 +47,8 @@ namespace SageSerpent.TestInfrastructure
     /// requested strength.
 
     type ITestCaseEnumeratorFactory =
+        inherit INodeWrapper
+        
         abstract member CreateEnumerator: uint32 -> IEnumerator;
         
         abstract member MaximumStrength: System.UInt32;

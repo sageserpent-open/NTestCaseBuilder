@@ -36,11 +36,6 @@ namespace SageSerpent.TestInfrastructure.Tests
         
         let maximumNumberOfIndicesToAvoid = 4u
         
-        let boxAssociatedLevel (testVariableIndex
-                                , associatedLevel) =
-            testVariableIndex
-            , box associatedLevel
-        
         let createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff =
             let randomBehaviour =
                 RandomBehaviour randomBehaviourSeed
@@ -70,11 +65,11 @@ namespace SageSerpent.TestInfrastructure.Tests
                                 let levelForVectorBeingExamined =
                                     shuffledLevels.[int32 numberOfTestVectors - (1 + numberOfCopiesOfVectorsBeingExamined)]
                                 let vectorBeingExamined =
-                                    Map.add testVariableIndex (box levelForVectorBeingExamined) vectorBeingExamined
+                                    Map.add testVariableIndex levelForVectorBeingExamined vectorBeingExamined
                                 let levelForVectorBeingCompleted =
                                     shuffledLevels.[numberOfCompletedPartialTestVectors]
                                 let vectorBeingCompleted =
-                                    Map.add testVariableIndex (box levelForVectorBeingCompleted) vectorBeingCompleted
+                                    Map.add testVariableIndex levelForVectorBeingCompleted vectorBeingCompleted
                                 vectorBeingExamined :: modifiedCopiesOfVectorsBeingExamined
                                 , vectorBeingCompleted
                             let incompletePartialTestVectors
@@ -91,7 +86,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                 
         let mergeOrAddPartialTestVectors partialTestVectors initialCollection =
             partialTestVectors
-            |> List.fold_left (fun (mergedPartialTestVectors: MergedPartialTestVectorRepresentations) partialTestVector ->
+            |> List.fold_left (fun (mergedPartialTestVectors: MergedPartialTestVectorRepresentations<_>) partialTestVector ->
                                 mergedPartialTestVectors.MergeOrAdd partialTestVector)
                               initialCollection
                               
@@ -106,7 +101,7 @@ namespace SageSerpent.TestInfrastructure.Tests
         member this.TestAdditionOfUnmergeableVectorsPreservesIndividualVectors () =
             let testHandoff partialTestVectorsThatDoNotOverlap =
                 let mergedPartialTestVectors =
-                    mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap MergedPartialTestVectorRepresentations.Initial
+                    mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap MergedPartialTestVectorRepresentations.initial
                 let shouldBeTrue =
                     Set.of_list partialTestVectorsThatDoNotOverlap = Set.of_seq mergedPartialTestVectors
                 Assert.IsTrue shouldBeTrue
@@ -116,7 +111,7 @@ namespace SageSerpent.TestInfrastructure.Tests
         member this.TestAdditionOfPartialsOfExistingVectors () =
             let testHandoff partialTestVectorsThatDoNotOverlap =
                 let mergedPartialTestVectors =
-                    mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap MergedPartialTestVectorRepresentations.Initial
+                    mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap MergedPartialTestVectorRepresentations.initial
                 let randomBehaviour = RandomBehaviour randomBehaviourSeed
                 let mutantsOrCopiesOf partialTestVector =
                     let maximumRecursionDepth = 10u
@@ -197,7 +192,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                     partialTestVectorsThatDoNotOverlap
                     |> List.map (avoidCertainIndicesByRemapping sortedIndicesToAvoid)
                 let mergedPartialTestVectors =
-                    mergeOrAddPartialTestVectors remappedPartialTestVectors MergedPartialTestVectorRepresentations.Initial
+                    mergeOrAddPartialTestVectors remappedPartialTestVectors MergedPartialTestVectorRepresentations.initial
 //                let setOfTestVectors =
 //                    Set.of_list remappedPartialTestVectors
 //                let setOfMergedTestVectors =
@@ -229,7 +224,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                              (testVariableIndex
                                               , level)
                                              =
-                            Map.add testVariableIndex (box level) partialTestVector
+                            Map.add testVariableIndex level partialTestVector
                         Seq.fold addIndexAndLevel partialTestVector)
                 let partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices =
                     remappedPartialTestVectors
@@ -268,14 +263,13 @@ namespace SageSerpent.TestInfrastructure.Tests
                                      :: chooseTestVariableIndicesAndTheirLevels (recursionDepth + 1u)
                              let partialTestVector =
                                 chooseTestVariableIndicesAndTheirLevels 0u
-                                |> List.map boxAssociatedLevel
                                 |> Map.of_list
                              partialTestVector :: createPartialTestVectors (testVariableIndex + 1u)
                     createPartialTestVectors 0u
                 let partialTestVectors =
                     createPartialTestVectors ()
                 let mergedPartialTestVectors =
-                        mergeOrAddPartialTestVectors partialTestVectors MergedPartialTestVectorRepresentations.Initial
+                        mergeOrAddPartialTestVectors partialTestVectors MergedPartialTestVectorRepresentations.initial
                 let numberOfMergedPartialTestVectors =
                     Seq.length mergedPartialTestVectors
                 let shouldBeTrue = numberOfMergedPartialTestVectors <= partialTestVectors.Length
@@ -304,7 +298,7 @@ namespace SageSerpent.TestInfrastructure.Tests
         [<Test>]
         member this.TestInitialStateIsEmptyAndDoesNotContainATrivialEmptyPartialTestVector () =
             let initial =
-                MergedPartialTestVectorRepresentations.Initial
+                MergedPartialTestVectorRepresentations.initial
             let containedPartialTestVectors =
                 initial
                 |> List.of_seq

@@ -13,7 +13,8 @@ using SageSerpent.TestInfrastructure;
 
 namespace SageSerpent.TestInfrastructure.Tests
 {
-    using TestVariableLevelToContainingCombinationMultiMap = MultiDictionary<TestVariableLevel, HashSet<TestVariableLevel>>;
+    using TestVariableLevelToContainingCombinationMultiMap =
+        MultiDictionary<TestVariableLevel, HashSet<TestVariableLevel>>;
     using CombinationOfTestVariableLevels = HashSet<TestVariableLevel>;
     using SequenceOfTestVariableLevels = C5.IList<TestVariableLevel>;
     using CollectionOwningTestVariableLevels = C5.ICollection<TestVariableLevel>;
@@ -21,14 +22,25 @@ namespace SageSerpent.TestInfrastructure.Tests
     using SetOfCombinations = HashSet<HashSet<TestVariableLevel>>;
     using SetOfSequencesOfCollectionsOwningTestVariableLevels = HashSet<IEnumerable<C5.ICollection<TestVariableLevel>>>;
 
-    public abstract class AbstractTestCase
+    public abstract class AbstractTestCase : IComparable,
+                                             IComparable<AbstractTestCase>
     {
         public abstract SequenceOfTestVariableLevels TestVariableLevels();
+
+        public abstract int CompareTo(object another);
+
+        public int CompareTo(AbstractTestCase another)
+        {
+            return CompareTo((Object) another);
+        }
     }
 
-    public class TestVariableLevel : AbstractTestCase
+    public class TestVariableLevel : AbstractTestCase,
+                                     IComparable<TestVariableLevel>
     {
         private readonly CollectionOwningTestVariableLevels _owningCollection;
+
+        private UInt32 _instanceNumber = 0U;
 
         private TestVariableLevel(CollectionOwningTestVariableLevels owningCollection)
         {
@@ -47,10 +59,30 @@ namespace SageSerpent.TestInfrastructure.Tests
             return singletonSequence;
         }
 
+        public override int CompareTo(object another)
+        {
+            var anotherOfSameType = (TestVariableLevel) another;
+
+            if (anotherOfSameType == null)
+            {
+                throw new ArgumentException("Exact runtime type of 'another' is not compatible with receiver.");
+            }
+
+            return CompareTo(anotherOfSameType);
+        }
+
         public static void PutNewTestCaseInto(CollectionOwningTestVariableLevels owningCollection)
         {
-            var testCase = new TestVariableLevel(owningCollection);
+            var testCase = new TestVariableLevel(owningCollection)
+                               {
+                                   _instanceNumber = ((UInt32) owningCollection.Count) + 1u
+                               };
             owningCollection.Add(testCase);
+        }
+
+        public int CompareTo(TestVariableLevel another)
+        {
+            return _instanceNumber.CompareTo(another._instanceNumber);
         }
 
         public override Boolean Equals(Object another)
@@ -66,7 +98,8 @@ namespace SageSerpent.TestInfrastructure.Tests
         }
     }
 
-    public class ComposedTestCase : AbstractTestCase
+    public class ComposedTestCase : AbstractTestCase,
+                                    IComparable<ComposedTestCase>
     {
         private IEnumerable<AbstractTestCase> _childTestCases;
 
@@ -83,6 +116,18 @@ namespace SageSerpent.TestInfrastructure.Tests
             return result;
         }
 
+        public override int CompareTo(object another)
+        {
+            var anotherOfSameType = (ComposedTestCase) another;
+
+            if (anotherOfSameType == null)
+            {
+                throw new ArgumentException("Exact runtime type of 'another' is not compatible with receiver.");
+            }
+
+            return CompareTo(anotherOfSameType);
+        }
+
         public static ComposedTestCase MakeShuffledCombination(IEnumerable<AbstractTestCase> testCases, Int32 seed)
         {
             var result = new ComposedTestCase
@@ -91,6 +136,11 @@ namespace SageSerpent.TestInfrastructure.Tests
                              };
 
             return result;
+        }
+
+        public int CompareTo(ComposedTestCase another)
+        {
+            return Algorithms.LexicographicalCompare(_childTestCases, another._childTestCases);
         }
 
         public override Boolean Equals(Object another)
@@ -124,8 +174,9 @@ namespace SageSerpent.TestInfrastructure.Tests
 
         #endregion
 
-        private static SetOfCombinations MakeTestVariableLevelsCombinations(ITestCaseEnumeratorFactory testCaseGenerator,
-                                                                         Random randomChoice)
+        private static SetOfCombinations MakeTestVariableLevelsCombinations(
+            ITestCaseEnumeratorFactory testCaseGenerator,
+            Random randomChoice)
         {
             var numberOfCombinationsLeftToTry = 100U;
             // NOTE: we may get some repeated combinations, or
@@ -140,7 +191,8 @@ namespace SageSerpent.TestInfrastructure.Tests
             while (numberOfCombinationsLeftToTry-- != 0U)
             {
                 var testVariableLevelsCombination =
-                    ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerator).PickFeasibleCombinationOfTestVariableLevels(
+                    ((ITestCaseGeneratorIntrusiveTestHooks) testCaseGenerator).
+                        PickFeasibleCombinationOfTestVariableLevels(
                         randomChoice);
 
                 testVariableLevelsCombinations.Add(testVariableLevelsCombination);
@@ -149,17 +201,18 @@ namespace SageSerpent.TestInfrastructure.Tests
             return testVariableLevelsCombinations;
         }
 
-        private static TestVariableLevelToContainingCombinationMultiMap MakeTestVariableLevelToContainingCombinationMultiMap(
+        private static TestVariableLevelToContainingCombinationMultiMap
+            MakeTestVariableLevelToContainingCombinationMultiMap(
             SetOfCombinations testVariableLevelsCombinations)
         {
             var testVariableLevelToContainingCombinationMultiMap =
                 new TestVariableLevelToContainingCombinationMultiMap(false);
 
             Algorithms.ForEach(testVariableLevelsCombinations, combination => Algorithms.ForEach(combination,
-                                                                                              testCase =>
-                                                                                              testVariableLevelToContainingCombinationMultiMap
-                                                                                                  .Add(testCase,
-                                                                                                       combination)));
+                                                                                                 testCase =>
+                                                                                                 testVariableLevelToContainingCombinationMultiMap
+                                                                                                     .Add(testCase,
+                                                                                                          combination)));
             return testVariableLevelToContainingCombinationMultiMap;
         }
 
@@ -170,7 +223,7 @@ namespace SageSerpent.TestInfrastructure.Tests
         {
             var maximumCombinationWidth =
                 Algorithms.Maximum(Algorithms.Convert(testVariableLevelsCombinations, combination => (UInt32)
-                                                                                                  combination.Count));
+                                                                                                     combination.Count));
 
             return
                 (UInt32)
@@ -188,23 +241,26 @@ namespace SageSerpent.TestInfrastructure.Tests
                     new HashDictionary<CombinationOfTestVariableLevels, UInt32>();
 
             Algorithms.ForEach(testVariableLevelsCombinations,
-                               combination => combinationToNumberOfTestVariableLevelComponentsLeftToFindMap[combination] =
-                                              (UInt32) combination.Count);
+                               combination =>
+                               combinationToNumberOfTestVariableLevelComponentsLeftToFindMap[combination] =
+                               (UInt32) combination.Count);
 
             Algorithms.ForEach(testCase.TestVariableLevels(), testVariableLevel =>
-                                                               {
-                                                                   if (
-                                                                       testVariableLevelToContainingCombinationMultiMap.
-                                                                           ContainsKey(testVariableLevel))
-                                                                   {
-                                                                       Algorithms.ForEach(
-                                                                           testVariableLevelToContainingCombinationMultiMap[
-                                                                               testVariableLevel],
-                                                                           combination => --
-                                                                                          combinationToNumberOfTestVariableLevelComponentsLeftToFindMap
-                                                                                              [combination]);
-                                                                   }
-                                                               });
+                                                                  {
+                                                                      if (
+                                                                          testVariableLevelToContainingCombinationMultiMap
+                                                                              .
+                                                                              ContainsKey(testVariableLevel))
+                                                                      {
+                                                                          Algorithms.ForEach(
+                                                                              testVariableLevelToContainingCombinationMultiMap
+                                                                                  [
+                                                                                  testVariableLevel],
+                                                                              combination => --
+                                                                                             combinationToNumberOfTestVariableLevelComponentsLeftToFindMap
+                                                                                                 [combination]);
+                                                                      }
+                                                                  });
 
             Algorithms.ForEach<C5.KeyValuePair<CombinationOfTestVariableLevels, uint>>(
                 combinationToNumberOfTestVariableLevelComponentsLeftToFindMap,
@@ -248,7 +304,8 @@ namespace SageSerpent.TestInfrastructure.Tests
         {
             if (!(testCases.Count >= combinationSize))
             {
-                throw new PreconditionViolationException("Attempt to pick out combination larger than size of source collection.");
+                throw new PreconditionViolationException(
+                    "Attempt to pick out combination larger than size of source collection.");
             }
 
             if (0U == combinationSize)
@@ -366,7 +423,8 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             #region ITestCaseGeneratorIntrusiveTestHooks Members
 
-            public SetOfSequencesOfCollectionsOwningTestVariableLevels PossibleSequencesOfCollectionsOwningTestVariableLevels()
+            public SetOfSequencesOfCollectionsOwningTestVariableLevels
+                PossibleSequencesOfCollectionsOwningTestVariableLevels()
             {
                 var result = new SetOfSequencesOfCollectionsOwningTestVariableLevels();
 
@@ -430,7 +488,8 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             #region ITestCaseGeneratorIntrusiveTestHooks Members
 
-            public SetOfSequencesOfCollectionsOwningTestVariableLevels PossibleSequencesOfCollectionsOwningTestVariableLevels()
+            public SetOfSequencesOfCollectionsOwningTestVariableLevels
+                PossibleSequencesOfCollectionsOwningTestVariableLevels()
             {
                 var result = new SetOfSequencesOfCollectionsOwningTestVariableLevels();
 
@@ -547,7 +606,8 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             #region ITestCaseGeneratorIntrusiveTestHooks Members
 
-            public SetOfSequencesOfCollectionsOwningTestVariableLevels PossibleSequencesOfCollectionsOwningTestVariableLevels()
+            public SetOfSequencesOfCollectionsOwningTestVariableLevels
+                PossibleSequencesOfCollectionsOwningTestVariableLevels()
             {
                 var result = new SetOfSequencesOfCollectionsOwningTestVariableLevels();
 

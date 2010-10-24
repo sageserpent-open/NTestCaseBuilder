@@ -8,22 +8,22 @@ namespace SageSerpent.TestInfrastructure
     open SageSerpent.Infrastructure
     open Microsoft.FSharp.Collections
     
-    type LevelRepresentation =
-        Level of Object
+    type LevelRepresentation<'Level> =
+        Level of 'Level
       | Indeterminate                     
-    and InternalNodeRepresentation =
+    and InternalNodeRepresentation<'Level> =
         {
-            LevelForTestVariableIndex: LevelRepresentation
-            SubtreeWithLesserLevelsForSameTestVariableIndex: MergedPartialTestVectorRepresentations
-            SubtreeWithGreaterLevelsForSameTestVariableIndex: MergedPartialTestVectorRepresentations
-            SubtreeForGreaterIndices: MergedPartialTestVectorRepresentations
+            LevelForTestVariableIndex: LevelRepresentation<'Level>
+            SubtreeWithLesserLevelsForSameTestVariableIndex: MergedPartialTestVectorRepresentations<'Level>
+            SubtreeWithGreaterLevelsForSameTestVariableIndex: MergedPartialTestVectorRepresentations<'Level>
+            SubtreeForGreaterIndices: MergedPartialTestVectorRepresentations<'Level>
         }
-    and MergedPartialTestVectorRepresentations =
+    and MergedPartialTestVectorRepresentations<'Level> =
         SuccessfulSearchTerminationNode
       | UnsuccessfulSearchTerminationNode
-      | InternalNode of InternalNodeRepresentation
+      | InternalNode of InternalNodeRepresentation<'Level>
       
-        interface IEnumerable<Map<UInt32, Object>> with
+        interface IEnumerable<Map<UInt32, 'Level>> with
             member this.GetEnumerator () =
                 this.CreatePartialTestVectorSequence().GetEnumerator ()
         interface IEnumerable with
@@ -95,7 +95,7 @@ namespace SageSerpent.TestInfrastructure
                                 let partialResult
                                     , previousTestVariableIndex =
                                     fillInNonConsecutiveIndicesWithIndeterminateEntries tail
-                                Level level :: fillIfNecessary (testVariableIndex + 1u) previousTestVariableIndex partialResult
+                                Level (level: 'Level) :: fillIfNecessary (testVariableIndex + 1u) previousTestVariableIndex partialResult
                                 , Some testVariableIndex
             let partialTestVectorPossiblyWithLeadingEntriesMissing
                 , lowestTestVariableIndex =
@@ -308,10 +308,7 @@ namespace SageSerpent.TestInfrastructure
                                                                                 remove subtreeWithGreaterLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
                                                                                 |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex)
                                                 
-            remove this queryPartialTestVectorRepresentation true 0u                  
-                                  
-        static member Initial =
-            UnsuccessfulSearchTerminationNode
+            remove this queryPartialTestVectorRepresentation true 0u
             
         member this.MergeOrAdd partialTestVectorRepresentation =
             if Map.is_empty partialTestVectorRepresentation
@@ -325,6 +322,8 @@ namespace SageSerpent.TestInfrastructure
                   | None ->
                         this.Add partialTestVectorRepresentation
 
-            
-
         
+    module MergedPartialTestVectorRepresentations =
+        let initial =
+            UnsuccessfulSearchTerminationNode
+    
