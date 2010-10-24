@@ -90,7 +90,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                             delegateTypeBuilder
                                             (listCondensation: List<'X> -> 'X) =         
             let arguments = [for index in 1u .. arity do
-                                yield Var ("argument" + arity.ToString ()
+                                yield Var ("argument" + index.ToString ()
                                            , typeof<'X>
                                            , false)]
             
@@ -136,8 +136,6 @@ namespace SageSerpent.TestInfrastructure.Tests
 
     [<TestFixture>]
     type TestCaseEnumerableFactoryTestFixture () =
-        let mutable delegatesCache = Map.empty
-        
         let maximumCombinationStrength = 6u
         let maximumNumberOfSubtrees = 4u
         let maximumNumberOfTestLevels = 3u
@@ -220,7 +218,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                 CodeGeneration.NAryCondensationDelegateBuilder (uint32 permutedSubtrees.Length)
                                                                                delegateTypeBuilder
                                                                                (undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels: List<List<TestVariableLevel> > -> List<TestVariableLevel>)
-                                
+                                                                               
                             SynthesizedTestCaseEnumerableFactory.Create permutedSubtrees
                                                                         nAryCondensationDelegate
                             , testVariableCombination
