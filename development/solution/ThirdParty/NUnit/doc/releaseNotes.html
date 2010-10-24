@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<!-- saved from url=(0014)about:internet --><!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
 <html>
 <!-- Standard Head Part -->
 <head>
@@ -32,888 +32,1061 @@ dt { font-weight: bold }
 
 <h2>Release Notes</h2>
 
-<h3>NUnit 2.2.9 - November 26, 2006</h3>
+<style><!--
+li { padding-bottom: .5em; }
+ul ul li { padding-bottom: 0; }
+dt { font-weight: bold }
+--></style>
+
+<h3>NUnit 2.5.3 - Version 2.5.3.9345 - December 11, 2009</h3>
+
+<p><b>Note:</b> This is the first release of NUnit on Launchpad.
+   
+<h4>Features</h4>
+
+<ul>
+<li>Test execution under .NET 4.0 is now supported. It may be selected
+    in the Gui runner or using the console runner /framework option.
+	NUnit test projects may specify .NET 4.0 as the required framework
+	to be used for loading the the project. PlatformAttribute allows 
+	testing for .NET 4.0.
+<li>The distribution now includes nunit-agent-x86.exe, which is used
+    for running tests in a separate process under nunit-x86.exe
+	or nunit-console-x86.exe when the target framework is .NET 2.0
+	or greater.
+<li>Static methods Contains.Substring() and Contains.Item() have been
+    added to the NUnit syntax for compatibility with NUnitLite.
+<li>Non-public test fixtures are now allowed in all cases, 
+    whether the TestFixtureAttribute is present or not.
+<li>Abstract classes may now be marked with TestFixtureAttribute
+    to indicate that derived classes are to be treated as 
+	test fixtures. The abstract class is no longer marked as invalid.
+<li>Fixtures without tests are no longer shown as non-runnable but
+    are simply executed. If the fixture setup or teardown does not cause
+	an error, they are reported as inconclusive.
+</ul>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+<li>Reloading tests in the Gui no longer uses the default runtime if
+    a different runtime was previously selected.
+<li>Thread principal is now saved before each test and restored afterward
+    eliminating failures under .NET 4.0.
+<li>Assume.That() overload with a message no longer results in test failure.
+<li>An expected Result of null is now handled correctly on parameterized tests.
+<li>Duplicate caching of metadata has been eliminated, resolving a
+    load performance problem when many methods are inherited from
+	a base class.
+<li>The names of nested generic and non-generic classes are now displayed 
+    correctly.
+<li>Assert.Catch&lt;T&gt; now correctly returns exception type T rather than
+    System.Exception.
+<li>ValueSourceAttribute now works correctly when used with an external type.
+<li>The /domain=None option on nunit-console once again works correctly.
+<li>Parameterized test fixture names are now displayed with the actual
+    arguments used so that failures may be associated with the correct
+	instantiation of the fixture.
+<li>Test labels for generics are now displayed correctly by the console
+    runner and in the Gui text output tab.
+<li>Generic fixtures without type attributes provided are now shown
+    as non-runnable rather than causing a runtime error. (1)
+<li>Use of an unknown file type in the console command line no longer causes
+    an error. (2)
+<li>A number of tests that ran incorrectly under Linux have been fixed.
+<li>A number of tests failing under .NET 4.0 have been fixed.
+</ul>
+
+<h4>Notes</h4>
+
+<ol>
+<li>As a side effect of this fix, TestFixtureAttribute on a base class is
+    overridden by a TestFixtureAttribute on the derived class. 
+<li>This was originally reported as "crash when using /option in linux."
+</ol>
+<style><!--
+li { padding-bottom: .5em; }
+ul ul li { padding-bottom: 0; }
+dt { font-weight: bold }
+--></style>
+
+<h3>NUnit 2.5.2 - Version 2.5.2.9222 - August 10, 2009</h3>
+
+<p><b>Note:</b> This is the last release of NUnit using source code
+   maintained on Sourceforge. The CVS repository there will be kept,
+   but no longer updated. After this release, the source is being
+   maintained on Launchpad at http://launchpad.net/nunit-2.5.
+
+<h4>Framework</h4>
+
+<ul>
+<li>The new <b>SetUICultureAttribute</b> allows setting CurrentUICulture
+    for the duration of a test method, fixture or assembly.
+<li>The <b>TestFixture</b>, <b>TestCase</b> and <b>TestCaseData</b> attributes
+    have been enhanced to allow ignoring an individual fixture instance or
+	test case. Two new named parameters are provided:
+	<ul>
+	<li><b>Ignore</b> may be set to true to ignore an item.
+	<li><b>IgnoreReason</b> may be set to specify the reason for ignoring
+	    the item. If IgnoreReason is set to a non-empty string, then setting
+		Ignore is optional.
+	</ul>
+<li><b>Assert.Catch</b> has been added with several overloads. It differs
+    from <b>Assert.Throws</b> in accepting exceptions derived from the one
+	that is specified. Like <b>Assert.Throws</b>, it returns the exception
+	thrown when it succeeds so that further tests can be made on it.
+<li>The <b>Throws</b> syntax has a number of new additions:
+    <ul>
+	<li><b>ThrowsTargetInvocationException</b>, <b>ThrowsArgumentException</b>
+	    and <b>Throws.InvalidOperationException</b> provide a shorter syntax
+		for testing for these common exception types.
+	<li><b>Throws.InnerException</b> applies any constraints to the InnerException 
+	    of the exception that was thrown rather than to the exception itself.
+	<li><b>InnerException</b> can also be used in constraint expressions - see
+	    the documentation for an example.
+	</ul>
+</ul>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+<li>Data from a TestCaseSource in a separate class from the tests
+    is now handled correctly.
+<li>Arguments specified using TestCaseData are now used correctly.
+<li>Comparing the a stream to itself no longer causes an error.
+<li>TimeoutAttribute is now permitted on an assembly as documented.
+<li>Clear All and Clear Failures buttons are now displayed correctly
+    depending on whether Checkboxes are displayed in the Gui.
+<li>The console runner option descriptions have been revised to
+    more clearly indicate what each option does.
+<li>Running special tests that do not use the nunit.framework assembly
+    no longer causes a null reference exception.
+<li>Console Runner option descriptions have been edited for accuracy.
+<li>Gui TreeView now updates correctly when the order of tests has changed.
+<li>An exception in TearDown now displays the actual exception
+    at the top of the stack rather than a TargetInvocationException.
+</ul>
+<style><!--
+li { padding-bottom: .5em; }
+ul ul li { padding-bottom: 0; }
+dt { font-weight: bold }
+--></style>
+
+<h3>NUnit 2.5.1 - Version 2.5.1.9189 - July 8, 2009</h3>
+
+<h4>Framework</h4>
+
+<ul>
+<li>A new <b>TestResult</b> state has been defined for tests cancelled by the
+    user. Results with <b>ResultState.Cancelled</b> are reported as a type of
+	failure and no longer generate an ApplicationException.
+<li>Parameterized test fixtures with <b>TestCaseSource</b> or <b>ValueSource</b> 
+	data are now constructed using the appropriate parameterized constructor 
+	when test cases are being created. This avoids the need for a default
+	constructor and permits use of member data initialized from
+	the fixture parameters in creating the test data.
+<li>The <b>TestCaseData</b> class now supports use of a string or other
+    array type as the sole argument value, without the need to nest
+	that array in an object array.
+<li>Abstract classes marked with <b>TestFixtureAttribute</b> are no longer
+    reported as ignored or non-runnable.
+	<br><br>
+	<b>Note:</b> This was changed in 2.5 but was omitted from the release notes.
+<li>The methods in the <b>Text</b> class are now marked as obsolete. For string 
+	constraints, use one of the following at the start of an expression:
+	<ul>
+	<li><b>Is.StringContaining</b>
+	<li><b>Is.StringStarting</b>
+	<li><b>Is.StringEnding</b>
+	<li><b>Is.StringMatching</b>
+	</ul>
+	Within an expression (afer Not, Some, All, And, Or, etc.) you may use
+	<ul>
+	<li><b>Contains</b> or <b>ContainsSubstring</b>
+	<li><b>StartsWith</b>
+	<li><b>EndsWith</b>
+	<li><b>Matches</b>	
+	</ul>
+<li><b>ThrowsConstraint</b> now has a constructor taking an <b>ActualValueDelegate</b>
+    in addition to the constructor that takes a <b>TestDelegate</b>. This allows
+	simpler use of Lambda expressions under C# 3.0, but requires users of pre-3.0
+	compilers to disambiguate their delegates by use of an explicit return
+	expression.
+</ul>
+
+<h4>Core</h4>
+
+<ul>
+<li>Individual test cases under a parameterized test are
+    no longer sorted by name within the test group but are
+	run (and shown in the Gui) in the order in which the
+	data is retrieved.
+	<br><br>
+	<b>Note:</b> Since the order of retrieval of custom
+	attributes is not guaranteed by the CLR, the order
+	of test cases will not necessarily match the textual
+	ordering of attributes in the source code. The order
+	of tests will vary across different compilers and
+	CLR versions as well.
+<li>The XML test result file now contains a count of 
+	inconclusive results.
+</ul>
+
+<h4>Gui</h4>
+
+<ul>
+<li>The default icons in the Gui tree have been updated.
+<li>Alternative icons placed by the user in the directory containing
+    nunit.uikit.dll may now be in PNG format. Icons are now recognized
+	for Skipped and Inconclusive status in addition to Success, Failure
+	and Ignored.
+<li>A new setting option allows the user to disable checking for the 
+    existence of files in the Recent Files list before listing them. This
+    prevents NUnit from appearing to freeze when the file is on a network
+    path that is no longer connected.
+</ul>
+
+<h4>Extensibility</h4>
+
+<ul>
+<li>The <b>ITestCaseProvider2</b> and <b>IDatapointProvider2</b> interfaces
+    extend <b>ITestCaseProvider</b> and <b>IDatapointProvider</b>
+    with methods that include the fixture for which the test case is being
+    built. Providers may implement either the old or the new interface, 
+	but the new interface is required if the data source is contained in
+	the test fixture itself so that the fixture may be constructed with
+	the proper parameters in the case of a parameterized fixture.
+</ul>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+<li>Lambda in Throws constraint was not compiling correctly.
+<li>Null reference exception is no longer thrown when adding an assembly to a 
+    new project that has not yet been saved.
+<li>Dispose is now called on disposable types created while loading test case 
+    parameters.
+<li>Installations that copy NUnit to a single folder (no lib or framework folders) 
+    now work correctly.
+<li>Test Assemblies menu item is no longer enabled when no test was loaded
+<li>The Text Output tab of the Settings dialog no longer causes an exception
+    when invoked from the mini-gui.
+<li>Errors in various copyright statements were fixed and the year updated to 2009.
+<li>Control characters in test arguments are now escaped in the display.
+<li>Additional control characters are now escaped in error messages.
+<li>Miscellaneous typographic corrections were made to the documentation.
+</ul>
+<h3>NUnit 2.5 Final Release - Version 2.5.0.9122 - May 2, 2009</h3>
+
+<h4>Framework</h4>
+
+<ul>
+<li>A new syntax element, <b>Matches(Constraint)</b>, allows use of
+custom constraints, predicates or lambda expressions in constraint expressions.
+
+<li>The <b>MessageMatch</b> enum used with <b>ExpectedExceptionAttribute</b>
+has been extended with a new value <b>StartsWith</b>, indicating that the
+exception message must start with the string provided.
+
+<li><b>TestCaseAttribute</b> now supports a <b>MessageMatch</b>
+property.
+</ul>
+
+<h4>Gui</h4>
+
+<ul>
+<li>The File menu now allows selecting an alternate runtime,
+such as Mono, on a machine with multiple CLR implementations
+installed. This feature is still considered experimental and
+may change in the future.
+
+<li>The combo box in the Project Editor allowing selection of
+a particular runtime type such as Mono for loading the test
+has been re-enabled.
+</ul>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+<li>Provided a workaround to a Mono 2.4 bug in handling remote 
+references to an interface, where the provider is running under
+MS .NET and the implementation is explicit.
+
+<li>Fixed a problem with the display of line numbers from a German
+language stack trace, with lines terminating in a period.
+
+<li> The Console Runner display now shows the settings for ProcessModel,
+DomainUsage and RuntimeFramework actually provided, before resolution
+of any defaults.
+
+<li> Removed references in the docs to pages that no longer exist.
+</ul>
+
+<h3>NUnit 2.5 Release Candidate - Version 2.5.0.9117 - April 27, 2009</h3>
+
 <h4>General</h4>
 
 <ul>
-<li>The default runtime for the build script is now .NET 2.0.
-<li>The build script now supports the Mono 2.0 profile
+<li>The installation now uses a 'lib' subdirectory to hold dlls.
+
+<li>The build script target names have been changed to make more sense.
+In particular, 'package' now builds the default package and
+targets not intended to be called directly are no longer listed
+as 'Main Targets' by the -projecthelp option.
+</ul>
+
+<h4>Framework</h4>
+
+<ul>
+<li>The following Constraints now use the NUnit definition
+of equality in comparing items, which may lead to changed behavior 
+of some tests.
+   <ul><b>
+   <li>UniqueItemsConstraint
+   <li>CollectionContainsConstraint
+   <li>CollectionEquivalentConstraint
+   <li>CollectionSubsetConstraint
+   </b></ul>
+The constraints listed now accept the <b>IgnoreCase</b> and <b>Using</b>
+modifiers, which work exactly as they do with <b>EqualConstraint</b>
+</ul>
+
+<h4>Core</h4>
+
+<ul>
+<li>Caching is now used to reduce the time required to load tests.
+</ul>
+
+<h4>Gui</h4>
+
+<ul>
+<li>A new submenu under <b>File</b> allows selecting a runtime version
+under which to reload the tests. Reloading in this way does not affect
+any runtime version setting in the project file.
+
+<li>The project editor now provides a combo box listing known versions
+of the runtime. Other versions may still be entered in the edit box.
+Cross-CLR execution (for example, running Mono from .NET) has
+been disabled in the Gui, since it isn't yet implemented.
+
+<li>The new stack trace display now follows the NUnit Font settings.
+The stack display uses the general gui font, while the source code
+display uses the fixed font.
+
+<li>The separate settings for Recent Files under .NET 1.1
+and .NET 2.0 have been combined, since the Gui now runs exclusively
+under .NET 2.0.
+
+<li>The time required to restore the visual state of the tree after
+reloading has been substantially reduced, especially for large numbers
+of tests.
 </ul>
 
 <h4>Bug Fixes</h4>
 
 <ul>
-<li>NUnit-2.2.8-net-2.0.msi updating wrong registry key
-<li>Need different shortcut names for the two versions of NUnit
-<li>Exceptions thrown after test run completes not handled
-<li>TestFixtureTearDown failures not reported correctly
-<li>Incorrect message for multiple TestFixtureSetUp methods
-<li>Command format under Linux not documented correctly
-<li>Category list not cleared when project is closed
-<li>StringAssert.Equals should be overridden
-<li>Incorrect time format in XML output
-<li>Incorrect error message when test assembly is on a share
-<li>Config level AppBase not used
-<li>Explicit attribute on class loaded by /fixture broken
-<li>Unintended change in XML output format
-<li>Strings with escaped backslashes not reported correctly
-<li>Unable to open VS2005 C++ files with attributes defaulted
-<li>GUI offers option of adding VS solution files but it fails
-<li>GUI flickering when running tests
-<li>CollectionAssert.Contains giving false positives
-<li>Tooltips cause crash on message > 64K
+<li>Use of a long assembly name for the ApplicationName of the AppDomain
+was causing excessively long paths in the shadow cache.
+
+<li>The <b>Using</b> modifier of <b>EqualConstraint</b> now works as
+expected for string operands.
+
+<li><b>TestCaseAttribute.ExpectedExceptionMessage</b> is no longer ignored.
+
+<li>The max number of files setting was not being saved when modified
+in the Gui Settings dialog.
+
+<li>As a temporary fix, the pnunit.tests.dll has been moved to the 
+same directory as pnunit-agent.exe and pnunit-launcher.exe, since
+pnunit tests don't allow for setting an appbase separate from the
+location of the test assembly.
 </ul>
 
-<h3>NUnit 2.2.8 - April 21, 2006</h3>
-
-<h4>Bug Fixes</h4>
-
-<ul>
-<li>Additional build and test fixes under Linux
-<li>ExpectedException with invalid type name no longer causes an error
-<li>Added missing pinned.gif and unpinned.gif in zip distribution
-<li>Fixed clipped caption on "Check Failed" button
-<li>Custom PrivateBinPath now being saved with .nunit project
-<li>StreamWriter used for console output is now auto-flushed on closed
-<li>Tree text now follows system colors
-<li>Removed extra newline for console output text
-<li>Console execution order now same as in gui
-<li>SetUp errors no longer "count" as ExpectedExceptions
-<li>Manual Install instructions corrected
-<li>TestFixtureSetUp and TestFixtureTearDown are now shown in the Errors and
-Failures tab
-<li>No longer possible to add assembly to a project with no configs
-<li>GUI message about unhandled exceptions is now displayed correctly
-</ul>
-
-<h3>NUnit 2.2.7 - February 18, 2006</h3>
-
-<h4>Bug Fixes</h4>
-
-<ul>
-<li>NAnt build script failing under Linux due to use of backslash
-    as a file separator.
-<li>Using AreEqual with float and double values that differ by a
-    a very small amount gives message that does not show the difference.
-<li>Use of actual and expected args for Assert.Greater and
-	Assert.Lesser confusing and not following normal convention.
-<li>The nunit.util assembly references the Windows shlwapi.dll,
-    which breaks Linux portability.
-<li>When NUnit TaskBar buttons are grouped, no name is being displayed
-<li>Intermittent exceptions when mouse hovers over failed test info
-<li>Failure to load from network drive not reported clearly
-<li>Assert.AreEqual and AreNotEqual need uint overloads
-<li>Text in output tabs not longer fixed font
-</ul>
-
-<h3>NUnit 2.2.6 - January 21, 2006</h3>
+<h3>NUnit 2.5 Beta 3 Release - Version 2.5.0.9096 - April 6, 2009</h3>
 
 <h4>General</h4>
 
 <ul>
-<li>NUnit may now be installed by a non-administrator. In this case, the framework
-is not added to the GAC, no entries are made in the local machine registry
-hive and NUnit assemblies will not appear as an option in the Visual Studio
-Add Reference dialog. 
-<br><b>Note:</b> Some NUnit tests fail when run by a non-admin. This will be 
-remedied in a future release.
-<li>The /fixture option used with a namespace now loads all instances of the 
-namespace across multiple assemblies.
-<li>A user-defined suite may now be created by adding the System.Type for the
-the user fixture to the suite, without instantiating the object.
-<li>Protected TestFixtureSetUp and TestFixtureTearDown methods are now
-recognized.
+<li>The Gui is now built against .NET 2.0 only. Tests may still
+be run under .NET 1.x by running in a separate process.
+
+<li>The Visual Studio 2003 solution has been removed. Framework
+and other components may still be built under .NET 1.x through
+the NAnt script.
+
+<li>The nunit.framework.extensions assembly has been removed
+from the build.
 </ul>
 
-<h4>Bug Fixes</h4>
+<h4>Framework</h4>
 
 <ul>
-<li>Assert count always zero
-<li>Tests out of order in the gui after a reload
-<li>User-defined suites not loaded in gui and not working as documented.
-<li>Non-default config file setting in project was being ignored
-<li>Config file for exes assumed to end in .dll.config rather than .exe.config.
-<li>Non-auto probing path set in project was being ignored.
-<li>Problems in Assert.Greater and Assert.Less
-<li>Source not building under .Net 1.0
+<li><b>EqualConstraint</b> has been enhanced with
+    several new modifiers, which may be used immediately after
+	the Within(...) modifier to indicate how a numeric tolerance value
+	should be interpreted.
+	<ul>
+	<li><b>Ulps</b> = as units in the last place (floating point only)
+	<li><b>Percent</b> = as a percentage of expected value
+	<li><b>Days</b> =  as a TimeSpan in days
+	<li><b>Hours</b> = as a TimeSpan in hours
+	<li><b>Minutes</b> = as a TimeSpan in minutes
+	<li><b>Seconds</b> = as a TimeSpan in seconds
+	<li><b>Milliseconds</b> = as a TimeSpan in milliseconds
+	<li><b>Ticks</b> = as a TimeSpan in ticks
+	</ul>
+
+<li>The comparison constraints (<b>GreaterThan</b>, <b>LessThan</b>, etc.),
+    <b>RangeConstraint</b> and <b>CollectionOrderedConstraint</b> may now be used 
+	with 	objects that implement <b>IComparable&lt;T&gt;</b>.
+    
+<li>The syntax used for specifying that a collection is ordered has changed.
+    <b>Is.Ordered</b> is now a property. The property name to use for ordering
+	is specified using <b>Is.Ordered.By(name)</b>.
+	
+<li>The following constraints now accept a <b>Using</b> modifier to indicate
+    that a user-specified comparer should be used:
+	<ul><b>
+	<li>EqualConstraint
+	<li>GreaterThanConstraint
+	<li>GreaterThanOrEqualConstraint
+	<li>LessThanConstraint
+	<li>LessThanOrEqualConstraint
+	<li>RangeConstraint
+	<li>CollectionOrderedConstraint
+	</b></ul>
+	The provided comparer may be any of the following:
+	<ul><b>
+	<li>IComparer
+	<li>IComparer&lt;T&gt;
+	<li>Comparison&lt;T&gt;
+	</b></ul>
+	In addition, <b>EqualConstraint</b> may use:
+	<ul><b>
+	<li>IEqualityComparer
+	<li>IEqualityComparer&lt;T&gt;
+	</b></ul>
 </ul>
 
-<h3>NUnit 2.2.5 - December 22, 2005</h3>
+<h3>NUnit 2.5 Beta 2 Release - Version 2.5.0.9015 - January 15, 2009</h3>
+
+<h4>Framework</h4>
+
+<ul>
+<li>NUnit now includes an implementation of <b>Theories</b>, similar to what
+    is found in JUnit. Support for Theories is provided by the
+	<b>Theory</b>, <b>Datapoint</b> and <b>Datapoints</b> attributes and by
+	the <b>Assume.That</b> method. For more information and further links, 
+	see the <a href="theory.html">TheoryAttribute</a> 
+	documentation page.
+<li>AssertionHelper has been updated so that the Expect overloads now
+    include the signatures newly introduced for Assert.That.
+<li>The code for Assert is now generated. This is in addition to the files 
+    that were generated in beta-1.
+<li><b>AfterConstraint</b> has been renamed to <b>DelayedConstraint</b>.
+</ul>
+
+<h4>Console</h4>
+
+<ul>
+<li>The console runner now supports a <b>/framework</b> option, which
+    allows running the tests under a different version of the CLR.
+</ul>
+
+<h4>Gui</h4>
+
+<ul>
+<li>The Gui is now able to display the source code for test or production
+    code from the stack trace, provided the assemblies contain source code
+    information and the source code is available. Contributed by Irénée Hottier.
+<li>Reloading the tests after changing settings in a way that modifies
+    the shape of the tree is now handled correctly.
+<li>The Settings Dialog now opens to the page that was last viewed.
+</ul>
+
+<h3>NUnit 2.5 Beta 1 Release - Version 2.5.0.8332 - November 27, 2008</h3>
 
 <h4>General</h4>
 
 <ul>
-<li>Context menu for dlls now contains "Open With NUnit"
-</ul>
-
-<h4>Bug Fixes</h4>
-<ul>
-<li>Missing files in source zip
-<li>Exception thrown when Assert.Contains referenced an empty list
-<li>Incorrectly labeled desktop shortcut
-<li>Exception thrown when adding an Assembly
-</ul> 
-
-<h3>NUnit 2.2.4 - December 14, 2005</h3>
-
-<h4>General</h4>
-<ul>
-<li>The <b>/framework</b> option, introduced in NUnit 2.2.3, has been removed.
-The same functionality is now provided by the <b>clr.bat</b> command file. 
-
-<li>A number of tests, failing only on certain systems, have been corrected.
-  <ul>
-    <li>All tests now pass on Mono 1.1.10, with one exception having to do
-	with FileSystemWatcher. That test is ignored for now, since the watcher 
-	is only used in the Windows Gui. 
-    <li>A race condition, which caused intermittent failures in the 
-	EventPump tests, has been removed.
-	<li>Some culture-specific tests have been corrected
-  </ul>
-
-<li>Common assembly info has been moved to a single file in the source.
-
-<li>The release documentation has been separated from other information that may change 
-over time. Only the documentation itself is included in the installed package, with a
-link to the web site providing access to additional resources.
+<li>Most of the code for elements of the constraint
+    syntax is now generated. This allows us to more rapidly deploy new 
+	constraints with their corresponding syntax. The file <b>SyntaxElements.txt</b>
+	contains the specifications used in generating the code. At this time,
+	we are including both this file and the generated files with the NUnit source,
+	so that those working in other areas of the code don't have to regenerate 
+	them each time they make changes.
+<li>The nunit.core.extensions assembly has been removed from the build. Features
+    that were previously in that assembly are now in the nunit.core assembly.
+<li>All third-party addins have been removed from the build and must be
+    downloaded separately from their own sites. An index of such
+	addins is maintained on the NUnit site.
 </ul>
 
 <h4>Framework</h4>
 <ul>
-<li>Two new Assert Methods have been added.
-  <dl style="margin-left: 2em">
-    <dt>Assert.Greater
-	<dd>Tests whether its first argument is greater than the second
-	<dt>Assert.Less
-	<dd>Tests whether its first argument is less than the second
-  </dl>
-  
-<li>The ExpectedException attribute may now be used with a string argument,
-representing the full type name of the expected exception. This eliminates
-the need to have a reference to the assembly defining the exception and will
-thus allow the test to pass across multiple versions of that assembly.
-
-<li>When an error or exception in a test is followed by a second error in
-the TearDown, both errors are now reported.
-
-<li>A custom configuration file, specified in a test project, is no longer ignored.
-
+<li>New attributes are provided to control use of threads by tests. All of
+   the following may be used on methods, classes or assemblies:
+   <ul>
+   <li><b>RequiresThreadAttribute</b> forces creation of a new thread and
+       may optionally indicate the desired ApartmentState for the thread.
+   <li><b>RequiresSTAAttribute</b> causes the test to run in the STA. A
+       new thread is created only if the parent is not in the STA. On
+	   methods, the .NET-provided STAThreadAttribute may also be used.
+   <li><b>RequiresMTAAttribute</b> causes the test to run in the MTA. A
+       new thread is created only if the parent is not in the MTA. On
+	   methods, the .NET-provided MTAThreadAttribute may also be used.
+   <li><b>TimeoutAttribute</b> is used to set the timeout for tests. When
+       used on classes or assemblies, the timeout value is used as the
+	   default timeout for all subordinate test cases. Test cases with
+	   a timeout value run on a separate thread and return a failure
+	   message if the timeout is exceeded.
+   </ul>
+<li>The <b>MaxTimeAttribute</b> specifies a miximum elapsed time for a
+	test case. If the test takes longer, it is reported as a failure.
+	This attribute was previously available as an extension.
+	<br><br>
+	<b>Note:</b> Unlike <b>TimeoutAttribute</b>, <b>MaxTimeAttribute</b>
+	does not cause the test to be cancelled, but merely times it.
+<li><b>RepeatAttribute</b> causes a test case to be executed multiple
+    times. This attribute was previously available as an extension.
+<li><b>PairwiseAttribute</b> now works, generating all pairs of each
+    argument value. [In earlier betas, it was unimpemented and simply
+	generated all combinations.]
+<li><b>PropertyAttribute</b> has been modified internally to use a dictionary
+    of name/value pairs rather than just a single name and value. This feature
+	is not exposed for direct use, but may be accessed by derived attributes
+	that want to apply multiple named values to the test. For a simple 
+	example of usage, see the code for <b>RequiredThreadAttribute</b>.
+<li>The presence of <b>TestCaseSourceAttribute</b> on a method is now
+    sufficient to identify it as a test. As with <b>TestCaseAttribute</b>,
+	use of <b>TestAttribute</b> is optional.
+<li><b>Assert.That</b> has been extended to allow a delegate or a reference 
+	as the argument. By default, these are evaluated before being used by
+	the constraint supplied but some constraints may delay evaluation. The
+	new <b>AfterConstraint</b> is an example.
+<li>An additional overload of <b>Assert.Throws</b> allows passing a
+    constraint or constraint expression as the first argument.
+<li>The syntax for AttributeConstraints has been enhanced so that further
+    tests may be applied to properties of the attribute rather than just
+	checking for its existence.
+<li><b>AfterConstraint</b> allows delaying the application of a constraint
+    until a certain time has passed. In it's simplest form, it replaces
+	use of a Sleep in the code but it also supports polling, which may
+	allow use of a longer maximum time while still keeping the tests as
+	fast as possible. The <b>After</b> modifier is permitted on any
+	constraint, but the delay applies to the entire expression up to the
+	point where <b>After</b> appears. 
+	<br><br>
+	<b>Note:</b> Use of After with a simple value makes no sense, since
+	the value will be extracted at the point of call. It's intended use
+	is with delegates and references. If a delegate is used with polling,
+	it may be called multiple times so only methods without side effects
+	should be used in this way.
 </ul>
 
-<h4>Console Interface</h4>
-<ul>
-<li>The <b>/noshadow</b> parameter now works, suppressing the use of ShadowCopy
-    for the tests. <b>Note:</b> This cannot be seen when running the NUnit tests
-	themselves, because certain tests enable ShadowCopy in AppDomains that
-	they create.
-	
-<li>The <b>/out</b> parameter is no longer ignored.
+<h4>Core</h4>
 
-<li>The <b>/xml</b> parameter now bases a relative path on the current directory rather
-than the directory containing the executing assembly.
+<ul>
+<li>NUnit now supports running tests in a separate process or in
+    multiple processes per assembly. In addition, tests run in
+	a separate process may use a different runtime version
+	from that under which NUnit is running.
+	<br><br>
+	<b>Note:</b> In the Beta release, execution of tests under Mono 
+	from a copy of NUnit that is running under .NET is not yet supported.
 </ul>
 
-<h4>Forms Interface</h4>
+<h4>Console</h4>
+
 <ul>
-<li>Test methods inherited from a base class now appear in the gui prefixed by
-the name of the base class. As a result, a test method in a derived class can
-redefine a test method in the base class using <b>new</b> without crashing the 
-Gui.
-
-<li>Attempting to add a duplicate name to the Gui now gives a warning method
-as opposed to throwing an exception.  
-
-<li>Fixed an error that occured when creating a new project from the Gui.
-
-<li>Fixed an error in the progress bar, which caused it to remain green when
-encountering an ignored TestFixture.
-
-<li>Provided an advisory message when an assembly that uses the 2.0 framework
-fails to load under .Net 1.1.
+<li>The new <b>/process:xxxxx</b> command line option is used to run
+    tests in a separate process or in multiple processes per assembly.
+<li>A new commandline option, <b>/timeout:nnnn</b> allows you to specify a
+    default timeout value, which is applied to each test case in the run without
+    a Timeout specified.
 </ul>
 
-<h3>NUnit Iteration Release 2.2.3 - November 14, 2005</h3>
+<h4>Gui</h4>
 
-<h4>General</h4>
 <ul>
-<li>NUnit can now be installed and run under .NET 2.0 and used in 
-conjunction with VS2005. A problem that prevented installation when 
-.NET 2.0 Beta 2 was the only installed framework has been corrected.
-NUnit 2.2.3 installation requires one of the following .NET framework
-versions to be present: 2.0.50727, 2.0.50215, 2.0.40607, 1.1.4322 or 1.0.3705.
+<li>The Assembly Info display now uses a scrolling text box and has
+    been enhanced to show information about the Process and AppDomain
+	in which the test is running and the runtime version under that
+	is being used.
+<li>The Project Editor now allows setting the ProcessModel and
+    DomainUsage for a project to control how that project is
+	loaded and run. It also supports setting a target runtime
+	framework for each configuration. If the target runtime is
+	different from the runtime under which NUnit is running, the
+	tests will be run automatically in a separate process under
+	the target runtime.
+<li>The Project Editor no longer reloads the tests as each
+    individual change is made. Tests are reloaded after the
+	editor is closed and only if changes have been made to
+	the overall project configuration or to the active
+	configuration.
+<li>The "Options" dialog is now called "Settings."
+</ul>
 
-<li>As an alternative to the use of the config file, both the console and gui 
-runners now accept an option <b>/framework</b>, which provides a simple way to 
-run NUnit under any installed version of the common language runtime.
+<h4>Extensibility</h4>
 
-<li>Additional NUnit library assemblies are now strongly named: nunit.framework,
-nunit.core, nunit.util, nunit.uikit, nunit-console-runner and nunit-gui-runner.
-As in prior releases, only nunit.framework is installed in the GAC.
+<ul>
+<li>The implementation of constraints has been changed so that it is no
+    longer necessary to create an additional "Modifier" class when a
+	custom constraint takes modifiers. If you simply implement each modifier
+	as a property or method returning the object itself, it will be 
+	usable in the full range of constraint expressions.
+	<br><br>
+	<b>Note:</b> Although you can readily create custom constraints,
+	this release of NUnit still lacks the ability to create new syntactic
+	elements without rebuilding the framework.
+</ul>
 
-<li>Separate assemblies are now used for extensions to the NUnit framework and
-core. Assemblies nunit.extensions.framework and nunit.extensions.core replace the
-older nunit.extensions assembly.
+<h4>Bug Fixes</h4>
 
-<li>As of this release, the msi files no longer install a copy of the source. To
-get the source, download the source package.
+<ul>
+<li>Loading a single assembly and then adding another assembly using
+    the Add Assembly menu item was not working correctly.
+<li>Reloading tests after settings changes was failing when the
+    new settings changed the shape of the tree in such a way
+	that the new tests didn't match the old ones correctly.
+<li>The Reload Project menu item was followed by a prompt asking
+    if the current project state should be saved first and making
+	the reload work in an unexpected way if you answered yes.
+<li>A class without a TestFixture attribute, containing only
+    TestCase methods, without any Tests, was not recognized as
+	a test fixture.
+<li>Assert.DoesNotThrow was failing to display a user message.
+<li>Xml documentation for Assert.IsNotEmpty and Assert.AreEqual
+    was incorrect.
+<li>CollectionAssert.AreEqual and EqualConstraint were not
+    working with IEnumerables that were not also Collections.
+<li>PlatformAttribute now distinguishes correctly between
+    Vista and Windows 2008 Server.
+</ul>
 
-<li>Problems in the NAnt build having to do with attempted access to 
-registry keys that may not be set in some systems have been fixed.
-
-<li>Various image files, missing in the 2.2.2 source download, have been restored.
-
-<li>Both the console and gui command lines no longer recognize '/' as an option
-delimiter when run on Unix or Linux systems. This allows use of absolute
-file paths as arguments to both programs.
-
-<li>The documentation has been reorganized and is now completely converted
-to HTML.
-
-</ul
+<h3>NUnit 2.5 Alpha 4 Release - Version 2.5.0.8528 - September 14, 2008</h3>
 
 <h4>Framework</h4>
 <ul>
-<li>The NUnit core now creates an additional thread for use in pumping events
-back to the GUI. This avoids problems that occur in earlier releases when the
-system under test changes the thread context, as in the case of context-bound
-objects. One result of this change is that it is no longer necessary to save
-and restore the thread Principal when the test changes it.
-
-<li>As an aid to those converting from csUnit, NUnit can now run test assemblies 
-built against csUnit without change or recompilation. Assemblies using NUnit and 
-csUnit attributes can be mixed in the same test project but only one framework 
-may be used per assembly. The NUnit emulation has been tested by executing the 
-tests provided with csUnit 1.94 and gives the same results (1 failure) as csUnit.
-
-<li>Assert.AreEqual now succeeds when the expected and actual values are both NaNs.
-[For the rationale behind this, see the extended discussion on the Yahoo 
-testdrivendevelopment list]</li>
-
-<li>A number of new Assert Methods have been added.
-  <dl style="margin-left: 2em">
-    <dt>Assert.IsNaN(double)
-	<dd>Tests whether it's argument is NaN.
-	<dt>Assert.IsEmpty(string)
-	<dd>Tests that it's argument is the empty string.
-	<dt>Assert.IsNotEmpty(string)
-	<dd>Tests that it's argument is not the empty string.
-	<dt>Assert.IsEmpty(ICollection)
-	<dd>Tests that an array, list or collection is empty.
-	<dt>Assert.IsNotEmpty(ICollection)
-	<dd>Tests that an array, list or collection is not empty.
-    <dt>Assert.IsInstanceOf(Type,object)
-	<dd>Tests that an object is an instance of the supplied Type.
-    <dt>Assert.IsNotInstanceOf(Type,object)
-	<dd>Tests that an object is an not instance of the supplied Type.
-	<dt>Assert.IsAssignableFrom(Type,object)
-	<dd>Tests that an object may be assigned to an object of the supplied Type.
-	<dt>Assert.IsNotAssignableFrom(Type,object) 
-	<dd>Tests that an object may not be assigned to an object of the supplied Type.
-	<dt>Assert.Contains(object,IList) 
-	<dd>Tests whether an object is in a list or array.
-  </dl>
-</li>
-
-<li>The StringAssert class has been moved from the extensions assembly into
-    nunit.framework. It supports the following methods
-<dl style="margin-left: 2em">
-    <dt>StringAssert.Contains(string,string) 
-	<dd>Tests whether a string contains an expected string.
-    <dt>StringAssert.StartsWith(string,string) 
-	<dd>Tests whether a string begins with an expected string.
-    <dt>StringAssert.EndsWith(string,string) 
-	<dd>Tests whether a string ends with an expected string.
-    <dt>StringAssert.AreEqualIgnoringCase(string,string) 
-	<dd>Compares two strings for equality without regard to case and 
-	gives an error message showing the actual strings, without case adjustment.
-</dl>
-</li>
-
-<li>The interface used for extending Assert has been changed from prior
-versions. Extensions written using the older interface may require
-modification in order to work with this version.
-
-<li>The following additional information has been added to the XML output:
-  <ul>
-    <li>NUnit famework version
-    <li>Common language runtime version
-    <li>Operating system and platform id
-    <li>Current working directory at start of the run
-    <li>Machine name
-    <li>User name and domain
-    <li>Current culture and ui culture
-  </ul>
-  
-<li>Special characters in CDATA sections of the XML file are now encoded correctly.
-
-<li>Restored assert overloads erroneously removed from NUnit 2.2.2. These were
-    removed because they were redundant when using C#, but their absence caused
-	certain managed C++ and J# programs to fail to compile.
+<li>Use of the TestFixtureAttribute is now optional in designating
+    classes that contain tests.
+<li>More than one method may now be marked with the <b>SetUp</b>, <b>TearDown</b>,
+	<b>TestFixtureSetUp</b> and <b>TestFixtureTearDown</b> attributes. Setups
+	in a base class are executed before those in a derived class and teardowns
+	are executed in the reverse order. If there are multiple setups or teardowns
+	defined at the same level, the order is unspecified so this practice is
+	not generally recommended.
+<li>The <b>FactoryAttribute</b> and <b>TestCaseFactoryAttribute</b> introduced 
+   in alhpa-3 have been removed. The new <b>TestCaseSourceAttribute</b> allows
+	specification of the name of the source of test cases and - optionally - the 
+	type providing the source if it is not the same as the type that contains the 
+	test. Only one source may be specified per attribute but the attribute may be 
+	applied more than once to indicate multiple sources.
+<li>It is now possibe to specify Categories and Properties on test cases
+    defined using the TestCaseData class.
+<li>Named fields, properties or methods may be used to provide values for
+    individual method parameters using the new <b>ValueSourceAttribute</b>.
+<li>New constraints and corresponding syntactic constructs are provided: 
+	<ul>
+	<li><b>Is.InRange</b> tests that a value lies within a specified range.
+	<li><b>Has.Attribute()</b> tests for the presence of a specified attribute
+		on a type.
+	<li><b>Is.AssignableTo</b> allows reversing the operands of AssignableFrom 
+		for increased clarity in the code and in any error messages when the
+		actual value is of the derived type.
+	<li><b>Throws.Exception</b> allows testing the exception thrown by a
+	    delegate in place and provides the ability to make arbitrary tests
+		on the caught exception. <b>Throws.TypeOf()</b> and <b>Throws.InstanceOf()</b>
+		are provided as shorthand for the commonly used <b>Throws.Exception.TypeOf()</b>
+		and <b>Throws.Exception.InstanceOf</b>.
+	<li><b>Throws.Nothing</b> provides for testing that a delegate does
+	    not throw. While it doesn't do much, it serves the purpose of
+		converting an unexpected error into a test failure.
+	</ul>
+<li>The parsing of constraint expressions written using the fluent interface
+    has been reorganized internally, with the following benefits:
+    <ul>
+	<li>Meaningless sequences like "...Null.Null..." or "...And.Or..."
+	    will no longer compile - the NUnit tests actually verify this
+		by attempting to compile them.
+	<li>Syntax modifiers like <b>Within</b> and <b>IgnoreCase</b> are
+	    now only accepted - and shown by intellisense - on constraints that
+	    actually make use of them.
+    <li>New <b>And</b> and <b>Or</b> infix operators are provided.
+	<li>The <b>With</b> provides some ability to group constraints.
+    </ul>	
+    
+	<p><p><b>Note:</b> Operators are evaluated in the following order:
+	<ol>
+	<li>Postfix modifiers (highest)
+	<li>Not Operator
+	<li>And operator (see below)
+	<li>Or operator  (see below)
+	<li>With operator
+	<li>Some, None and All operators
+	<li>And operator when followed directly by Some, None or All
+	<li>Or operator when followed directly by Some, None or All
+	<li>Overloaded operator &amp;
+	<li>Overloaded operator | (lowest)
+	</ol>
+	Operators of equal precedence associate left to right.
 	
-<li>Various bugs related to opening Visual Studio projects have been resolved.
-
-<li>A problem has been fixed that caused TestFixtureSetUp and TestFixtureTearDown
-to run between each test in certain circumstances.
-
-<li>Exceptions thrown by the framework in attempting to access the stack trace
-of certain COM exceptions are now caught and the stack trace is reported as
-unavailable.
-
-<li>Fixed a bug whereby an exception, thrown in the constructor of a TestFixture,
-was causing NUnit to crash.
-
+<li>The "syntax helper" classes, <b>Is</b>, <b>Has</b>, <b>Text</b> and
+    <b>List</b> have been moved to the NUnit.Framework namespace, since they 
+	seem to have entered the mainstream.
+<li>NUnit 2.5 is able to recognize, load and run NUnitLite tests.
+<li>PropertyConstraint now works with Types when testing for the
+    existence of a named property.
 </ul>
 
-<h4>Forms Interface</h4>
+<h4>Core</h4>
+<ul>
+<li>Experimental support is provided for running tests in a separate process.
+    Currently, this is only exposed in the Gui runner.
+<li>NUnit recognizes a special attribute on
+    the config element of the nunit project file, <b>runtimeFramework</b>,
+	which may be set to "net-1.1" or "net-2.0." This causes use of the
+	appropriate runner if tests are run in a separate process.
+	<p><p>
+	<b>Note:</b> Both of the above features are experimental and
+	somewhat fragile. Results are expected to vary for different
+	installations and we ask that problems be reported.
+</ul>
+
+<h4>Gui</h4>
 
 <ul>
-<li>The project editor now allows setting an arbitrary AppBase. Previously, it
-had to be at or below the directory containing the project file itself.
-
-<li>The Options dialog is now divided into two tabs. An additional option has
-been added to allow disabling the tooltip-like windows that appear over the
-Errors and Failures display and stacktrace when hovering.
-
-<li>The status bar now displays the full name of the running test, provided there
-is room to display it. If there is not enough room, the class name is displayed
-and a tooltip shows the full name when the mouse is held over that panel.
-
-<li>The space bar no longer exits the application. This feature was originally added
-to emulate a feature of VBUnit, but has been the source of numerous complaints by users.
-
-<li>The application no longer crashes when attempting to save to a project file
-marked as read-only.
-
-<li>Fixed a bug that occured when custom exceptions were passed back to the GUI.
-
-<li>Fixed a bug that occured in debug mode, when attempting to display stack
-trace information from an ExpectedException failure, which doesn't report
-a stack trace location.
-
+<li>The Addin Dialog now shows an error message for any addin that
+    fails to load.  (from 2.4.8)
+<li>The TestLoader settings dialog provides an option for running tests
+    in a separate process.
+<li>The Assembly Info display now shows two runtime versions for each
+    test assembly: the one for which it was built and the one under
+	which it is currently loaded.
 </ul>
 
-<h3>NUnit Iteration Release 2.2.2 - December 7, 2004</h3>
+<h4>Extensibility</h4>
 
-<h4>General</h4>
 <ul>
-<li>With this version of NUnit, all references from the core to the framework 
-assembly have been removed. It is now possible to run tests built against older 
-versions of the framework, either debug or release build.</li>
-
-<li>The Assert class now provides an AreNotEqual method which gives an error if 
-the two arguments are equal.
-
-<li>A StringAssert class has been added to the extensions assembly. It provides 
-methods Contains, ContainsAny, StartsWith, EndsWith and AreEqualIgnoringCase.</li>
-
-<li>The logic for each type of Assert is now been encapsulated in a class that 
-implements the IAsserter interface. Asserter object instances are created for 
-each individual assertion. This allows creating extended asserts by implementing 
-new asserter classes. Several base classes are available for extension. The 
-StringAssert class discussed above provides a model for making such extensions.
-
-<li>A PlatformAttribute may be applied to test fixtures or tests, causing the 
-tests to be run only on certain OS or runtime platforms. This is still experimental and may 
-change - see the source for documentation.
-
-<li>Applications built with Visual Studio 2005 may now be debugged using NUnit. 
-NUnit itself may now be built and debugged under Visual Studio 2005.
-
-<li>Trace output may be directed to standard output by setting TestContext.Tracing 
-to true.
-
-<li>Solution files containing web applications now be loaded without an exception. 
-The web application is ignored.
-
-<li>Solution files containing projects specified using UNC paths may now be loaded 
-without an exception. As before, changes to security settings are required to enable
-loading tests from shares.
-
-<li>An error in one of the timing tests was corrected.
-
-<li>The xml results file now uses the correct standard format for date and time 
-independent of the system culture.
-
-<li>Classes in the nunit.util assembly that were specific to either nunit-gui 
-or nunit-console have been removed. As a result, nunit.util no longer refers to 
-the Windows.Forms or System.Drawing assemblies. The classes are now in the 
-nunit-gui-runner or nunit-console-runner assembly as appropriate.
-
-<li>The NAnt build scripts in each subdirectory are now directly executable for 
-convenience in working on a single component and for testing the scripts themselves.
+<li>The <b>RequiredAddinAttribute</b> is now only permitted at the assembly level.
 </ul>
 
-<h4>Forms Interface</h4>
+<h4>Bug Fixes</h4>
+
 <ul>
-<li>Visual Studio projects and solutions may now be opened by dragging them to 
-the tree control.
-
-<li>The namespace hierarchy is no longer ignored, with only fixtures displayed, 
-when nunit-gui was run with /fixture: plus a namespace argument.
-
-<li>The TipWindow displayed over the errors and failures tab in the gui was 
-throwing an exception under certain conditions. This is fixed and further 
-usability improvements have been made.
-
-<li>Further cases in which gui controls were being called on the wrong thread 
-have been identified and corrected.
+<li>The Gui output panes were failing to use a fixed font. (from 2.4.8)
 </ul>
 
-<h3>NUnit 2.2.1 Iteration Release - October 26, 2004</h3>
+<h3>NUnit 2.5 Alpha 3 Release - Version 2.5.0.8189 - July 7, 2008</h3>
 
 <h4>General</h4>
 
 <ul>
-<li>Reorganized source code into separate components, each with associated tests. 
-An NUnit project file is now provided to facilitate running all the tests together.
-Config files are provided for running the project and for each separate assembly.
-
-<li>Both the gui and console runners are now dlls for those who want to link 
-them with their own programs. New exe projects simply reference the dlls and 
-work just as before.
-
-<li>An experimental extensibility mechanism is now provided, which allows uses 
-to create special types of test cases and suites, marked by their own attributes.
-
-<li>The nunit.core.dll assembly is no longer registered in the GAC. An assembly 
-resolution event handler is used to "inject" the current version of the core 
-assembly into the user's appdomain. The nunit.framework.dll assembly continues 
-to reside in the GAC for easier reference by user test assemblies.
-
-<li>The NAnt build has been revised to work with the new directory structure. 
-It is now possible to use NAnt to build individual components and assemblies, 
-without building the entire application. To do this, simply run NAnt in the 
-individual directory. Note that you must ensure that any referenced assemblies 
-have been built first.
-
-<li>Tests may now be run without the source code being present.
-
-<li>NUnit can now open Visual Studio 2005 projects and solutions.
-
-<li>Old style test cases ("Test....") are no longer recognized by default. 
-A setting in the test config file may be used to allow their use on an 
-assembly by assembly basis.
-
-<li>Added a protected constructor to Assert so those wanting to inherit 
-from it may do so. 
-
-<li>Fixed a buffering problem that caused test case labels to appear out of 
-synch with the test output. 
-
-<li>Fixed a problem causing shadow copies to appear in the root of the current 
-drive if no config file was present or if the setting was not provided in the 
-config file. 
+<li>NUnit now uses a new version numbering scheme. The first three
+    dot-separated values represent the release level, as before, while 
+	the fourth is a build number tied to the date of the release. This 
+	alpha release, for example, is numbered 2.5.0.8189.
+<li>The NUnit source now includes a VS2008 project, in addition to
+    the existing VS2005 and VS2003 projects
 </ul>
 
-<h4>Forms Interface</h4>
+<h4>Framework</h4>
+
 <ul>
-
-<li>Code that fires events has been modified to ensure that controls are invoked 
-on the correct thread. We believe this will solve many of the problems that occur 
-when running tests under the VS 2005 debugger. However, we have not completed 
-testing in this environment, so some problems may still be present.
-
-<li>Fixed a problem causing the console output tab to contain old data if the 
-tab had not been selected during the prior test run.
-
-<li>Fixed a number of problems with the tipwindow used to display error details 
-that don't fit in the normal display area.
-
-<li>Fixed a problem whereby only the first of several selected tests run was 
-expanded in the gui at completion of the run.
+<li><b>DataSourceAttribute</b> has been replaced with <b>FactoryAttribute</b>.
+    The new attribute may refer to any field, method or property that 
+	provides test cases consistent with the signature of the method on which
+	it appears. The naming of this attribute is still a bit unsatisfactory
+	and it may change in the final release. 
+<li>The new <b>TestCaseFactoryAttribute</b> class may be used to mark a
+    field, method or property that provides test cases. It specifies the
+	argument types of the test cases that will be provided and is used
+	to identify the cases to be used when the name of a factory is not
+	specified.
+<li>Data may be specified for individual arguments of a parameterized test
+    using the new attributes: <b>ValuesAttribute</b>, <b>RangeAttribute</b>
+	and <b>RandomAttribute</b>. By default, test cases are created using
+	every possible combination of the items provided. Attributes on the
+	test method may specify how data is combined. This release includes
+	<b>SequentialAttribute</b>, <b>CombinatorialAttribute</b> (the default) and 
+	<b>PairwiseAttribute</b>. However, Pairwise combination is not yet
+	implemented, so that attribute is currently ignored.
+<li><b>TestFixture</b> classes may now be generic. They must be marked with
+    or or more instances of <b>TextFixtureAttribute</b> using the new
+	constructor that takes an array of Types. NUnit will instantiate
+	the fixture multiple times, using the type arguments provided.
+<li>Parameterized test methods may now be generic. NUnit will deduce
+    the correct implementation to use based on the types of the
+	parameters provided.
+<li>The new <b>RequiredAddinAttribute</b> may be used to mark tests,
+    fixtures or assemblies, indicating the name of any addin that is
+	required to run the tests. If the addin is not present, the test,
+	fixture or assembly is marked NotRunnable.
+<li>A new assertion and corresponding constraint <b>IsOrdered</b>
+    has been added. (contributed by Simone Busoli)
+<li><b>PlatformAttribute</b> has been extended to accept the new keywords
+    <b>NT6</b>, <b>Vista</b> and <b>Win2008Server</b>.
+	<br><br>
+	<b>Note:</b> In the current alpha release, NUnit is unable to 
+	distintuish between Vista and Windows 2008 Server. Either
+	of them will match all the above values.
 </ul>
 
-<h4>Further Documentation</h4>
+<h4>Gui</h4>
+
 <ul>
-<li>The included documentation has not changed substantially from NUnit 2.2. The following files in the doc directory provide additional information about changes in this iteration.
- <ul>
- <li>Installation.txt
- <li>TestConfig.txt
- <li>Extensibility.txt
- </ul>
+<li>Properties with a collection for a value are now displayed
+displayed as a comma-separated list in the properties window.
 </ul>
 
-<h3>NUnit 2.2 - August 8, 2004</h3>
+<h4>Extensibility</h4>
+
+<ul>
+<li>The <b>IParameterProvider</b> interface has been replaced with
+    <b>ITestCaseProvider</b>. The ParameterProviders extension point
+	has been renamed to TestCaseProviders.
+<li>A new extension point, <b>DataPointProviders</b>, has been
+    added to support extensions that provide data for individual
+	test parameters. Extensions must implement the <b>IDataPointProvider</b>
+	interface.
+<li>A simpler method of providing new data point extensions based
+    on attributes applied to the parameter itself is also available.
+    Such attributes may be derived from <b>ValuesAttribute</b> and
+    do not require any special addin in order to work.
+</ul>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+<li>NUnit tests of AssertThrows were not working on systems using
+    non-English cultures.
+<li>Domains were not unloading correctly in some circumstances. Unloading
+    is now done on a separate thread.
+<li>An NUnitSettings.xml file of zero length was causing a crash. (from 2.4.8)
+<li>Invoking the gui with /exclude:XXX, where XXX is a non-existent
+    category, was causing all tests to be excluded. (from 2.4.8)
+<li>Categories were not working properly on repeated tests. (from 2.4.8)
+<li>A serious memory leak was fixed in the NUnit test runners. (from 2.4.8)
+<li>Static SetUp and TearDown methods were not being called in a SetUpFixture.
+<li>The current directory used when executing addins that load tests was
+    not correctly set.
+</ul>
+
+<h3>NUnit 2.5 Alpha 2 Release - May 7, 2008</h3>
+
+<p><b>Note:</b> Since this is an alpha level release, the
+features are not complete and some features present in
+this release may be removed or changed in future releases.
 
 <h4>General</h4>
-<ul>
-<li>NUnit 2.2 is available in separate Microsoft .NET and Mono distributions. 
-The .NET version can run under Microsoft .NET 1.0, 1.1 or 2.0. The Mono 
-version runs under Mono 1.0. The Microsoft distribution is built using 
-Visual Studio 2003. The Mono version is limited to use of nunit-console 
-to run tests. Note that Mono is distributed with a version of NUnit 
-pre-installed. It may be necessary replace some of the installed
-components in order to get a newer version of NUnit to work. A note 
-will be published when we have more information on this issue.
-
-<li>Separate config files for each .NET version are no longer needed. Instead, 
-binding redirects are provided in each config which apply when running under 
-version 1.0 or 2.0 of hte .NET framework. By default, the highest level of
-the framework installed is used. The user may edit the config file if a
-different preference is desired.
-
-<li>The NUnit framework and core are now in separate assemblies, both of
-which are installed in the GAC. The framework assembly contains all 
-types that are normally referenced by tests, while the core contains
-those types used by the gui and console runners to execute those
-tests. Tests requiring use of core types – TestSuite, for example –
-will need to add a reference to the nunit.core.dll assembly.
-
-<li>The NAnt build script now supports building NUnit using version 1.0, 1.1 
-or 2.0 of the .NET framework or with Mono 1.0. The Mono build is limited
-to those assemblies used under Mono.
-
-<li>Assert.AreEqual has been extended to allow comparison of two arrays. 
-To compare as equal, the arrays must be of the same or compatible types, 
-contain the same number of elements and each pair of elements 
-must compare as equal.
-
-<li>All Assert methods that take an optional message argument now also may 
-take an optional array of objects to be used in formatting the message.
-
-<li>An Assert.Ignore method has been added, which allows individual test 
-cases to be ignored dynamically - for example, on the basis of products 
-installed on the test system. Assert.Ignore may also be called from a 
-SetUp or TestFixtureSetUp method. In the latter case, all the tests are 
-ignored.
-
-<li>Failure in TestFixtureSetUp or TestFixtureCleanUp now results in an error, 
-rather than in ignoring all the tests.
-
-<li>The core interfaces used to run tests have been changed substantially. 
-These will continue to change to some extent as we attempt to reach a 
-stable set of interfaces for use by third-party clients that run tests 
-through NUnit. In particular, the interfaces now support passing in an 
-array of tests to be run and return an array of test results. Other 
-new features described in this document have required interface 
-changes as well.
-
-<li>There is a new CategoryAttribute which allows test fixtures and methods 
-to be grouped into one or more categories using strings as identifiers. 
-Support is provided for running only those tests in selected categories
-or all tests except those in selected categories.
-
-<li>A new ExplicitAttribute designates a test case or fixture that should
-only be run when explicitly chosen by the user - selected directly or
-included by means of a Category selection. It will not be run merely
-because its parent suite is selected.
-
-<li>Tests may now be run using a filter. Currently, this support is used 
-only by the new Category feature, but it is intended to be of general 
-application for clients and – eventually – users.
-
-<li>NUnit now recognizes when the loaded tests were built using an earlier 
-version of the nunit framework and issues an appropriate message. 
-Earlier versions simply failed to show any tests present in the assembly.
-
-<li>NUnit now captures and issues a message when a worker thread, created 
-during the running of a test, throws an exception. Previously, such 
-exceptions were silently ignored.
-
-<li>The XML output from a test run now shows the number of Asserts executed 
-by each test. 
-
-<li>When a test with ExpectedException fails because of an Assert, the 
-message from the assert is now given priority over the message 
-indicating that the wrong type of exception was thrown.
-
-<li>Private SetUp and TearDown methods are now ignored as intended.
-
-<li>SetUp and TearDown are no longer executed for ignored tests.
-
-<li>The documentation is now provided as a set of HTML files.
-</ul>
-
-<h4>Forms Interface</h4>
-<ul>
-<li>The tree of tests now optionally displays checkboxes. These may be used 
-to select multiple tests to be run. Buttons allow clearing all checkboxes 
-and checking only failing tests.
-
-<li>There is now an option to display the name of each test in the standard output.
-
-<li>The thread used to run tests is now created in the test AppDomain. The 
-priority and apartment state for this thread may now be specified in 
-the config file for the test. A separate configuration section is now
-used for NUnit settings, to avoid name collision with settings required 
-by the application under test.
-
-<li>Command-line options are provided to allow the gui to load and begin 
-running a test suite and to load a specific fixture from an assembly.
-The properties dialog now shows the number of asserts executed for 
-each test and any description associated with a test.
-
-<li>A cancel button has been added to the project save dialog that appears 
-on shutdown.
-
-<li>The display of the last exception is now scrollable, allowing the 
-entire stack to be seen.
-</ul>
-
-<h4>Console Interface</h4>
-<ul>
-<li>The console program has been reorganized to remove differences in how 
-tests are run between the console and gui runners.
-
-<li>The console interface command line parameters now include provision for
-selecting or excluding tests based on category, for displaying the name
-of each test in the standard output and for redirecting standard or
-error output from tests to a file. 
-
-<li>The /noshadow option eliminates creation of a shadow copy and the /thread 
-option causes the console tests to be run on a separate thread. When a 
-separate thread is used, the config file settings for apartment state 
-will be honored.
-
-<li>A namespace may now be specified after /fixture and all tests in that 
-namespace will be executed.
-</ul>
-
-<h4>Mock Objects</h4>
-<ul>
-<li>This version of NUnit comes with a built-in, lightweight mock object 
-facility. The functions provided include dynamic creation of an 
-implementation of any interface or MBR class, setting of expectations, 
-specification of return values and verification that the expected 
-actions occurred.
-
-<li>This facility is in no way a replacement for full-fledged mock 
-frameworks such as NMock and is not expected to add significant 
-features in upcoming releases. Its primary purpose is to support 
-NUnit’s own tests. We wanted to do that without the need to choose a
-particular mock framework and without having to deal with versioning 
-issues outside of NUnit itself.
-
-<li>At the same time, we hope that easy availability of a minimal mock 
-object facility will inspire users who are not familiar with mock 
-objects to experiment with them using our built-in facility and to 
-migrate to a more complete framework as your needs call for it.
-</ul>
-
-<h4>Limitations</h4>
 
 <ul>
-<li>The CategoryAttribute was originally designed to have an Explicit 
-property. This was included in some early releases and is described in
-the Pragmatic Programmers’ recent book. This property has been removed
-and is replaced by the ExplicitAttribute, which can be used in
-conjunction with Category to achieve the same effect as shown in
-their examples.
+<li>This release includes pNUnit, an extended NUnit runner for distributed
+    parallel tests. The pNUnit program was developed at Codice Software
+	for use in testing the Plastic SCM and has been contributed to NUnit.
+	For more info about using pNUnit see the 
+	<a href="http://www.codicesoftware.com/opdownloads2/oppnunit.aspx">pNUnit site</a>.
+<li>The install now offers Typical, Complete and Custom options. Selecting
+    Typical gets you the NUnit framework, core, console runner and Gui.
+    To install pNUnit, any of the bundled addins or the NUnit tests,
+	select Complete or Custom.
 </ul>
 
-<h3>NUnit 2.1 - September 1, 2003</h3>
+<h4>Extensibility</h4>
+
+<ul>
+<li>The RowTestExtension, which was merged into the nunit extension dlls
+	in Alpha-1, is now provided as a separate addin. This is the general
+	approach we plan to take with regard to any bundled addins, since it
+	permits the creator of an addin to provide updates separately from
+	the NUnit release.
+<li>This release includes the CSUnitAddin extension, which allows the running of 
+    CSUnit tests under NUnit. The csunit.dll must be available in order to
+	run the tests.
+</ul>
+
+<h3>NUnit 2.5 Alpha 1 Release - April 18, 2008</h3>
 
 <h4>General</h4>
+
 <ul>
-<li>The distributed version of NUnit 2.1 is now built using Visual Studio 2003 The solution and
-project files in this Beta can only be loaded by Visual Studio 2003. Those needing to build
-with Visual Studio 2002 will need to convert the project, solution and resx files.
-NUnit can run against .NET framework versions 1.0 or 1.1. Separate config files are provided for
-using either version. The install detects the highest version installed and sets up the config for
-that version.
-
-<li>NUnit now supports loading and running tests across multiple assemblies in both the console and
-the GUI. This may be done on an adhoc basis or by creating NUnit test projects saved in files
-of type NUnit.
-
-<li>Information about one or more test assemblies may now be persisted as NUnit Test Projects.
-This is a file of type .nunit in XML format which supports the definition of multiple
-configurations each containing one or more assemblies.
-
-<li>TestFixtureSetUp and TestFixtureTearDown attributes are now recognized. Methods marked
-with these attributes will be run before and after the tests in a fixture. Unlike the standard
-SetUp and TearDown attributes, these methods are invoked only once, before and after all the
-tests are run.
-
-<li>The Assertion class is now deprecated and has been replaced with the Assert class supporting
-a new set of static method names.
-
-<li>The reporting of test failures and errors provides more information. The specific type of an
-exception is reported as well as any inner exceptions. Exceptions in TearDown no longer hide
-the original test exception.
-
-<li>NUnit now runs under Windows 98 and ME. Automatic reload of changed assemblies is
-disabled in non-NT environments.
+<li>There are no longer separate distributed packages for .NET 1.1 an 2.0.
+    Both the binary zip and msi packages contain subdirectories for .NET
+	1.1 and 2.0. In the case of the msi, the user may elect to install either
+	or both of them.
+<li>The Visual Studio solutions and projects are now in a directory tree that 
+	is parallel to the source tree. This eliminates problems where the VS2003 
+	and VS2005 builds were interfering with one another and makes room for 
+	adding VS2008.
+<li>NUnit is now built using NAnt 0.86 beta 1
+<li>The windows installer is now created using WiX 2.0.5085
 </ul>
 
-<h4>Forms Interface</h4>
+<h4>Framework</h4>
+
 <ul>
-<li>There are a number of additional menu items. [Specify]
+<li>Two new attributes have been added to support passing arguments
+	to test methods:
+	<ul>
+	<li><b>TestCaseAttribute</b> allows the programmer to
+		specify the arguments and a number of optional parameters inline.
+	<li><b>DataSourceAttribute</b> identifies a static property that 
+		will provide the arguments and other parameters.
+	</ul>
 
-<li>The GUI interface now runs tests on a separate thread. This allows the tree display to update as
-execution proceeds. A Stop button now allows cancelling a test run. An option to cancel the
-run is also displayed if the user attempts to exit while a test is running.
-The GUI test threads run in the MTA by default. A configuration file setting may be used to run
-them in an STA.
+<li>Two new constraints have been added to permit testing of
+	application-created paths, without requiring that they exist in
+	the file system. The following syntax is supported:
+	<ul>
+	<li><b>Is.SamePath(string)</b>
+	<li><b>Is.SamePathOrUnder(string)</b>
+	</ul>
+	
+<li>The DirectoryAssert class has been added, providing the following Methods:
+	<ul>
+	<li><b>AreEqual(DirectoryInfo, DirectoryInfo)</b>
+	<li><b>AreEqual(string, string)</b>
+	<li><b>AreNotEqual(DirectoryInfo, DirectoryInfo)</b>
+	<li><b>AreNotEqual(string, string)</b>
+	<li><b>IsEmpty(DirectoryInfo, DirectoryInfo)</b>
+	<li><b>IsEmpty(string, string)</b>
+	<li><b>IsNotEmpty(DirectoryInfo, DirectoryInfo)</b>
+	<li><b>IsNotEmpty(string, string)</b>
+	<li><b>IsWithin(DirectoryInfo, DirectoryInfo)</b>
+	<li><b>IsWithin(string, string)</b>
+	<li><b>IsNotWithin(DirectoryInfo, DirectoryInfo)</b>
+	<li><b>IsNotWithin(string, string)</b>
+	</ul>
+	
+<li>The method <b>Assert.Throws(Type expectedException, TestSnippet code)</b> 
+	has been added to provide more control over tests of expected exceptions. 
+	<b>TestSnippet</b> is a delegate, which may of course be supplied 
+	anonymously under .NET 2.0. If the correct exception type is thrown,
+	the actual exception is returned from the method, allowing further
+	verification to be performed.
+	
+<li>The <b>Assert.DoesNotThrow</b> method may be used to verify that a
+	delegate does not throw an exception.
+	
+<li>The <b>Assert.Pass</b> method allows early termination of a test with a
+    successful result. 
 
-<li>XML output from a test run may now be saved using the Tools | Save Results as XML… menu
-item. The format is the same as that used by the Console runner.
+<li>The <b>Assert.Inconclusive</b> method allows returning
+	the new Inconclusive result state.
 
-<li>When an exception occurs while trying to load, unload or run a test, the complete stack trace for
-that exception is available through the Tools | Exception Details… menu item.
-
-<li>The Tools | Options… menu item allows setting a number of options. [Specify]
-
-<li>Automatic reloading of test assemblies may now be disabled. An alternate approach of reloading
-assemblies whenever a run begins is also available as an option.
-
-<li>If Visual Studio support is enabled, Visual Studio project and solution files may be opened and
-Visual Studio projects may be added to an NUnit test project. Currently, C#, VB.NET, J# and
-managed C++ projects are supported.
-
-<li>When a Visual Studio or NUnit project is loaded, the user may switch between the available
-configurations causing the tests to be reloaded. A Configuration Editor allows adding,
-deleting or renaming configurations.
-
-<li>The GUI allows creating and modifying NUnit Test Projects through the Project Editor.
-A Properties window is now availble to display information about any test in the tree. It may be
-pinned to allow quickly examining the results of different tests.
-
-<li>Window layout has been streamlined, eliminating one splitter and reducing the area above the
-tabs to the minimum size needed.
-
-<li>The File | Recent Assemblies menu item is now called Recent Files since it may hold Visual
-Studio or NUnit project names. The user may now set the number of items kept in the list.
-
-<li>Loading of the most recently used file may be disabled by a command line switch.
-
-<li>Nested Classes are now shown in the TreeView using the format OuterClass+InnerClass.
-[Showing InnerClass under OuterClass was confusing when both classes contained tests.]
-
-<li>The contents of the TreeView display are now sorted by name and tests execute in the order of
-the display to allow easier tracking.
-
-<li>Splitter positions are now saved in the registry and restored on startup.
-
-<li>A View menu includes options for Expanding and Collapsing tree nodes, including Expand All,
-Collapse All, Expand Fixtures and Collapse Fixtures.
+<li>NUnit now includes added funtionality in the .NET 2.0 build of
+	the framework. The following additional features are supported:
+	<ul>
+	<li>All Asserts and Constraints work with nullable types. 
+	<li>Some Asserts allow an alternate generic syntax for convenience:
+		<ul>
+		<li><b>Assert.IsInstanceOf&lt;T&gt;(object actual);</b>
+		<li><b>Assert.IsNotInstanceOf&lt;T&gt;(object actual);</b>
+		<li><b>Assert.IsAssignableFrom&lt;T&gt;(object actual);</b>
+		<li><b>Assert.IsNotAssignableFrom&lt;T&gt;(object actual);</b>
+		<li><b>Assert.Throws&lt;T&gt(TypeSnippet code);</b>
+		</ul>
+	</ul>
+	
+<li>The following obsolete interfaces, classes and methods have been removed:
+<ul>
+	<li>The <b>IAsserter</b> interface
+	<li>The <b>AbstractAsserter</b> class
+	<li>The <b>Assertion</b> class
+	<li>The <b>AssertionFailureMessage</b> class
+	<li>The old <b>NUnit.Framework.TestCase</b> class used for inheriting test classes
+	<li>The <b>Assert.DoAssert()</b> method
+	<li>Two <b>ExpectedExceptionAttribute(Type, string)</b> constructor
+	<li>Two <b>ExpectedExceptionAttribute(string, string)</b> constructor
 </ul>
 
-<h4>Console Interface</h4>
-<ul>
-<li>The console interface command line parameters have been modified to support loading of
-multiple assemblies, Visual Studio projects and NUnit projects. Several new switches are
-available. See the Command Line Parameters section in this document for details.
-
-<li>The console runner and tests now run in an STA.
-
-<li>When run in debug mode, the console output is now sent to the Visual Studio Output window.
-
-<li>Clicking on a test failure brings up the test file in the editor at location of the Assert.
-Formatting of console output has been improved so that redirected output may be examined
-conveniently in an editor that requires CRLF at the end of each line.
-
-<li>All errors are now trapped and a message is displayed.
+<li>The syntactic constructs in the <b>SyntaxHelpers</b> namespace have been
+	moved to the <b>NUnit.Framework.Syntax.CSharp</b> namespace. The old
+	namespace may still be used for existing classes, but will not be 
+	supported after the 2.5 release.
+	
 </ul>
 
-<h4>Limitations</h4>
+<h4>Core</h4>
+
 <ul>
-<li>NUnit can only load assemblies as permitted under .NET’s Code Access Security. Using the
-default settings, this means that you will be unable to load from any UNC path, including one
-that specifies the name of the local computer. Although you may use the .NET Framework
-configuration utility to allow loading of such applications, you must do this with care. Often,
-the simplest approach is to copy assemblies being tested to your local drive.
-See Visual Studio Support for limitations on loading Visual Studio solution files.
-</li>
+<li>NUnit now allows use of static methods as tests and for SetUp, TearDown, 
+    TestFixtureSetUp and TestFixtureTearDown.
+<li>Failures and Errors are now distinquished internally and in summary reports.
+    Methods that are not run because they are invalid are also reported separately.
 </ul>
 
-<h3>NUnit 2.0 - October 3, 2002</h3>
+<h4>Console</h4>
 
-<h4>General</h4>
 <ul>
-<li>Attribute based mechanism for identifying test fixtures and test methods. In previous versions of
-NUnit and JUnit for that matter, inheritance was used as the mechanism for identifying which
-classes were test fixtures and a naming convention was used to identify test methods in these
-classes. The Custom Attributes available in .NET provide a much more straightforward and less
-ambiguous mechanism for identification.
-
-<li>Automatic creation of test suites. In previous versions of NUnit it was required to manually
-construct suites of tests using a Suite property. This has been replaced with dynamic creation of
-suites based on namespaces. Given an assembly the program will search through the assembly
-looking for test fixtures. Once it finds one it creates a suite based for each namespace and the
-specific test fixture. For example, NUnit.Tests.SuccessTests will build a containing Suite
-called “NUnit” which will contain another suite called “Tests” which in turn will create another
-suite called “SuccessTests” which finally will hold the individual test methods. This corrects an
-error prone task where things may or may not have been included in a suite.
-
-<li>Additional samples, Managed C++ and Visual J#. The existing samples (C#, VB.NET, Money)
-have been upgraded to the new version. Money-port has been included to demonstrate the
-minimal amount of effort required to upgrade.
-
-<li>A class TestCase in nunit.framework.dll has been provided for backwards compatibility.
-See the “Money-port” project as a sample of what is required to upgrade to the new version. The
-only change is to update the reference to the new framework dll and provide a default constructor.
-
-<li>The exception that is thrown when an Assertion fails is now called AssertionException. In
-previous versions this was called AssertionFailedError.
+<li>The summary report now displays Errors, Failures, Inconclusive, Ignored and Skipped tests 
+	separately. More detailed information on non-runnable tests and setup failures
+	is provided.
+<li>The console summary report is no longer created using a stylesheet, which
+	renders the <b>/transform</b> option meaningless. The option has been removed.
 </ul>
 
-<h4>Forms Interface</h4>
+<h4>Gui</h4>
+
 <ul>
-<li>Tree based display in forms interface with test status indication and the ability to run
-individual tests or suites from the tree.
+<li>The default gui display now uses a single tab for all text output. For
+	users upgrading from an earlier release, the current settings are
+	honored. If you wish to change to the new default, use the Restore Defaults
+	button on the Text Output settings dialog.
 
-<li>Dynamic reloading of an assembly using AppDomains and shadow copying. This also
-applies if you add or change tests. The assembly will be reloaded and the display will be
-updated automatically. The shadow copies use we use a configurable directory specified 
-in the executable’s (nunit-gui and nunit-console) config files.
+<li>The final test run display shows a more detailed summary: passed tests,
+    errors, failures, inconclusive, non-runnable, skipped and ignored.
 
-<li>A reload command menu option to load and assemblies that may have been modified.
+<li>The status bar now displays errors and failures separately in.
 
-<li>Window sizes are flexible due to the introduction of splitters on major sub-areas of the
-screen.
-
-<li>File->Recent Assemblies menu item. The program keeps track of the 5 most recently
-used assemblies. If no command line arguments are used to start the forms executable
-the most recent assembly is loaded by default.
-
-<li>The “Run” button is the default button on the form, which allows hitting return to start
-the tests.
-
-<li>Patches suggested by Al Gonzalez
-  <ul>
-  <li>The AboutBox was modified so its start position is set to CenterParent
-  <li>The AboutBox border was changed to Fixed3D
-  <li>The size and position of the main form is saved in the registry and restored when the
-program is launched
-  </ul>
-<li>Patch suggested by Rob Jeffries
-  <ul>
-  <li>When the main form has the focus hitting the space bar will cause the program to
-exit. This is present in the current version of the VBunit.
-  </ul>
+<li>The tree display shows non-runnable tests in red and inconclusive tests
+	in orange. Inconclusive tests are temporarily listed
+	on the Tests Not Run tab for this alpha release.
 </ul>
 
-<h4>Console Interface</h4>
+<h4>Extensibility</h4>
+
 <ul>
-<li>The console interface command line parameters have been modified to be more explicit and
-conform to similar programs available in .NET. See the Command line parameters section
-in this document for details.
-
-<li>XML Output. The console program produces XML output suitable for inclusion into other
-existing systems.
-
-<li>Customizing of console output is provided through the use of XSLT. See Summary.xslt for
-the translation that is provided for the release. Using your own transform file is possible via
-a command line argument.
-
-<li>Backwards compatibility with running suites. The Forms interface currently has no
-mechanism to run suites defined with the suite property. Using the fixture command line
-argument you must specify a class that is either a TestFixture or contains a Suite attribute.
+<li>A new extension point <b>ParameterProviders</b> allows addins to 
+	provide data for parameterized tests.
+	
+<li>The following extensions are included in the nunit.core.extensions
+	and nunit.framework.extensions assemblies:
+	<ul>
+	<li>The MaxTime extension, which was previously a sample.
+	<li>The RowTest extension, which remains an alternative to NUnit's
+		native TestCase syntax.
+	<li>The XmlConstraint extension, which allows comparing two xml files
+	</ul> 
 </ul>
+
+
+<h3>Earlier Releases</h3>
+
+<ul>
+<li>Release Notes for <a href="docs/2.4.8/releaseNotes.html">NUnit 2.4 through 2.4.8</a><li>Release Notes for <a href="docs/2.2.10/releaseNotes.html">NUnit 2.0 through 2.2.10</a></ul>
+
 
 </div>
 
 <!-- Submenu -->
 <div id="subnav">
 <ul>
-<li><a href="index.html">NUnit 2.2.9</a></li>
+<li><a href="index.html">NUnit 2.5.3</a></li>
 <ul>
 <li><a href="getStarted.html">Getting&nbsp;Started</a></li>
-<li><a href="installation.html">Installation</a></li>
-<li><a href="features.html">Features</a></li>
-<li><a href="nunit-console.html">NUnit-Console</a></li>
-<li><a href="nunit-gui.html">NUnit-Gui</a></li>
+<li><a href="assertions.html">Assertions</a></li>
+<li><a href="constraintModel.html">Constraints</a></li>
+<li><a href="attributes.html">Attributes</a></li>
+<li><a href="nunit-console.html">Console&nbsp;Runner</a></li>
+<li><a href="nunit-gui.html">Gui&nbsp;Runner</a></li>
+<li><a href="configFiles.html">Configuration&nbsp;Files</a></li>
+<li><a href="pnunit.html">PNUnit</a></li>
+<li><a href="multiAssembly.html">Multiple&nbsp;Assemblies</a></li>
+<li><a href="vsSupport.html">Visual&nbsp;Studio&nbsp;Support</a></li>
+<li><a href="extensibility.html">Extensibility</a></li>
 <li id="current"><a href="releaseNotes.html">Release&nbsp;Notes</a></li>
 <li><a href="samples.html">Samples</a></li>
 <li><a href="license.html">License</a></li>
@@ -924,9 +1097,8 @@ argument you must specify a class that is either a TestFixture or contains a Sui
 
 
 <!-- Standard Footer for NUnit.org -->
-<!-- public_html/nunit/footer.php -->
 <div id="footer">
-  Copyright &copy; 2002-2006 NUnit.org. All Rights Reserved.
+  Copyright &copy; 2009 Charlie Poole. All Rights Reserved.
 </div>
 <!-- End of Footer -->
 

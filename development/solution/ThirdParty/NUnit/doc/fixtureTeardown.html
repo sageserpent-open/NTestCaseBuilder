@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<!-- saved from url=(0014)about:internet --><!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
 <html>
 <!-- Standard Head Part -->
 <head>
@@ -24,38 +24,24 @@
 
 <div id="content">
 
-<script language="JavaScript">
-	function Show( id ) {
-		document.getElementById(id).style.display = "";
-	}
-	function Hide( id ) {
-		document.getElementById(id).style.display = "none";
-	}
-    function ShowCS()
-	{
-	    Show('CS1'); Hide('VB1'); Hide('MC1'); Hide('JS1');
-	}
-    function ShowVB()
-	{
-	    Hide('CS1'); Show('VB1'); Hide('MC1'); Hide('JS1');
-	}
-    function ShowMC()
-	{
-	    Hide('CS1'); Hide('VB1'); Show('MC1'); Hide('JS1');
-	}
-    function ShowJS()
-	{
-	    Hide('CS1'); Hide('VB1'); Hide('MC1'); Show('JS1');
-	}
-</script>
+<script language="JavaScript" src="codeFuncs.js" ></script> <!-- Do it this way for IE -->
 
-<h3>TestFixtureTearDownAttribute (NUnit 2.1)</h3>
+<h3>TestFixtureTearDownAttribute (NUnit 2.1 / 2.5)</h3>
 
 <p>This attribute is used inside a TestFixture to provide a single set of 
 	functions that are performed once after all tests are completed. 
-	A TestFixture can have only one TestFixtureTearDown method. If more than 
-	one is defined the TestFixture will compile successfully but its tests will 
-	not run.</p>
+	
+<p><b>Before NUnit 2.5</b>, a TestFixture could have only one SetUp method
+	and it was required to be an instance method. 
+
+<p><b>Beginning with NUnit 2.5</b>, TestFixtureTearDown methods may be either static or
+   instance methods and you may define more than one of them in a fixture.
+   Normally, multiple TestFixtureTearDown methods are only defined at different levels
+   of an inheritance hierarchy, as explained below.
+
+<p>So long as any TestFixtureSetUp method runs without error, the TestFixtureTearDown method is 
+   guaranteed to run. It will not run if a TestFixtureSetUp method fails or throws an 
+   exception.</p>
 
 <h4>Example:</h4>
 
@@ -71,7 +57,7 @@
 	</div>
 </div>
 
-<pre id="CS1" style="display:">namespace NUnit.Tests
+<pre class="cs">namespace NUnit.Tests
 {
   using System;
   using NUnit.Framework;
@@ -82,7 +68,7 @@
     [TestFixtureSetUp] public void Init()
     { /* ... */ }
 
-    [TestFixtureTearDown] public void Dispose()
+    [TestFixtureTearDown] public void Cleanup()
     { /* ... */ }
 
     [Test] public void Add()
@@ -91,7 +77,7 @@
 }
 </pre>
 
-<pre id="VB1" style="display:none">Imports System
+<pre class="vb">Imports System
 Imports Nunit.Framework
 
 Namespace Nunit.Tests
@@ -101,7 +87,7 @@ Namespace Nunit.Tests
     ' ...
     End Sub
 
-    &lt;TestFixtureTearDown()&gt; Public Sub Dispose()
+    &lt;TestFixtureTearDown()&gt; Public Sub Cleanup()
     ' ...
     End Sub
 
@@ -112,7 +98,7 @@ Namespace Nunit.Tests
 End Namespace
 </pre>
 
-<pre id="MC1" style="display:none">#using &lt;Nunit.Framework.dll&gt;
+<pre class="mc">#using &lt;Nunit.Framework.dll&gt;
 using namespace System;
 using namespace NUnit::Framework;
 
@@ -122,7 +108,7 @@ namespace NUnitTests
   public __gc class SuccessTests
   {
     [TestFixtureSetUp] void Init();
-    [TestFixtureTearDown] void Dispose();
+    [TestFixtureTearDown] void Cleanup();
 
     [Test] void Add();
   };
@@ -135,7 +121,7 @@ namespace NUnitTests {
 }
 </pre>
 
-<pre id="JS1" style="display:none">package NUnit.Tests;
+<pre class="js">package NUnit.Tests;
 
 import System.*;
 import NUnit.Framework.TestFixture;
@@ -149,7 +135,7 @@ public class SuccessTests
   { /* ... */ }
 
   /** @attribute NUnit.Framework.TestFixtureTearDown() */
-  public void Dispose()
+  public void Cleanup()
   { /* ... */ }
 
   /** @attribute NUnit.Framework.Test() */
@@ -160,39 +146,84 @@ public class SuccessTests
 
 </div>
 
+<h3>Inheritance</h3>
+
+<p>The TestFixtureTearDown attribute is inherited from any base class. Therefore, if a base 
+	class has defined a TestFixtureTearDown method, that method will be called 
+	after each test method in the derived class. 
+	
+<p>Before NUnit 2.5, you were permitted only one TestFixtureTearDown method. If you wanted to 
+   have some TestFixtureTearDown functionality in the base class and add more in the derived 
+   class you needed to call the base class method yourself.
+   
+<p>With NUnit 2.5, you can achieve the same result by defining a TestFixtureTearDown method
+   in the base class and another in the derived class. NUnit will call base
+   class TestFixtureTearDown methods after those in the derived classes.
+   
+<p><b>Note:</b> Although it is possible to define multiple TestFixtureTearDown methods
+   in the same class, you should rarely do so. Unlike methods defined in
+   separate classes in the inheritance hierarchy, the order in which they
+   are executed is not guaranteed.
+
+<h4>See also...</h4>
+<ul>
+<li><a href="setup.html">SetUpAttribute</a><li><a href="teardown.html">TearDownAttribute</a><li><a href="fixtureSetup.html">TestFixtureSetUpAttribute</a></ul>
+
 </div>
 
 <!-- Submenu -->
 <div id="subnav">
 <ul>
-<li><a href="index.html">NUnit 2.2.9</a></li>
+<li><a href="index.html">NUnit 2.5.3</a></li>
 <ul>
 <li><a href="getStarted.html">Getting&nbsp;Started</a></li>
-<li><a href="installation.html">Installation</a></li>
-<li><a href="features.html">Features</a></li>
-<ul>
 <li><a href="assertions.html">Assertions</a></li>
+<li><a href="constraintModel.html">Constraints</a></li>
 <li><a href="attributes.html">Attributes</a></li>
 <ul>
-<li><a href="testFixture.html">Test&nbsp;Fixture</a></li>
-<li><a href="test.html">Test</a></li>
-<li><a href="setup.html">Setup</a></li>
-<li><a href="teardown.html">Teardown</a></li>
-<li><a href="fixtureSetup.html">Test&nbsp;Fixture&nbsp;SetUp</a></li>
-<li id="current"><a href="fixtureTeardown.html">Test&nbsp;Fixture&nbsp;TearDown</a></li>
-<li><a href="exception.html">Expected&nbsp;Exception</a></li>
-<li><a href="platform.html">Platform</a></li>
 <li><a href="category.html">Category</a></li>
+<li><a href="combinatorial.html">Combinatorial</a></li>
+<li><a href="culture.html">Culture</a></li>
+<li><a href="datapoint.html">Datapoint(s)</a></li>
+<li><a href="description.html">Description</a></li>
+<li><a href="exception.html">Exception</a></li>
 <li><a href="explicit.html">Explicit</a></li>
-<li><a href="suite.html">Suite</a></li>
 <li><a href="ignore.html">Ignore</a></li>
+<li><a href="maxtime.html">Maxtime</a></li>
+<li><a href="pairwise.html">Pairwise</a></li>
+<li><a href="platform.html">Platform</a></li>
+<li><a href="property.html">Property</a></li>
+<li><a href="random.html">Random</a></li>
+<li><a href="range.html">Range</a></li>
+<li><a href="repeat.html">Repeat</a></li>
+<li><a href="requiredAddin.html">RequiredAddin</a></li>
+<li><a href="requiresMTA.html">Requires&nbsp;MTA</a></li>
+<li><a href="requiresSTA.html">Requires&nbsp;STA</a></li>
+<li><a href="requiresThread.html">Requires&nbsp;Thread</a></li>
+<li><a href="sequential.html">Sequential</a></li>
+<li><a href="setCulture.html">SetCulture</a></li>
+<li><a href="setup.html">Setup</a></li>
+<li><a href="setupFixture.html">SetupFixture</a></li>
+<li><a href="suite.html">Suite</a></li>
+<li><a href="teardown.html">Teardown</a></li>
+<li><a href="test.html">Test</a></li>
+<li><a href="testCase.html">TestCase</a></li>
+<li><a href="testCaseSource.html">TestCaseSource</a></li>
+<li><a href="testFixture.html">TestFixture</a></li>
+<li><a href="fixtureSetup.html">TestFixtureSetUp</a></li>
+<li id="current"><a href="fixtureTeardown.html">TestFixtureTearDown</a></li>
+<li><a href="theory.html">Theory</a></li>
+<li><a href="timeout.html">Timeout</a></li>
+<li><a href="values.html">Values</a></li>
+<li><a href="valueSource.html">ValueSource</a></li>
 </ul>
+<li><a href="nunit-console.html">Console&nbsp;Runner</a></li>
+<li><a href="nunit-gui.html">Gui&nbsp;Runner</a></li>
 <li><a href="configFiles.html">Configuration&nbsp;Files</a></li>
+<li><a href="pnunit.html">PNUnit</a></li>
 <li><a href="multiAssembly.html">Multiple&nbsp;Assemblies</a></li>
 <li><a href="vsSupport.html">Visual&nbsp;Studio&nbsp;Support</a></li>
-</ul>
-<li><a href="nunit-console.html">NUnit-Console</a></li>
-<li><a href="nunit-gui.html">NUnit-Gui</a></li>
+<li><a href="extensibility.html">Extensibility</a></li>
 <li><a href="releaseNotes.html">Release&nbsp;Notes</a></li>
 <li><a href="samples.html">Samples</a></li>
 <li><a href="license.html">License</a></li>
@@ -203,9 +234,8 @@ public class SuccessTests
 
 
 <!-- Standard Footer for NUnit.org -->
-<!-- public_html/nunit/footer.php -->
 <div id="footer">
-  Copyright &copy; 2002-2006 NUnit.org. All Rights Reserved.
+  Copyright &copy; 2009 Charlie Poole. All Rights Reserved.
 </div>
 <!-- End of Footer -->
 

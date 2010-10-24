@@ -277,13 +277,9 @@
         
         let overallTestRepeats = 30u
         
-        let isSortedByTestVariableIndex testVariableLevels =
-            testVariableLevels
-            |> Seq.map fst
-            |> Seq.pairwise
-            |> Seq.forall (fun (lhs
-                                , rhs)
-                            -> lhs < rhs)
+        let isSortedByTestVariableIndex =
+            Seq.map fst
+            >> BargainBasement.IsSorted
                                 
         let createTreesAndHandOffToTest testHandoff =
             let randomBehaviour = RandomBehaviour randomBehaviourSeed
@@ -394,11 +390,12 @@
                     (randomBehaviour: RandomBehaviour).ChooseOneOf testCasesOfMaximumStrength
                     
                 let combinationsCorrespondingToOmittedTestCase =
-                    BargainBasement.ChooseCombinationsOfItems (omittedTestCase
-                                                               |> Set.toList)
-                                                              maximumStrength
-                    |> List.map Set.ofList
-                    |> Set.ofList
+                    CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder maximumStrength
+                                                                                         (omittedTestCase
+                                                                                          |> Set.toList)
+                                                              
+                    |> Seq.map Set.ofList
+                    |> Set.ofSeq
                     
                 let testCasesExceptTheOmittedOne =
                     seq {for testCase in testCaseEnumerable () do

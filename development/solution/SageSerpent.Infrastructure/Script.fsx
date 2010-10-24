@@ -1,4 +1,4 @@
-#r "Z:/SageSerpent/workInProgressForSageSerpentOnly/development/solution/SageSerpent.Infrastructure/bin/Debug/SageSerpent.Infrastructure.dll"
+#r "Z:/Documents/SageSerpent/workInProgressForSageSerpentOpenSource/development/solution/SageSerpent.Infrastructure/bin/Debug/SageSerpent.Infrastructure.dll"
 #r "FSharp.Compiler.CodeDom.dll"
 
 open SageSerpent.Infrastructure
@@ -9,7 +9,7 @@ open SageSerpent.Infrastructure
 
 let a = Map.empty
 
-let b = Map.of_list [(1, "Hi"); (3, "Rabbit!"); (2, "there")]
+let b = Map.ofList [(1, "Hi"); (3, "Rabbit!"); (2, "there")]
 
 let o = 2:>obj
 
@@ -48,7 +48,7 @@ r.ChooseAnyNumberFromOneTo 10u;;
 
 let r2 = BargainBasement.PartitionItemsIntoSubgroupsOfRandomNonZeroLength [1u .. 10u] 3u r;;
 
-let result = BargainBasement.ChooseCombinationsOfItems [2] 0u;;
+let result = CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder 0u [2];;
 
 
 let simpleQuote = <@ 2 @>
@@ -118,7 +118,11 @@ let theType = someFunction.GetType ()
 printf "%A\n" (theType.GetMembers ())
 
 
+let sequenceOfOrderedListsOfUniqueItems = List.init 10 (fun item -> item)
+                                          |> (BargainBasement.Flip (List.scanBack (fun head tail -> head :: tail))) []
 
 
 
+
+let remap = BargainBasement.MappingAvoidingIndices
 

@@ -52,6 +52,10 @@
     <DocumentationFile>bin\Release\SageSerpent.TestInfrastructure.Examples.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="FSharp.Core, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>C:\Program Files\FSharp-1.9.7.8\bin\FSharp.Core.dll</HintPath>
+    </Reference>
     <Reference Include="nunit.framework, Version=2.2.9.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\ThirdParty\NUnit\bin\nunit.framework.dll</HintPath>
@@ -62,9 +66,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Example.cs" />
+    <Compile Include="IndexedSortedDictionary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj">
+      <Project>{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}</Project>
+      <Name>SageSerpent.Infrastructure</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SageSerpent.TestInfrastructure\SageSerpent.TestInfrastructure.fsproj">
       <Project>{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}</Project>
       <Name>SageSerpent.TestInfrastructure</Name>

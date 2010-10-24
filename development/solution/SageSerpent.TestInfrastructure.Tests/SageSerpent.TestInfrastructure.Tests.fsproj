@@ -61,7 +61,7 @@
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="nunit.framework">
-      <HintPath>Z:\Documents\SageSerpent\workInProgressForSageSerpentOpenSource\development\solution\ThirdParty\NUnit\bin\nunit.framework.dll</HintPath>
+      <HintPath>Z:\Documents\SageSerpent\workInProgressForSageSerpentOpenSource\development\solution\ThirdParty\NUnit\bin\net-2.0\framework\nunit.framework.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

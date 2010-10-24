@@ -38,6 +38,23 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
                                             then yield (total, resultForTotal)]
                             
                                 
-
-    
+    /// <summary>Creates a sequence of combinations of items, each combination having the
+    /// given size. The order of the items chosen by a combination is a sub-sequence of the
+    /// original item sequence. It is permissible to either request too many items, in which
+    /// case an empty sequence results, or to request zero items, in which case a single empty
+    /// combination is generated.</summary>
+    let rec GenerateCombinationsOfGivenSizePreservingOrder size items =
+        if 0u = size
+        then Seq.singleton []
+        else match items with
+                head :: tail when size > 0u ->
+                    let combinationsIncludingHead =
+                        GenerateCombinationsOfGivenSizePreservingOrder (size - 1u) tail
+                        |> Seq.map (fun combinationFromTail ->
+                                            head :: combinationFromTail)
+                    let combinationsExcludingHead =
+                        GenerateCombinationsOfGivenSizePreservingOrder size tail
+                    Seq.append combinationsIncludingHead combinationsExcludingHead
+               | _ ->
+                    Seq.empty
                                     

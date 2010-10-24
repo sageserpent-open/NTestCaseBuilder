@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<!-- saved from url=(0014)about:internet --><!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
 <html>
 <!-- Standard Head Part -->
 <head>
@@ -52,34 +52,89 @@ is run, specific naming conventions must be followed.</p>
 file with the config extension. For example, the configuration file used to run nunit.tests.dll must
 be named nunit.tests.dll.config and located in the same directory as the dll.</p>
 
-<p>If an NUnit project is being loaded, the configuration file uses the name of the project file with
-the extension <i>changed</i> to config. For example, the project AllTests.nunit would require a
-configuration file named AllTests.config, located in the same directory as AllTests.nunit. The
-same rule is followed when loading Visual Studio projects or solutions.</p>
+<p>If an NUnit project is being loaded into a single AppDomain, the configuration file uses the 
+name of the project file with the extension <i>changed</i> to config. For example, the project 
+AllTests.nunit would require a configuration file named AllTests.config, located in the same 
+directory as AllTests.nunit. The same rule is followed when loading Visual Studio projects or solutions.</p>
+
+<blockquote>
+<p><b>Note:</b> The above only applies if a single AppDomain is being used. If an NUnit 
+project is loaded using a separate AppDomain for each assembly, then the individual
+configuration files for each of the assemblies are used.
+</blockquote>
 
 <p>Generally, you should be able to simply copy your application config file and rename it as
-described above. However, see the next section if you wish to run tests compiled for an earlier
-version of NUnit.</p>
+described above.</p>
+
+<p>It is also possible to effect the behavior of NUnit by adding special sections
+to the test config file. A config file using these sections might look like this:
+
+<div class="code" style="width: 36em">
+<pre>
+&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;configuration&gt;
+  &lt;configSections&gt;
+    &lt;sectionGroup name="NUnit"&gt;
+      &lt;section name="TestCaseBuilder"
+	    type="System.Configuration.NameValueSectionHandler"/&gt;
+      &lt;section name="TestRunner"
+	    type="System.Configuration.NameValueSectionHandler"/&gt;
+    &lt;/sectionGroup&gt;
+  &lt;/configSections&gt;
+	
+  &lt;NUnit&gt;
+    &lt;TestCaseBuilder&gt;
+      &lt;add key="OldStyleTestCases" value="false" /&gt;
+    &lt;/TestCaseBuilder&gt;
+    &lt;TestRunner&gt;
+      &lt;add key="ApartmentState" value="MTA" /&gt;
+      &lt;add key="ThreadPriority" value="Normal" /&gt;
+	  &lt;add key="DefaultLogThreshold" value="Error" /&gt;
+	&lt;/TestRunner&gt;
+  &lt;/NUnit&gt;
+	
+  ...
+	
+&lt;/configuration&gt; 
+</pre>
+</div>
+
+<p>The entries in the above file are all 
+set to default values. The meaning of each setting is as follows:
+
+<h4>OldStyleTestCases</h4>
+<p>If set to "true" NUnit will recognize methods beginning 
+"test..." as tests. The prefix is case insensitive.
+
+<h4>ApartmentState</h4>
+<p>Sets the apartment state for the thread used to run tests.
+
+<h4>ThreadPriority</h4>
+<p>Sets the thread priority for the test thread.
+
+<h4>DefaultLogThreshold</h4>
+<p>Sets the level for logging captured by NUnit. In the
+current version only log4net logging is captured, so the
+level must be one that is defined by log4net.
 
 </div>
 
 <!-- Submenu -->
 <div id="subnav">
 <ul>
-<li><a href="index.html">NUnit 2.2.9</a></li>
+<li><a href="index.html">NUnit 2.5.3</a></li>
 <ul>
 <li><a href="getStarted.html">Getting&nbsp;Started</a></li>
-<li><a href="installation.html">Installation</a></li>
-<li><a href="features.html">Features</a></li>
-<ul>
 <li><a href="assertions.html">Assertions</a></li>
+<li><a href="constraintModel.html">Constraints</a></li>
 <li><a href="attributes.html">Attributes</a></li>
+<li><a href="nunit-console.html">Console&nbsp;Runner</a></li>
+<li><a href="nunit-gui.html">Gui&nbsp;Runner</a></li>
 <li id="current"><a href="configFiles.html">Configuration&nbsp;Files</a></li>
+<li><a href="pnunit.html">PNUnit</a></li>
 <li><a href="multiAssembly.html">Multiple&nbsp;Assemblies</a></li>
 <li><a href="vsSupport.html">Visual&nbsp;Studio&nbsp;Support</a></li>
-</ul>
-<li><a href="nunit-console.html">NUnit-Console</a></li>
-<li><a href="nunit-gui.html">NUnit-Gui</a></li>
+<li><a href="extensibility.html">Extensibility</a></li>
 <li><a href="releaseNotes.html">Release&nbsp;Notes</a></li>
 <li><a href="samples.html">Samples</a></li>
 <li><a href="license.html">License</a></li>
@@ -90,9 +145,8 @@ version of NUnit.</p>
 
 
 <!-- Standard Footer for NUnit.org -->
-<!-- public_html/nunit/footer.php -->
 <div id="footer">
-  Copyright &copy; 2002-2006 NUnit.org. All Rights Reserved.
+  Copyright &copy; 2009 Charlie Poole. All Rights Reserved.
 </div>
 <!-- End of Footer -->
 

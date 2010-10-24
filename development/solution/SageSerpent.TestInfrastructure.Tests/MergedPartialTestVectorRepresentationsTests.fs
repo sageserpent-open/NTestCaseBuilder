@@ -214,47 +214,6 @@
             
         [<Test>]
         member this.TestMergingOfVectorsInWithExistingPartialVectors () =
-            let avoidCertainIndicesByRemapping sortedIndicesToAvoid =
-                if List.length sortedIndicesToAvoid = 0
-                then raise (PreconditionViolationException "Must have at least one index to avoid.")
-                let sortedAssociationBetweenIndicesAndIncrementsToApply =
-                    let arrangeDeferredAssociations (runningIncrement
-                                                     , deferredActionsForPredecessors)
-                                                    indexToAvoid =
-                        runningIncrement + 1u
-                        , (fun associationBuiltSoFar ->
-                            deferredActionsForPredecessors ((indexToAvoid - runningIncrement
-                                                            , runningIncrement + 1u)
-                                                              :: associationBuiltSoFar))
-                    (sortedIndicesToAvoid
-                     |> List.fold arrangeDeferredAssociations (0u, (fun result -> result))
-                     |> snd) []
-                    |> Map.ofList  // This has the effect of eliminating all but the last entry for a group of associations
-                                    // for consectutive indices. Otherwise the associations for lesser indices in the group
-                                    // would just map onto the next higher index, which we are also trying to avoid.
-                    |> Map.toArray
-                let remapIndex (index
-                                , level) =
-                    let foundIndex =
-                        Array.BinarySearch (sortedAssociationBetweenIndicesAndIncrementsToApply,
-                                            (index
-                                             , 0u),
-                                            {
-                                                new IComparer<UInt32 * UInt32> with
-                                                    member this.Compare (first, second) =
-                                                        compare (fst first) (fst second)
-                                            })
-                    let incrementToApplyToIndex =
-                        if foundIndex >= 0
-                        then snd sortedAssociationBetweenIndicesAndIncrementsToApply.[foundIndex]
-                        else let foundIndex =
-                                    ~~~ foundIndex
-                             if foundIndex > 0
-                             then snd sortedAssociationBetweenIndicesAndIncrementsToApply.[foundIndex - 1]
-                             else 0u
-                    index + incrementToApplyToIndex
-                    , level
-                Map.toList >> List.map remapIndex >> Map.ofList
             let randomBehaviour = RandomBehaviour randomBehaviourSeed
             let testHandoff partialTestVectorsThatDoNotOverlap =
                 let sortedIndicesToAvoid =
@@ -264,7 +223,10 @@
                     |> List.sort
                 let remappedPartialTestVectors =
                     partialTestVectorsThatDoNotOverlap
-                    |> List.map (avoidCertainIndicesByRemapping sortedIndicesToAvoid)
+                    |> List.map (Map.toList >> List.map (function index
+                                                                  , level ->
+                                                                    BargainBasement.MappingAvoidingIndices sortedIndicesToAvoid index
+                                                                    , level) >> Map.ofList)
                 let mergedPartialTestVectors =
                     mergeOrAddPartialTestVectors remappedPartialTestVectors MergedPartialTestVectorRepresentations.initial
                 let possiblyAddLevelsForIndices indicesToAdd partialTestVector =

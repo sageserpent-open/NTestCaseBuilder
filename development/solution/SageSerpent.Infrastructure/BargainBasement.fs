@@ -145,34 +145,82 @@
                                                            numberOfSubgroups
                                                            randomBehaviour
         ChopUpList items spans
-
-    let ChooseCombinationsOfItems items combinationSize =
-        let rec chooseCombinationsAndIndicateWhetherThereIsAtLeastOneMoreItemThanTheCombinationSize items combinationSize =
-            match items with
-                [] ->
-                    if combinationSize = 0u
-                    then [[]]
-                         , false
-                    else raise (PreconditionViolationException "Insufficient number of items to make up desired size of each combination.") 
-               | head :: tail ->
-                    if combinationSize = 0u
-                    then [[]]
-                         , true
-                    else    let subcombinationsFromTail
-                                , tailHasMoreItemsThanCombinationSize =
-                                chooseCombinationsAndIndicateWhetherThereIsAtLeastOneMoreItemThanTheCombinationSize tail (combinationSize - 1u)
-                            let combinationsIncludingHead =
-                                subcombinationsFromTail
-                                |> List.map (fun subcombinationFromTail ->
-                                                    head :: subcombinationFromTail)
-                            if tailHasMoreItemsThanCombinationSize
-                            then    let combinationsExcludingHead
-                                        , _ = 
-                                        chooseCombinationsAndIndicateWhetherThereIsAtLeastOneMoreItemThanTheCombinationSize tail combinationSize
-                                    List.append combinationsIncludingHead combinationsExcludingHead
-                                    , true
-                            else combinationsIncludingHead
-                                 , false
-        fst (chooseCombinationsAndIndicateWhetherThereIsAtLeastOneMoreItemThanTheCombinationSize items combinationSize)
+        
+    let Flip f x y =
+        f y x   
+        
+    let Curry f x y =
+        f (x, y)
+        
+    let Uncurry f (x, y) =
+        f x y
+                
+    let NumberOfPermutations originalSize permutationSize =
+        if permutationSize > originalSize
+        then 0u
+        else let numberOfItemsLeftOutOfPermutation =
+                originalSize - permutationSize
+             let rec productOfPartialResultAndNumberOfSubpermutations originalSize partialResult =
+                if originalSize = numberOfItemsLeftOutOfPermutation
+                then partialResult
+                else productOfPartialResultAndNumberOfSubpermutations (originalSize - 1u) (originalSize * partialResult)
+             productOfPartialResultAndNumberOfSubpermutations originalSize 1u
+        
+    let Factorial x =
+        NumberOfPermutations x x
+        
+    let NumberOfCombinations originalSize combinationSize =
+        NumberOfPermutations originalSize combinationSize
+        / Factorial combinationSize
+        
+    let IsSorted<'a when 'a: comparison> =
+            Seq.pairwise
+            >> Seq.forall (fun (lhs: 'a
+                                , rhs)
+                            -> lhs < rhs)
+        
+    let MappingAvoidingIndices sortedIndicesToAvoid =
+        if List.length sortedIndicesToAvoid = 0
+        then raise (PreconditionViolationException "Must have at least one index to avoid.")
+        // TODO: reinstate the precondition when I've got a workaround / bug-fix / explanation of the
+        // strange type error that otherwise occurs.
+        //if not (IsSorted sortedIndicesToAvoid)
+        //then raise (PreconditionViolationException "Indices to avoid must be presented in ascending order.")
+        let sortedAssociationBetweenIndicesAndIncrementsToApply =
+            let arrangeDeferredAssociations (runningIncrement
+                                             , deferredActionsForPredecessors)
+                                            indexToAvoid =
+                runningIncrement + 1u
+                , (fun associationBuiltSoFar ->
+                    deferredActionsForPredecessors ((indexToAvoid - runningIncrement
+                                                    , runningIncrement + 1u)
+                                                      :: associationBuiltSoFar))
+            (sortedIndicesToAvoid
+             |> List.fold arrangeDeferredAssociations (0u, (fun result -> result))
+             |> snd) []
+            |> Map.ofList   // This has the effect of eliminating all but the last entry for a group of associations
+                            // for consecutive indices. Otherwise the associations for lesser indices in the group
+                            // would just map onto the next higher index, which we are also trying to avoid.
+            |> Map.toArray
+        let remapIndex index =
+            let foundIndex =
+                Array.BinarySearch (sortedAssociationBetweenIndicesAndIncrementsToApply,
+                                    (index
+                                     , 0u),
+                                    {
+                                        new IComparer<UInt32 * UInt32> with
+                                            member this.Compare (first, second) =
+                                                compare (fst first) (fst second)
+                                    })
+            let incrementToApplyToIndex =
+                if foundIndex >= 0
+                then snd sortedAssociationBetweenIndicesAndIncrementsToApply.[foundIndex]
+                else let foundIndex =
+                            ~~~ foundIndex
+                     if foundIndex > 0
+                     then snd sortedAssociationBetweenIndicesAndIncrementsToApply.[foundIndex - 1]
+                     else 0u
+            index + incrementToApplyToIndex
+        remapIndex
         
         

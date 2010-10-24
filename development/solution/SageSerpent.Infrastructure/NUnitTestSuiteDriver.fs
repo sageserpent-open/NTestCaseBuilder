@@ -1,9 +1,8 @@
 module SageSerpent.Infrastructure.NUnitTestSuiteDriver
 
-    open NUnit.Core
+    open NUnit.ConsoleRunner
     
     let RunAllTests () =
         let assemblyForTheseTests = System.Reflection.Assembly.GetEntryAssembly()
-        let testSuite = (TestSuiteBuilder()).Build(assemblyForTheseTests.Location)
-        testSuite.Run(NullListener()) |> ignore;
+        Runner.Main([| assemblyForTheseTests.Location |]) |> ignore
         

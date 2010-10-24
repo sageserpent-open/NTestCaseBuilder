@@ -56,8 +56,8 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
-    <Reference Include="nunit.core">
-      <HintPath>Z:\Documents\SageSerpent\workInProgressForSageSerpentOpenSource\development\solution\ThirdParty\NUnit\bin\nunit.core.dll</HintPath>
+    <Reference Include="nunit-console-runner">
+      <HintPath>Z:\Documents\SageSerpent\workInProgressForSageSerpentOpenSource\development\solution\ThirdParty\NUnit\bin\net-2.0\lib\nunit-console-runner.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="PowerCollections">

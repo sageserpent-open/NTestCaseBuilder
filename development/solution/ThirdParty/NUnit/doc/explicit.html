@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<!-- saved from url=(0014)about:internet --><!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
 <html>
 <!-- Standard Head Part -->
 <head>
@@ -24,34 +24,7 @@
 
 <div id="content">
 
-<script language="JavaScript">
-	function Show( id ) {
-		document.getElementById(id).style.display = "";
-	}
-	function Hide( id ) {
-		document.getElementById(id).style.display = "none";
-	}
-    function ShowCS()
-	{
-	    Show('CS1'); Hide('VB1'); Hide('MC1'); Hide('JS1');
-	    Show('CS2'); Hide('VB2'); Hide('MC2'); Hide('JS2');
-	}
-    function ShowVB()
-	{
-	    Hide('CS1'); Show('VB1'); Hide('MC1'); Hide('JS1');
-	    Hide('CS2'); Show('VB2'); Hide('MC2'); Hide('JS2');
-	}
-    function ShowMC()
-	{
-	    Hide('CS1'); Hide('VB1'); Show('MC1'); Hide('JS1');
-	    Hide('CS2'); Hide('VB2'); Show('MC2'); Hide('JS2');
-	}
-    function ShowJS()
-	{
-	    Hide('CS1'); Hide('VB1'); Hide('MC1'); Show('JS1');
-	    Hide('CS2'); Hide('VB2'); Hide('MC2'); Show('JS2');
-	}
-</script>
+<script language="JavaScript" src="codeFuncs.js" ></script> <!-- Do it this way for IE -->
 
 <h3>ExplicitAttribute (NUnit 2.2)</h3>
 
@@ -60,13 +33,25 @@
 	selected in the gui, if its name is specified on the console runner command 
 	line as the fixture to run or if it is included by use of a Category filter.</p>
 
+<p>An optional string argument may be used to give the reason for marking
+   the test Explicit.</p>
+
 <p>If a test or fixture with the Explicit attribute is encountered in the course of 
-	running tests, the runner treats it as if it had been ignored. The progress bar 
-	turns yellow and the test is listed in the report of tests not run</p>
+	running tests, it is skipped unless it has been specifically selected by one
+	of the above means. The test does not affect the outcome of the run at all:
+	it is not considered as ignored and is not even counted in the total number
+	of tests. In the gui, the tree node for the test remains gray and the
+	status bar color is not affected.</p>
+	
+<blockquote><i><b>Note:</b> In versions of NUnit prior to 2.4, these tests were
+    shown as ignored.</i></blockquote>
 
 <h4>Test Fixture Syntax</h4>
 
-<div class="code">
+<div id="trace">
+</div>
+
+<div class="code cs">
 
 <div class="langFilter">
 	<a href="javascript:Show('DD1')" onmouseover="Show('DD1')"><img src="img/langFilter.gif" width="14" height="14" alt="Language Filter"></a>
@@ -78,7 +63,7 @@
 	</div>
 </div>
 
-<pre id="CS1" style="display:">namespace NUnit.Tests
+<pre class="cs">namespace NUnit.Tests
 {
   using System;
   using NUnit.Framework;
@@ -91,7 +76,7 @@
 }
 </pre>
 
-<pre id="VB1" style="display:none">Imports System
+<pre class="vb">Imports System
 Imports Nunit.Framework
 
 Namespace Nunit.Tests
@@ -103,7 +88,7 @@ Namespace Nunit.Tests
 End Namespace
 </pre>
 
-<pre id="MC1" style="display:none">#using &lt;Nunit.Framework.dll&gt;
+<pre class="mc">#using &lt;Nunit.Framework.dll&gt;
 using namespace System;
 using namespace NUnit::Framework;
 
@@ -124,7 +109,7 @@ namespace NUnitTests {
 }
 </pre>
 
-<pre id="JS1" style="display:none">package NUnit.Tests;
+<pre class="js">package NUnit.Tests;
 
 import System.*;
 import NUnit.Framework.TestFixture;
@@ -154,7 +139,7 @@ public class ExplicitTests
 	</div>
 </div>
 
-<pre id="CS2" style="display:">namespace NUnit.Tests
+<pre class="cs">namespace NUnit.Tests
 {
   using System;
   using NUnit.Framework;
@@ -168,7 +153,7 @@ public class ExplicitTests
 }
 </pre>
 
-<pre id="VB2" style="display:none">Imports System
+<pre class="vb">Imports System
 Imports Nunit.Framework
 
 Namespace Nunit.Tests
@@ -182,7 +167,7 @@ Namespace Nunit.Tests
 End Namespace
 </pre>
 
-<pre id="MC2" style="display:none">#using &lt;Nunit.Framework.dll&gt;
+<pre class="mc">#using &lt;Nunit.Framework.dll&gt;
 using namespace System;
 using namespace NUnit::Framework;
 
@@ -202,7 +187,7 @@ namespace NUnitTests {
 }
 </pre>
 
-<pre id="JS2" style="display:none">package NUnit.Tests;
+<pre class="js">package NUnit.Tests;
 
 import System.*;
 import NUnit.Framework.TestFixture;
@@ -225,34 +210,56 @@ public class SuccessTests
 <!-- Submenu -->
 <div id="subnav">
 <ul>
-<li><a href="index.html">NUnit 2.2.9</a></li>
+<li><a href="index.html">NUnit 2.5.3</a></li>
 <ul>
 <li><a href="getStarted.html">Getting&nbsp;Started</a></li>
-<li><a href="installation.html">Installation</a></li>
-<li><a href="features.html">Features</a></li>
-<ul>
 <li><a href="assertions.html">Assertions</a></li>
+<li><a href="constraintModel.html">Constraints</a></li>
 <li><a href="attributes.html">Attributes</a></li>
 <ul>
-<li><a href="testFixture.html">Test&nbsp;Fixture</a></li>
-<li><a href="test.html">Test</a></li>
-<li><a href="setup.html">Setup</a></li>
-<li><a href="teardown.html">Teardown</a></li>
-<li><a href="fixtureSetup.html">Test&nbsp;Fixture&nbsp;SetUp</a></li>
-<li><a href="fixtureTeardown.html">Test&nbsp;Fixture&nbsp;TearDown</a></li>
-<li><a href="exception.html">Expected&nbsp;Exception</a></li>
-<li><a href="platform.html">Platform</a></li>
 <li><a href="category.html">Category</a></li>
+<li><a href="combinatorial.html">Combinatorial</a></li>
+<li><a href="culture.html">Culture</a></li>
+<li><a href="datapoint.html">Datapoint(s)</a></li>
+<li><a href="description.html">Description</a></li>
+<li><a href="exception.html">Exception</a></li>
 <li id="current"><a href="explicit.html">Explicit</a></li>
-<li><a href="suite.html">Suite</a></li>
 <li><a href="ignore.html">Ignore</a></li>
+<li><a href="maxtime.html">Maxtime</a></li>
+<li><a href="pairwise.html">Pairwise</a></li>
+<li><a href="platform.html">Platform</a></li>
+<li><a href="property.html">Property</a></li>
+<li><a href="random.html">Random</a></li>
+<li><a href="range.html">Range</a></li>
+<li><a href="repeat.html">Repeat</a></li>
+<li><a href="requiredAddin.html">RequiredAddin</a></li>
+<li><a href="requiresMTA.html">Requires&nbsp;MTA</a></li>
+<li><a href="requiresSTA.html">Requires&nbsp;STA</a></li>
+<li><a href="requiresThread.html">Requires&nbsp;Thread</a></li>
+<li><a href="sequential.html">Sequential</a></li>
+<li><a href="setCulture.html">SetCulture</a></li>
+<li><a href="setup.html">Setup</a></li>
+<li><a href="setupFixture.html">SetupFixture</a></li>
+<li><a href="suite.html">Suite</a></li>
+<li><a href="teardown.html">Teardown</a></li>
+<li><a href="test.html">Test</a></li>
+<li><a href="testCase.html">TestCase</a></li>
+<li><a href="testCaseSource.html">TestCaseSource</a></li>
+<li><a href="testFixture.html">TestFixture</a></li>
+<li><a href="fixtureSetup.html">TestFixtureSetUp</a></li>
+<li><a href="fixtureTeardown.html">TestFixtureTearDown</a></li>
+<li><a href="theory.html">Theory</a></li>
+<li><a href="timeout.html">Timeout</a></li>
+<li><a href="values.html">Values</a></li>
+<li><a href="valueSource.html">ValueSource</a></li>
 </ul>
+<li><a href="nunit-console.html">Console&nbsp;Runner</a></li>
+<li><a href="nunit-gui.html">Gui&nbsp;Runner</a></li>
 <li><a href="configFiles.html">Configuration&nbsp;Files</a></li>
+<li><a href="pnunit.html">PNUnit</a></li>
 <li><a href="multiAssembly.html">Multiple&nbsp;Assemblies</a></li>
 <li><a href="vsSupport.html">Visual&nbsp;Studio&nbsp;Support</a></li>
-</ul>
-<li><a href="nunit-console.html">NUnit-Console</a></li>
-<li><a href="nunit-gui.html">NUnit-Gui</a></li>
+<li><a href="extensibility.html">Extensibility</a></li>
 <li><a href="releaseNotes.html">Release&nbsp;Notes</a></li>
 <li><a href="samples.html">Samples</a></li>
 <li><a href="license.html">License</a></li>
@@ -263,9 +270,8 @@ public class SuccessTests
 
 
 <!-- Standard Footer for NUnit.org -->
-<!-- public_html/nunit/footer.php -->
 <div id="footer">
-  Copyright &copy; 2002-2006 NUnit.org. All Rights Reserved.
+  Copyright &copy; 2009 Charlie Poole. All Rights Reserved.
 </div>
 <!-- End of Footer -->
 

@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<!-- saved from url=(0014)about:internet --><!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
 <html>
 <!-- Standard Head Part -->
 <head>
@@ -33,9 +33,24 @@ interacting with the Visual Studio extensibility model.</p>
 <h3>Running From Within Visual Studio</h3>
 
 <p>The most convenient way to do this is to set up a custom tool entry specifying the path to 
-NUnit-gui.exe as the command. For a C# project, you may wish to use $(TargetPath) for the arguments and
-$(TargetDir) for the initial directory. If you would like to debug your tests, use the Visual Studio
-Debug | Processes… menu item to attach to nunit-gui.exe after starting it and set breakpoints in
+NUnit as the command. For a VS2003 C# project, you can use $(TargetPath) for the arguments and
+$(TargetDir) for the initial directory. 
+
+<p>With Visual Studio VS2005 this becomes a bit harder, because that release changed the
+meaning of the 'Target' macros so they now point to the intermediate 'obj' directories rather
+than the final output in one of the 'bin' directories. Here are some alternatives that
+work in both versions:
+
+<ul>
+<li><b>$(ProjectDir)$(ProjectFileName)</b> to open the VS Project rather than the assembly.
+    If you use this approach, be sure to rename your config file accordingly and put it
+	in the same directory as the VS project file.
+<li><b>$(ProjectDir)bin/Debug/$(TargetName)$(TargetExt)</b> to run the assembly directly.
+    Note that this requires hard-coding part of the path, including the configuration.
+</ul>
+
+<p>If you would like to debug your tests, use the Visual Studio
+Debug | Processes… menu item to attach to NUnit after starting it and set breakpoints in
 your test code as desired before running the tests.</p>
 
 <h3>Using Console Interface to Debug Applications</h3>
@@ -61,10 +76,10 @@ loaded with one exception. The default location for the config file is the direc
 project file and it’s default name is the same as the project file with an extension of .config.
 For example, the following command would load the tests in the nunit.tests assembly using the
 configuration file nunit.tests.dll.config located in the same directory as the dll.
-	<pre class="programtext">        nunit-gui.exe nunit.tests.dll</pre>
+	<pre class="programtext">        nunit.exe nunit.tests.dll</pre>
 On the other hand, the following command would load the tests using the configuration file
 nunit.tests.config located in the same directory as the csproj file.
-      <pre class="programtext">        nunit-gui.exe nunit.tests.csproj</pre>
+      <pre class="programtext">        nunit.exe nunit.tests.csproj</pre>
 The same consideration applies to running tests using the console runner.</p>
 
 <h3>Opening Visual Studio Solutions</h3>
@@ -92,20 +107,19 @@ specified in the VS project.</p>
 <!-- Submenu -->
 <div id="subnav">
 <ul>
-<li><a href="index.html">NUnit 2.2.9</a></li>
+<li><a href="index.html">NUnit 2.5.3</a></li>
 <ul>
 <li><a href="getStarted.html">Getting&nbsp;Started</a></li>
-<li><a href="installation.html">Installation</a></li>
-<li><a href="features.html">Features</a></li>
-<ul>
 <li><a href="assertions.html">Assertions</a></li>
+<li><a href="constraintModel.html">Constraints</a></li>
 <li><a href="attributes.html">Attributes</a></li>
+<li><a href="nunit-console.html">Console&nbsp;Runner</a></li>
+<li><a href="nunit-gui.html">Gui&nbsp;Runner</a></li>
 <li><a href="configFiles.html">Configuration&nbsp;Files</a></li>
+<li><a href="pnunit.html">PNUnit</a></li>
 <li><a href="multiAssembly.html">Multiple&nbsp;Assemblies</a></li>
 <li id="current"><a href="vsSupport.html">Visual&nbsp;Studio&nbsp;Support</a></li>
-</ul>
-<li><a href="nunit-console.html">NUnit-Console</a></li>
-<li><a href="nunit-gui.html">NUnit-Gui</a></li>
+<li><a href="extensibility.html">Extensibility</a></li>
 <li><a href="releaseNotes.html">Release&nbsp;Notes</a></li>
 <li><a href="samples.html">Samples</a></li>
 <li><a href="license.html">License</a></li>
@@ -116,9 +130,8 @@ specified in the VS project.</p>
 
 
 <!-- Standard Footer for NUnit.org -->
-<!-- public_html/nunit/footer.php -->
 <div id="footer">
-  Copyright &copy; 2002-2006 NUnit.org. All Rights Reserved.
+  Copyright &copy; 2009 Charlie Poole. All Rights Reserved.
 </div>
 <!-- End of Footer -->
 

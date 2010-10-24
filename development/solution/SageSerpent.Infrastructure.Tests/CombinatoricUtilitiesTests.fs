@@ -26,6 +26,9 @@ namespace SageSerpent.Infrastructure.Tests
              
         let sumContributions = List.reduceBack (+)
         
+        let sequenceOfOrderedListsOfUniqueItems = List.init 10 (fun item -> item)
+                                                  |> (BargainBasement.Flip (List.scanBack (BargainBasement.Curry List.Cons))) []
+                                                          
         [<Test>]
         member this.TestThatAttemptingToChooseContributionsFromAnEmptyListResultsInAnEmptyResultList () =
             for limit in 0u .. 5u do
@@ -99,11 +102,11 @@ namespace SageSerpent.Infrastructure.Tests
         member this.TestCoverageOfAllPossibleContributionsThatCanMeetTheTotal () =
             for total in 0u .. 5u do
                 let inputExamples = contributionLimitsEquallingLimitInTotal total 5u
-                let combinedResultsFromAllPossibleInputExamplesSummingToTotal
-                    = inputExamples
-                      |> List.map (fun inputExample -> CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample total)
-                      |> List.concat
-                      |> Set.ofList
+                let combinedResultsFromAllPossibleInputExamplesSummingToTotal =
+                    inputExamples
+                    |> List.map (fun inputExample -> CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample total)
+                    |> List.concat
+                    |> Set.ofList
                 let inputExamplesAsSet = Set.ofList inputExamples
                 printf "(TestCoverageOfAllPossibleContributionsThatCanMeetTheTotal) Number of input examples: %d, number of combined results: %d\n"
                        inputExamplesAsSet.Count
@@ -143,5 +146,98 @@ namespace SageSerpent.Infrastructure.Tests
                         let shouldBeTrue = not (enMasseResults.ContainsKey unachievableTotal)
                         Assert.IsTrue shouldBeTrue
         
-                            
         
+        
+        
+        [<Test>]
+        member this.TestThatAZeroCombinationOfItemsIsAlwaysASingleEmptyList () =
+            for items in sequenceOfOrderedListsOfUniqueItems do
+                let combinations = CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder 0u items
+                let shouldBeTrue = 1 = Seq.length combinations
+                Assert.IsTrue shouldBeTrue
+                match Seq.head combinations with
+                    [] -> ()
+                  | _ -> Assert.Fail ()
+                  
+        [<Test>]
+        member this.TestThatAnOversizedCombinationCannotBeRequested () =
+            for items in sequenceOfOrderedListsOfUniqueItems do
+                for increment in 1u .. 3u do
+                    let unachievableSize =
+                        (List.length items
+                         |> uint32)
+                        + increment
+                    let combinations = CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder unachievableSize items
+                    let shouldBeTrue =
+                        Seq.isEmpty combinations
+                    Assert.IsTrue shouldBeTrue
+                    
+        [<Test>]
+        member this.TestThatTheExpectedNumberOfCombinationsAreGenerated () =
+            for items in sequenceOfOrderedListsOfUniqueItems do
+                let maximumSize = 
+                    List.length items
+                    |> uint32
+                for size in 1u .. maximumSize do
+                    let shouldBeTrue =
+                        BargainBasement.NumberOfCombinations maximumSize size
+                         = (Seq.length (CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder size items)
+                            |> uint32)
+                    Assert.IsTrue shouldBeTrue
+                    
+        [<Test>]
+        member this.TestThatCombinationsTakenFromUniqueItemsContainUniqueItems () =
+            for items in sequenceOfOrderedListsOfUniqueItems do
+                let maximumSize = 
+                    List.length items
+                    |> uint32
+                for size in 1u .. maximumSize do
+                    let shouldBeTrue =
+                        not (CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder size items
+                             |> Seq.map (Set.ofList >> Set.count >> uint32)
+                             |> Seq.exists ((<>) size))
+                    Assert.IsTrue shouldBeTrue
+
+        [<Test>]
+        member this.TestThatCombinationsTakenFromUniqueItemsAreAllDistinct () =
+            for items in sequenceOfOrderedListsOfUniqueItems do
+                let maximumSize = 
+                    List.length items
+                    |> uint32
+                for size in 1u .. maximumSize do
+                    let combinations =
+                        CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder size items
+                    let shouldBeTrue =
+                        Seq.length combinations
+                         = (combinations
+                            |> Seq.map Set.ofList
+                            |> Set.ofSeq
+                            |> Set.count)
+                    Assert.IsTrue shouldBeTrue
+
+                                
+        [<Test>]
+        member this.TestThatCombinationsTakenTogetherIncludeAllTheItemsTheyWereTakenFrom () =
+            for items in sequenceOfOrderedListsOfUniqueItems do
+                let maximumSize = 
+                    List.length items
+                    |> uint32
+                for size in 1u .. maximumSize do
+                    let shouldBeTrue =
+                        Set.ofList items
+                         = (CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder size items
+                            |> Seq.map Set.ofList
+                            |> Set.unionMany)
+                    Assert.IsTrue shouldBeTrue
+                                
+        [<Test>]
+        member this.TestThatCombinationsPreserveTheOriginalOrderOfItems () =
+            for items in sequenceOfOrderedListsOfUniqueItems do
+                let maximumSize = 
+                    List.length items
+                    |> uint32
+                for size in 1u .. maximumSize do
+                    let shouldBeTrue =
+                        not (CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder size items
+                             |> Seq.exists (not << BargainBasement.IsSorted))
+                    Assert.IsTrue shouldBeTrue                                                                
