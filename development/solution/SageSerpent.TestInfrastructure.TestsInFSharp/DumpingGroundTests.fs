@@ -33,7 +33,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             let chooseAnyNumberFromOneTo = chooseAnyNumberFromZeroToOneLessThan >> (+) 1u
             let headsItIs () = chooseAnyNumberFromZeroToOneLessThan 2u = 0u
             let didTheSingleTestVariableEdgeCase = ref false
-            for _ in [0u .. 90u] do
+            for _ in 0u .. 90u do
                 let numberOfTrackedTestVariables = chooseAnyNumberFromOneTo maximumNumberOfTrackedTestVariables
                 if numberOfTrackedTestVariables = 1u
                 then didTheSingleTestVariableEdgeCase := true
@@ -48,16 +48,16 @@ namespace SageSerpent.TestInfrastructure.Tests
                     if headsItIs () && thinkAboutTerminatingRecursion
                        || maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 0u
                     then if numberOfTrackedTestVariables = 1u
-                         then TestVariableNode ([for level in [1u .. trackedTestVariableToNumberOfLevelsMap.[int32 indexForLeftmostTrackedTestVariable]] do
+                         then TestVariableNode ([for level in 1u .. trackedTestVariableToNumberOfLevelsMap.[int32 indexForLeftmostTrackedTestVariable] do
                                                     yield box (Tracked (indexForLeftmostTrackedTestVariable, level))])
                               , indexForLeftmostTrackedTestVariable + 1u   
-                         else TestVariableNode ([for level in [1u .. chooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable] do
+                         else TestVariableNode ([for level in 1u .. chooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable do
                                                     yield box (Untracked level)])
                               , indexForLeftmostTrackedTestVariable
                     else let allOnOneSubtreeDistributionMaker numberOfSubtrees numberOfTrackedTestVariables =
                             let choice =
                                 chooseAnyNumberFromOneTo numberOfSubtrees
-                            [for counter in [1u .. numberOfSubtrees] do
+                            [for counter in 1u .. numberOfSubtrees do
                                 if counter = choice
                                 then yield numberOfTrackedTestVariables
                                 else yield 0u]
@@ -80,7 +80,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                  let pickRandomlyAllowingRepetitionOfChoices sums =
                                     let sums
                                         = List.to_array sums
-                                    List.of_array [|for _ in [1u .. numberOfSubtrees - 1u] do
+                                    List.of_array [|for _ in 1u .. numberOfSubtrees - 1u do
                                                         yield sums.[int32 (chooseAnyNumberFromZeroToOneLessThan (uint32 sums.Length))]|]
                                  let selectedSumsIncludingNumberOfTrackedTestVariables =
                                     List.append (pickRandomlyAllowingRepetitionOfChoices [0u .. numberOfTrackedTestVariables]
@@ -197,7 +197,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             let testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelsFromTrackedTestVariablesAtDesiredStrength =
                 let crossProductOfTrackedTestVariableLevels =
                     Map.fold_right (fun _ level partialResult ->
-                                        [1u .. level]::partialResult)
+                                        [1u .. level] :: partialResult)
                                    trackedTestVariableToNumberOfLevelsMap []
                     |> BargainBasement.CrossProduct
                     |> Set.of_list

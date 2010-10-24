@@ -14,7 +14,7 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
             | head :: [] -> if head >= total
                             then [[total]]
                             else []
-            | head :: tail -> [for contributionFromHead in [0u .. (min head total)] do
+            | head :: tail -> [for contributionFromHead in 0u .. (min head total) do
                                 let resultFromTail = ChooseContributionsToMeetTotal tail (total - contributionFromHead)
                                 if not resultFromTail.IsEmpty
                                 then yield! List.map (function item -> contributionFromHead::item) resultFromTail]
@@ -27,12 +27,12 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
     let rec ChooseContributionsToMeetTotalsUpToLimit contributionLimits limit =
         match contributionLimits with
             [] -> Map.empty
-            | head :: [] -> Map.of_list [for contributionFromHead in [0u .. (min head limit)] do
+            | head :: [] -> Map.of_list [for contributionFromHead in 0u .. (min head limit) do
                                             yield (contributionFromHead, [[contributionFromHead]])]
             | head :: tail -> let resultFromTail = ChooseContributionsToMeetTotalsUpToLimit tail limit
-                              Map.of_list [for total in [0u .. limit] do
+                              Map.of_list [for total in 0u .. limit do
                                             let resultForTotal =
-                                                [for contributionFromHead in [0u .. (min head total)] do
+                                                [for contributionFromHead in 0u .. (min head total) do
                                                     let totalRequiredFromTail = total - contributionFromHead
                                                     if resultFromTail.ContainsKey totalRequiredFromTail
                                                     then yield! List.map (function item -> contributionFromHead::item) resultFromTail.[totalRequiredFromTail]]
