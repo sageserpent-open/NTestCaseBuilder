@@ -89,10 +89,13 @@ namespace SageSerpent.Infrastructure.Tests
                 for inputExample in inputExamples do
                     let enMasseResults = CombinatoricUtilities.chooseContributionsToMeetTotalsUpToLimit inputExample limit
                     for total in [0u..limit] do
-                        let resultsFromEnMasseCalculationForTotalAsSet = Set.of_list enMasseResults.[total]
-                        let resultFromIndividualCalculationAsSet = Set.of_list (CombinatoricUtilities.chooseContributionsToMeetTotal inputExample total)
+                        let resultsFromEnMasseCalculationForTotal = enMasseResults.[total]
+                        let resultsFromEnMasseCalculationForTotalAsSet = Set.of_list resultsFromEnMasseCalculationForTotal
+                        let resultsFromIndividualCalculation = CombinatoricUtilities.chooseContributionsToMeetTotal inputExample total
+                        let resultsFromIndividualCalculationAsSet = Set.of_list resultsFromIndividualCalculation
                         printf "(TestThatContributionsThatMeetUpToATotalProduceTheSameResultsAsContributionsThatEqualATotal) Number of results from en-masse calculation: %d, number of results from individual calculation: %d\n"
-                               resultsFromEnMasseCalculationForTotalAsSet.Count
-                               resultFromIndividualCalculationAsSet.Count
-                        let shouldBeTrue = resultFromIndividualCalculationAsSet = resultsFromEnMasseCalculationForTotalAsSet
+                               resultsFromEnMasseCalculationForTotal.Length
+                               resultsFromIndividualCalculation.Length
+                        let shouldBeTrue = resultsFromIndividualCalculationAsSet = resultsFromEnMasseCalculationForTotalAsSet
+                                           && resultsFromEnMasseCalculationForTotal.Length = resultsFromIndividualCalculation.Length
                         Assert.IsTrue shouldBeTrue
