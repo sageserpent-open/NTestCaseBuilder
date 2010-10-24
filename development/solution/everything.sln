@@ -1,23 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SageSerpent", "SageSerpent", "{41EC309B-B1F5-469B-BC24-379821358969}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SageSerpent.Infrastructure", "SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj", "{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Infrastructure", "Infrastructure\Infrastructure.fsproj", "{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SageSerpent.Infrastructure.Tests", "SageSerpent.Infrastructure.Tests\SageSerpent.Infrastructure.Tests.fsproj", "{7BBB577A-83A1-40C9-8129-D8B1F1A45666}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Infrastructure", "Infrastructure", "{F699F008-5BA1-4162-96C4-F71399CF9FD2}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SageSerpent.TestInfrastructure", "SageSerpent.TestInfrastructure\SageSerpent.TestInfrastructure.fsproj", "{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{5684AEC4-E5CF-4121-8EC7-6FF8BD417BE2}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TestInfrastructure", "TestInfrastructure", "{F15F944C-4DCF-404A-801D-B461B339E3C1}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{29D838AF-DABA-4F0F-83FE-84EAB0A8B0CA}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tests", "Infrastructure\Tests\Tests.fsproj", "{7BBB577A-83A1-40C9-8129-D8B1F1A45666}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TestInfrastructure", "TestInfrastructure\TestInfrastructure.fsproj", "{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "TestInfrastructure\Tests\Tests.csproj", "{797A2442-8A16-4DB3-AD44-42DB3EAA9D48}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SageSerpent.TestInfrastructure.Tests", "SageSerpent.TestInfrastructure.Tests\SageSerpent.TestInfrastructure.Tests.csproj", "{797A2442-8A16-4DB3-AD44-42DB3EAA9D48}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -72,15 +62,5 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{F699F008-5BA1-4162-96C4-F71399CF9FD2} = {41EC309B-B1F5-469B-BC24-379821358969}
-		{F15F944C-4DCF-404A-801D-B461B339E3C1} = {41EC309B-B1F5-469B-BC24-379821358969}
-		{35DFA6A2-9439-4E92-8D73-540C36D3BEAE} = {F699F008-5BA1-4162-96C4-F71399CF9FD2}
-		{5684AEC4-E5CF-4121-8EC7-6FF8BD417BE2} = {F699F008-5BA1-4162-96C4-F71399CF9FD2}
-		{7BBB577A-83A1-40C9-8129-D8B1F1A45666} = {5684AEC4-E5CF-4121-8EC7-6FF8BD417BE2}
-		{29D838AF-DABA-4F0F-83FE-84EAB0A8B0CA} = {F15F944C-4DCF-404A-801D-B461B339E3C1}
-		{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74} = {F15F944C-4DCF-404A-801D-B461B339E3C1}
-		{797A2442-8A16-4DB3-AD44-42DB3EAA9D48} = {29D838AF-DABA-4F0F-83FE-84EAB0A8B0CA}
 	EndGlobalSection
 EndGlobal

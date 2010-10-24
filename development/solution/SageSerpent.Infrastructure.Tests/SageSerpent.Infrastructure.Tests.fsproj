@@ -5,13 +5,13 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{7a1e6d76-bfb5-459f-a5f8-d6df919b2f74}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>TestInfrastructure</RootNamespace>
-    <AssemblyName>TestInfrastructure</AssemblyName>
+    <ProjectGuid>{7bbb577a-83a1-40c9-8129-d8b1f1a45666}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Tests</RootNamespace>
+    <AssemblyName>SageSerpent.Infrastructure.Tests</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <Name>TestInfrastructure</Name>
+    <Name>SageSerpent.Infrastructure.Tests</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -31,21 +31,24 @@
     <WarningLevel>3</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="Script.fsx" />
-    <Compile Include="testCaseEnumeratorFactory.fs" />
-    <Compile Include="interleavedTestCaseEnumeratorFactory.fs" />
-    <Compile Include="synthesizedTestCaseEnumeratorFactory.fs" />
-    <Compile Include="testVariableLevelEnumeratorFactory.fs" />
-  </ItemGroup>
-  <ItemGroup>
+    <Reference Include="nunit.framework, Version=2.2.9.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">
+      <Name>nunit.framework</Name>
+      <AssemblyName>nunit.framework.dll</AssemblyName>
+      <HintPath>..\ThirdParty\NUnit\bin\nunit.framework.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Infrastructure\Infrastructure.fsproj">
-      <Name>Infrastructure</Name>
+    <Compile Include="combinatoricUtilitiesTests.fs" />
+    <Compile Include="driver.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj">
+      <Name>SageSerpent.Infrastructure</Name>
       <Project>{35dfa6a2-9439-4e92-8d73-540c36d3beae}</Project>
       <Private>True</Private>
     </ProjectReference>

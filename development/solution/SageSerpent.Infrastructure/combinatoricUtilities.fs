@@ -10,14 +10,14 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
     /// such that each contribution cannot exceed its corresponding limit. The contribution lists are returned
     /// within a list: if the total is too high to be met given the limits, the result is an empty list.</summary>
 
-    let rec chooseContributionsToMeetTotal contributionLimits total =
+    let rec ChooseContributionsToMeetTotal contributionLimits total =
         match contributionLimits with
             [] -> []
             | head::[] -> if head >= total
                           then [[total]]
                           else []
             | head::tail -> [for contributionFromHead in [0u..(min head total)] do
-                                let resultFromTail = chooseContributionsToMeetTotal tail (total - contributionFromHead)
+                                let resultFromTail = ChooseContributionsToMeetTotal tail (total - contributionFromHead)
                                 if not resultFromTail.IsEmpty
                                 then yield! List.map (function item -> contributionFromHead::item) resultFromTail]
                             
@@ -26,12 +26,12 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
     /// a range of totals from zero up to and including the limit. Each result for a given total is placed
     /// into a map that associates totals with non-empty result lists.</summary>
                                 
-    let rec chooseContributionsToMeetTotalsUpToLimit contributionLimits limit =
+    let rec ChooseContributionsToMeetTotalsUpToLimit contributionLimits limit =
         match contributionLimits with
             [] -> Map.empty
             | head::[] -> Map.of_list [for contributionFromHead in [0u..(min head limit)] do
                                             yield (contributionFromHead, [[contributionFromHead]])]
-            | head::tail -> let resultFromTail = chooseContributionsToMeetTotalsUpToLimit tail limit
+            | head::tail -> let resultFromTail = ChooseContributionsToMeetTotalsUpToLimit tail limit
                             Map.of_list [for total in [0u..limit] do
                                             let resultForTotal = [for contributionFromHead in [0u..(min head total)] do
                                                                     let totalRequiredFromTail = total - contributionFromHead

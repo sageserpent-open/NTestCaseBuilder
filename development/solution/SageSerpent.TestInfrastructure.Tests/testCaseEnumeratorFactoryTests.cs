@@ -308,7 +308,7 @@ namespace SageSerpent.TestInfrastructure.Tests
         {
             if (!(testCases.Count >= combinationSize))
             {
-                throw new PreconditionViolation("Attempt to pick out combination larger than size of source collection.");
+                throw new PreconditionViolationException("Attempt to pick out combination larger than size of source collection.");
             }
 
             if (0U == combinationSize)
@@ -419,7 +419,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             {
                 if (!(owningCollection.Count > 0U))
                 {
-                    throw new PreconditionViolation(
+                    throw new PreconditionViolationException(
                         "There must be at least one test variable level.");
                 }
 
@@ -495,7 +495,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             {
                 if (!(testCaseGenerators.Count > 0U))
                 {
-                    throw new PreconditionViolation(
+                    throw new PreconditionViolationException(
                         "There must be at least one alternative test case generator to choose from.");
                 }
 
@@ -524,7 +524,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                 {
                     if (!(_testCaseGenerators.Count > 0))
                     {
-                        throw new PreconditionViolation(
+                        throw new PreconditionViolationException(
                             "Must have at least one child test case generator for this property to be defined.");
                     }
 
@@ -537,7 +537,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                     }
                     else
                     {
-                        throw new InternalAssertionViolation(
+                        throw new InternalAssertionViolationException(
                             "This property must be strictly greater than zero as a postcondition.");
                     }
                 }
@@ -640,7 +640,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                 {
                     if (!(_testCaseGenerators.Count > 0))
                     {
-                        throw new PreconditionViolation(
+                        throw new PreconditionViolationException(
                             "Must have at least one child test case generator for this property to be defined.");
                     }
 
@@ -651,7 +651,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
                     if (!(result > 0U))
                     {
-                        throw new InternalAssertionViolation(
+                        throw new InternalAssertionViolationException(
                             "This property must be strictly greater than zero as a postcondition.");
                     }
 
@@ -980,7 +980,7 @@ namespace SageSerpent.TestInfrastructure.Tests
         {
             if (maximumDegreesOfFreedom == 0U)
             {
-                throw new PreconditionViolation(
+                throw new PreconditionViolationException(
                     "The test should specify the maximum degrees of freedom as being strictly greater than zero.");
             }
 
@@ -1018,7 +1018,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                                            equivalenceIndex);
 
                     default:
-                        throw new InternalAssertionViolation("Default of this switch should not be executed.");
+                        throw new InternalAssertionViolationException("Default of this switch should not be executed.");
                 }
             }
         }

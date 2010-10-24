@@ -8,10 +8,10 @@
     <ProjectGuid>{35dfa6a2-9439-4e92-8d73-540c36d3beae}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Infrastructure</RootNamespace>
-    <AssemblyName>Infrastructure</AssemblyName>
+    <AssemblyName>SageSerpent.Infrastructure</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <Name>Infrastructure</Name>
+    <Name>SageSerpent.Infrastructure</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -30,8 +30,13 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>3</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <OtherFlags>
+    </OtherFlags>
+  </PropertyGroup>
   <ItemGroup>
     <None Include="Script.fsx" />
+    <Compile Include="assemblyInformation.fs" />
     <Compile Include="combinatoricUtilities.fs" />
     <Compile Include="exceptions.fs" />
     <Compile Include="nUnitTestSuiteDriver.fs" />
