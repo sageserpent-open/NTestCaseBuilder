@@ -42,7 +42,6 @@
     <None Include="Script.fsx" />
     <Compile Include="AssemblyInformation.fs" />
     <Compile Include="Node.fs" />
-    <Compile Include="INodeWrapper.fs" />
     <Compile Include="MergedPartialTestVectorRepresentations.fs" />
     <Compile Include="ITestCaseEnumerableFactory.fs" />
     <Compile Include="TestCaseEnumerableFactoryCommonImplementation.fs" />
@@ -51,9 +50,10 @@
     <Compile Include="TestVariableLevelEnumerableFactory.fs" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FSharp.PowerPack, Version=1.9.6.2, Culture=neutral, PublicKeyToken=a19089b1c74d0809">
+    <Reference Include="FSharp.PowerPack, Version=1.9.6.16, Culture=neutral, PublicKeyToken=a19089b1c74d0809">
       <Name>FSharp.PowerPack</Name>
       <AssemblyName>FSharp.PowerPack.dll</AssemblyName>
+      <SpecificVersion>False</SpecificVersion>
     </Reference>
     <Reference Include="PowerCollections, Version=1.0.2141.24679, Culture=neutral, PublicKeyToken=null">
       <Name>PowerCollections</Name>

@@ -1,6 +1,4 @@
-﻿#light
-
-namespace SageSerpent.TestInfrastructure
+﻿namespace SageSerpent.TestInfrastructure
 
     open System.Collections
     open System.Collections.Generic
@@ -40,7 +38,7 @@ namespace SageSerpent.TestInfrastructure
                         // NOTE: as we are converting to a map, we can be cavalier about the
                         // order in which associative pairs are added to the partial test vector.
                         seq {if subtreeIsForANewTestVariableIndex
-                             then if not (List.is_empty partialTestVectorBeingBuilt)
+                             then if not (List.isEmpty partialTestVectorBeingBuilt)
                                   then yield partialTestVectorBeingBuilt
                                              |> Map.of_list
                                   else raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors result in the original collection.")
@@ -111,18 +109,18 @@ namespace SageSerpent.TestInfrastructure
                         newPartialTestVectorRepresentation
                         treeIsForNextTestVariableIndex =
                 let buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation () =
-                        List.fold_right (fun level
-                                             degenerateLinearSubtree ->
-                                                InternalNode
-                                                    {
-                                                        LevelForTestVariableIndex = level
-                                                        SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                                        SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                                        SubtreeForGreaterIndices = degenerateLinearSubtree
-                                                    }) newPartialTestVectorRepresentation SuccessfulSearchTerminationNode                
+                        List.foldBack (fun level
+                                         degenerateLinearSubtree ->
+                                            InternalNode
+                                                {
+                                                    LevelForTestVariableIndex = level
+                                                    SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                                    SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                                    SubtreeForGreaterIndices = degenerateLinearSubtree
+                                                }) newPartialTestVectorRepresentation SuccessfulSearchTerminationNode                
                 match tree with
                     SuccessfulSearchTerminationNode ->
-                        if List.is_empty newPartialTestVectorRepresentation
+                        if List.isEmpty newPartialTestVectorRepresentation
                         then if treeIsForNextTestVariableIndex
                              then raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that is already mergeable with or equivalent to a previous one.")
                                     // The above is really a precondition violation, but the precondition should have been enforced by the implementation and not by the client.
@@ -130,7 +128,7 @@ namespace SageSerpent.TestInfrastructure
                                                                               + " and a successful search cannot terminate on a left or right subtree."))
                         buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation ()                             
                   | UnsuccessfulSearchTerminationNode ->
-                        if List.is_empty newPartialTestVectorRepresentation
+                        if List.isEmpty newPartialTestVectorRepresentation
                            && not treeIsForNextTestVariableIndex
                         then raise (InternalAssertionViolationException "Left or right subtrees should only be added to with a non-empty new partial test vector representation.")
                         buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation ()                             
@@ -204,12 +202,12 @@ namespace SageSerpent.TestInfrastructure
                              // extensive testing of 'TestCaseEnumerableFactoryCommonImplementation'.
                              Some (UnsuccessfulSearchTerminationNode
                                    , queryPartialTestVectorRepresentation)
-                        else if List.is_empty queryPartialTestVectorRepresentation
+                        else if List.isEmpty queryPartialTestVectorRepresentation
                              then raise (InternalAssertionViolationException ("Two problems: left or right subtrees should only be searched with a non-empty query partial test vector representation"
                                                                               + " and a successful search cannot terminate on a left or right subtree."))
                              else raise (InternalAssertionViolationException "A successful search cannot terminate on a left or right subtree.")
                   | UnsuccessfulSearchTerminationNode ->
-                        if List.is_empty queryPartialTestVectorRepresentation
+                        if List.isEmpty queryPartialTestVectorRepresentation
                            && not treeIsForNextTestVariableIndex
                         then raise (InternalAssertionViolationException "Left or right subtrees should only be searched with a non-empty query partial test vector representation.")
                         None        
@@ -354,7 +352,7 @@ namespace SageSerpent.TestInfrastructure
             remove this queryPartialTestVectorRepresentation true 0u
             
         member this.MergeOrAdd partialTestVectorRepresentation =
-            if Map.is_empty partialTestVectorRepresentation
+            if Map.isEmpty partialTestVectorRepresentation
             then this
             else let partialTestVectorRepresentation =
                     MergedPartialTestVectorRepresentations.FillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation

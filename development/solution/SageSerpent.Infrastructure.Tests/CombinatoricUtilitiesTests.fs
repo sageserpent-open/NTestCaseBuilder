@@ -1,5 +1,3 @@
-#light
-
 namespace SageSerpent.Infrastructure.Tests
 
     open NUnit.Framework
@@ -26,7 +24,7 @@ namespace SageSerpent.Infrastructure.Tests
             |> Seq.map (function item -> contributionLimitsEquallingLimitInTotal item maximumLengthOfContributionLimits)
             |> List.concat
              
-        let sumContributions = List.reduce_right (+)
+        let sumContributions = List.reduceBack (+)
         
         [<Test>]
         member this.TestThatAttemptingToChooseContributionsFromAnEmptyListResultsInAnEmptyResultList () =

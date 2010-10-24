@@ -1,6 +1,4 @@
-﻿#light
-
-namespace SageSerpent.TestInfrastructure.Tests
+﻿namespace SageSerpent.TestInfrastructure.Tests
 
     open NUnit.Framework
     
@@ -35,7 +33,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                 match node with
                     TestVariableNode levels ->
                         let subtreeGuiNode =
-                            TreeNode ("TreeNode\n" + any_to_string levels)
+                            TreeNode ("TreeNode\n" + sprintf "%A" levels)
                         treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
                   | InterleavingNode subtrees ->
                         let subtreeGuiNode =
@@ -115,7 +113,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                         yield sums.[int32 (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 sums.Length))]|]
                                  let selectedSumsIncludingNumberOfTrackedTestVariables =
                                     List.append (pickRandomlyAllowingRepetitionOfChoices [0u .. numberOfTrackedTestVariables]
-                                                 |> List.sort compare) [numberOfTrackedTestVariables]
+                                                 |> List.sort) [numberOfTrackedTestVariables]
                                  let firstSum
                                     = List.hd selectedSumsIncludingNumberOfTrackedTestVariables
                                  let leadingSumAndSubsequentDifferences =
@@ -169,7 +167,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                             let subtrees
                                 , maximumTrackingVariableIndex =
                                 distributionOfNumberOfTrackedTestVariablesForEachSubtree                     
-                                |> List.fold_left gatherSubtree ([], indexForRightmostTrackedTestVariable)
+                                |> List.fold gatherSubtree ([], indexForRightmostTrackedTestVariable)
                                     // NOTE: this is why the test variable indices increase from right to left across subtrees.
                             nodeFactory subtrees
                             , maximumTrackingVariableIndex
@@ -206,18 +204,18 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                 "The maximum requested strength of combination is the number of tracked variables, but there are higher strength results.")
                         let extractLevelIndicesFromTrackedTestVariablesOnly testVectorRepresentation =
                             let testVectorRepresentationForTrackedVariablesOnly = 
-                                    Map.fold_right (fun _ level partialResult ->
-                                                        match level with
-                                                            Some actualLevel ->
-                                                                match unbox actualLevel with
-                                                                    Tracked (trackedTestVariableIndex, levelIndex) ->
-                                                                        (trackedTestVariableIndex, levelIndex)
-                                                                         :: partialResult
-                                                                    | _ ->
-                                                                        partialResult
-                                                          | None ->
-                                                                partialResult)
-                                                   testVectorRepresentation []
+                                    Map.foldBack (fun _ level partialResult ->
+                                                    match level with
+                                                        Some actualLevel ->
+                                                            match unbox actualLevel with
+                                                                Tracked (trackedTestVariableIndex, levelIndex) ->
+                                                                    (trackedTestVariableIndex, levelIndex)
+                                                                     :: partialResult
+                                                                | _ ->
+                                                                    partialResult
+                                                      | None ->
+                                                            partialResult)
+                                                 testVectorRepresentation []
                             testVectorRepresentationForTrackedVariablesOnly
                             |> Map.of_list  // Sort by the tracked test variable index - hence the roundtrip from list -> map -> list!
                             |> Map.to_list
@@ -242,9 +240,9 @@ namespace SageSerpent.TestInfrastructure.Tests
                             trackedTestVariableToNumberOfLevelsMap
                             resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
                 let crossProductOfLevelIndices =
-                    Map.fold_right (fun _ numberOfLevels partialResult ->
-                                        [1u .. numberOfLevels] :: partialResult)
-                                   trackedTestVariableToNumberOfLevelsMap []
+                    Map.foldBack (fun _ numberOfLevels partialResult ->
+                                    [1u .. numberOfLevels] :: partialResult)
+                                 trackedTestVariableToNumberOfLevelsMap []
                     |> BargainBasement.CrossProduct
                     |> Set.of_list
                 let shouldBeTrue =
@@ -261,7 +259,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                             resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
                 if (trackedTestVariableToNumberOfLevelsMap: Map<_, _>).Count > 1
                 then let shouldBeTrue =
-                        Set.is_empty resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength
+                        Set.isEmpty resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength
                      if not shouldBeTrue
                      then dumpTree tree
                      Assert.IsTrue shouldBeTrue
@@ -308,7 +306,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                             let chosenPairsOfInterleavedTestVariableIndices =
                                 (List.zip groupsForSubtreeRoots whetherInterleavedNodeChoices)
                                 |> List.map chooseAPairOfInterleavedTestVariableIndices
-                                |> List.filter Option.is_some
+                                |> List.filter Option.isSome
                                 |> List.map Option.get
                             let subtreeRootFromSpannedNodes (nodeAndItsSpannedTestVariableIndicesPairs
                                                              , whetherInterleavedNodeChoice) =
@@ -358,12 +356,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                 let tree =
                     fst (List.hd nodeAndItsSpannedTestVariableIndicesPairs)
                 let associationFromTestVariableIndexToInterleavedTestVariableIndices =
-                    HashMultiMap.Create (List.append interleavedTestVariableIndexPairs reversedInterleavedTestVariableIndexPairs)
+                    HashMultiMap (List.append interleavedTestVariableIndexPairs reversedInterleavedTestVariableIndexPairs)
                 printf "Tree #%u\n" treeNumber
                 let results =
                     tree.PartialTestVectorRepresentationsGroupedByStrengthUpToAndIncluding (min tree.MaximumStrengthOfTestVariableCombination
                                                                                                 maximumStrengthOfCombination)
-                    |> List.reduce_left Seq.append
+                    |> List.reduce Seq.append
                 for result in results do
                     for entry in result do
                         let testVariableIndex = entry.Key

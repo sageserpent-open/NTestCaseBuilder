@@ -1,5 +1,3 @@
-#light
-
 namespace SageSerpent.TestInfrastructure
 
     open System.Collections
@@ -55,8 +53,6 @@ namespace SageSerpent.TestInfrastructure
     /// of test cases, then the client can retry with a different enumerable created using a different parameter value.
 
     type ITestCaseEnumerableFactory =
-        inherit INodeWrapper
-        
         abstract member CreateEnumerable: uint32 -> IEnumerable;
         
         abstract member MaximumStrength: System.UInt32;

@@ -1,6 +1,4 @@
-﻿#light
-
-namespace SageSerpent.TestInfrastructure.Tests
+﻿namespace SageSerpent.TestInfrastructure.Tests
 
     open NUnit.Framework
     
@@ -88,7 +86,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                 , vectorBeingCompleted
                             let modifiedIncompletePartialTestVectors
                                 , completedPartialTestVector =
-                                List.fold_right forceDistinctionBetweenVectors tail ([], head)
+                                List.foldBack forceDistinctionBetweenVectors tail ([], head)
                             fillInPartialTestVectors modifiedIncompletePartialTestVectors
                                                      (completedPartialTestVector :: completedPartialTestVectors)
                 let partialTestVectors =
@@ -133,9 +131,9 @@ namespace SageSerpent.TestInfrastructure.Tests
                 
         let mergeOrAddPartialTestVectors partialTestVectors initialCollection =
             partialTestVectors
-            |> List.fold_left (fun (mergedPartialTestVectors: MergedPartialTestVectorRepresentations<_>) partialTestVector ->
-                                mergedPartialTestVectors.MergeOrAdd partialTestVector)
-                              initialCollection
+            |> List.fold (fun (mergedPartialTestVectors: MergedPartialTestVectorRepresentations<_>) partialTestVector ->
+                            mergedPartialTestVectors.MergeOrAdd partialTestVector)
+                         initialCollection
                               
         let dumpPartialTestVector partialTestVector =
             printf "[ "
@@ -229,7 +227,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                             , runningIncrement + 1u)
                                                               :: associationBuiltSoFar))
                     (sortedIndicesToAvoid
-                     |> List.fold_left arrangeDeferredAssociations (0u, (fun result -> result))
+                     |> List.fold arrangeDeferredAssociations (0u, (fun result -> result))
                      |> snd) []
                     |> Map.of_list  // This has the effect of eliminating all but the last entry for a group of associations
                                     // for consectutive indices. Otherwise the associations for lesser indices in the group
@@ -263,7 +261,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                     randomBehaviour.ChooseSeveralOf (List.init (int32 maximumNumberOfTestVariables) (fun count -> uint32 count))
                                                     (randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfIndicesToAvoid)
                     |> List.of_array
-                    |> List.sort compare
+                    |> List.sort
                 let remappedPartialTestVectors =
                     partialTestVectorsThatDoNotOverlap
                     |> List.map (avoidCertainIndicesByRemapping sortedIndicesToAvoid)

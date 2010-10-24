@@ -1,5 +1,3 @@
-#light
-
 module SageSerpent.TestInfrastructure.SynthesizedTestCaseEnumerableFactory
 
     open System.Collections
@@ -8,7 +6,7 @@ module SageSerpent.TestInfrastructure.SynthesizedTestCaseEnumerableFactory
 
     let Create (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITestCaseEnumerableFactory>)
                (synthesisDelegate: Delegate) =
-        if Seq.is_empty sequenceOfFactoriesProvidingInputsToSynthesis
+        if Seq.isEmpty sequenceOfFactoriesProvidingInputsToSynthesis
         then raise (PreconditionViolationException "Must provide at least one component.")
         let delegateInternalMethodArity =
             (synthesisDelegate.Method.GetParameters ()).Length
@@ -21,11 +19,6 @@ module SageSerpent.TestInfrastructure.SynthesizedTestCaseEnumerableFactory
         let node =
             SynthesizingNode ((sequenceOfFactoriesProvidingInputsToSynthesis
                               |> Seq.map (fun factory
-                                            -> factory.Node))
+                                            -> (factory :?> TestCaseEnumerableFactoryCommonImplementation).Node))
                               , synthesisDelegate)
-        {
-            new TestCaseEnumerableFactoryCommonImplementation ()
-                interface INodeWrapper with
-                    override this.Node =
-                        node
-        } :> ITestCaseEnumerableFactory
+        TestCaseEnumerableFactoryCommonImplementation node :> ITestCaseEnumerableFactory

@@ -1,5 +1,3 @@
-#light
-
 module SageSerpent.TestInfrastructure.TestVariableLevelEnumerableFactory
 
     open System.Collections
@@ -11,10 +9,6 @@ module SageSerpent.TestInfrastructure.TestVariableLevelEnumerableFactory
             |> Seq.map box
         let node =
             SageSerpent.TestInfrastructure.TestVariableNode weaklyTypedLevels
-        {
-            new TestCaseEnumerableFactoryCommonImplementation ()
-                interface INodeWrapper with
-                    override this.Node = node
-        } :> ITestCaseEnumerableFactory
+        TestCaseEnumerableFactoryCommonImplementation node :> ITestCaseEnumerableFactory
 
         

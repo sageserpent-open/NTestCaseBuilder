@@ -1,5 +1,3 @@
-#light
-
 module SageSerpent.Infrastructure.NUnitTestSuiteDriver
 
     open NUnit.Core

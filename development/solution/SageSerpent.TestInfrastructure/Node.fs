@@ -1,6 +1,4 @@
-﻿#light
-
-#nowarn "40"
+﻿#nowarn "40"
 
 namespace SageSerpent.TestInfrastructure
 
@@ -127,7 +125,7 @@ namespace SageSerpent.TestInfrastructure
             let _,
                 result =
                     walkTree this 0u [] []
-            HashMultiMap.Create result
+            HashMultiMap (result)
                                 
         member this.PartialTestVectorRepresentationsGroupedByStrengthUpToAndIncluding strength =
             if strength = 0u
@@ -219,12 +217,12 @@ namespace SageSerpent.TestInfrastructure
                                         List.append first second
                                     let testVariableCombinationsBuiltFromCrossProduct =
                                         (BargainBasement.CrossProduct testVariableCombinationsBySubtree)
-                                        |> List.map (List.reduce_left joinTestVariableCombinations)
+                                        |> List.map (List.reduce joinTestVariableCombinations)
                                     List.append testVariableCombinationsBuiltFromCrossProduct partialResult
                                 (distributions |> Seq.fold addInTestVariableCombinationsForAGivenDistribution [])
                                 :: partialResult
                             let testVariableCombinationsGroupedByStrength =
-                                Map.fold_right addInTestVariableCombinationsForGivenStrength distributionsOfStrengthsOverSubtreesAtEachTotalStrength []
+                                Map.foldBack addInTestVariableCombinationsForGivenStrength distributionsOfStrengthsOverSubtreesAtEachTotalStrength []
                             testVariableCombinationsGroupedByStrength
                             , maximumTestVariableIndex
                             , associationFromTestVariableIndexToItsLevels
@@ -253,9 +251,9 @@ namespace SageSerpent.TestInfrastructure
                         let numberOfLevelsForTestVariable testVariableIndex
                             = uint32 (Seq.length associationFromTestVariableIndexToItsLevels.[testVariableIndex])
                         testVariableCombination
-                        |> List.sort (fun first second ->
-                                        compare (numberOfLevelsForTestVariable second)
-                                                (numberOfLevelsForTestVariable first))
+                        |> List.sortWith (fun first second ->
+                                            compare (numberOfLevelsForTestVariable second)
+                                                    (numberOfLevelsForTestVariable first))
                     let levelEntriesForTestVariableIndicesFromList =
                         testVariableCombinationSortedByDecreasingNumberOfLevels
                         |> List.map (fun testVariableIndex ->
@@ -370,7 +368,7 @@ namespace SageSerpent.TestInfrastructure
                                                       int32 numberOfTestVariables)
                                 match Algorithms.FindFirstIndexWhere (sectionOfFullTestVector,
                                                                       (fun testVariableLevel ->
-                                                                            Option.is_some testVariableLevel)) with
+                                                                            Option.isSome testVariableLevel)) with
                                     -1 ->
                                         raise (PreconditionViolationException "Vector is inconsistent with the tree structure - should have found at least one non-excluded test variable level contributing to an interleave.")
                                   | index ->

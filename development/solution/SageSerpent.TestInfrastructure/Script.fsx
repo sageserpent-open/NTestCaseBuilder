@@ -1,11 +1,9 @@
-#light
-
 // This file is a script that can be executed with the F# Interactive.  
 // It can be used to explore and test the library project.
 // Note that script files will not be part of the project build.
 
-#r "Z:/SageSerpent/workInProgress/development/solution/SageSerpent.Infrastructure/bin/Debug/SageSerpent.Infrastructure.dll"
-#r "Z:/SageSerpent/workInProgress/development/solution/SageSerpent.TestInfrastructure/bin/Debug/SageSerpent.TestInfrastructure.dll"
+#r "Z:/SageSerpent/workInProgressForSageSerpentOnly/development/solution/SageSerpent.Infrastructure/bin/Debug/SageSerpent.Infrastructure.dll"
+#r "Z:/SageSerpent/workInProgressForSageSerpentOnly/development/solution/SageSerpent.TestInfrastructure/bin/Debug/SageSerpent.TestInfrastructure.dll"
 
 open System.Collections.Generic
 open SageSerpent.Infrastructure
@@ -54,10 +52,10 @@ let debug results =
         
         strength + 1u
     results
-    |> List.fold_left printResultsAtStrength 1u
+    |> List.fold printResultsAtStrength 1u
             
 [1;4;5]
-|> List.scan_left (fun testVariableIndex _ -> testVariableIndex + 1u) 0u            
+|> List.scan (fun testVariableIndex _ -> testVariableIndex + 1u) 0u            
        
         
 open System.Collections

@@ -1,6 +1,4 @@
-﻿#light
-
-module SageSerpent.Infrastructure.BargainBasement
+﻿module SageSerpent.Infrastructure.BargainBasement
 
     open System.Collections.Generic
     open System

@@ -44,13 +44,15 @@
     <None Include="Script.fsx" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FSharp.PowerPack, Version=1.9.6.2, Culture=neutral, PublicKeyToken=a19089b1c74d0809">
+    <Reference Include="FSharp.PowerPack, Version=1.9.6.16, Culture=neutral, PublicKeyToken=a19089b1c74d0809">
       <Name>FSharp.PowerPack</Name>
       <AssemblyName>FSharp.PowerPack.dll</AssemblyName>
+      <SpecificVersion>False</SpecificVersion>
     </Reference>
-    <Reference Include="FSharp.PowerPack.Linq, Version=1.9.6.2, Culture=neutral, PublicKeyToken=a19089b1c74d0809">
+    <Reference Include="FSharp.PowerPack.Linq, Version=1.9.6.16, Culture=neutral, PublicKeyToken=a19089b1c74d0809">
       <Name>FSharp.PowerPack.Linq</Name>
       <AssemblyName>FSharp.PowerPack.Linq.dll</AssemblyName>
+      <SpecificVersion>False</SpecificVersion>
     </Reference>
     <Reference Include="nunit.framework, Version=2.2.9.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">
       <Name>nunit.framework</Name>

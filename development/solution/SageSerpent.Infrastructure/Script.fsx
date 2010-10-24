@@ -1,7 +1,5 @@
-#light
-
-#r "Z:/SageSerpent/workInProgress/development/solution/SageSerpent.Infrastructure/bin/Debug/SageSerpent.Infrastructure.dll"
-#r "C:/Program Files/FSharp-1.9.6.2/bin/FSharp.Compiler.CodeDom.dll"
+#r "Z:/SageSerpent/workInProgressForSageSerpentOnly/development/solution/SageSerpent.Infrastructure/bin/Debug/SageSerpent.Infrastructure.dll"
+#r "FSharp.Compiler.CodeDom.dll"
 
 open SageSerpent.Infrastructure
 

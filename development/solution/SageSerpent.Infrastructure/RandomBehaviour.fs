@@ -1,6 +1,4 @@
-﻿#light
-
-namespace SageSerpent.Infrastructure
+﻿namespace SageSerpent.Infrastructure
 
     open System
     open Wintellect.PowerCollections

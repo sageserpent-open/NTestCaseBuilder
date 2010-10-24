@@ -1,8 +1,4 @@
-﻿#light
-
-#nowarn "57"
-
-namespace SageSerpent.TestInfrastructure.Tests
+﻿namespace SageSerpent.TestInfrastructure.Tests
 
     open NUnit.Framework
     
@@ -111,12 +107,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                         -> raise (PreconditionViolationException "This case should not occur.")
 
             let expressionForLadderSequenceBuildingUpList =
-                List.fold_right (fun argument
-                                     expressionForLadderSequenceBuildingUpList ->
-                                        let argumentExpression = 
-                                            Expr.Var argument
-                                        Expr.NewUnionCase (listConsConstructor
-                                                           , [argumentExpression; expressionForLadderSequenceBuildingUpList]))
+                List.foldBack (fun argument
+                                   expressionForLadderSequenceBuildingUpList ->
+                                    let argumentExpression = 
+                                        Expr.Var argument
+                                    Expr.NewUnionCase (listConsConstructor
+                                                       , [argumentExpression; expressionForLadderSequenceBuildingUpList]))
                                 arguments
                                 (Expr.NewUnionCase (listEmptyConstructor
                                                     , []))
@@ -212,7 +208,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                             
                             let testVariableCombination =
                                 testVariableCombinationsFromSubtrees
-                                |> Set.union_all
+                                |> Set.unionMany
                                 
                             let nAryCondensationDelegate =
                                 CodeGeneration.NAryCondensationDelegateBuilder (uint32 permutedSubtrees.Length)
@@ -285,9 +281,9 @@ namespace SageSerpent.TestInfrastructure.Tests
             testVariableLevels
             |> Seq.map fst
             |> Seq.pairwise
-            |> Seq.for_all (fun (lhs
-                                 , rhs)
-                                -> lhs < rhs)
+            |> Seq.forall (fun (lhs
+                                , rhs)
+                            -> lhs < rhs)
                                 
         let createTreesAndHandOffToTest testHandoff =
             let randomBehaviour = RandomBehaviour randomBehaviourSeed
@@ -362,7 +358,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                         expectedCombinationsOfTestLevels
                                         |> Set.filter (fun testLevelCombination ->
                                                             (testCase: Set<_>).IsSupersetOf testLevelCombination)
-                                    Set.diff expectedCombinationsOfTestLevels expectedCombinationsOfTestLevelsSatisfiedByTestCase)
+                                    expectedCombinationsOfTestLevels - expectedCombinationsOfTestLevelsSatisfiedByTestCase)
                              expectedCombinationsOfTestLevels
                              testCases
                                                        
@@ -418,7 +414,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                         expectedCombinationsOfTestLevels
                                         |> Set.filter (fun testLevelCombination ->
                                                             (testCase: Set<_>).IsSupersetOf testLevelCombination)
-                                    Set.diff expectedCombinationsOfTestLevels expectedCombinationsOfTestLevelsSatisfiedByTestCase)
+                                    expectedCombinationsOfTestLevels - expectedCombinationsOfTestLevelsSatisfiedByTestCase)
                              combinationsCorrespondingToOmittedTestCase
                              testCasesExceptTheOmittedOne
                                                        

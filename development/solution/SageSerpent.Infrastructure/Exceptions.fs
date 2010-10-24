@@ -1,5 +1,3 @@
-#light
-
 namespace SageSerpent.Infrastructure
 
     type LogicErrorException(description) =

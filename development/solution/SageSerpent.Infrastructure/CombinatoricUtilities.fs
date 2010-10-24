@@ -1,5 +1,3 @@
-#light
-
 module SageSerpent.Infrastructure.CombinatoricUtilities
 
     open Microsoft.FSharp.Core.Operators.Checked
