@@ -53,9 +53,11 @@
   <ItemGroup>
     <Reference Include="FSharp.Core">
       <HintPath>C:\Program Files\FSharp-1.9.7.8\bin\FSharp.Core.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.PowerPack">
       <HintPath>C:\Program Files\FSharp-1.9.7.8\bin\FSharp.PowerPack.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="PowerCollections">
