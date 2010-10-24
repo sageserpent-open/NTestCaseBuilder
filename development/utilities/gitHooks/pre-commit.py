@@ -19,7 +19,7 @@ class File:
         return os.path.splitext(self.filename)[1] in ".cs .c .C .cpp .cxx .cc .CC .c++ .h .H .hpp .hxx .hh .HH .h++".split()
     def notThirdParty(self):
         import re
-        return not re.search("/thirdParty/", self.filename)
+        return not re.search("/ThirdParty/", self.filename)
     def hasBeenAddedModifiedCopiedOrRenamed(self):
         return not (self.status in "U D".split())
     def isUnmerged(self):
