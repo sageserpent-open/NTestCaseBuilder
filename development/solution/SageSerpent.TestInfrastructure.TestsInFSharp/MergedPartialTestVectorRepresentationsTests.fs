@@ -293,15 +293,16 @@ namespace SageSerpent.TestInfrastructure.Tests
                          |> Set.of_list).IsSupersetOf (second
                                                        |> Map.to_list
                                                        |> Set.of_list)
-                    for mergedPartialTestVector in mergedPartialTestVectors do
-                        let shouldBeTrue =
-                            firstIncludesSecond mergedPartialTestVector partialTestVector
-                        Assert.IsTrue shouldBeTrue
+                    let shouldBeTrue =
+                        mergedPartialTestVectors
+                        |> Set.exists (fun mergedPartialTestVector
+                                            -> firstIncludesSecond mergedPartialTestVector partialTestVector)
+                    Assert.IsTrue shouldBeTrue
                 partialVectorsThatWereChanged
                 |> Seq.iter checkInclusionInAtLeastOneMergedPartialTestVector
                 
         [<Test>]
-        member this.TestInitialStateDoesNotContainATrivialEmptyPartialTestVector () =
+        member this.TestInitialStateIsEmptyAndDoesNotContainATrivialEmptyPartialTestVector () =
             let initial =
                 MergedPartialTestVectorRepresentations.Initial
             let containedPartialTestVectors =
