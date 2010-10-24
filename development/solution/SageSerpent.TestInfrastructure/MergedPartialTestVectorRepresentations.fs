@@ -190,11 +190,11 @@ namespace SageSerpent.TestInfrastructure
                                             SubtreeForGreaterIndices =
                                                 subtreeForGreaterIndices
                                         }
-                                  | _ -> raise (InternalAssertionViolationException "comparison violated postcondition.") 
+                                  | _ -> raise (InternalAssertionViolationException "Comparison violated postcondition.") 
             add this newPartialTestVectorRepresentation true
                            
         member private this.Remove queryPartialTestVectorRepresentation =
-            let rec remove tree queryPartialTestVectorRepresentation treeIsForNextTestVariableIndex =
+            let rec remove tree queryPartialTestVectorRepresentation treeIsForNextTestVariableIndex testVariableIndex =
                 match tree with
                     LeafNode ->
                         if treeIsForNextTestVariableIndex
@@ -260,7 +260,7 @@ namespace SageSerpent.TestInfrastructure
                                         // the same as padding 'queryPartialTestVectorRepresentation' with wildcards until we come to
                                         // the end of the matching stored partial test vector. This allows us to match query vectors that
                                         // are prefixes of stored ones.
-                                     remove subtreeForGreaterIndices [] true
+                                     remove subtreeForGreaterIndices [] true (testVariableIndex + 1u)
                                      |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices                  
                                 else raise (InternalAssertionViolationException "Left or right subtrees should only be searched with a non-empty query partial test vector representation.") 
                           | headFromQueryPartialTestVectorRepresentation :: tailFromQueryPartialTestVectorRepresentation ->
@@ -270,30 +270,41 @@ namespace SageSerpent.TestInfrastructure
                                   , Level _ ->
                                         match compare headFromQueryPartialTestVectorRepresentation levelForTestVariableIndex with
                                             -1 ->
-                                                remove subtreeWithLesserLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false
+                                                remove subtreeWithLesserLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
                                                 |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex
-                                          | 0 -> 
-                                                remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true
+                                          | 0 ->
+                                                remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
                                                 |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices
                                           | 1 -> 
-                                                remove subtreeWithGreaterLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false
+                                                remove subtreeWithGreaterLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
                                                 |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex
-                                          | _ -> raise (InternalAssertionViolationException "comparison violated postcondition.")
+                                          | _ -> raise (InternalAssertionViolationException "Comparison violated postcondition.")
                                 | Level _
                                   , Indeterminate ->
-                                        remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true
-                                        |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices
-                                | _ ->
-                                        remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true
+                                        remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
                                         |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices
                                         |> BargainBasement.DeferredDefault (fun () ->
-                                                                                remove subtreeWithLesserLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false
+                                                                                match compare headFromQueryPartialTestVectorRepresentation levelForTestVariableIndex with
+                                                                                    -1 ->
+                                                                                        remove subtreeWithLesserLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
+                                                                                        |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex
+                                                                                  | 0 ->
+                                                                                        raise (InternalAssertionViolationException "Should not get an exact match as the query level is definite but the stored one is indeterminate.")
+                                                                                  | 1 -> 
+                                                                                        remove subtreeWithGreaterLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
+                                                                                        |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex
+                                                                                  | _ -> raise (InternalAssertionViolationException "Comparison violated postcondition."))
+                                | _ ->
+                                        remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
+                                        |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices
+                                        |> BargainBasement.DeferredDefault (fun () ->
+                                                                                remove subtreeWithLesserLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
                                                                                 |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex)
                                         |> BargainBasement.DeferredDefault (fun () ->
-                                                                                remove subtreeWithGreaterLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false
+                                                                                remove subtreeWithGreaterLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
                                                                                 |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex)
                                                 
-            remove this queryPartialTestVectorRepresentation true                     
+            remove this queryPartialTestVectorRepresentation true 0u                  
                                   
         static member Initial =
             LeafNode
@@ -308,10 +319,8 @@ namespace SageSerpent.TestInfrastructure
                           , mergeCandidate) ->
                         let mergedPartialTestVectorRepresentation =
                             MergedPartialTestVectorRepresentations.Merge mergeCandidate partialTestVectorRepresentation
-                        //printf "*******Found Match!\nStored: %A\nQuery: %A\nMerged: %A\n\n\n" mergeCandidate partialTestVectorRepresentation mergedPartialTestVectorRepresentation
                         thisWithoutMergeCandidate.Add mergedPartialTestVectorRepresentation
                   | None ->
-                        //printf "****** Could not find match!\nQuery: %A\n\n\n" partialTestVectorRepresentation
                         this.Add partialTestVectorRepresentation
 
             

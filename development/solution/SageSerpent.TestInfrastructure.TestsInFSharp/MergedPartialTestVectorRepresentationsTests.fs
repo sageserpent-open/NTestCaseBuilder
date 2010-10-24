@@ -92,7 +92,6 @@ namespace SageSerpent.TestInfrastructure.Tests
         let mergeOrAddPartialTestVectors partialTestVectors initialCollection =
             partialTestVectors
             |> List.fold_left (fun (mergedPartialTestVectors: MergedPartialTestVectorRepresentations) partialTestVector ->
-                                printf "About to merge in: %A\n" partialTestVector
                                 mergedPartialTestVectors.MergeOrAdd partialTestVector)
                               initialCollection
                               
