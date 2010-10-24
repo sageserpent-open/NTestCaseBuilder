@@ -22,8 +22,8 @@ namespace SageSerpent.TestInfrastructure.Tests
     [<TestFixture>]
     type DumpingGroundTestFixture () =
         let maximumNumberOfTrackedTestVariables = 4u
-        let maximumNumberOfTestLevelsForATestVariable = 10u
-        let maximumNumberOfSubtreeHeadsPerAncestorNode = 3u
+        let maximumNumberOfTestLevelsForATestVariable = 3u
+        let maximumNumberOfSubtreeHeadsPerAncestorNode = 5u
         let maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 1u
         let randomSeed = 23
         
