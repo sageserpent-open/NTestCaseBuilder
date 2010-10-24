@@ -196,7 +196,13 @@ namespace SageSerpent.TestInfrastructure
                 match tree with
                     SuccessfulSearchTerminationNode ->
                         if treeIsForNextTestVariableIndex
-                        then Some (UnsuccessfulSearchTerminationNode
+                        then // It is tempting to try to optimise this case by checking to see whether the query partial test vector didn't need to have
+                             // any of its wildcard levels filled out by merging from the matching stored vector: this would allow the detection of attempts
+                             // to add a vector that has an existing stored vector as an exact prefix, or of duplicate additions of the same vector. Don't
+                             // bother: the client of this class is 'TestCaseEnumeratorFactoryCommonImplementation' and that will always add longer vectors
+                             // before shorter ones, so the first variation of this case *never* occurs and the second variation has yet to be observed over
+                             // extensive testing of 'TestCaseEnumeratorFactoryCommonImplementation'.
+                             Some (UnsuccessfulSearchTerminationNode
                                    , queryPartialTestVectorRepresentation)
                         else if List.is_empty queryPartialTestVectorRepresentation
                              then raise (InternalAssertionViolationException ("Two problems: left or right subtrees should only be searched with a non-empty query partial test vector representation"
@@ -272,7 +278,10 @@ namespace SageSerpent.TestInfrastructure
                                                                                                    testVariableIndex
                                             |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex
                                       | 0 ->
-                                            remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
+                                            remove subtreeForGreaterIndices
+                                                   tailFromQueryPartialTestVectorRepresentation
+                                                   true
+                                                   (testVariableIndex + 1u)
                                             |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
                                       | 1 -> 
                                             remove subtreeWithGreaterLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
@@ -283,7 +292,10 @@ namespace SageSerpent.TestInfrastructure
                                       | _ -> raise (InternalAssertionViolationException "Comparison violated postcondition.")
                             | Level _
                               , Indeterminate ->
-                                    remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
+                                    remove subtreeForGreaterIndices
+                                           tailFromQueryPartialTestVectorRepresentation
+                                           true
+                                           (testVariableIndex + 1u)
                                     |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
                                     |> BargainBasement.DeferredDefault (fun () ->
                                                                             match compare headFromQueryPartialTestVectorRepresentation levelForTestVariableIndex with
@@ -304,7 +316,10 @@ namespace SageSerpent.TestInfrastructure
                                                                               | _ ->
                                                                                     raise (InternalAssertionViolationException "Comparison violated postcondition."))
                             | _ ->
-                                    remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
+                                    remove subtreeForGreaterIndices
+                                           tailFromQueryPartialTestVectorRepresentation
+                                           true
+                                           (testVariableIndex + 1u)
                                     |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
                                     |> BargainBasement.DeferredDefault (fun () ->
                                                                             remove subtreeWithLesserLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
@@ -324,6 +339,10 @@ namespace SageSerpent.TestInfrastructure
                                 then    // Keep going by padding 'queryPartialTestVectorRepresentation' with wildcards until we come to
                                         // the end of the matching stored partial test vector. This allows us to match query vectors that
                                         // are prefixes of stored ones.
+                                        // As above, it is tempting to apply an optimisation here to detect the case where the query partial test vector
+                                        // is a suffix of a stored vector with an exact match without requiring any of its wildcard levels to be filled
+                                        // out by merging. Unlike the case above, this has been observed through testing, but only occurs about 6% of the
+                                        // time during a test run, so again the optimisation has been omitted.
                                      removeInAppropriateSubtree Indeterminate
                                                                 []
                                                                 levelForTestVariableIndex                  
