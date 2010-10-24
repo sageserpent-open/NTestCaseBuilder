@@ -255,19 +255,10 @@ namespace SageSerpent.TestInfrastructure.Tests
                       | _ ->
                             let numberOfSubtreeRoots =
                                 randomBehaviour.ChooseAnyNumberFromOneTo (numberOfNodes - 1u)
-                            let potentialPartitionPoints
-                                = [0u .. numberOfNodes] // Yes, up to *and including* the number of nodes!
-                            let chosenPartitionPoints =
-                                Algorithms.RandomSubset (potentialPartitionPoints, int32 (numberOfSubtreeRoots + 1u), randomBehaviour.UnderlyingImplementationForClientUse)
-                                |> Seq.sort
-                            let spans =
-                                chosenPartitionPoints
-                                |> Seq.pairwise
-                                |> Seq.map (function lesserPartitionPoint
-                                                     , greaterPartitionPoint -> greaterPartitionPoint - lesserPartitionPoint)
-                                |> List.of_seq
                             let groupsForSubtreeRoots =
-                                BargainBasement.ChopUpList nodeAndItsSpannedTestVariableIndicesPairs spans 
+                                BargainBasement.PartitionItemsIntoSubgroupsOfRandomNonZeroLength nodeAndItsSpannedTestVariableIndicesPairs
+                                                                                                 numberOfSubtreeRoots
+                                                                                                 randomBehaviour
                             let whetherInterleavedNodeChoices =
                                 groupsForSubtreeRoots
                                 |> List.map (fun _ -> randomBehaviour.HeadsItIs ())
@@ -321,7 +312,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                     testVariableIndices
                     |> List.map (fun testVariableIndex ->
                                     TestVariableNode (seq {for index in [1u .. maximumNumberOfTestLevelsForATestVariable] do
-                                                           yield box (testVariableIndex, index)}))
+                                                                yield box (testVariableIndex, index)}))
                 let nodeAndItsSpannedTestVariableIndicesPairs,
                     interleavedTestVariableIndexPairs =
                         List.zip testVariableNodes

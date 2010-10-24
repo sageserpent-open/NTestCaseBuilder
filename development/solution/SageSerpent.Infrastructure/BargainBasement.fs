@@ -4,6 +4,7 @@ module SageSerpent.Infrastructure.BargainBasement
 
     open System.Collections.Generic
     open System
+    open Wintellect.PowerCollections
 
 //    let rec CrossProduct sequences =
 //        match sequences with
@@ -110,3 +111,35 @@ module SageSerpent.Infrastructure.BargainBasement
     let IdentityFunctionDelegate =
         (TypePreservingFunction (fun x -> x)) :> Delegate     
                  
+                 
+    let PartitionItemsIntoSubgroupsOfRandomNonZeroLength items
+                                                         numberOfSubgroups
+                                                         randomBehaviour =
+        let numberOfItems =
+            uint32 (List.length items)
+        if numberOfItems = 0u
+        then raise (PreconditionViolationException "Must have at least one item to start with for subgroups to have non-zero length.")                                                         
+        match numberOfSubgroups with
+            0u ->
+                raise (PreconditionViolationException "Must have at least one subgroup to place items into.")
+          | 1u ->
+                [ items ]
+          | _ ->
+                if numberOfSubgroups > numberOfItems
+                then raise (PreconditionViolationException "Number of subgroups must be at most the number of items.")
+                let potentialPartitionPoints
+                    = [1u .. numberOfItems - 1u]
+                let chosenPartitionPoints =
+                    Algorithms.RandomSubset (potentialPartitionPoints,
+                                             int32 (numberOfSubgroups - 1u),
+                                             (randomBehaviour: RandomBehaviour).UnderlyingImplementationForClientUse)
+                    |> Seq.sort
+                let spans =
+                    seq {yield 0u
+                         yield! chosenPartitionPoints
+                         yield numberOfItems}
+                    |> Seq.pairwise
+                    |> Seq.map (function lesserPartitionPoint
+                                         , greaterPartitionPoint -> greaterPartitionPoint - lesserPartitionPoint)
+                    |> List.of_seq
+                ChopUpList items spans

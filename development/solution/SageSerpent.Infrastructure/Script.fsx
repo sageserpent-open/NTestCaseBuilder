@@ -45,3 +45,6 @@ let q4 = BargainBasement.ChopUpList [3;4;7;8] [];;
 let r = RandomBehaviour 2;;
 
 r.ChooseAnyNumberFromOneTo 10u;;
+
+
+let r2 = BargainBasement.PartitionItemsIntoSubgroupsOfRandomNonZeroLength [1u .. 10u] 3u r;;

@@ -29,9 +29,9 @@ namespace SageSerpent.TestInfrastructure
                 let randomBehaviour =
                     RandomBehaviour 0
                 let sequenceOfFinalValues =
-                    seq { for mergedPartialTestVector in mergedPartialTestVectorRepresentations do
+                    seq {for mergedPartialTestVector in mergedPartialTestVectorRepresentations do
                             yield node.FillOutPartialTestVectorRepresentation randomBehaviour mergedPartialTestVector
-                                  |> node.CreateFinalValueFrom }
+                                  |> node.CreateFinalValueFrom}
                 (sequenceOfFinalValues :> IEnumerable).GetEnumerator ()
             override this.MaximumStrength =
                 (this:> INodeWrapper).Node.MaximumStrengthOfTestVariableCombination

@@ -39,12 +39,12 @@ namespace SageSerpent.TestInfrastructure
                     SuccessfulSearchTerminationNode ->
                         // NOTE: as we are converting to a map, we can be cavalier about the
                         // order in which associative pairs are added to the partial test vector.
-                        seq { if subtreeIsForANewTestVariableIndex
-                              then if not (List.is_empty partialTestVectorBeingBuilt)
-                                   then yield partialTestVectorBeingBuilt
-                                              |> Map.of_list
-                                   else raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors result in the original collection.")
-                              else raise (InternalAssertionViolationException "A successful search cannot terminate on a left or right subtree.") }
+                        seq {if subtreeIsForANewTestVariableIndex
+                             then if not (List.is_empty partialTestVectorBeingBuilt)
+                                  then yield partialTestVectorBeingBuilt
+                                             |> Map.of_list
+                                  else raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors result in the original collection.")
+                             else raise (InternalAssertionViolationException "A successful search cannot terminate on a left or right subtree.")}
                   | UnsuccessfulSearchTerminationNode ->
                         Seq.empty
                   | InternalNode

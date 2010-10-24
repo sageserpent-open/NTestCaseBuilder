@@ -12,11 +12,12 @@ open SageSerpent.Infrastructure
 open SageSerpent.TestInfrastructure
 open Microsoft.FSharp.Collections
 open System
+open Microsoft.FSharp.Reflection
 
 
 let joinMaps first second =
     let keys map =
-        Set.of_seq (seq { for key in (map:> IDictionary<'Key, 'Value>).Keys do yield key })
+        Set.of_seq (seq {for key in (map:> IDictionary<'Key, 'Value>).Keys do yield key})
     if not (Set.intersect (keys first) (keys second)).IsEmpty
     then raise (InternalAssertionViolationException
                     "Maps from test variable indices to levels contributed by separate subtrees should not share common keys.")
@@ -29,7 +30,7 @@ let a = TestVariableNode [box 1u; box 2u; box 452u]
 
 let b = TestVariableNode [box "alpha"; box "beta"; box "gamma"]
 
-let c = SynthesizingNode [a; b]
+let c = SynthesizingNode ([a; b], BargainBasement.IdentityFunctionDelegate)
 
 let d = TestVariableNode [box -1; box -89]
 
@@ -37,11 +38,11 @@ let e = InterleavingNode [c; d]
 
 let f = TestVariableNode [box '&'; box '*']
 
-let g = SynthesizingNode [f; e]
+let g = SynthesizingNode ([f; e], BargainBasement.IdentityFunctionDelegate)
 
 let resultsGalore = g.PartialTestVectorRepresentationsGroupedByStrengthUpToAndIncluding 3u
 
-let h = SynthesizingNode [b; g];;
+let h = SynthesizingNode ([b; g], BargainBasement.IdentityFunctionDelegate)
 
 let evenMoreResultsGalore = h.PartialTestVectorRepresentationsGroupedByStrengthUpToAndIncluding 3u
 
@@ -95,4 +96,23 @@ let foooble = BargainBasement.Memoize (fun x -> printf "Calculating for: %A\n" x
 
 let wazzock = Map<UInt32, option<Object>> []
 
+let foo (x: 'X) =
+    printf "Type object is: %A\n" (typeof<'X>)
+    printf "Type object via .NET BCL is: %A\n" (x.GetType ())
+    
+foo 2u
+
+foo 2
+
+foo "2"
+
+foo '2'
+
+foo foo
+
+foo (2, "2")
+
+foo [2]
+
+foo []
 
