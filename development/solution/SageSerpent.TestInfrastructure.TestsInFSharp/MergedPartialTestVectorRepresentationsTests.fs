@@ -24,6 +24,8 @@ namespace SageSerpent.TestInfrastructure.Tests
         
         let maximumNumberOfTestVariables = 50u
         
+        let maximumNumberOfTestVectors = 50u
+        
         let maximumRecursionDepth = 50u
         
         let maximumRandomWalkStep = 10u
@@ -42,63 +44,88 @@ namespace SageSerpent.TestInfrastructure.Tests
         let createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff =
             let randomBehaviour =
                 RandomBehaviour randomBehaviourSeed
-            let rec createPartialTestVectorsUsingUniqueLevelForTestVariableIndex testVariableIndex =
-                if testVariableIndex = maximumNumberOfTestVariables
-                   || randomBehaviour.ChooseAnyNumberFromOneTo reciprocalOfProbabilityOfNotGeneratingAnyFurtherPartialTestVectors = 1u
-                then []
-                else let rec chooseTestVariableIndicesAndTheirLevelsAvoidingTheUniqueLevelForEachIndex recursionDepth =
-                        if recursionDepth = maximumRecursionDepth
-                           || randomBehaviour.ChooseAnyNumberFromOneTo reciprocalOfProbabilityOfTerminatingRandomlyGeneratedPartOfPartialTestVector = 1u
-                        then []
-                        else let lowerBoundInclusive =
-                                if testVariableIndex > maximumRandomWalkStep
-                                then testVariableIndex - maximumRandomWalkStep
-                                else 0u
-                             let upperBoundInclusive =
-                                testVariableIndex + maximumRandomWalkStep
-                             let chosenAbitraryTestVariableIndex =
-                                lowerBoundInclusive + randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (upperBoundInclusive - lowerBoundInclusive)
-                                // Yes, the upper bound of the range is not included in this choice - this is because
-                                // we will skip over 'testVariableIndex' next, which will potentially include it again.
-                             let chosenIndexAvoidingTestVariableIndexWithUniqueLevel =
-                                if chosenAbitraryTestVariableIndex >= testVariableIndex
-                                then chosenAbitraryTestVariableIndex + 1u
-                                else chosenAbitraryTestVariableIndex
-                             (chosenIndexAvoidingTestVariableIndexWithUniqueLevel
-                              , chosenIndexAvoidingTestVariableIndexWithUniqueLevel + randomBehaviour.ChooseAnyNumberFromOneTo maximumLevelDelta)
-                             :: chooseTestVariableIndicesAndTheirLevelsAvoidingTheUniqueLevelForEachIndex (recursionDepth + 1u)
-                     let partialTestVector =
-                        (testVariableIndex
-                         , testVariableIndex)
-                         :: chooseTestVariableIndicesAndTheirLevelsAvoidingTheUniqueLevelForEachIndex 0u
-                        |> List.map boxAssociatedLevel
-                        |> Map.of_list
-                     printf "%A\n" partialTestVector
-                     partialTestVector :: createPartialTestVectorsUsingUniqueLevelForTestVariableIndex (testVariableIndex + 1u)
+            let createPartialTestVectors () =
+                let createShuffledUniqueLevels () =
+                    Algorithms.RandomShuffle (seq {1u .. maximumNumberOfTestVectors}, randomBehaviour.UnderlyingImplementationForClientUse)
+                let shuffleForEachTestVariableIndex =
+                    Array.init (int32 maximumNumberOfTestVariables) (fun _ -> createShuffledUniqueLevels ())
+                let numberOfTestVectors =
+                    randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestVectors
+                let rec fillInPartialTestVectors incompletePartialTestVectors completedPartialTestVectors =
+                    match incompletePartialTestVectors with
+                        [] ->
+                            completedPartialTestVectors
+                      | head :: tail ->
+                            let forceDistinctionBetweenVectors vectorBeingExamined
+                                                               (modifiedCopiesOfVectorsBeingExamined
+                                                                , vectorBeingCompleted) =
+                                let testVariableIndex =
+                                    randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfTestVariables
+                                let shuffledLevels =
+                                    shuffleForEachTestVariableIndex.[int32 testVariableIndex]
+                                let numberOfCompletedPartialTestVectors =
+                                    List.length completedPartialTestVectors
+                                let numberOfCopiesOfVectorsBeingExamined =
+                                    List.length modifiedCopiesOfVectorsBeingExamined
+                                let levelForVectorBeingExamined =
+                                    shuffledLevels.[int32 numberOfTestVectors - (1 + numberOfCopiesOfVectorsBeingExamined)]
+                                let vectorBeingExamined =
+                                    Map.add testVariableIndex (box levelForVectorBeingExamined) vectorBeingExamined
+                                let levelForVectorBeingCompleted =
+                                    shuffledLevels.[numberOfCompletedPartialTestVectors]
+                                let vectorBeingCompleted =
+                                    Map.add testVariableIndex (box levelForVectorBeingCompleted) vectorBeingCompleted
+                                vectorBeingExamined :: modifiedCopiesOfVectorsBeingExamined
+                                , vectorBeingCompleted
+                            let incompletePartialTestVectors
+                                , completedPartialTestVector =
+                                List.fold_right forceDistinctionBetweenVectors tail ([], head)
+                            fillInPartialTestVectors incompletePartialTestVectors (completedPartialTestVector :: completedPartialTestVectors)
+                let partialTestVectors =
+                    fillInPartialTestVectors (List.init (int32 numberOfTestVectors) (fun _ -> Map.empty))
+                                             []
+                Algorithms.RandomShuffle (partialTestVectors, randomBehaviour.UnderlyingImplementationForClientUse)
+                |> List.of_array               
             for _ in 1u .. overallTestRepeats do
-                testHandoff (createPartialTestVectorsUsingUniqueLevelForTestVariableIndex 0u)
+                testHandoff (createPartialTestVectors ())
                 
         let mergeOrAddPartialTestVectors partialTestVectors initialCollection =
             partialTestVectors
             |> List.fold_left (fun (mergedPartialTestVectors: MergedPartialTestVectorRepresentations) partialTestVector ->
+                                printf "About to merge in: %A\n" partialTestVector
                                 mergedPartialTestVectors.MergeOrAdd partialTestVector)
                               initialCollection
+                              
+        [<Test>]
+        member this.DoSomeDebugging () =
+            let initialVector =
+                [(1u, 55u); (10u, 49u)]
+                |> Map.of_list
+            let mergedPartialTestVectors = MergedPartialTestVectorRepresentations.Initial.MergeOrAdd initialVector
+            let mergedPartialTestVectors = mergedPartialTestVectors.MergeOrAdd ([(3u, 18u); (7u, 12u); (10u, 43u); (11u, 19u)]
+                                                                                |> Map.of_list)
+            let mergedPartialTestVectors = mergedPartialTestVectors.MergeOrAdd initialVector
+            let mergedPartialTestVectors = mergedPartialTestVectors.MergeOrAdd ([(3u, 18u); (7u, 12u); (10u, 43u); (11u, 19u)]
+                                                                                |> Map.of_list)
+            for item in mergedPartialTestVectors do
+                printf "%A\n" item
+            ()
                 
         [<Test>]
         member this.TestAdditionOfUnmergeableVectorsPreservesIndividualVectors () =
             let testHandoff partialTestVectorsThatDoNotOverlap =
                 let mergedPartialTestVectors =
-                    mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap MergedPartialTestVectorRepresentations.Empty
+                    mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap MergedPartialTestVectorRepresentations.Initial
                 let shouldBeTrue =
                     Set.of_list partialTestVectorsThatDoNotOverlap = Set.of_seq mergedPartialTestVectors
                 Assert.IsTrue shouldBeTrue
             createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
             
         [<Test>]
-        member this.TestAdditionOfPartialsOfExistingVectorsHasNoEffect () =
+        member this.TestAdditionOfPartialsOfExistingVectors () =
             let testHandoff partialTestVectorsThatDoNotOverlap =
                 let mergedPartialTestVectors =
-                    mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap MergedPartialTestVectorRepresentations.Empty
+                    mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap MergedPartialTestVectorRepresentations.Initial
                 let randomBehaviour = RandomBehaviour randomBehaviourSeed
                 let mutantsOrCopiesOf partialTestVector =
                     let maximumRecursionDepth = 10u
@@ -123,7 +150,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                 let remergedPartialTestVectors =
                     mergeOrAddPartialTestVectors partialTestVectorsThatAddNoNewInformation mergedPartialTestVectors
                 let shouldBeTrue =
-                    Set.of_list partialTestVectorsThatDoNotOverlap = Set.of_seq remergedPartialTestVectors
+                    (Set.of_list partialTestVectorsThatDoNotOverlap).Count = (Set.of_seq remergedPartialTestVectors).Count
                 Assert.IsTrue shouldBeTrue
             createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
             
@@ -179,7 +206,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                     partialTestVectorsThatDoNotOverlap
                     |> List.map (avoidCertainIndicesByRemapping sortedIndicesToAvoid)
                 let mergedPartialTestVectors =
-                    mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap MergedPartialTestVectorRepresentations.Empty
+                    mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap MergedPartialTestVectorRepresentations.Initial
                 let possiblyAddLevelsForIndices indicesToAvoid partialTestVector =
                     let chosenIndicesToAvoid =
                         Algorithms.RandomSubset (indicesToAvoid,
@@ -238,7 +265,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                 let partialTestVectors =
                     createPartialTestVectors ()
                 let mergedPartialTestVectors =
-                        mergeOrAddPartialTestVectors partialTestVectors MergedPartialTestVectorRepresentations.Empty
+                        mergeOrAddPartialTestVectors partialTestVectors MergedPartialTestVectorRepresentations.Initial
                 let numberOfMergedPartialTestVectors =
                     Seq.length mergedPartialTestVectors
                 let shouldBeTrue = numberOfMergedPartialTestVectors <= partialTestVectors.Length
@@ -256,10 +283,25 @@ namespace SageSerpent.TestInfrastructure.Tests
                          |> Set.of_list).IsSupersetOf (second
                                                        |> Map.to_list
                                                        |> Set.of_list)
-                    mergedPartialTestVectors
-                    |> Seq.iter (fun mergedPartialTestVector ->
-                                    let shouldBeTrue =
-                                        firstIncludesSecond mergedPartialTestVector partialTestVector
-                                    Assert.IsTrue shouldBeTrue)
-                Seq.iter checkInclusionInAtLeastOneMergedPartialTestVector partialVectorsThatWereChanged
-            
+                    for mergedPartialTestVector in mergedPartialTestVectors do
+                        let shouldBeTrue =
+                            firstIncludesSecond mergedPartialTestVector partialTestVector
+                        Assert.IsTrue shouldBeTrue
+                partialVectorsThatWereChanged
+                |> Seq.iter checkInclusionInAtLeastOneMergedPartialTestVector
+                
+        [<Test>]
+        member this.TestInitialStateContainsATrivialEmptyPartialTestVector () =
+            let initial =
+                MergedPartialTestVectorRepresentations.Initial
+            let containedPartialTestVectors =
+                initial
+                |> List.of_seq
+            match containedPartialTestVectors with
+                [ presumedToBeEmpty ] ->
+                    let shouldBeTrue =
+                        Map.is_empty presumedToBeEmpty
+                    Assert.IsTrue shouldBeTrue
+              | _ ->
+                    Assert.Fail "There should be precisely one partial test vector in the initial state."
+                

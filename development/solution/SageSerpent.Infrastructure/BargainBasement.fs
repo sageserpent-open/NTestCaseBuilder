@@ -96,3 +96,9 @@ module SageSerpent.Infrastructure.BargainBasement
                  cache.Add (input, result)
                  result
                  
+    let DeferredDefault defaultComputation optional =
+        match optional with
+            Some _ ->
+                optional
+          | None ->
+                defaultComputation ()              
