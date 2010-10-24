@@ -19,7 +19,7 @@ namespace SageSerpent.TestInfrastructure.Examples
             var a = TestVariableLevelEnumerableFactory.Create(_levelsOne);
             var b = TestVariableLevelEnumerableFactory.Create(_levelsTwo);
 
-            var c = SynthesizedTestCaseEnumerableFactory.Create(new List<ITestCaseEnumerableFactory> {a, b},
+            var c = SynthesizedTestCaseEnumerableFactory.Create(new[] {a, b},
                                                                 (Synthesis)
                                                                 ((resultOne,
                                                                   resultTwo) =>

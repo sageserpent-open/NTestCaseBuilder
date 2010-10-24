@@ -11,9 +11,9 @@ module SageSerpent.TestInfrastructure.SynthesizedTestCaseEnumerableFactory
         let delegateInternalMethodArity =
             (synthesisDelegate.Method.GetParameters ()).Length
         let numberOfArgumentsRequiredByDelegate =
-            if synthesisDelegate.Target <> null
-            then delegateInternalMethodArity - 1
-            else delegateInternalMethodArity
+            match synthesisDelegate.Target with
+                null -> delegateInternalMethodArity
+              | _ -> delegateInternalMethodArity - 1
         if numberOfArgumentsRequiredByDelegate <> Seq.length sequenceOfFactoriesProvidingInputsToSynthesis
         then raise (PreconditionViolationException "Delegate for synthesis takes the wrong number of arguments: it should match the number of factories provided.")
         let node =
