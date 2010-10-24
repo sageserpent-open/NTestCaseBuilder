@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Infrastructure</RootNamespace>
     <AssemblyName>SageSerpent.Infrastructure</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Name>SageSerpent.Infrastructure</Name>
   </PropertyGroup>
@@ -33,6 +33,10 @@
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <OtherFlags>
     </OtherFlags>
+    <DocumentationFile>bin\Debug\.XML</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DocumentationFile>bin\Release\.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInformation.fs" />
@@ -57,9 +61,6 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="System.Core">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\FSharp\1.0\Microsoft.FSharp.Targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

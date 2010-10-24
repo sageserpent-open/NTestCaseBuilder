@@ -9,7 +9,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>SageSerpent.TestInfrastructure.TestsInFSharp</RootNamespace>
     <AssemblyName>SageSerpent.TestInfrastructure.Tests</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Name>SageSerpent.TestInfrastructure.Tests</Name>
   </PropertyGroup>
@@ -29,6 +29,12 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>3</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DocumentationFile>bin\Debug\SageSerpent.TestInfrastructure.Tests.XML</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DocumentationFile>bin\Release\SageSerpent.TestInfrastructure.Tests.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="NodeTests.fs" />
@@ -59,9 +65,6 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="System.Core">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
     <Reference Include="System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Name>System.Drawing</Name>
       <AssemblyName>System.Drawing.dll</AssemblyName>

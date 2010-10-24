@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>TestInfrastructure</RootNamespace>
     <AssemblyName>SageSerpent.TestInfrastructure</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Name>SageSerpent.TestInfrastructure</Name>
   </PropertyGroup>
@@ -29,6 +29,14 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>3</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <OtherFlags>
+    </OtherFlags>
+    <DocumentationFile>bin\Debug\SageSerpent.TestInfrastructure.XML</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DocumentationFile>bin\Release\SageSerpent.TestInfrastructure.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <None Include="Script.fsx" />
@@ -54,9 +62,6 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="System.Core">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj">
