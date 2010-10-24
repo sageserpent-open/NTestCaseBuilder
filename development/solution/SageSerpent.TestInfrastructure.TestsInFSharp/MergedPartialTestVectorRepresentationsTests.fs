@@ -96,21 +96,6 @@ namespace SageSerpent.TestInfrastructure.Tests
                               initialCollection
                               
         [<Test>]
-        member this.DoSomeDebugging () =
-            let initialVector =
-                [(1u, 55u); (10u, 49u)]
-                |> Map.of_list
-            let mergedPartialTestVectors = MergedPartialTestVectorRepresentations.Initial.MergeOrAdd initialVector
-            let mergedPartialTestVectors = mergedPartialTestVectors.MergeOrAdd ([(3u, 18u); (7u, 12u); (10u, 43u); (11u, 19u)]
-                                                                                |> Map.of_list)
-            let mergedPartialTestVectors = mergedPartialTestVectors.MergeOrAdd initialVector
-            let mergedPartialTestVectors = mergedPartialTestVectors.MergeOrAdd ([(3u, 18u); (7u, 12u); (10u, 43u); (11u, 19u)]
-                                                                                |> Map.of_list)
-            for item in mergedPartialTestVectors do
-                printf "%A\n" item
-            ()
-                
-        [<Test>]
         member this.TestAdditionOfUnmergeableVectorsPreservesIndividualVectors () =
             let testHandoff partialTestVectorsThatDoNotOverlap =
                 let mergedPartialTestVectors =
@@ -194,7 +179,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                     , level
                 Map.to_list >> List.map remapIndex >> Map.of_list
             let randomBehaviour = RandomBehaviour randomBehaviourSeed
-            let sortedIndicesToAvoid = 
+            let sortedIndicesToAvoid = // TODO - make this a function or a local binding to get new sets of indices for each test handoff. 
                 Algorithms.RandomSubset (List.init (int32 maximumNumberOfTestVariables) (fun count -> uint32 count),
                                          int32 (randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfIndicesToAvoid),
                                          randomBehaviour.UnderlyingImplementationForClientUse)
@@ -205,7 +190,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                     partialTestVectorsThatDoNotOverlap
                     |> List.map (avoidCertainIndicesByRemapping sortedIndicesToAvoid)
                 let mergedPartialTestVectors =
-                    mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap MergedPartialTestVectorRepresentations.Initial
+                    mergeOrAddPartialTestVectors remappedPartialTestVectors MergedPartialTestVectorRepresentations.Initial
                 let possiblyAddLevelsForIndices indicesToAvoid partialTestVector =
                     let chosenIndicesToAvoid =
                         Algorithms.RandomSubset (indicesToAvoid,
@@ -220,7 +205,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                             Map.add testVariableIndex (box level) partialTestVector
                         Seq.fold addIndexAndLevel partialTestVector)
                 let partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices =
-                    partialTestVectorsThatDoNotOverlap
+                    remappedPartialTestVectors
                     |> List.map (possiblyAddLevelsForIndices sortedIndicesToAvoid)
                 let remergedPartialTestVectors =
                     mergeOrAddPartialTestVectors partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices mergedPartialTestVectors
@@ -258,7 +243,6 @@ namespace SageSerpent.TestInfrastructure.Tests
                                 chooseTestVariableIndicesAndTheirLevels 0u
                                 |> List.map boxAssociatedLevel
                                 |> Map.of_list
-                             printf "%A\n" partialTestVector
                              partialTestVector :: createPartialTestVectors (testVariableIndex + 1u)
                     createPartialTestVectors 0u
                 let partialTestVectors =
