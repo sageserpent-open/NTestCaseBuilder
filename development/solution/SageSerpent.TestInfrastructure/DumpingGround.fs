@@ -13,7 +13,7 @@ namespace SageSerpent.TestInfrastructure
           | SynthesizingNode of seq<Node>
             member this.CombinationsOfTestLevelsGroupedByStrengthUpToAndIncluding strength =
                 let rec walkTree node strength indexForLeftmostTestVariable =
-                    if strength = 0
+                    if strength = 0u
                     then raise (PreconditionViolationException "Strength must be non-zero.")
                     else match node with
                             TestVariableNode levels ->
@@ -55,15 +55,20 @@ namespace SageSerpent.TestInfrastructure
                                     combinationsGroupedBySubtreeAndThenByStrength
                                     |> List.map (fun combinationsForOneSubtreeGroupedByStrength
                                                     -> uint32 (List.length combinationsForOneSubtreeGroupedByStrength))
-                                let overallStrength = List.max maximumStrengthsFromSubtrees
-                                let combinationsGroupedBySubtreeAndThenByStrength = List.map List.to_array combinationsGroupedBySubtreeAndThenByStrength
+                                let combinationsGroupedBySubtreeAndThenByStrength =
+                                    combinationsGroupedBySubtreeAndThenByStrength
+                                    |> List.map List.to_array
+                                // Remove the key for zero; we are not interested in zero strength entries, as they yield no combinations!
                                 let distributionsOfStrengthsOverSubtreesAtEachTotalStrength =
-                                    CombinatoricUtilities.ChooseContributionsToMeetTotalsUpToLimit maximumStrengthsFromSubtrees overallStrength
-                                let addInCombinationsForGivenStrength partialResult strength distributions =
+                                    Map.remove 0u (CombinatoricUtilities.ChooseContributionsToMeetTotalsUpToLimit maximumStrengthsFromSubtrees strength)
+                                let addInCombinationsForGivenStrength strength distributions partialResult =
                                     let addInCombinationsForAGivenDistribution partialResult distribution =
                                         let combinationsBySubtree =
                                             (List.zip distribution combinationsGroupedBySubtreeAndThenByStrength)
-                                            |> List.map (function strength, resultFromSubtree -> resultFromSubtree.[int32 strength])
+                                            |> List.map (function strength, resultFromSubtree ->
+                                                                    if strength > 0u
+                                                                    then resultFromSubtree.[int32 (strength - 1u)]
+                                                                    else Seq.singleton Map.empty)
                                         let joinMaps first second =
                                             let keys map =
                                                 Set.of_seq (seq { for key in (map:> IDictionary<'Key, 'Value>).Keys do yield key })
@@ -77,10 +82,9 @@ namespace SageSerpent.TestInfrastructure
                                             |> List.map (List.reduce_left joinMaps)
                                         Seq.append combinationsBuiltFromCrossProduct partialResult
                                     (distributions |> Seq.fold addInCombinationsForAGivenDistribution Seq.empty)::partialResult
-                                let combinations =
-                                    distributionsOfStrengthsOverSubtreesAtEachTotalStrength
-                                    |> Map.fold_left addInCombinationsForGivenStrength []
-                                combinations, maximumTestVariableIndex
-                fst (walkTree this strength, 0u)
+                                let combinationsGroupedByStrength =
+                                    Map.fold_right addInCombinationsForGivenStrength distributionsOfStrengthsOverSubtreesAtEachTotalStrength []
+                                combinationsGroupedByStrength, maximumTestVariableIndex
+                fst (walkTree this strength 0u)
             
                                 
