@@ -21,13 +21,13 @@
         
         let maximumNumberOfTestVariables = 70u
         
-        let maximumNumberOfTestVectors = 400u
+        let maximumNumberOfTestVectors = 1000u
         
         let maximumRandomWalkStep = 10u
         
         let maximumLevelDelta = 5u
         
-        let overallTestRepeats = 100u
+        let overallTestRepeats = 300u
         
         let maximumNumberOfIndicesToAvoid = 4u
         
@@ -103,7 +103,8 @@
             let createPartialTestVectors () =
                 let rec createPartialTestVectors testVariableIndex =
                     if testVariableIndex = maximumNumberOfTestVariables
-                       || randomBehaviour.ChooseAnyNumberFromOneTo reciprocalOfProbabilityOfNotGeneratingAnyFurtherPartialTestVectors = 1u
+                       || 0u < testVariableIndex
+                          && randomBehaviour.ChooseAnyNumberFromOneTo reciprocalOfProbabilityOfNotGeneratingAnyFurtherPartialTestVectors = 1u
                     then []
                     else let rec chooseTestVariableIndicesAndTheirLevels recursionDepth =
                             let maximumRecursionDepth = 50u
