@@ -799,8 +799,11 @@ namespace SageSerpent.TestInfrastructure.Tests
                 var methodAttributes = MethodAttributes.Public;
 
                 var methodBuilder =
-                    typeBuilder.DefineMethod(_generatedMethodName, methodAttributes, typeof (AbstractTestCase),
+                    typeBuilder.DefineMethod(_generatedMethodName, methodAttributes, CallingConventions.HasThis,
+                                             typeof (AbstractTestCase),
                                              argumentTypes);
+
+                methodBuilder.SetImplementationFlags(MethodImplAttributes.IL | MethodImplAttributes.Managed);
 
                 var codeGenerator = methodBuilder.GetILGenerator();
 
@@ -856,7 +859,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                     typeBuilder.DefineConstructor(constructorAttributes, CallingConventions.Standard,
                                                   constructorArgumentTypes);
 
-                constructorBuilder.SetImplementationFlags(MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
+                constructorBuilder.SetImplementationFlags(MethodImplAttributes.Runtime | MethodImplAttributes.IL | MethodImplAttributes.Managed);
 
 
                 var methodArgumentTypes = CreateArgumentTypesForAdaptedClosure(numberOfArgumentsForAdaptedClosure);
@@ -871,7 +874,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                     typeBuilder.DefineMethod(invokeMethodName, methodAttributes, typeof (AbstractTestCase),
                                              methodArgumentTypes);
 
-                methodBuilder.SetImplementationFlags(MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
+                methodBuilder.SetImplementationFlags(MethodImplAttributes.Runtime | MethodImplAttributes.IL | MethodImplAttributes.Managed);
 
                 var permutingClosureAdapterType = typeBuilder.CreateType();
 
