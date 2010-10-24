@@ -53,4 +53,6 @@ let debug results =
     results
     |> List.fold_left printResultsAtStrength 1u
             
-        
+            
+[1;4;5]
+|> List.scan_left (fun testVariableIndex _ -> testVariableIndex + 1u) 0u            

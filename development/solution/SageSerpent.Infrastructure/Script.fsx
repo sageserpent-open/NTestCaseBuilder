@@ -33,3 +33,12 @@ let v6 = BargainBasement.CountDuplicatesInSortedList [2;2;2;2]
 let v7 = BargainBasement.CountDuplicatesInSortedList [1]
 
 let v8 = BargainBasement.CountDuplicatesInSortedList [1;2]
+
+
+let q1 = BargainBasement.BreakOff 2u [3;4;7;8];;
+
+let q2 = BargainBasement.ChopUpList [3;4;7;8] [1u;2u];;
+
+let q3 = BargainBasement.BreakOff 4u [3;4;7;8];;
+
+let q4 = BargainBasement.ChopUpList [3;4;7;8] [];;

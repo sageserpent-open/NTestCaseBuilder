@@ -11,6 +11,7 @@ namespace SageSerpent.TestInfrastructure.Tests
     open System.Drawing
     open System.Collections.Generic
     open Wintellect.PowerCollections
+    open Microsoft.FSharp.Collections
     
     type private TestLevel =
             Untracked of UInt32                 // Index to distinguish the level.
@@ -19,6 +20,19 @@ namespace SageSerpent.TestInfrastructure.Tests
     type DistributionModeWrtInterleavingNode =
             BetweenSiblingSubtrees
           | WithinOnlyASingleSubtree
+          
+    type RandomBehaviour (seed) =
+        let randomBehaviour = Random seed
+        member this.UnderlyingImplementationForClientUse =
+            randomBehaviour
+        member this.ChooseAnyNumberFromZeroToOneLessThan =
+            int32 >> randomBehaviour.Next >> uint32
+        member this.ChooseAnyNumberFromOneTo =
+            this.ChooseAnyNumberFromZeroToOneLessThan >> (+) 1u
+        member this.HeadsItIs () =
+            this.ChooseAnyNumberFromZeroToOneLessThan 2u = 0u
+        member this.ChooseOneOf candidates =
+            List.nth candidates (int32 (this.ChooseAnyNumberFromZeroToOneLessThan (uint32 (List.length candidates))))
     
     [<TestFixture>]
     type DumpingGroundTestFixture () =
@@ -62,40 +76,38 @@ namespace SageSerpent.TestInfrastructure.Tests
         let maximumNumberOfTestLevelsForATestVariable = 3u
         let maximumNumberOfSubtreeHeadsPerAncestorNode = 5u
         let maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 1u
-        let randomSeed = 23
+        let maximumStrengthOfTestVariableCombinationAllowed = 20u
+        let randomBehaviourSeed = 23
         
-        let createTestCasesAndHandEachOffToTest distributionModeWrtInterleavingNode testHandoff =
-            let randomBehaviour = Random randomSeed
-            let chooseAnyNumberFromZeroToOneLessThan = int32 >> randomBehaviour.Next >> uint32
-            let chooseAnyNumberFromOneTo = chooseAnyNumberFromZeroToOneLessThan >> (+) 1u
-            let headsItIs () = chooseAnyNumberFromZeroToOneLessThan 2u = 0u
+        let createTreesTopDownAndHandEachOffToTest distributionModeWrtInterleavingNode testHandoff =
+            let randomBehaviour = RandomBehaviour randomBehaviourSeed
             let didTheSingleTestVariableEdgeCase = ref false
             let timeAtStart = DateTime.Now
-            for _ in 0u .. 90u do
-                let numberOfTrackedTestVariables = chooseAnyNumberFromOneTo maximumNumberOfTrackedTestVariables
+            for treeNumber in 1u .. 100u do
+                let numberOfTrackedTestVariables = randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTrackedTestVariables
                 if numberOfTrackedTestVariables = 1u
                 then didTheSingleTestVariableEdgeCase := true
                 let trackedTestVariableToNumberOfLevelsMap =
                     Map.of_list (List.init (int32 numberOfTrackedTestVariables)
-                                           (fun testVariable -> testVariable, chooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable))
+                                           (fun testVariable -> testVariable, randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable))
                 let rec createTree distributionModeWrtInterleavingNode
                                    indexForLeftmostTrackedTestVariable
                                    numberOfTrackedTestVariables
                                    maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables =
                     let thinkAboutTerminatingRecursion = numberOfTrackedTestVariables <= 1u
-                    if headsItIs () && thinkAboutTerminatingRecursion
+                    if randomBehaviour.HeadsItIs () && thinkAboutTerminatingRecursion
                        || maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 0u
                     then if numberOfTrackedTestVariables = 1u
                          then TestVariableNode ([for levelIndex in 1u .. trackedTestVariableToNumberOfLevelsMap.[int32 indexForLeftmostTrackedTestVariable] do
                                                     yield box (Tracked (indexForLeftmostTrackedTestVariable, levelIndex))])
                               , indexForLeftmostTrackedTestVariable + 1u  
                          else // TODO: add in a synthesizing node with no subtrees as an occasional alternative here.
-                              TestVariableNode ([for levelIndex in 1u .. chooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable do
+                              TestVariableNode ([for levelIndex in 1u .. randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable do
                                                     yield box (Untracked levelIndex)])
                               , indexForLeftmostTrackedTestVariable
                     else let allOnOneSubtreeDistributionMaker numberOfSubtrees numberOfTrackedTestVariables =
                             let choice =
-                                chooseAnyNumberFromOneTo numberOfSubtrees
+                                randomBehaviour.ChooseAnyNumberFromOneTo numberOfSubtrees
                             [for counter in 1u .. numberOfSubtrees do
                                 if counter = choice
                                 then yield numberOfTrackedTestVariables
@@ -103,24 +115,11 @@ namespace SageSerpent.TestInfrastructure.Tests
                          let arbitrarilySpreadAcrossSubtreesDistributionMaker numberOfSubtrees numberOfTrackedTestVariables =
                             if numberOfSubtrees = 1u
                             then [numberOfTrackedTestVariables]
-                            else let rec generateAsManyCumulativeSumsAs numberOfSums cumulativeSum partialResult =
-                                    if numberOfSums = 0u
-                                    then partialResult
-                                    else let nextLowerCumulativeSum =
-                                            if cumulativeSum > 0u
-                                            then cumulativeSum - 1u
-                                            else 0u
-                                         generateAsManyCumulativeSumsAs (numberOfSums - 1u)
-                                                                        nextLowerCumulativeSum
-                                                                        (nextLowerCumulativeSum :: partialResult)
-                                 let cumulativeSumsUpToOneLessThanNumberOfTrackedTestVariables =
-                                    generateAsManyCumulativeSumsAs (max numberOfSubtrees numberOfTrackedTestVariables
-                                                                    - 1u) numberOfTrackedTestVariables []
-                                 let pickRandomlyAllowingRepetitionOfChoices sums =
+                            else let pickRandomlyAllowingRepetitionOfChoices sums =
                                     let sums
                                         = List.to_array sums
                                     List.of_array [|for _ in 1u .. numberOfSubtrees - 1u do
-                                                        yield sums.[int32 (chooseAnyNumberFromZeroToOneLessThan (uint32 sums.Length))]|]
+                                                        yield sums.[int32 (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 sums.Length))]|]
                                  let selectedSumsIncludingNumberOfTrackedTestVariables =
                                     List.append (pickRandomlyAllowingRepetitionOfChoices [0u .. numberOfTrackedTestVariables]
                                                  |> List.sort compare) [numberOfTrackedTestVariables]
@@ -130,7 +129,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                     firstSum :: ((Seq.pairwise selectedSumsIncludingNumberOfTrackedTestVariables)
                                                  |> Seq.map (function first, second -> second - first)
                                                  |> List.of_seq)
-                                 Algorithms.RandomShuffle (leadingSumAndSubsequentDifferences, randomBehaviour)
+                                 Algorithms.RandomShuffle (leadingSumAndSubsequentDifferences, randomBehaviour.UnderlyingImplementationForClientUse)
                                  |> List.of_array
                          let distributionMakerForSynthesizingNodes =
                             // The following definition looks as if it is transposed - but it is not: the
@@ -158,7 +157,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                          let generateNode nodeFactory 
                                           distributionMaker =
                             let numberOfSubtrees =
-                                chooseAnyNumberFromOneTo maximumNumberOfSubtreeHeadsPerAncestorNode
+                                randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfSubtreeHeadsPerAncestorNode
                             let gatherSubtree (previouslyGatheredSubtrees
                                                , indexForLeftmostTrackedTestVariable)
                                               numberOfTrackedVariables =
@@ -180,7 +179,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                                 |> List.fold_left gatherSubtree ([], indexForLeftmostTrackedTestVariable)
                             nodeFactory subtrees
                             , maximumTrackingVariableIndex
-                         if headsItIs ()
+                         if randomBehaviour.HeadsItIs ()
                          then generateNode (fun subtrees -> InterleavingNode subtrees)
                                            distributionMakerForInterleavedNodes
                          else generateNode (fun subtrees -> SynthesizingNode subtrees)
@@ -193,13 +192,13 @@ namespace SageSerpent.TestInfrastructure.Tests
                                maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables
                 let maximumStrengthOfTestVariableCombination =
                     tree.MaximumStrengthOfTestVariableCombination
-                if maximumStrengthOfTestVariableCombination < 60u
+                if maximumStrengthOfTestVariableCombination < maximumStrengthOfTestVariableCombinationAllowed
                 then //printf "Number of test variables: %d\nNumber of levels overall: %d\nMaximum strength: %d\n\n"
                      //       tree.CountTestVariables
                      //       tree.SumLevelCountsFromAllTestVariables
                      //       tree.MaximumStrengthOfTestVariableCombination
                      //dumpTree tree
-                     
+                     printf "Tree #%u\n" treeNumber
                      let results =
                         tree.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding numberOfTrackedTestVariables
                      let resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
@@ -238,6 +237,137 @@ namespace SageSerpent.TestInfrastructure.Tests
             printf "**** TIME FOR TEST: %A\n" (timeAtEnd - timeAtStart)
             Assert.IsTrue !didTheSingleTestVariableEdgeCase                 
         
+        let maximumNumberOfTestVariables = 20u
+        
+        let maximumStrengthOfCombination = 6u
+        
+        [<Test>]
+        member this.TestCorrectnessOfTestVariableIndicesAndThatASentinelLevelValueIsCreatedForInterleavedVariableIndicesNotChosenInACombination () =
+            let randomBehaviour = RandomBehaviour randomBehaviourSeed
+            let didTheSingleTestVariableEdgeCase = ref false
+            let timeAtStart = DateTime.Now
+            for treeNumber in 1u .. 100u do
+                let rec workUpToTreeRootByMakingNewSubtreeRoots accumulatingInterleavedTestVariableIndexPairs
+                                                                nodeAndItsSpannedTestVariableIndicesPairs =
+                    let numberOfNodes =
+                        uint32 (List.length nodeAndItsSpannedTestVariableIndicesPairs)
+                    match numberOfNodes with
+                        0u ->
+                            raise (InternalAssertionViolationException "Internal failure in test - should have at least one node.")
+                      | 1u ->
+                            nodeAndItsSpannedTestVariableIndicesPairs
+                            , accumulatingInterleavedTestVariableIndexPairs
+                      | _ ->
+                            let numberOfSubtreeRoots =
+                                randomBehaviour.ChooseAnyNumberFromOneTo (numberOfNodes - 1u)
+                            let potentialPartitionPoints
+                                = [0u .. numberOfNodes] // Yes, up to *and including* the number of nodes!
+                            let chosenPartitionPoints =
+                                Algorithms.RandomSubset (potentialPartitionPoints, int32 (numberOfSubtreeRoots + 1u), randomBehaviour.UnderlyingImplementationForClientUse)
+                                |> Seq.sort
+                            let spans =
+                                chosenPartitionPoints
+                                |> Seq.pairwise
+                                |> Seq.map (function lesserPartitionPoint
+                                                     , greaterPartitionPoint -> greaterPartitionPoint - lesserPartitionPoint)
+                                |> List.of_seq
+                            let groupsForSubtreeRoots =
+                                BargainBasement.ChopUpList nodeAndItsSpannedTestVariableIndicesPairs spans 
+                            let whetherInterleavedNodeChoices =
+                                groupsForSubtreeRoots
+                                |> List.map (fun _ -> randomBehaviour.HeadsItIs ())
+                            let chooseAPairOfInterleavedTestVariableIndices (nodeAndItsSpannedTestVariableIndicesPairs
+                                                                             , whetherInterleavedNodeChoice) =
+                                if whetherInterleavedNodeChoice
+                                   && List.length nodeAndItsSpannedTestVariableIndicesPairs > 1
+                                then let testVariableIndicesChosenFromSeparateSpans =
+                                        nodeAndItsSpannedTestVariableIndicesPairs
+                                        |> List.map (snd >> randomBehaviour.ChooseOneOf)
+                                     let chosenPair =
+                                        Algorithms.RandomSubset (testVariableIndicesChosenFromSeparateSpans, 2, randomBehaviour.UnderlyingImplementationForClientUse)
+                                     Some (chosenPair.[0], chosenPair.[1])
+                                else None                                 
+                            let chosenPairsOfInterleavedTestVariableIndices =
+                                (List.zip groupsForSubtreeRoots whetherInterleavedNodeChoices)
+                                |> List.map chooseAPairOfInterleavedTestVariableIndices
+                                |> List.filter Option.is_some
+                                |> List.map Option.get
+                            let subtreeRootFromSpannedNodes (nodeAndItsSpannedTestVariableIndicesPairs
+                                                             , whetherInterleavedNodeChoice) =
+                                if List.length nodeAndItsSpannedTestVariableIndicesPairs = 1
+                                then List.hd nodeAndItsSpannedTestVariableIndicesPairs  // Pass up 'as is' to the next level: this way we can get
+                                                                                        // variable-length paths from the overall root down to
+                                                                                        // the test variable leaves.
+                                else let nodes =
+                                        nodeAndItsSpannedTestVariableIndicesPairs
+                                        |> List.map fst
+                                     let spannedTestVariableIndices =
+                                        nodeAndItsSpannedTestVariableIndicesPairs
+                                        |> List.map snd
+                                        |> List.concat
+                                     (if whetherInterleavedNodeChoice
+                                      then InterleavingNode nodes
+                                      else SynthesizingNode nodes)
+                                     , spannedTestVariableIndices
+                            let nextLevelOfNodeAndItsSpannedTestVariableIndicesPairs =
+                                (List.zip groupsForSubtreeRoots whetherInterleavedNodeChoices)
+                                |> List.map subtreeRootFromSpannedNodes
+                            workUpToTreeRootByMakingNewSubtreeRoots (List.append chosenPairsOfInterleavedTestVariableIndices
+                                                                                 accumulatingInterleavedTestVariableIndexPairs)
+                                                                    nextLevelOfNodeAndItsSpannedTestVariableIndicesPairs
+                let testVariableIndices =
+                       List.init (int32 (randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestVariables))
+                                 (fun testVariableIndex ->
+                                    uint32 testVariableIndex)
+                if testVariableIndices.Length = 1
+                then didTheSingleTestVariableEdgeCase := true                                    
+                let testVariableNodes =
+                    testVariableIndices
+                    |> List.map (fun testVariableIndex ->
+                                    TestVariableNode (seq {for index in [1u .. maximumNumberOfTestLevelsForATestVariable] do
+                                                           yield box (testVariableIndex, index)}))
+                let nodeAndItsSpannedTestVariableIndicesPairs,
+                    interleavedTestVariableIndexPairs =
+                        List.zip testVariableNodes
+                                 (testVariableIndices
+                                  |> List.map (fun testVariableIndex -> [testVariableIndex]))
+                        |> workUpToTreeRootByMakingNewSubtreeRoots []
+                let reversedInterleavedTestVariableIndexPairs = // Interleaving is bidrectional, so create reverse pairs in preparation
+                                                                // for creation of a one-way association below.
+                    interleavedTestVariableIndexPairs
+                    |> List.map (function first, second -> second, first)
+                let tree =
+                    fst (List.hd nodeAndItsSpannedTestVariableIndicesPairs)
+                let associationFromTestVariableIndexToInterleavedTestVariableIndices =
+                    HashMultiMap.Create (List.append interleavedTestVariableIndexPairs reversedInterleavedTestVariableIndexPairs)
+                printf "Tree #%u\n" treeNumber
+                let results =
+                    tree.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding (min tree.MaximumStrengthOfTestVariableCombination
+                                                                                         maximumStrengthOfCombination)
+                    |> List.reduce_left Seq.append
+                for result in results do
+                    for entry in result do
+                        let testVariableIndex = entry.Key
+                        let testVariableLevel = entry.Value
+                        match testVariableLevel with
+                            Some boxed ->
+                                let intrinsicTestVariableIndex
+                                    , (_: UInt32) = unbox boxed
+                                let shouldBeTrue = testVariableIndex = intrinsicTestVariableIndex
+                                Assert.IsTrue shouldBeTrue
+                                if associationFromTestVariableIndexToInterleavedTestVariableIndices.ContainsKey testVariableIndex
+                                then let interleavedTestVariableIndices =
+                                        associationFromTestVariableIndexToInterleavedTestVariableIndices.FindAll testVariableIndex
+                                     for interleavedTestVariable in interleavedTestVariableIndices do
+                                        let shouldBeTrue = 
+                                            result.[interleavedTestVariable] = None
+                                        Assert.IsTrue shouldBeTrue 
+                          | None ->
+                                ()
+            let timeAtEnd = DateTime.Now
+            printf "**** TIME FOR TEST: %A\n" (timeAtEnd - timeAtStart)
+            Assert.IsTrue !didTheSingleTestVariableEdgeCase
+                
         [<Test>]
         member this.TestThatARandomlyChosenNCombinationOfTestVariablesIsCoveredInTermsOfCrossProductOfLevels () =
             let testHandoff tree 
@@ -254,7 +384,7 @@ namespace SageSerpent.TestInfrastructure.Tests
                 if not shouldBeTrue
                 then dumpTree tree
                 Assert.IsTrue shouldBeTrue
-            createTestCasesAndHandEachOffToTest WithinOnlyASingleSubtree testHandoff
+            createTreesTopDownAndHandEachOffToTest WithinOnlyASingleSubtree testHandoff
 
         [<Test>]
         member this.TestThatARandomlyChosenNCombinationOfTestVariablesSpanningSubtreesOfAnInterleavingNodeIsForbidden () =
@@ -267,7 +397,5 @@ namespace SageSerpent.TestInfrastructure.Tests
                      if not shouldBeTrue
                      then dumpTree tree
                      Assert.IsTrue shouldBeTrue
-            createTestCasesAndHandEachOffToTest BetweenSiblingSubtrees testHandoff
+            createTreesTopDownAndHandEachOffToTest BetweenSiblingSubtrees testHandoff
             
-            
-                                

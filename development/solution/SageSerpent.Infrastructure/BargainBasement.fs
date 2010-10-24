@@ -57,3 +57,30 @@ module SageSerpent.Infrastructure.BargainBasement
         
     let AssociatedValues association =
         (association :> IDictionary<'Key, 'Value>).Values
+        
+    let rec BreakOff sizeOfFirstPart listBeingBroken =
+        match sizeOfFirstPart
+              , listBeingBroken with
+            0u
+            , _ ->
+                []
+                , listBeingBroken
+          | _
+            , head :: tail ->
+                let partialFirstPart
+                    , secondPart =
+                        BreakOff (sizeOfFirstPart - 1u) tail
+                head :: partialFirstPart
+                , secondPart
+          | _ -> raise (PreconditionViolationException "Attempt to break off more elements than present in list.")
+    
+
+    let rec ChopUpList listBeingChopped spans =
+        match spans with
+            [] ->
+                []
+          | span :: tail ->
+                let section
+                    , remainder =
+                        BreakOff span listBeingChopped
+                section :: ChopUpList remainder tail                 
