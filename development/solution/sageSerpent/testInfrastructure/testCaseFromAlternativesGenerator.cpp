@@ -4,7 +4,7 @@ namespace SageSerpent
 {
     namespace TestInfrastructure
     {
-        TestCaseFromAlternativesGenerator::TestCaseFromAlternativesGenerator(Wintellect::PowerCollections::Set<ITestCaseGenerator ^> ^componentTestCaseGenerators)
+        TestCaseFromAlternativesGenerator::TestCaseFromAlternativesGenerator(C5::HashSet<ITestCaseGenerator ^> ^componentTestCaseGenerators)
         {
             //throw gcnew System::NotImplementedException("*** Unimplemented stub! ***");
         }

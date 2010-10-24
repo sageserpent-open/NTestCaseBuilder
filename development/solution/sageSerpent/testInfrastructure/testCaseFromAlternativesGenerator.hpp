@@ -3,7 +3,7 @@
 
 #include "testCaseGenerator.hpp"
 
-#using "PowerCollections.dll"
+#using "C5.dll"
 
 namespace SageSerpent
 {
@@ -13,7 +13,7 @@ namespace SageSerpent
             ITestCaseGenerator
         {
         public:
-            TestCaseFromAlternativesGenerator(Wintellect::PowerCollections::Set<ITestCaseGenerator ^> ^componentTestCaseGenerators);
+            TestCaseFromAlternativesGenerator(C5::HashSet<ITestCaseGenerator ^> ^componentTestCaseGenerators);
 
             virtual System::Collections::IEnumerator ^CreateIterator(System::UInt32 requestedDegreesOfFreedomForCombinationCoverage);
             
