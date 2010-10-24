@@ -27,14 +27,13 @@ namespace SageSerpent.TestInfrastructure.Tests
         let maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 1u
         let randomSeed = 23
         
-        [<Test>]
-        member this.TestThatARandomlyChosenNCombinationOfTestVariablesIsCoveredInTermsOfCrossProductOfLevels () =
+        let createTestCasesAndHandEachOffToTest distributionModeWrtInterleavingNode testHandoff =
             let randomBehaviour = Random randomSeed
             let chooseAnyNumberFromZeroToOneLessThan = int32 >> randomBehaviour.Next >> uint32
             let chooseAnyNumberFromOneTo = chooseAnyNumberFromZeroToOneLessThan >> (+) 1u
             let headsItIs () = chooseAnyNumberFromZeroToOneLessThan 2u = 0u
             let didTheSingleTestVariableEdgeCase = ref false
-            for _ in [0u .. 100u] do
+            for _ in [0u .. 90u] do
                 let numberOfTrackedTestVariables = chooseAnyNumberFromOneTo maximumNumberOfTrackedTestVariables
                 if numberOfTrackedTestVariables = 1u
                 then didTheSingleTestVariableEdgeCase := true
@@ -138,37 +137,14 @@ namespace SageSerpent.TestInfrastructure.Tests
                          if headsItIs ()
                          then generateNode (fun subtrees -> InterleavingNode subtrees) distributionMakerForInterleavedNodes
                          else generateNode (fun subtrees -> SynthesizingNode subtrees) distributionMakerForSynthesizingNodes                          
-                let tree, _ = createTree WithinOnlyASingleSubtree
+                let tree, _ = createTree distributionModeWrtInterleavingNode
                                          0u
                                          numberOfTrackedTestVariables
                                          maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables
-//                let dumpTree tree =
-//                    let form = new Form ()
-//                    form.AutoSizeMode <- AutoSizeMode.GrowOnly
-//                    form.AutoSize <- true
-//                    let treeView = new TreeView ()
-//                    form.Controls.Add treeView
-//                    treeView.Dock <- DockStyle.Fill
-//                    let treeGuiNode = TreeNode ()
-//                    treeView.Nodes.Add treeGuiNode |> ignore
-//                    let rec dumpNode node (treeGuiNode: TreeNode) =
-//                        match node with
-//                            TestVariableNode levels -> let subtreeGuiNode = TreeNode ("TreeNode\n" + any_to_string levels)
-//                                                       treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
-//                          | InterleavingNode subtrees -> let subtreeGuiNode = TreeNode ("InterleavingNode\n")
-//                                                         treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
-//                                                         for subtree in subtrees do
-//                                                            dumpNode subtree subtreeGuiNode
-//                          | SynthesizingNode subtrees -> let subtreeGuiNode = TreeNode ("SynthesizingNode\n")
-//                                                         treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
-//                                                         for subtree in subtrees do
-//                                                            dumpNode subtree subtreeGuiNode
-//                    dumpNode tree treeGuiNode
-//                    treeView.ExpandAll ()
-//                    form.ShowDialog () |> ignore
-                let resultsWithOnlyLevelsFromTrackedTestVariablesCombinedAtDesiredStrength tree =
+                printf "**** Tree:\n%A\n" tree
+                let resultsWithOnlyLevelsFromTrackedTestVariablesCombinedAtDesiredStrength =
                     let results =
-                        (tree: Node).TestVectorRepresentationsGroupedByStrengthUpToAndIncluding numberOfTrackedTestVariables
+                        tree.TestVectorRepresentationsGroupedByStrengthUpToAndIncluding numberOfTrackedTestVariables
                     let resultsAtDesiredStrength =
                         if numberOfTrackedTestVariables <= (uint32 results.Length)
                         then List.nth results (int32 numberOfTrackedTestVariables - 1)
@@ -188,8 +164,37 @@ namespace SageSerpent.TestInfrastructure.Tests
                                     |> List.map (function _, level -> level))
                     |> Seq.filter (fun levels -> uint32 levels.Length = numberOfTrackedTestVariables)
                     |> Set.of_seq
-                let resultsWithOnlyLevelsFromTrackedTestVariablesAtDesiredStrength
-                    = resultsWithOnlyLevelsFromTrackedTestVariablesCombinedAtDesiredStrength tree
+                testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelsFromTrackedTestVariablesCombinedAtDesiredStrength
+            Assert.IsTrue !didTheSingleTestVariableEdgeCase                 
+        
+        let dumpTree tree =
+            let form = new Form ()
+            form.AutoSizeMode <- AutoSizeMode.GrowOnly
+            form.AutoSize <- true
+            let treeView = new TreeView ()
+            form.Controls.Add treeView
+            treeView.Dock <- DockStyle.Fill
+            let treeGuiNode = TreeNode ()
+            treeView.Nodes.Add treeGuiNode |> ignore
+            let rec dumpNode node (treeGuiNode: TreeNode) =
+                match node with
+                    TestVariableNode levels -> let subtreeGuiNode = TreeNode ("TreeNode\n" + any_to_string levels)
+                                               treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
+                  | InterleavingNode subtrees -> let subtreeGuiNode = TreeNode ("InterleavingNode\n")
+                                                 treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
+                                                 for subtree in subtrees do
+                                                    dumpNode subtree subtreeGuiNode
+                  | SynthesizingNode subtrees -> let subtreeGuiNode = TreeNode ("SynthesizingNode\n")
+                                                 treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
+                                                 for subtree in subtrees do
+                                                    dumpNode subtree subtreeGuiNode
+            dumpNode tree treeGuiNode
+            treeView.ExpandAll ()
+            form.ShowDialog () |> ignore
+
+        [<Test>]
+        member this.TestThatARandomlyChosenNCombinationOfTestVariablesIsCoveredInTermsOfCrossProductOfLevels () =
+            let testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelsFromTrackedTestVariablesAtDesiredStrength =
                 let crossProductOfTrackedTestVariableLevels =
                     Map.fold_right (fun _ level partialResult ->
                                         [1u .. level]::partialResult)
@@ -198,14 +203,21 @@ namespace SageSerpent.TestInfrastructure.Tests
                     |> Set.of_list
                 let shouldBeTrue =
                     resultsWithOnlyLevelsFromTrackedTestVariablesAtDesiredStrength = crossProductOfTrackedTestVariableLevels
+                if not shouldBeTrue
+                then dumpTree tree
                 Assert.IsTrue shouldBeTrue
-                if numberOfTrackedTestVariables > 1u
-                then let tree, _ = createTree BetweenSiblingSubtrees
-                                              0u
-                                              numberOfTrackedTestVariables
-                                              maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables
-                     let resultsWithOnlyLevelsFromTrackedTestVariables
-                        = resultsWithOnlyLevelsFromTrackedTestVariablesCombinedAtDesiredStrength tree
-                     let shouldBeTrue = resultsWithOnlyLevelsFromTrackedTestVariables.IsEmpty
+            createTestCasesAndHandEachOffToTest WithinOnlyASingleSubtree testHandoff
+
+        [<Test>]
+        member this.TestThatARandomlyChosenNCombinationOfTestVariablesSpanningSubtreesOfAnInterleavingNodeIsForbidden () =
+            let testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelsFromTrackedTestVariablesAtDesiredStrength =
+                if (trackedTestVariableToNumberOfLevelsMap: Map<'Key, 'Value>).Count > 1
+                then let shouldBeTrue =
+                        Set.is_empty resultsWithOnlyLevelsFromTrackedTestVariablesAtDesiredStrength
+                     if not shouldBeTrue
+                     then dumpTree tree
                      Assert.IsTrue shouldBeTrue
-            Assert.IsTrue !didTheSingleTestVariableEdgeCase
+            createTestCasesAndHandEachOffToTest BetweenSiblingSubtrees testHandoff
+            
+            
+                                
