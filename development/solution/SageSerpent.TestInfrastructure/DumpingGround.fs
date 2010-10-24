@@ -57,7 +57,7 @@ namespace SageSerpent.TestInfrastructure
                 else let rec walkTree node strength indexForLeftmostTestVariable =
                         match node with
                             TestVariableNode levels ->
-                                [Seq.singleton [indexForLeftmostTestVariable]]
+                                [[[indexForLeftmostTestVariable]]]
                                 , indexForLeftmostTestVariable + 1u
                                 , [(indexForLeftmostTestVariable, levels)]
                                 
@@ -67,7 +67,7 @@ namespace SageSerpent.TestInfrastructure
                                         _, [] -> first
                                       | [], _ -> second
                                       | headFromFirst :: tailFromFirst, headFromSecond :: tailFromSecond ->
-                                            (Seq.append headFromFirst headFromSecond) :: (joinPairsAtEachStrength tailFromFirst tailFromSecond)
+                                            (List.append headFromFirst headFromSecond) :: (joinPairsAtEachStrength tailFromFirst tailFromSecond)
                                 let mergeTestVariableIndexListsFromSubtree (previouslyMergedTestVariableIndexLists
                                                                             , indexForLeftmostTestVariable
                                                                             , previousAssociationFromTestVariableIndexToItsLevels)
@@ -128,14 +128,14 @@ namespace SageSerpent.TestInfrastructure
                                             |> List.map (function strength, resultFromSubtree ->
                                                                     if strength > 0u
                                                                     then resultFromSubtree.[int32 (strength - 1u)]
-                                                                    else Seq.singleton [])
+                                                                    else [[]])
                                         let joinTestVariableIndexLists first second =
                                             List.append first second
                                         let testVariableIndexListsBuiltFromCrossProduct =
                                             (BargainBasement.CrossProduct testVariableIndexListsBySubtree)
                                             |> List.map (List.reduce_left joinTestVariableIndexLists)
-                                        Seq.append testVariableIndexListsBuiltFromCrossProduct partialResult
-                                    (distributions |> Seq.fold addInTestVariableIndexListsForAGivenDistribution Seq.empty)::partialResult
+                                        List.append testVariableIndexListsBuiltFromCrossProduct partialResult
+                                    (distributions |> Seq.fold addInTestVariableIndexListsForAGivenDistribution [])::partialResult
                                 let testVariableIndexListsGroupedByStrength =
                                     Map.fold_right addInTestVariableIndexListsForGivenStrength distributionsOfStrengthsOverSubtreesAtEachTotalStrength []
                                 testVariableIndexListsGroupedByStrength
@@ -151,7 +151,8 @@ namespace SageSerpent.TestInfrastructure
                         testVariableIndexList
                         |> List.map (fun testVariableIndex ->
                                      associationFromTestVariableIndexToItsLevels.[testVariableIndex]
-                                     |> Seq.map (fun level -> testVariableIndex, level))
+                                     |> Seq.map (fun level -> testVariableIndex, level)
+                                     |> List.of_seq)
                         |> BargainBasement.CrossProduct
                         |> List.map (fun testVectorRepresentationAsList ->
                                         let result = Map.of_list testVectorRepresentationAsList
