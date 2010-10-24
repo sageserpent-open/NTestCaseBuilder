@@ -1,5 +1,7 @@
 ﻿#light
 
+#nowarn "40"
+
 namespace SageSerpent.TestInfrastructure
 
     open System.Collections
