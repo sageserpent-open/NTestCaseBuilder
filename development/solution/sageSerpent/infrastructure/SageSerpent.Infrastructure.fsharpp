@@ -1,0 +1,64 @@
+"General"
+{
+"ProjectIdGuid" = "{DA0AABD6-2352-4E2F-9981-D242E75E7307}"
+}
+"Configurations"
+{
+    "Debug|Win32"
+    {
+    "ProjectType" = "DLL"
+    "OptLevel" = "Off"
+    "StrongNamingLevel" = "None"
+    "OutputPath" = "Debug"
+    "SearchPath" = "-R ..\\..\\thirdParty\\NUnit\\bin\\nunit.core.dll"
+    "StrongNameFile" = ""
+    "OutputBase" = "SageSerpent.Infrastructure"
+    "CustomCommandLine" = ""
+    "CustomCompiler" = ""
+    "DebugCheck" = "TRUE"
+    "CustomCompilationCheck" = "FALSE"
+    "DebugStartMode" = "0"
+    "StartApp" = ""
+    "StartAppPath" = ""
+    "CustomStartupArguments" = ""
+    }
+    "Release|Win32"
+    {
+    "ProjectType" = "DLL"
+    "OptLevel" = "3"
+    "StrongNamingLevel" = "None"
+    "OutputPath" = "Release"
+    "SearchPath" = "-R ..\\..\\thirdParty\\NUnit\\bin\\nunit.core.dll"
+    "StrongNameFile" = ""
+    "OutputBase" = "SageSerpent.Infrastructure"
+    "CustomCommandLine" = ""
+    "CustomCompiler" = ""
+    "DebugCheck" = "FALSE"
+    "CustomCompilationCheck" = "FALSE"
+    "DebugStartMode" = "0"
+    "StartApp" = ""
+    "StartAppPath" = ""
+    "CustomStartupArguments" = ""
+    }
+}
+"Files"
+{
+    "exceptions.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "combinatoricUtilities.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "nUnitTestSuiteDriver.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+}
+"ProjStartupServices"
+{
+}
+"Globals"
+{
+}

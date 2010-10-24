@@ -1,0 +1,60 @@
+"General"
+{
+"ProjectIdGuid" = "{29ECC055-27F6-4E60-B449-AB0CE6DA4F34}"
+}
+"Configurations"
+{
+    "Debug|Win32"
+    {
+    "ProjectType" = "EXE"
+    "OptLevel" = "Off"
+    "StrongNamingLevel" = "None"
+    "OutputPath" = "Debug"
+    "SearchPath" = "-R ..\\Debug\\SageSerpent.Infrastructure.dll -R ..\\..\\..\\thirdParty\\NUnit\\bin\\nunit.core.dll  -R ..\\..\\..\\thirdParty\\NUnit\\bin\\nunit.framework.dll"
+    "StrongNameFile" = ""
+    "OutputBase" = "SageSerpent.InfrastructureTests"
+    "CustomCommandLine" = ""
+    "CustomCompiler" = ""
+    "DebugCheck" = "TRUE"
+    "CustomCompilationCheck" = "FALSE"
+    "DebugStartMode" = "0"
+    "StartApp" = ""
+    "StartAppPath" = ""
+    "CustomStartupArguments" = ""
+    }
+    "Release|Win32"
+    {
+    "ProjectType" = "EXE"
+    "OptLevel" = "3"
+    "StrongNamingLevel" = "None"
+    "OutputPath" = "Release"
+    "SearchPath" = "-R ..\\Release\\SageSerpent.Infrastructure.dll -R ..\\..\\..\\thirdParty\\NUnit\\bin\\nunit.core.dll -R ..\\..\\..\\thirdParty\\NUnit\\bin\\nunit.framework.dll"
+    "StrongNameFile" = ""
+    "OutputBase" = "SageSerpent.InfrastructureTests"
+    "CustomCommandLine" = ""
+    "CustomCompiler" = ""
+    "DebugCheck" = "FALSE"
+    "CustomCompilationCheck" = "FALSE"
+    "DebugStartMode" = "0"
+    "StartApp" = ""
+    "StartAppPath" = ""
+    "CustomStartupArguments" = ""
+    }
+}
+"Files"
+{
+    "combinatoricUtilitiesTests.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "driver.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+}
+"ProjStartupServices"
+{
+}
+"Globals"
+{
+}

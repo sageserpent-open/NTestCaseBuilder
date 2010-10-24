@@ -25,6 +25,10 @@ namespace SageSerpent
             // TODO - it should be possible to query a test case generator for the set of unrelated maximal subtrees that
             // are dead. In the worst case, this may yield a singleton set that is the generator itself.
 
+            // TODO - in the same way that accidental collisions between composed test cases cause the generator to reconsider
+            // the combinations to gaurantee coverage, if a composed test case's constructor throws a precondition failure
+            // exception, the generator should take the same kind of evasive action and try different combinations to get coverage.
+
 
             System::Collections::IEnumerator ^CreateIterator(System::UInt32 requestedDegreesOfFreedomForCombinationCoverage);
             

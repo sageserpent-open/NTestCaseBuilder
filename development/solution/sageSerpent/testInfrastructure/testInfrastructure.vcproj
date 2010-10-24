@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="testInfrastructure"
+	Name="SageSerpent.TestInfrastructure"
 	ProjectGUID="{D75E027E-9EB6-4CC2-A94C-ED49250CDD0E}"
 	RootNamespace="testInfrastructure"
 	Keyword="ManagedCProj"
@@ -43,7 +43,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories=""
-				AdditionalUsingDirectories="Z:\SageSerpent\workInProgress\development\solution\thirdParty\C5.bin;&quot;$(TargetDir)&quot;"
+				AdditionalUsingDirectories="Z:\SageSerpent\workInProgress\development\solution\thirdParty\C5.bin;Z:\SageSerpent\workInProgress\development\solution\sageSerpent\infrastructure\Debug"
 				PreprocessorDefinitions="WIN32;_DEBUG"
 				RuntimeLibrary="3"
 				GenerateXMLDocumentationFiles="true"
@@ -92,9 +92,9 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory="$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			ManagedExtensions="1"
 			WholeProgramOptimization="1"
@@ -116,6 +116,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalUsingDirectories="Z:\SageSerpent\workInProgress\development\solution\thirdParty\C5.bin;Z:\SageSerpent\workInProgress\development\solution\sageSerpent\infrastructure\Release"
 				PreprocessorDefinitions="WIN32;NDEBUG"
 				RuntimeLibrary="2"
 				WarningLevel="3"
@@ -133,6 +134,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="$(NoInherit)"
+				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				TargetMachine="1"

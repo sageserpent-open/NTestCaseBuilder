@@ -1,6 +1,6 @@
 #include "testCaseFromCombinationGenerator.hpp"
 
-#using "infrastructure.dll"
+#using "SageSerpent.Infrastructure.dll"
 
 namespace SageSerpent
 {
