@@ -6,9 +6,16 @@ namespace SageSerpent
 {
     namespace TestInfrastructure
     {
+        /// <remarks>Bad Rellin</remarks>
         public interface class ITestCaseGenerator
         {
-            System::Collections::IEnumerator ^CreateIterator();
+            // TODO - convert to correct XML documentation.
+            // 'requestedDegreesOfFreedomForCombinationCoverage' may be greater than the 'MaximumDegreesOfFreedom' property - this
+            // is rather like the situation where collisions during test case generation prevent full coverage of all combinations.
+            // All that happens is that the test case generator does its best.
+            // If 'requestedDegreesOfFreedomForCombinationCoverage' is zero, this indicates that all possible combinations should be
+            // generated.
+            System::Collections::IEnumerator ^CreateIterator(System::UInt32 requestedDegreesOfFreedomForCombinationCoverage);
             
             property System::UInt32 MaximumDegreesOfFreedom
             {

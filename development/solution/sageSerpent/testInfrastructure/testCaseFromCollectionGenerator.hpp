@@ -13,7 +13,7 @@ namespace SageSerpent
         public:
             TestCaseFromCollectionGenerator(System::Collections::ICollection ^collection);
 
-            virtual System::Collections::IEnumerator ^CreateIterator();
+            virtual System::Collections::IEnumerator ^CreateIterator(System::UInt32 requestedDegreesOfFreedomForCombinationCoverage);
             
             virtual property System::UInt32 MaximumDegreesOfFreedom
             {

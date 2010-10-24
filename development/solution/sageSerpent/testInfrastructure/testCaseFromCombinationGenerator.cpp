@@ -12,7 +12,7 @@ namespace SageSerpent
             //throw gcnew System::NotImplementedException("*** Unimplemented stub! ***");
         }
 
-        System::Collections::IEnumerator ^TestCaseFromCombinationGenerator::CreateIterator()
+        System::Collections::IEnumerator ^TestCaseFromCombinationGenerator::CreateIterator(System::UInt32 requestedDegreesOfFreedomForCombinationCoverage)
         {
             //throw gcnew System::NotImplementedException("*** Unimplemented stub! ***");
             return nullptr;

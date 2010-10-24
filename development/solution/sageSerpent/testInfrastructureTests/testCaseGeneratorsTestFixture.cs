@@ -16,10 +16,22 @@ namespace SageSerpent.TestInfrastructureTests
             while (countDown-- != 0U)
             {
                 SageSerpent.TestInfrastructure.ITestCaseGenerator testCaseGenerator = factory.CreateRandomlyAssembledTestCaseGenerator();
-#if __ADDED_IN__
-                NUnit.Framework.Assert.AreEqual(testCaseGenerator.MaximumDegreesOfFreedom,
-                                                ((ITracksHowOwningSetsContributeToOutput)testCaseGenerator).MaximumNumberOfOwningSetsInSequence);
-#endif
+
+                System.Collections.IEnumerator testCaseIterator = testCaseGenerator.CreateIterator(2U); // TODO - should put in random variations here!
+
+                Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>> possibleSequencesOfOwningSets
+                    = ((ITracksHowOwningSetsContributeToOutput)testCaseGenerator).PossibleSequencesOfOwningSets();
+
+                while (testCaseIterator.MoveNext())
+                {
+                    SageSerpent.TestInfrastructureTests.TestCaseGeneratorsTestFixture.TestCase testCase
+                        = (SageSerpent.TestInfrastructureTests.TestCaseGeneratorsTestFixture.TestCase)testCaseIterator.Current;
+
+                    System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>> ownerSetsThatContributedToThisTestCase
+                        = testCase.SequenceOfOwningSets();
+
+                    NUnit.Framework.Assert.IsTrue(possibleSequencesOfOwningSets.Contains(ownerSetsThatContributedToThisTestCase));
+                }
             }
         }
 
@@ -37,6 +49,8 @@ namespace SageSerpent.TestInfrastructureTests
         // ANSWER: try adding in additional atomic test cases and then causing the transforms to collide any composite test case that contains
         // any of these additional atomic test cases (regardless of which set contributed them, or how many turn up in any given composite).
         // We should still see all of the atomic combinations that we originally had, but only one single composite containing a 'new' atomic test case.
+
+        // Also need some tests for both pruning and for detection of invalid generation trees.
 
         [Test]
         public void TestThatCoverageOfAllNWayCombinationsWorksAroundAnyCollisionsBetweenOutputTestCases()
@@ -124,6 +138,10 @@ namespace SageSerpent.TestInfrastructureTests
 
         public interface ITracksHowOwningSetsContributeToOutput
         {
+            /// <remarks>
+            /// The set returned compares its sequence elements deeply by value - two sequences compare equal if they are of
+            /// the same length and each of their constituent test case sets taken as aligned pairs compare equal to each other by value.
+            /// </remarks>
             Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>>
                 PossibleSequencesOfOwningSets();
 
@@ -131,7 +149,29 @@ namespace SageSerpent.TestInfrastructureTests
             {
                 get;
             }
+
+            //System.Collections.Generic.IEnumerable<TestCase> Select
         }
+
+        private class TestCaseSetComparer :
+            System.Collections.Generic.IEqualityComparer<Wintellect.PowerCollections.Set<TestCase>>
+        {
+            public bool Equals(Wintellect.PowerCollections.Set<TestCase> x, Wintellect.PowerCollections.Set<TestCase> y)
+            {
+                return _decoratedComparer.Equals(x, y);
+            }
+
+            public int GetHashCode(Wintellect.PowerCollections.Set<TestCase> obj)
+            {
+                return _decoratedComparer.GetHashCode(obj);
+            }
+
+            private static System.Collections.Generic.IEqualityComparer<System.Collections.Generic.IEnumerable<TestCase>> _decoratedComparer
+                = Wintellect.PowerCollections.Algorithms.GetSetEqualityComparer<TestCase>();
+        }
+
+        private static System.Collections.Generic.IEqualityComparer<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>>
+            _sequenceOfSetsDeepValueComparer = Wintellect.PowerCollections.Algorithms.GetCollectionEqualityComparer(new TestCaseSetComparer());
 
         public class TestCaseFromCollectionGenerator :
             SageSerpent.TestInfrastructure.TestCaseFromCollectionGenerator,
@@ -167,7 +207,7 @@ namespace SageSerpent.TestInfrastructureTests
                 PossibleSequencesOfOwningSets()
             {
                 Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>> result
-                    = new Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>>();
+                    = new Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>>(_sequenceOfSetsDeepValueComparer);
 
                 System.Collections.Generic.ICollection<Wintellect.PowerCollections.Set<TestCase>> singletonSequence
                     = new System.Collections.Generic.List<Wintellect.PowerCollections.Set<TestCase>>();
@@ -202,7 +242,8 @@ namespace SageSerpent.TestInfrastructureTests
             }
 
             public static TestCaseFromAlternativesGenerator Create(TestCaseGeneratorFactory factory,
-                                                                   System.UInt32 treeDepth)
+                                                                   System.UInt32 treeDepth,
+                                                                   System.UInt32 maximumDegreesOfFreedom)
             {
                 System.Console.WriteLine('A');
 
@@ -211,11 +252,12 @@ namespace SageSerpent.TestInfrastructureTests
 
                 const System.Int32 maximumNumberOfAlternativeTestCaseGenerators = 5;
 
-                System.UInt32 countDown = (System.UInt32)factory.RandomChoice.Next((System.Int32)(maximumNumberOfAlternativeTestCaseGenerators + 1U));
+                System.UInt32 countDown = (System.UInt32)factory.RandomChoice.Next((System.Int32)maximumNumberOfAlternativeTestCaseGenerators) + 1U;
 
                 while (countDown-- != 0U)
                 {
-                    testCaseGenerators.Add(factory.CreateRandomlyAssembledTestCaseGenerator(treeDepth));
+                    System.UInt32 maximumDegreesOfFreedomForChild = (System.UInt32)factory.RandomChoice.Next((System.Int32)(maximumDegreesOfFreedom)) + 1U;
+                    testCaseGenerators.Add(factory.CreateRandomlyAssembledTestCaseGenerator(treeDepth, maximumDegreesOfFreedomForChild));
                 }
 
                 return new TestCaseFromAlternativesGenerator(testCaseGenerators);
@@ -225,7 +267,7 @@ namespace SageSerpent.TestInfrastructureTests
                 PossibleSequencesOfOwningSets()
             {
                 Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>> result
-                    = new Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>>();
+                    = new Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>>(_sequenceOfSetsDeepValueComparer);
 
                 foreach (SageSerpent.TestInfrastructure.ITestCaseGenerator testCaseGenerator in _testCaseGenerators)
                 {
@@ -239,8 +281,10 @@ namespace SageSerpent.TestInfrastructureTests
             {
                 get
                 {
-                    return Wintellect.PowerCollections.Algorithms.Maximum(Wintellect.PowerCollections.Algorithms.Convert(_testCaseGenerators,
-                                                                                                                         delegate(SageSerpent.TestInfrastructure.ITestCaseGenerator testCaseGenerator) { return testCaseGenerator.MaximumDegreesOfFreedom; }));
+                    return _testCaseGenerators.Count > 0U ?
+                           Wintellect.PowerCollections.Algorithms.Maximum(Wintellect.PowerCollections.Algorithms.Convert(_testCaseGenerators,
+                           delegate(SageSerpent.TestInfrastructure.ITestCaseGenerator testCaseGenerator) { return testCaseGenerator.MaximumDegreesOfFreedom; })) :
+                           0U;
                 }
             }
 
@@ -261,20 +305,54 @@ namespace SageSerpent.TestInfrastructureTests
             }
 
             public static TestCaseFromCombinationGenerator Create(TestCaseGeneratorFactory factory,
-                                                                  System.UInt32 treeDepth)
+                                                                  System.UInt32 treeDepth,
+                                                                  System.UInt32 maximumDegreesOfFreedom)
             {
                 System.Console.WriteLine('C');
 
                 System.Collections.Generic.IList<SageSerpent.TestInfrastructure.ITestCaseGenerator> testCaseGenerators
                     = new System.Collections.Generic.List<SageSerpent.TestInfrastructure.ITestCaseGenerator>();
 
-                const System.Int32 maximumNumberOfCombinedTestCaseGenerators = 5;
+                System.UInt32 numberOfPartitionPoints = (System.UInt32)factory.RandomChoice.Next((System.Int32)maximumDegreesOfFreedom) + 1U;
 
-                System.UInt32 countDown = (System.UInt32)factory.RandomChoice.Next((System.Int32)(maximumNumberOfCombinedTestCaseGenerators + 1U));
+                Wintellect.PowerCollections.OrderedSet<System.UInt32> potentialPartitionPoints = new Wintellect.PowerCollections.OrderedSet<System.UInt32>();
 
-                while (countDown-- != 0U)
+                for (System.UInt32 potentialPartitionPoint = 1U; potentialPartitionPoint <= maximumDegreesOfFreedom; ++potentialPartitionPoint)
                 {
-                    testCaseGenerators.Add(factory.CreateRandomlyAssembledTestCaseGenerator(treeDepth));
+                    potentialPartitionPoints.Add(potentialPartitionPoint);
+                }
+
+                Wintellect.PowerCollections.OrderedSet<System.UInt32> selectedPartitionPoints = new Wintellect.PowerCollections.OrderedSet<System.UInt32>();
+
+                selectedPartitionPoints.AddMany(Wintellect.PowerCollections.Algorithms.RandomSubset(potentialPartitionPoints, (System.Int32)numberOfPartitionPoints, factory.RandomChoice));
+
+                selectedPartitionPoints.Add(1U); // We always put this into the set and use the iterator down below to pick it back out during set up
+                                                 // for the loop below. This means we don't have to worry about whether we might encounter the value of
+                                                 // one within the loop, which is a messy special case.
+                selectedPartitionPoints.Add(maximumDegreesOfFreedom);   // ... and similarly, we always put the final endpoint for the highest partition
+                                                                        // in, so that our loop never runs short. If we only have one point to work with,
+                                                                        // it will have the value of one and therefore will be processed as a degenerate
+                                                                        // case via the loop setup.
+
+                System.Collections.Generic.IEnumerator<System.UInt32> partitionPointIterator = selectedPartitionPoints.GetEnumerator();
+
+                partitionPointIterator.MoveNext();
+
+                System.UInt32 partitionStart = partitionPointIterator.Current;
+
+                if (partitionPointIterator.MoveNext())
+                {
+                    System.UInt32 nextPartitionStart;
+                    do
+                    {
+                        nextPartitionStart = partitionPointIterator.Current;
+                        testCaseGenerators.Add(factory.CreateRandomlyAssembledTestCaseGenerator(treeDepth, nextPartitionStart - partitionStart));
+                        partitionStart = nextPartitionStart;
+                    } while (partitionPointIterator.MoveNext());
+                }
+                else
+                {
+                    testCaseGenerators.Add(factory.CreateRandomlyAssembledTestCaseGenerator(treeDepth, partitionStart));
                 }
 
                 return new TestCaseFromCombinationGenerator(testCaseGenerators, CreatePermutingClosure(factory.RandomChoice));
@@ -446,7 +524,7 @@ namespace SageSerpent.TestInfrastructureTests
                 PossibleSequencesOfOwningSets()
             {
                 Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>> result
-                    = new Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>>();
+                    = new Wintellect.PowerCollections.Set<System.Collections.Generic.IEnumerable<Wintellect.PowerCollections.Set<TestCase>>>(_sequenceOfSetsDeepValueComparer);
 
                 ConcatenateCrossProductOfSequences(_testCaseGenerators, new System.Collections.Generic.List<Wintellect.PowerCollections.Set<TestCase>>(), result);
 
@@ -547,12 +625,19 @@ namespace SageSerpent.TestInfrastructureTests
             public SageSerpent.TestInfrastructure.ITestCaseGenerator CreateRandomlyAssembledTestCaseGenerator()
             {
                 System.Console.WriteLine();
-                return CreateRandomlyAssembledTestCaseGenerator(0U);
+
+                System.UInt32 upperBoundOfMaximumDegreesOfFreedom = 5U;
+                return CreateRandomlyAssembledTestCaseGenerator(0U, (System.UInt32)_randomChoice.Next((System.Int32)upperBoundOfMaximumDegreesOfFreedom) + 1U);
             }
 
-            public SageSerpent.TestInfrastructure.ITestCaseGenerator CreateRandomlyAssembledTestCaseGenerator(System.UInt32 treeDepth)
+            public SageSerpent.TestInfrastructure.ITestCaseGenerator CreateRandomlyAssembledTestCaseGenerator(System.UInt32 parentTreeDepth, System.UInt32 maximumDegreesOfFreedom)
             {
-                ++treeDepth;
+                if (maximumDegreesOfFreedom == 0U)
+                {
+                    throw new SageSerpent.Infrastructure.PreconditionViolation("The test should specify the maximum degrees of freedom as being strictly greater than zero.");
+                }
+
+                System.UInt32 treeDepth = parentTreeDepth + 1U;
 
                 {
                     System.UInt32 countDown = treeDepth;
@@ -565,12 +650,10 @@ namespace SageSerpent.TestInfrastructureTests
                     }
                 }
 
-                if (treeDepth == 1U && !_doneTheRootOnlyTree)
-                {
-                    _doneTheRootOnlyTree = true;
-                    return TestCaseFromCollectionGenerator.Create(this);
-                }
-                else if (_randomChoice.Next((System.Int32)treeDepth) != 0)
+                System.UInt32 maximumPermittedTreeDepth = 9U;
+
+                if (maximumDegreesOfFreedom == 1U
+                    && _randomChoice.Next((System.Int32)maximumPermittedTreeDepth) + 1U <= treeDepth)
                 {
                     return TestCaseFromCollectionGenerator.Create(this);
                 }
@@ -579,10 +662,10 @@ namespace SageSerpent.TestInfrastructureTests
                     switch (_randomChoice.Next(2))
                     {
                         case 0:
-                            return TestCaseFromAlternativesGenerator.Create(this, treeDepth);
+                            return TestCaseFromAlternativesGenerator.Create(this, treeDepth, maximumDegreesOfFreedom);
 
                         case 1:
-                            return TestCaseFromCombinationGenerator.Create(this, treeDepth);
+                            return TestCaseFromCombinationGenerator.Create(this, treeDepth, maximumDegreesOfFreedom);
 
                         default:
                             throw new InternalAssertionViolation("Default of this switch should not be executed.");
@@ -591,8 +674,6 @@ namespace SageSerpent.TestInfrastructureTests
             }
 
             private System.Random _randomChoice = new System.Random(0);
-
-            private bool _doneTheRootOnlyTree = false;
         }
 
         [SetUp]
