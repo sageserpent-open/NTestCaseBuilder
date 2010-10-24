@@ -806,6 +806,8 @@ namespace SageSerpent.TestInfrastructure.Tests
 
                 var collectionType = typeof (List<AbstractTestCase>);
 
+                codeGenerator.DeclareLocal(collectionType);
+
                 codeGenerator.Emit(OpCodes.Newobj, collectionType.GetConstructor(Type.EmptyTypes));
                 codeGenerator.Emit(OpCodes.Stloc_0);
 
@@ -930,7 +932,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             public class PermutingClosureAdapterSupport
             {
-                private PermutingClosure _permutingClosure;
+                protected PermutingClosure _permutingClosure;
 
                 public PermutingClosure PermutingClosure
                 {
