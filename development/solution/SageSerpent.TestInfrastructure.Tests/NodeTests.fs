@@ -11,6 +11,7 @@
     open System.Drawing
     open System.Collections.Generic
     open Microsoft.FSharp.Collections
+    open Wintellect.PowerCollections
     
     type DistributionModeWrtInterleavingNode =
             BetweenSiblingSubtrees
@@ -209,15 +210,22 @@
                      printf "Tree #%u\n" treeNumber
                      let results,
                          _ =
-                        tree.PartialTestVectorRepresentationsGroupedByStrengthUpToAndIncluding numberOfTrackedTestVariables
+                        tree.AssociationFromStrengthToPartialTestVectorRepresentations numberOfTrackedTestVariables
                      let resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
+                        let maximumStrengthFromResults =
+                            (results :> IDictionary<_, _>).Keys
+                            |> Algorithms.Maximum
                         let resultsAtDesiredStrength =
-                            if numberOfTrackedTestVariables = (uint32 results.Length)
-                            then List.nth results (int32 numberOfTrackedTestVariables - 1)
-                            else if numberOfTrackedTestVariables > (uint32 results.Length)
-                                 then Seq.empty
-                                 else raise (InternalAssertionViolationException
-                                                "The maximum requested strength of combination is the number of tracked variables, but there are higher strength results.")
+                            if numberOfTrackedTestVariables = maximumStrengthFromResults
+                            then
+                                (results :> IDictionary<_, _>).[numberOfTrackedTestVariables]
+                            else
+                                if numberOfTrackedTestVariables > maximumStrengthFromResults
+                                then
+                                    Seq.empty
+                                else
+                                    raise (InternalAssertionViolationException
+                                            "The maximum requested strength of combination is the number of tracked variables, but there are higher strength results.")
                         let extractLevelIndicesFromTrackedTestVariablesOnly testVectorRepresentation =
                             let testVectorRepresentationForTrackedVariablesOnly = 
                                     Map.foldBack (fun testVariableIndex level partialResult ->
@@ -379,10 +387,11 @@
                     HashMultiMap (List.append interleavedTestVariableIndexPairs reversedInterleavedTestVariableIndexPairs, HashIdentity.Structural)
                 printf "Tree #%u\n" treeNumber
                 let results =
-                    tree.PartialTestVectorRepresentationsGroupedByStrengthUpToAndIncluding (min tree.MaximumStrengthOfTestVariableCombination
-                                                                                                maximumStrengthOfCombination)
-                    |> fst
-                    |> List.reduce Seq.append
+                    (tree.AssociationFromStrengthToPartialTestVectorRepresentations (min tree.MaximumStrengthOfTestVariableCombination
+                                                                                        maximumStrengthOfCombination)
+                     |> fst
+                     :> IDictionary<_, _>).Values
+                    |> Seq.reduce Seq.append
                 let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap testVariableIndex testVariableLevelIndex =
                     match testVariableLevelIndex with
                         Index testVariableLevelIndex ->

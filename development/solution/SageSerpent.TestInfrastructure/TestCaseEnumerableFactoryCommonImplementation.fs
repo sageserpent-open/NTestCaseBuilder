@@ -11,21 +11,22 @@
         member this.Node = node
         
         interface ITestCaseEnumerableFactory with
-            override this.CreateEnumerable desiredStrength =
+            override this.CreateEnumerable maximumDesiredStrength =
                 match node.PruneTree with
                     Some prunedNode ->
-                        let partialTestVectors
+                        let associationFromStrengthToPartialTestVectorRepresentations
                             , associationFromTestVariableIndexToNumberOfItsLevels =
-                            prunedNode.PartialTestVectorRepresentationsGroupedByStrengthUpToAndIncluding desiredStrength
+                            prunedNode.AssociationFromStrengthToPartialTestVectorRepresentations maximumDesiredStrength
                         let randomBehaviour =
                             Random 0
                         let randomBehaviourConsumerProducingSequenceOfFinalValues =
                             let mergedPartialTestVectorRepresentations =
                                 MergedPartialTestVectorRepresentations.Initial
-                                // Do a fold back so that high strength combinations get in there first. Hopefully the lesser strength combinations
+                                // Do a fold back so that high strength vectors get in there first. Hopefully the lesser strength vectors
                                 // should have a greater chance of finding an earlier, larger vector to merge with this way. 
-                                |> List.foldBack (fun partialTestVectorsAtTheSameStrength
-                                                    mergedPartialTestVectorRepresentations ->
+                                |> Map.foldBack (fun _
+                                                     partialTestVectorsAtTheSameStrength
+                                                     mergedPartialTestVectorRepresentations ->
                                                         partialTestVectorsAtTheSameStrength
                                                         |> Seq.fold (fun mergedPartialTestVectorRepresentations
                                                                          partialTestVector ->
@@ -34,7 +35,7 @@
                                                                             mergedPartialTestVectorRepresentations.MergeOrAdd partialTestVector
                                                                                                                               randomBehaviour)
                                                                     mergedPartialTestVectorRepresentations)
-                                                 partialTestVectors
+                                                 associationFromStrengthToPartialTestVectorRepresentations
                             seq
                                 {
                                     for mergedPartialTestVector in mergedPartialTestVectorRepresentations do

@@ -9,7 +9,8 @@ module SageSerpent.TestInfrastructure.InterleavedTestCaseEnumerableFactory
         then raise (PreconditionViolationException "Must provide at least one alternative.")
         let node =
             InterleavingNode (sequenceOfFactoriesProvidingSubsequencesToInterleave
-                              |> Seq.map (fun factory
+                              |> List.ofSeq
+                              |> List.map (fun factory
                                             -> (factory :?> TestCaseEnumerableFactoryCommonImplementation).Node))
         TestCaseEnumerableFactoryCommonImplementation node :> ITestCaseEnumerableFactory
 

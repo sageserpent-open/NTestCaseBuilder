@@ -25,11 +25,14 @@
                  cache.Add (input, result)
                  result
                  
+    let Identity x =
+        x
+                 
     type private TypePreservingFunction<'X> =
         delegate of 'X -> 'X
                 
     let IdentityFunctionDelegate =
-        (TypePreservingFunction (fun x -> x)) :> Delegate 
+        TypePreservingFunction Identity :> Delegate 
         
     let PartitionSizeIntoSectionsOfRandomNonZeroLength size
                                                        numberOfSubgroups
@@ -147,4 +150,26 @@
             index + incrementToApplyToIndex
         remapIndex
         
-        
+    let MergeAssociations lhs rhs =
+        let rec mergeSortedAssociationLists lhs rhs =
+            match lhs
+                  , rhs with
+                []
+                , [] -> []
+              | ((lhsHeadKey, lhsHeadValue) as lhsHead :: lhsTail)
+                , ((rhsHeadKey, rhsHeadValue) as rhsHead :: rhsTail) ->
+                    match compare lhsHeadKey rhsHeadKey with
+                        result when result < 0 ->
+                            lhsHead :: mergeSortedAssociationLists lhsTail rhs
+                      | result when result > 0 ->
+                            rhsHead :: mergeSortedAssociationLists lhs rhsTail
+                      | _ ->
+                            (lhsHeadKey, List.append lhsHeadValue rhsHeadValue) :: mergeSortedAssociationLists lhsTail rhsTail
+              | _
+                , [] ->
+                    lhs
+              | []
+                , _ ->
+                    rhs
+        mergeSortedAssociationLists (Map.toList lhs) (Map.toList rhs)
+        |> Map.ofList

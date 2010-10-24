@@ -6,6 +6,7 @@
     open SageSerpent.Infrastructure.ListExtensions
     open SageSerpent.Infrastructure.RandomExtensions
     open SageSerpent.Infrastructure.IEnumerableExtensions
+    open SageSerpent.Infrastructure.OptionWorkflow
     open SageSerpent.TestInfrastructure
     open System
     open System.Windows.Forms
@@ -21,7 +22,7 @@
     open Wintellect
     
     type TestVariableLevel =
-        UInt32 * UInt32 // Test variable index, value multiplicity of levels for a given test variable.
+        UInt32 * Option<UInt32> // Test variable index, optional distinguishing index for value.
         
     module CodeGeneration =
         let private ModuleBuilder =
@@ -180,26 +181,35 @@
                                                     else 1u + previousLevel)
                                                 0u
                                     |> List.tail
-                                    |> List.map (fun level -> [(indexForLeftmostTestVariable, level)])
+                                    |> List.map (fun level -> [(indexForLeftmostTestVariable, Some level)])
 
                             else
                                     [ for level in 1u .. levelCountForTestVariableIntroducedHere do
-                                        yield [(indexForLeftmostTestVariable, level)] ]
+                                        yield [(indexForLeftmostTestVariable, Some level)] ]
                         TestVariableLevelEnumerableFactory.Create testVariableLevels
-                        , Set.singleton indexForLeftmostTestVariable
-                        , Map.add indexForLeftmostTestVariable
-                                  testVariableLevels
-                                  testVariableIndexToLevelsMapping
+                        , if testVariableLevels.IsEmpty
+                          then
+                            None
+                          else
+                            Set.singleton indexForLeftmostTestVariable
+                            |> Some
+                        , if testVariableLevels.IsEmpty
+                          then
+                            testVariableIndexToLevelsMapping
+                          else
+                            Map.add indexForLeftmostTestVariable
+                                    testVariableLevels
+                                    testVariableIndexToLevelsMapping
                   | _ when combinationStrength = 0u ->
                         let indexForLeftmostTestVariable =
                             uint32 (testVariableIndexToLevelsMapping: Map<_, _>).Count
                         let testVariableLevel =
-                            []: List<TestVariableLevel> // Don't record the test variable for a singleton test case, because the tests are only
-                                                        // concerned with combinations of 'genuine' test variables that have levels.
+                            [(indexForLeftmostTestVariable, None)]: List<TestVariableLevel>
                         let testVariableLevels =
                             [ testVariableLevel ]
                         SingletonTestCaseEnumerableFactory.Create testVariableLevel
                         , Set.singleton indexForLeftmostTestVariable
+                          |> Some
                         , Map.add indexForLeftmostTestVariable
                                   testVariableLevels
                                   testVariableIndexToLevelsMapping 
@@ -263,7 +273,18 @@
                             
                             let testVariableCombination =
                                 testVariableCombinationsFromSubtrees
-                                |> Set.unionMany
+                                |> List.fold (fun partialTestVariableCombination
+                                                  testVariableCombinationFromSubtree ->
+                                                    optionWorkflow
+                                                        {
+                                                            let! partialTestVariableCombination =
+                                                                partialTestVariableCombination
+                                                            let! testVariableCombinationFromSubtree =
+                                                                testVariableCombinationFromSubtree
+                                                            return Set.union partialTestVariableCombination
+                                                                             testVariableCombinationFromSubtree
+                                                        })
+                                             (Some Set.empty)
                                 
                             let nAryCondensationDelegate =
                                 CodeGeneration.NAryCondensationDelegateBuilder (uint32 permutedSubtrees.Length)
@@ -323,8 +344,15 @@
                                 , testVariableIndexToLevelsMappingFromSubtrees =
                                 createSubtrees (List.zip combinationStrengths whetherToAllowEmptyValueNodeChoices)
                                                testVariableIndexToLevelsMapping
+                            let achievableTestVariableCombinationsFromSubtrees =
+                                testVariableCombinationsFromSubtrees
+                                |> List.filter Option.isSome
                             let chosenTestVariableCombination =
-                                randomBehaviour.ChooseOneOf testVariableCombinationsFromSubtrees
+                                if List.isEmpty achievableTestVariableCombinationsFromSubtrees
+                                then
+                                    None
+                                else
+                                    randomBehaviour.ChooseOneOf achievableTestVariableCombinationsFromSubtrees
                                 
                             InterleavedTestCaseEnumerableFactory.Create subtrees
                             , chosenTestVariableCombination
@@ -332,10 +360,16 @@
                                                                                                            
                       | _ ->
                         raise (InternalAssertionViolationException "This case should never occur!")
-            constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
-                                                                                       Map.empty
-                                                                                       0u
-                                                                                       false
+            let testCaseEnumerableFactory
+                , testVariableCombination
+                , testVariableIndexToLevelsMapping =
+                constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
+                                                                                           Map.empty
+                                                                                           0u
+                                                                                           false
+            testCaseEnumerableFactory
+            , testVariableCombination.Value
+            , testVariableIndexToLevelsMapping
             
         let randomBehaviourSeed = 23
         
@@ -344,6 +378,15 @@
         let isSortedByTestVariableIndex =
             Seq.map fst
             >> IEnumerable<_>.IsSorted
+            
+        let partitionTestVariablesIntoThoseWithLevelsAndSingletons testVariableCombination
+                                                                   testVariableIndexToLevelsMapping =
+            Set.partition (fun testVariableIndex ->
+                            Map.find testVariableIndex testVariableIndexToLevelsMapping
+                            |> (fun levels ->
+                                    match levels with
+                                        [[_, None]] -> false
+                                      | _ -> true)) testVariableCombination
                                 
         let createTreesAndHandOffToTest testHandoff =
             let randomBehaviour = Random randomBehaviourSeed
@@ -351,15 +394,20 @@
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumerableFactory
                     , testVariableCombination
-                    , testVariableIndexToLevelsMapping
-                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour false
+                    , testVariableIndexToLevelsMapping =
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour false
                 let maximumStrength =
                     randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
+                let testVariablesWithLevels
+                    , singletonTestVariables =
+                    partitionTestVariablesIntoThoseWithLevelsAndSingletons testVariableCombination
+                                                                           testVariableIndexToLevelsMapping
                 let testVariableCombinationConformingToMaximumStrength =
-                    if uint32 testVariableCombination.Count <= maximumStrength
+                    if uint32 testVariablesWithLevels.Count <= maximumStrength
                     then testVariableCombination
-                    else randomBehaviour.ChooseSeveralOf (testVariableCombination, maximumStrength)
+                    else randomBehaviour.ChooseSeveralOf (testVariablesWithLevels, maximumStrength)
                          |> Set.ofArray
+                         |> Set.union singletonTestVariables
                 let testCaseEnumerable =
                     testCaseEnumerableFactory.CreateEnumerable maximumStrength
                 testHandoff testCaseEnumerable
@@ -474,17 +522,26 @@
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumerableFactory
                     , testVariableCombination
-                    , testVariableIndexToLevelsMapping
-                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour false
+                    , testVariableIndexToLevelsMapping =
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour false
                 let maximumStrength =
                     testCaseEnumerableFactory.MaximumStrength
                 let testCaseEnumerable =
                     testCaseEnumerableFactory.CreateEnumerable maximumStrength
                 let testCasesOfMaximumStrength =
                     [for testCase in testCaseEnumerable do
-                        let testCase = unbox<List<TestVariableLevel>> testCase
-                                       |> Set.ofList
-                        if uint32 testCase.Count = maximumStrength
+                        let testCase =
+                            unbox<List<TestVariableLevel>> testCase
+                            |> Set.ofList
+                        let testCaseVariables =
+                            testCase
+                            |> Set.map fst
+                        let testVariablesWithLevels
+                            , _ =
+                            partitionTestVariablesIntoThoseWithLevelsAndSingletons testCaseVariables
+                                                                                   testVariableIndexToLevelsMapping
+
+                        if uint32 testVariablesWithLevels.Count = maximumStrength
                         then yield testCase]
                 
                 let omittedTestCase =
@@ -520,8 +577,6 @@
                     unaccountedCombinationsOfTestLevels               
                     |> Set.count
                      > 0
-                printf "combinationsCorrespondingToOmittedTestCase.Count: %u, unaccountedCombinationsOfTestLevels.Count %u\n" combinationsCorrespondingToOmittedTestCase.Count
-                                                                                                                              unaccountedCombinationsOfTestLevels.Count         
                 Assert.IsTrue shouldBeTrue
                 
         [<Test>]
