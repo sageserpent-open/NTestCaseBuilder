@@ -48,7 +48,7 @@ namespace SageSerpent.TestInfrastructure
         member this.CountTestVariables =
             this.TraverseTree   {
                                     TestVariableNodeResult = fun _ -> 1u
-                                    SingletonNodeResult = fun () -> 0u
+                                    SingletonNodeResult = fun () -> 1u
                                     CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
                                     CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                                 }
@@ -107,25 +107,26 @@ namespace SageSerpent.TestInfrastructure
                              indexForLeftmostTestVariable
                              interleavingTestVariableIndices
                              previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
+                let resultsForASingleTestVariable () =
+                    let forwardInterleavingPairs =
+                        interleavingTestVariableIndices
+                        |> List.map (function interleavingTestVariableIndex ->
+                                                indexForLeftmostTestVariable
+                                                , interleavingTestVariableIndex)
+                    let backwardInterleavingPairs =
+                        interleavingTestVariableIndices
+                        |> List.map (function interleavingTestVariableIndex ->
+                                                interleavingTestVariableIndex
+                                                , indexForLeftmostTestVariable)
+                    indexForLeftmostTestVariable + 1u
+                    , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
+                      |> List.append forwardInterleavingPairs
+                      |> List.append backwardInterleavingPairs   
                 match node with
                     TestVariableNode _ ->
-                        let forwardInterleavingPairs =
-                            interleavingTestVariableIndices
-                            |> List.map (function interleavingTestVariableIndex ->
-                                                    indexForLeftmostTestVariable
-                                                    , interleavingTestVariableIndex)
-                        let backwardInterleavingPairs =
-                            interleavingTestVariableIndices
-                            |> List.map (function interleavingTestVariableIndex ->
-                                                    interleavingTestVariableIndex
-                                                    , indexForLeftmostTestVariable)
-                        indexForLeftmostTestVariable + 1u
-                        , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
-                          |> List.append forwardInterleavingPairs
-                          |> List.append backwardInterleavingPairs
+                        resultsForASingleTestVariable ()
                   | SingletonNode _ ->
-                        indexForLeftmostTestVariable
-                        , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
+                        resultsForASingleTestVariable ()
                   | InterleavingNode subtreeRootNodes ->
                         let mergeAssociationFromSubtree (indexForLeftmostTestVariable
                                                          , interleavingTestVariableIndicesFromTheLeftSiblings
@@ -180,7 +181,7 @@ namespace SageSerpent.TestInfrastructure
                             
                       | SingletonNode _ ->
                             []
-                            , indexForLeftmostTestVariable
+                            , indexForLeftmostTestVariable + 1u
                             , []
                       
                       | InterleavingNode subtreeRootNodes ->
@@ -335,16 +336,18 @@ namespace SageSerpent.TestInfrastructure
                 then []
                 else let chosenTestVariableIndex =
                         (randomBehaviour: RandomBehaviour).ChooseOneOf missingTestVariableIndices
-                            
-                     let chooseLevelIndexFor testVariableIndex =
-                        let numberOfLevels =
-                            (associationFromTestVariableIndexToNumberOfItsLevels: Map<_, _>).[testVariableIndex]
-                        (randomBehaviour: RandomBehaviour).ChooseAnyNumberFromZeroToOneLessThan numberOfLevels
-                        |> int32
-                            
+                     let chooseLevelFor testVariableIndex =
+                        match Map.tryFind testVariableIndex associationFromTestVariableIndexToNumberOfItsLevels with
+                            Some numberOfLevels ->
+                                    (randomBehaviour: RandomBehaviour).ChooseAnyNumberFromZeroToOneLessThan numberOfLevels
+                                    |> int32
+                                    |> Index
+                          | None -> // This case picks up a test variable index for a singleton test case:
+                                    // the map is built so that it doesn't have entries for these.
+                                    SingletonPlaceholder  
                      let entryForChosenTestVariable =
                         chosenTestVariableIndex
-                        , Index (chooseLevelIndexFor chosenTestVariableIndex)
+                        , chooseLevelFor chosenTestVariableIndex
                      let excludedTestVariableIndices =
                         associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.FindAll chosenTestVariableIndex
                      let entriesForExcludedTestVariableIndices =

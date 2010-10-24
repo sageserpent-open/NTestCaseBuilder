@@ -181,9 +181,18 @@
                                   testVariableLevels
                                   testVariableIndexToLevelsMapping
                   | _ when combinationStrength = 0u ->
-                        SingletonTestCaseEnumerableFactory.Create ([]: List<TestVariableLevel>)
-                        , Set.empty
-                        , testVariableIndexToLevelsMapping 
+                        let indexForLeftmostTestVariable =
+                            uint32 (testVariableIndexToLevelsMapping: Map<_, _>).Count
+                        let testVariableLevel =
+                            []: List<TestVariableLevel> // Don't record the test variable for a singleton test case, because the tests are only
+                                                        // concerned with combinations of 'genuine' test variables that have levels.
+                        let testVariableLevels =
+                            [ testVariableLevel ]
+                        SingletonTestCaseEnumerableFactory.Create testVariableLevel
+                        , Set.singleton indexForLeftmostTestVariable
+                        , Map.add indexForLeftmostTestVariable
+                                  testVariableLevels
+                                  testVariableIndexToLevelsMapping 
                   | _ ->
                     if randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (2u * maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving)
                        < max maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving
@@ -380,6 +389,7 @@
                             
                 let expectedCombinationsOfTestLevels =
                     testVariableIndexToLevelsMappingForTestVariableCombination
+                    |> List.filter (snd >> List.isEmpty >> not)
                     |> List.map (snd >> List.head)
                     |> BargainBasement.CrossProduct 
                     |> List.map Set.ofList
