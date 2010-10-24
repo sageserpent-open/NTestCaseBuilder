@@ -31,7 +31,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
         public int CompareTo(AbstractTestCase another)
         {
-            return CompareTo((Object) another);
+            return CompareTo(another as Object);
         }
     }
 
@@ -61,7 +61,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
         public override int CompareTo(object another)
         {
-            var anotherOfSameType = (TestVariableLevel) another;
+            var anotherOfSameType = another as TestVariableLevel;
 
             if (anotherOfSameType == null)
             {
@@ -89,12 +89,18 @@ namespace SageSerpent.TestInfrastructure.Tests
         {
             var anotherOfCompatibleType = another as TestVariableLevel;
 
-            return anotherOfCompatibleType != null && ReferenceEquals(this, anotherOfCompatibleType);
+            return anotherOfCompatibleType != null &&
+                   0 == CompareTo(anotherOfCompatibleType);
         }
 
         public override Int32 GetHashCode()
         {
-            return RuntimeHelpers.GetHashCode(this);
+            return (Int32) _instanceNumber;
+        }
+
+        public override string ToString()
+        {
+            return _instanceNumber.ToString();
         }
     }
 
@@ -118,7 +124,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
         public override int CompareTo(object another)
         {
-            var anotherOfSameType = (ComposedTestCase) another;
+            var anotherOfSameType = another as ComposedTestCase;
 
             if (anotherOfSameType == null)
             {
@@ -148,7 +154,7 @@ namespace SageSerpent.TestInfrastructure.Tests
             var anotherOfCompatibleType = another as ComposedTestCase;
 
             return anotherOfCompatibleType != null &&
-                   Algorithms.EqualCollections(_childTestCases, anotherOfCompatibleType._childTestCases);
+                   0 == CompareTo(anotherOfCompatibleType);
         }
 
         public override Int32 GetHashCode()
@@ -580,7 +586,7 @@ namespace SageSerpent.TestInfrastructure.Tests
 
             private static readonly AssemblyBuilder _assemblyBuilder;
             private static readonly ModuleBuilder _moduleBuilder;
-            private static UInt32 _namespaceNameGenerationState;
+            private static UInt32 _namespaceNameGenerationState = 0u;
             private readonly C5.IList<ITestCaseEnumeratorFactory> _testCaseGenerators;
 
             static SynthesizedTestCaseEnumeratorFactory()

@@ -105,7 +105,9 @@ namespace SageSerpent.TestInfrastructure
             fillIfNecessary 0u lowestTestVariableIndex partialTestVectorPossiblyWithLeadingEntriesMissing
                                  
         member private this.Add newPartialTestVectorRepresentation =
-            let rec add tree newPartialTestVectorRepresentation treeIsForNextTestVariableIndex =
+            let rec add tree
+                        newPartialTestVectorRepresentation
+                        treeIsForNextTestVariableIndex =
                 let buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation () =
                         List.fold_right (fun level
                                              degenerateLinearSubtree ->
@@ -184,7 +186,10 @@ namespace SageSerpent.TestInfrastructure
             add this newPartialTestVectorRepresentation true
                            
         member private this.Remove queryPartialTestVectorRepresentation =
-            let rec remove tree queryPartialTestVectorRepresentation treeIsForNextTestVariableIndex testVariableIndex =
+            let rec remove tree
+                           queryPartialTestVectorRepresentation
+                           treeIsForNextTestVariableIndex
+                           testVariableIndex =
                 match tree with
                     SuccessfulSearchTerminationNode ->
                         if treeIsForNextTestVariableIndex
@@ -228,86 +233,102 @@ namespace SageSerpent.TestInfrastructure
                                             SubtreeForGreaterIndices =
                                                 subtreeForGreaterIndices
                                         }
-                        let buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndicesUsingPadding =
-                            Option.bind (fun (modifiedSubtreeForGreaterIndices
-                                              , mergedPartialTestVector) ->
-                                                Some (buildResultSubtreeWithPruningOfDegenerateLinearSubtrees subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                              subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                              modifiedSubtreeForGreaterIndices
-                                                      , (levelForTestVariableIndex :: mergedPartialTestVector)))
+                        let removeInAppropriateSubtree headFromQueryPartialTestVectorRepresentation
+                                                       tailFromQueryPartialTestVectorRepresentation
+                                                       levelForTestVariableIndex =
+                            let buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex =
+                                Option.bind (fun (modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
+                                                  , removedPartialTestVector) ->
+                                                    Some (buildResultSubtreeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                  subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                  subtreeForGreaterIndices
+                                                          , removedPartialTestVector))
+                            let buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex =
+                                Option.bind (fun (modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                                  , removedPartialTestVector) ->
+                                                    Some (buildResultSubtreeWithPruningOfDegenerateLinearSubtrees subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                  modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                  subtreeForGreaterIndices
+                                                          , removedPartialTestVector))
+                            let buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices mergedLevelForTestVariableIndex =
+                                Option.bind (fun (modifiedSubtreeForGreaterIndices
+                                                  , removedPartialTestVector) ->
+                                                    Some (buildResultSubtreeWithPruningOfDegenerateLinearSubtrees subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                  subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                  modifiedSubtreeForGreaterIndices
+                                                          , (mergedLevelForTestVariableIndex :: removedPartialTestVector)))
+                            match headFromQueryPartialTestVectorRepresentation
+                                  , levelForTestVariableIndex with
+                              Level _
+                              , Level _ ->
+                                    match compare headFromQueryPartialTestVectorRepresentation levelForTestVariableIndex with
+                                        -1 ->
+                                            remove subtreeWithLesserLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
+                                                                                                     :: tailFromQueryPartialTestVectorRepresentation)
+                                                                                                   false
+                                                                                                   testVariableIndex
+                                            |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex
+                                      | 0 ->
+                                            remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
+                                            |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
+                                      | 1 -> 
+                                            remove subtreeWithGreaterLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
+                                                                                                      :: tailFromQueryPartialTestVectorRepresentation)
+                                                                                                    false
+                                                                                                    testVariableIndex
+                                            |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex
+                                      | _ -> raise (InternalAssertionViolationException "Comparison violated postcondition.")
+                            | Level _
+                              , Indeterminate ->
+                                    remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
+                                    |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
+                                    |> BargainBasement.DeferredDefault (fun () ->
+                                                                            match compare headFromQueryPartialTestVectorRepresentation levelForTestVariableIndex with
+                                                                                -1 ->
+                                                                                    remove subtreeWithLesserLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
+                                                                                                                                             :: tailFromQueryPartialTestVectorRepresentation)
+                                                                                                                                           false
+                                                                                                                                           testVariableIndex
+                                                                                    |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex
+                                                                              | 0 ->
+                                                                                    raise (InternalAssertionViolationException "Should not get an exact match as the query level is definite but the stored one is indeterminate.")
+                                                                              | 1 -> 
+                                                                                    remove subtreeWithGreaterLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
+                                                                                                                                              :: tailFromQueryPartialTestVectorRepresentation)
+                                                                                                                                            false
+                                                                                                                                            testVariableIndex
+                                                                                    |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex
+                                                                              | _ ->
+                                                                                    raise (InternalAssertionViolationException "Comparison violated postcondition."))
+                            | _ ->
+                                    remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
+                                    |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
+                                    |> BargainBasement.DeferredDefault (fun () ->
+                                                                            remove subtreeWithLesserLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
+                                                                                                                                     :: tailFromQueryPartialTestVectorRepresentation)
+                                                                                                                                   false
+                                                                                                                                   testVariableIndex
+                                                                            |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex)
+                                    |> BargainBasement.DeferredDefault (fun () ->
+                                                                            remove subtreeWithGreaterLevelsForSameTestVariableIndex (headFromQueryPartialTestVectorRepresentation
+                                                                                                                                      :: tailFromQueryPartialTestVectorRepresentation)
+                                                                                                                                    false
+                                                                                                                                    testVariableIndex
+                                                                            |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex)
                         match queryPartialTestVectorRepresentation with
                             [] ->
                                 if treeIsForNextTestVariableIndex
-                                then    // Keep going by recursing on the subtree for the next test variable index: this is effectively
-                                        // the same as padding 'queryPartialTestVectorRepresentation' with wildcards until we come to
+                                then    // Keep going by padding 'queryPartialTestVectorRepresentation' with wildcards until we come to
                                         // the end of the matching stored partial test vector. This allows us to match query vectors that
                                         // are prefixes of stored ones.
-                                     remove subtreeForGreaterIndices [] true (testVariableIndex + 1u)
-                                     |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndicesUsingPadding                  
+                                     removeInAppropriateSubtree Indeterminate
+                                                                []
+                                                                levelForTestVariableIndex                  
                                 else raise (InternalAssertionViolationException "Left or right subtrees should only be searched with a non-empty query partial test vector representation.") 
                           | headFromQueryPartialTestVectorRepresentation :: tailFromQueryPartialTestVectorRepresentation ->
-                                let buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex =
-                                    Option.bind (fun (modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
-                                                      , removedPartialTestVector) ->
-                                                        Some (buildResultSubtreeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                      subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                                      subtreeForGreaterIndices
-                                                              , removedPartialTestVector))
-                                let buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex =
-                                    Option.bind (fun (modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                                      , removedPartialTestVector) ->
-                                                        Some (buildResultSubtreeWithPruningOfDegenerateLinearSubtrees subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                      modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                                      subtreeForGreaterIndices
-                                                              , removedPartialTestVector))
-                                let buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices mergedLevelForTestVariableIndex =
-                                    Option.bind (fun (modifiedSubtreeForGreaterIndices
-                                                      , removedPartialTestVector) ->
-                                                        Some (buildResultSubtreeWithPruningOfDegenerateLinearSubtrees subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                      subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                                      modifiedSubtreeForGreaterIndices
-                                                              , (mergedLevelForTestVariableIndex :: removedPartialTestVector)))
-                                match headFromQueryPartialTestVectorRepresentation
-                                      , levelForTestVariableIndex with
-                                  Level _
-                                  , Level _ ->
-                                        match compare headFromQueryPartialTestVectorRepresentation levelForTestVariableIndex with
-                                            -1 ->
-                                                remove subtreeWithLesserLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
-                                                |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex
-                                          | 0 ->
-                                                remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
-                                                |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
-                                          | 1 -> 
-                                                remove subtreeWithGreaterLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
-                                                |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex
-                                          | _ -> raise (InternalAssertionViolationException "Comparison violated postcondition.")
-                                | Level _
-                                  , Indeterminate ->
-                                        remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
-                                        |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
-                                        |> BargainBasement.DeferredDefault (fun () ->
-                                                                                match compare headFromQueryPartialTestVectorRepresentation levelForTestVariableIndex with
-                                                                                    -1 ->
-                                                                                        remove subtreeWithLesserLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
-                                                                                        |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex
-                                                                                  | 0 ->
-                                                                                        raise (InternalAssertionViolationException "Should not get an exact match as the query level is definite but the stored one is indeterminate.")
-                                                                                  | 1 -> 
-                                                                                        remove subtreeWithGreaterLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
-                                                                                        |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex
-                                                                                  | _ ->
-                                                                                        raise (InternalAssertionViolationException "Comparison violated postcondition."))
-                                | _ ->
-                                        remove subtreeForGreaterIndices tailFromQueryPartialTestVectorRepresentation true (testVariableIndex + 1u)
-                                        |> buildResultFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
-                                        |> BargainBasement.DeferredDefault (fun () ->
-                                                                                remove subtreeWithLesserLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
-                                                                                |> buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex)
-                                        |> BargainBasement.DeferredDefault (fun () ->
-                                                                                remove subtreeWithGreaterLevelsForSameTestVariableIndex queryPartialTestVectorRepresentation false testVariableIndex
-                                                                                |> buildResultFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex)
-                                                
+                                removeInAppropriateSubtree headFromQueryPartialTestVectorRepresentation
+                                                           tailFromQueryPartialTestVectorRepresentation
+                                                           levelForTestVariableIndex
             remove this queryPartialTestVectorRepresentation true 0u
             
         member this.MergeOrAdd partialTestVectorRepresentation =
@@ -321,7 +342,6 @@ namespace SageSerpent.TestInfrastructure
                         thisWithoutMergeCandidate.Add mergedPartialTestVectorRepresentation
                   | None ->
                         this.Add partialTestVectorRepresentation
-
         
     module MergedPartialTestVectorRepresentations =
         let initial =
