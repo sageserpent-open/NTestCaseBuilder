@@ -3,6 +3,9 @@
     open NUnit.Framework
     
     open SageSerpent.Infrastructure
+    open SageSerpent.Infrastructure.ListExtensions
+    open SageSerpent.Infrastructure.RandomExtensions
+    open SageSerpent.Infrastructure.IEnumerableExtensions
     open SageSerpent.TestInfrastructure
     open System
     open System.Windows.Forms
@@ -27,7 +30,11 @@
             assemblyBuilder.DefineDynamicModule "ModuleForCodeGeneratedAtRuntime"
             
         let NAryDelegateTypeBuilder<'X> (arity: UInt32) =
-            let arityAsString = arity.ToString ()
+            let typeOfItemsBeingCondensed =
+                typeof<'X>
+        
+            let arityAsString =
+                arity.ToString ()
 
             let typeAttributes =
                 TypeAttributes.Class
@@ -37,7 +44,7 @@
                 ||| TypeAttributes.AutoClass
                 
             let typeBuilder =
-                ModuleBuilder.DefineType ("TupleCondensationDelegateTypeFor" + arityAsString + "Arguments",
+                ModuleBuilder.DefineType ("TupleCondensationDelegateTypeFor" + arityAsString + "ArgumentsOfType" + typeOfItemsBeingCondensed.Name,
                                           typeAttributes)
 
             typeBuilder.SetParent (typeof<MulticastDelegate>)
@@ -61,7 +68,7 @@
 
 
             let invokeMethodArgumentTypes =
-                Array.init (int arity) (fun _ -> typeof<'X>)
+                Array.init (int arity) (fun _ -> typeOfItemsBeingCondensed)
 
             let invokeMethodAttributes =
                 MethodAttributes.Public
@@ -74,7 +81,7 @@
             let invokeMethodBuilder =
                 typeBuilder.DefineMethod (invokeMethodName,
                                           invokeMethodAttributes,
-                                          typeof<'X>,
+                                          typeOfItemsBeingCondensed,
                                           invokeMethodArgumentTypes)
 
             invokeMethodBuilder.SetImplementationFlags (MethodImplAttributes.Runtime
@@ -85,10 +92,13 @@
                                                     
         let NAryCondensationDelegateBuilder arity
                                             delegateTypeBuilder
-                                            (listCondensation: List<'X> -> 'X) =         
+                                            (listCondensation: list<'X> -> 'X) =         
+            let typeOfItemsBeingCondensed =
+                typeof<'X>
+
             let arguments = [for index in 1u .. arity do
                                 yield Var ("argument" + index.ToString ()
-                                           , typeof<'X>
+                                           , typeOfItemsBeingCondensed
                                            , false)]
             
             let listConsConstructor =
@@ -130,7 +140,7 @@
             expressionForDelegate.CompileUntyped () ():?> Delegate  // Need to apply this one more time, because the underlying expression
                                                                     // actually *creates* a delegate: remember, functional languages *evaluate*
                                                                     // function definitions.
-
+                                                                    
     [<TestFixture>]
     type TestCaseEnumerableFactoryTestFixture () =
         let maximumCombinationStrength = 6u
@@ -140,12 +150,12 @@
         let maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving = 2u;
         
         let delegateTypeBuilder =
-            BargainBasement.Memoize (CodeGeneration.NAryDelegateTypeBuilder<list<TestVariableLevel>>)
+            BargainBasement.Memoize (CodeGeneration.NAryDelegateTypeBuilder<List<TestVariableLevel>>)
                 
         let constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour
                                                                                        allowDuplicatedLevels =
             let combinationStrength = 
-                (randomBehaviour: RandomBehaviour).ChooseAnyNumberFromOneTo maximumCombinationStrength
+                (randomBehaviour: Random).ChooseAnyNumberFromOneTo maximumCombinationStrength
             let rec constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                                                testVariableIndexToLevelsMapping
                                                                                                numberOfAncestorFactories
@@ -160,7 +170,7 @@
                             else    randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevels
                         let testVariableLevels =
                             let privateRandomBehaviourThatDoesNotPerturbTheMainOne =
-                                RandomBehaviour (randomBehaviour.UnderlyingImplementationForClientUse.Next())    
+                                Random (randomBehaviour.Next())    
                             if allowDuplicatedLevels
                             then
                                     List.init (int32 levelCountForTestVariableIntroducedHere) (fun _ -> 0u)
@@ -270,8 +280,7 @@
                                 if numberOfSubtrees > combinationStrength + 1u
                                       then seq { yield! seq { 0u .. combinationStrength } 
                                                  yield! chooseCombinationStrengths (numberOfSubtrees - (combinationStrength + 1u)) }
-                                      else seq { yield! randomBehaviour.ChooseSeveralOf (seq { 0u .. combinationStrength - 1u })
-                                                                                        (numberOfSubtrees - 1u)
+                                      else seq { yield! randomBehaviour.ChooseSeveralOf (seq { 0u .. combinationStrength - 1u }, numberOfSubtrees - 1u)
                                                  yield combinationStrength }
                             let combinationStrengths =
                                 chooseCombinationStrengths numberOfSubtrees
@@ -334,10 +343,10 @@
         
         let isSortedByTestVariableIndex =
             Seq.map fst
-            >> BargainBasement.IsSorted
+            >> IEnumerable<_>.IsSorted
                                 
         let createTreesAndHandOffToTest testHandoff =
-            let randomBehaviour = RandomBehaviour randomBehaviourSeed
+            let randomBehaviour = Random randomBehaviourSeed
             for _ in 1u .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumerableFactory
@@ -349,8 +358,7 @@
                 let testVariableCombinationConformingToMaximumStrength =
                     if uint32 testVariableCombination.Count <= maximumStrength
                     then testVariableCombination
-                    else randomBehaviour.ChooseSeveralOf testVariableCombination
-                                                         maximumStrength
+                    else randomBehaviour.ChooseSeveralOf (testVariableCombination, maximumStrength)
                          |> Set.ofArray
                 let testCaseEnumerable =
                     testCaseEnumerableFactory.CreateEnumerable maximumStrength
@@ -391,7 +399,7 @@
                     testVariableIndexToLevelsMappingForTestVariableCombination
                     |> List.filter (snd >> List.isEmpty >> not)
                     |> List.map (snd >> List.head)
-                    |> BargainBasement.CrossProduct 
+                    |> List.CrossProduct 
                     |> List.map Set.ofList
                     |> Set.ofList
                   
@@ -421,15 +429,15 @@
             
         [<Test>]
         member this.TestThatDuplicatedLevelValuesAreTreatedAsDistinctWhenMakingTestCases () =
-            let randomBehaviour = RandomBehaviour randomBehaviourSeed
+            let randomBehaviour = Random randomBehaviourSeed
             for _ in 1u .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
                 let sharedSeed =
-                    randomBehaviour.UnderlyingImplementationForClientUse.Next()
+                    randomBehaviour.Next()
                 let copiedRandomBehaviourOne =
-                    RandomBehaviour sharedSeed
+                    Random sharedSeed
                 let copiedRandomBehaviourTwo =
-                    RandomBehaviour sharedSeed
+                    Random sharedSeed
                 let testCaseEnumerableFactory
                     , _
                     , _
@@ -461,7 +469,7 @@
             
         [<Test>]
         member this.TestCoverageOfHighestCombinationsOfVariableLevelsInFinalResultsIsOptimal () =
-            let randomBehaviour = RandomBehaviour randomBehaviourSeed
+            let randomBehaviour = Random randomBehaviourSeed
             for _ in 1u .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumerableFactory
@@ -480,7 +488,7 @@
                         then yield testCase]
                 
                 let omittedTestCase =
-                    (randomBehaviour: RandomBehaviour).ChooseOneOf testCasesOfMaximumStrength
+                    (randomBehaviour: Random).ChooseOneOf testCasesOfMaximumStrength
                     
                 let combinationsCorrespondingToOmittedTestCase =
                     CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder maximumStrength
@@ -515,4 +523,53 @@
                 printf "combinationsCorrespondingToOmittedTestCase.Count: %u, unaccountedCombinationsOfTestLevels.Count %u\n" combinationsCorrespondingToOmittedTestCase.Count
                                                                                                                               unaccountedCombinationsOfTestLevels.Count         
                 Assert.IsTrue shouldBeTrue
-
+                
+        [<Test>]
+        member this.SmokeTestForProfiling () =
+            let inline buildSynthesizingFactory (levelGroupsForEachOfTheTestVariables: seq<#seq<'HasAddition>>) =
+                let delegateTypeBuilder =
+                    BargainBasement.Memoize (CodeGeneration.NAryDelegateTypeBuilder<'HasAddition>)
+                let inline condensation items =
+                    List.reduce (fun left right ->
+                                        left + right)
+                                items
+                let nAryCondensationDelegate =
+                        CodeGeneration.NAryCondensationDelegateBuilder (Seq.length levelGroupsForEachOfTheTestVariables
+                                                                        |> uint32)
+                                                                       delegateTypeBuilder
+                                                                       (condensation: List<'HasAddition> -> 'HasAddition)
+                let testVariableFactories =
+                    Seq.map TestVariableLevelEnumerableFactory.Create
+                            levelGroupsForEachOfTheTestVariables
+                SynthesizedTestCaseEnumerableFactory.Create testVariableFactories
+                                                            nAryCondensationDelegate
+            let numberOfStringVariables = 3u
+            let stringSynthesizer = // Progressive Rock, yeah!
+                let numberOfStringLevels = 10u
+                buildSynthesizingFactory (seq
+                                            {
+                                                for _ in 1u .. numberOfStringVariables do
+                                                    yield Seq.init (numberOfStringLevels
+                                                                    |> int32)
+                                                                   (fun item ->
+                                                                        item.ToString ())
+                                            })
+            let numberOfIntegerVariables = 4u
+            let integerSynthesizer =
+                let numberOfIntegerLevels = 3u
+                buildSynthesizingFactory (seq
+                                            {
+                                                for _ in 1u .. numberOfIntegerVariables do
+                                                    yield Seq.init (numberOfIntegerLevels
+                                                                    |> int32)
+                                                                   (fun item ->
+                                                                        item)
+                                            })
+            let interleavingSynthesizer =
+                InterleavedTestCaseEnumerableFactory.Create [stringSynthesizer; integerSynthesizer]
+            for combinationStrength in 1u .. max numberOfStringVariables numberOfIntegerVariables do
+                let numberOfCases =
+                    Seq.length (interleavingSynthesizer.CreateEnumerable combinationStrength
+                                :?> seq<_>)
+                printfn "Number of cases generated at combination strength %d is: %d" combinationStrength numberOfCases
+            

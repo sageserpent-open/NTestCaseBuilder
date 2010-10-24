@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using NUnit.Framework;
@@ -77,16 +78,16 @@ namespace SageSerpent.TestInfrastructure.Examples
                 _operationKindToOperationCreatorMapWhereNoEntryExists = new Dictionary<OperationKind, OperationCreator>
                     ();
 
-            private readonly RandomBehaviour _randomBehaviour;
+            private readonly Random _randomBehaviour;
             private Value _value;
 
             public OperationListBuilder
                 (Key key,
-                 RandomBehaviour randomBehaviourInitialState)
+                 Random randomBehaviourInitialState)
             {
                 Operations = new List<Operation>();
                 _key = key;
-                _randomBehaviour = new RandomBehaviour(randomBehaviourInitialState);
+                _randomBehaviour = new Random(randomBehaviourInitialState.Next());
 
                 AddStateTransitionsForWhenAnEntryAlreadyExists();
 
@@ -206,7 +207,7 @@ namespace SageSerpent.TestInfrastructure.Examples
 
             private Value MakeRandomValue()
             {
-                return _randomBehaviour.ChooseAnyNumberFromOneTo.Invoke(MaximumValueRepresentation).ToString();
+                return _randomBehaviour.ChooseAnyNumberFromOneTo(MaximumValueRepresentation).ToString();
             }
 
             #region Nested type: OperationCreator
@@ -219,7 +220,7 @@ namespace SageSerpent.TestInfrastructure.Examples
         private static IList<Operation> CreateOperationsAccordingToSequenceOfKinds
             (IEnumerable<OperationKind> kinds,
              Key key,
-             RandomBehaviour randomBehaviour)
+             Random randomBehaviour)
         {
             var operationsListBuilder = new OperationListBuilder(key, randomBehaviour);
 
@@ -234,7 +235,8 @@ namespace SageSerpent.TestInfrastructure.Examples
         private delegate IList<Operation> OperationsCreator(OperationKind operationKindOne,
                                                             OperationKind operationKindTwo,
                                                             OperationKind operationKindThree,
-                                                            OperationKind operationKindFour);
+                                                            OperationKind operationKindFour,
+                                                            OperationKind operationKindFive);
 
         private delegate UInt32 MappingToAvoidPreviouslyChosenIndices(UInt32 index);
 
@@ -355,14 +357,14 @@ namespace SageSerpent.TestInfrastructure.Examples
                 (numberOfIndicesToChoose, indicesToChooseFrom, combinationSelector);
         }
 
-        private static readonly IList<Key> Keys = new List<UInt32> {0u, 1u, 2u, 67u, 68u, 387786776u, 45u};
+        private static readonly IList<Key> Keys = new List<UInt32> {0u, 1u};
 
         private static readonly IEnumerable<OperationKind> OperationKinds = Algorithms.Convert
             ((IList<Int32>) Enum.GetValues(typeof (OperationKind)), constant => (OperationKind) constant);
 
 
         private static ITestCaseEnumerableFactory MakeTestCaseEnumerableFactory
-            (RandomBehaviour randomBehaviour,
+            (Random randomBehaviour,
              UInt32 sequenceLength,
              IList<Key> keys)
         {
@@ -429,7 +431,7 @@ namespace SageSerpent.TestInfrastructure.Examples
         private static ITestCaseEnumerableFactory MakeSynthesizingFactoryForOperationSequenceEnumerable
             (UInt32 sequenceLength,
              Key key,
-             RandomBehaviour randomBehaviour)
+             Random randomBehaviour)
         {
             var testVariableLevelFactoriesForOperationKinds = new List<ITestCaseEnumerableFactory>();
 
@@ -446,18 +448,19 @@ namespace SageSerpent.TestInfrastructure.Examples
                  (OperationsCreator) ((operationKindOne,
                                        operationKindTwo,
                                        operationKindThree,
-                                       operationKindFour) =>
+                                       operationKindFour,
+                                       operationKindFive) =>
                                       CreateOperationsAccordingToSequenceOfKinds
                                           (new[]
                                                {
                                                    operationKindOne, operationKindTwo, operationKindThree,
-                                                   operationKindFour
+                                                   operationKindFour, operationKindFive
                                                },
                                            key,
                                            randomBehaviour)));
         }
 
-        private const UInt32 SequenceLength = 4U;
+        private const UInt32 SequenceLength = 5U;
 
         private const UInt32 CombinationStrength = 3U;
 
@@ -467,13 +470,15 @@ namespace SageSerpent.TestInfrastructure.Examples
         public void ManipulateIndexedSortedDictionary()
         {
             var numberOfKeys = Keys.Count;
-            var randomBehaviour = new RandomBehaviour(892893767);
+            var randomBehaviour = new Random(892893767);
 
             var totalNumberOfOperations = (UInt32) numberOfKeys * SequenceLength;
 
             var testCasesEnumerableFactory = MakeTestCaseEnumerableFactory(randomBehaviour, SequenceLength, Keys);
 
             var operations = new Operation[totalNumberOfOperations];
+
+            var numberOfTestCases = 0ul;
 
             foreach (PlacementOfOperationsIntoFinalOrder placementOfOperationsIntoFinalOrder in
                 testCasesEnumerableFactory.CreateEnumerable(CombinationStrength))
@@ -482,12 +487,16 @@ namespace SageSerpent.TestInfrastructure.Examples
 
                 var indexedSortedDictionary = new IndexedSortedDictionary<UInt32, Value>();
 
+                ++numberOfTestCases;
+
                 foreach (var operation in operations)
                 {
-                    operation(indexedSortedDictionary);
-                    Assert.IsTrue(BargainBasement.IsSorted(indexedSortedDictionary.Keys));
+                    //operation(indexedSortedDictionary);
+                    //Assert.IsTrue(BargainBasement.IsSorted(indexedSortedDictionary.Keys));
                 }
             }
+
+           System.Diagnostics.Debug.Print("Number of test cases: {0}.\n", numberOfTestCases);
         }
     }
 }

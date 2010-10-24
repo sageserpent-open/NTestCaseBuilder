@@ -1,37 +1,77 @@
-﻿namespace SageSerpent.TestInfrastructure
+﻿#nowarn "40"
+
+namespace SageSerpent.TestInfrastructure
 
     open System.Collections
     open System.Collections.Generic
     open System
     open SageSerpent.Infrastructure
+    open SageSerpent.Infrastructure.OptionWorkflow
+    open SageSerpent.Infrastructure.OptionExtensions
+    open SageSerpent.Infrastructure.RandomExtensions
     open Microsoft.FSharp.Collections
     
-    type InternalNodeRepresentation<'Level when 'Level: comparison> =
-        {
-            LevelForTestVariableIndex: 'Level
-            SubtreeWithLesserLevelsForSameTestVariableIndex: MergedPartialTestVectorRepresentations<'Level>
-            SubtreeWithGreaterLevelsForSameTestVariableIndex: MergedPartialTestVectorRepresentations<'Level>
-            SubtreeForFollowingIndices: MergedPartialTestVectorRepresentations<'Level>
-        }
-    and WildcardNodeRepresentation<'Level when 'Level: comparison> =
-        {
-            SubtreeWithAllLevelsForSameTestVariableIndex: MergedPartialTestVectorRepresentations<'Level>
-            SubtreeForFollowingIndices: MergedPartialTestVectorRepresentations<'Level>
-        }
-    and MergedPartialTestVectorRepresentations<'Level when 'Level: comparison> =
-        SuccessfulSearchTerminationNode
-      | UnsuccessfulSearchTerminationNode
-      | WildcardNode of WildcardNodeRepresentation<'Level>
-      | InternalNode of InternalNodeRepresentation<'Level>
-      
-        interface IEnumerable<Map<UInt32, 'Level>> with
-            member this.GetEnumerator () =
-                this.CreatePartialTestVectorSequence().GetEnumerator ()
-        interface IEnumerable with
-            member this.GetEnumerator () =
-                (this.CreatePartialTestVectorSequence() :> IEnumerable).GetEnumerator ()
+    module MergedPartialTestVectorRepresentationsDetail =
+        type AugmentedInternalNode<'Level when 'Level: comparison>(internalNode: InternalNode<'Level>) =
+            let numberOfLevelsForLeadingTestVariable =
+                match internalNode with
+                    {
+                        LevelForTestVariableIndex = _
+                        SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
+                        SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                        SubtreeForFollowingIndices = subtreeForFollowingIndices
+                    } ->
+                        let levelContributedByInternalNodeItself =
+                            match subtreeForFollowingIndices with
+                                UnsuccessfulSearchTerminationNode ->
+                                    0u
+                              | _ ->
+                                    1u
+                        levelContributedByInternalNodeItself
+                        + subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
+                        + subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
+                        
+            member this.InternalNode =
+                internalNode
                 
-        member private this.CreatePartialTestVectorSequence () =
+            member this.NumberOfLevelsForLeadingTestVariable =
+                numberOfLevelsForLeadingTestVariable                
+                
+        and InternalNode<'Level when 'Level: comparison> =
+            {
+                LevelForTestVariableIndex: 'Level
+                SubtreeWithLesserLevelsForSameTestVariableIndex: TernarySearchTree<'Level>
+                SubtreeWithGreaterLevelsForSameTestVariableIndex: TernarySearchTree<'Level>
+                SubtreeForFollowingIndices: TernarySearchTree<'Level>
+            }
+        and WildcardNode<'Level when 'Level: comparison> =
+            {
+                SubtreeWithAllLevelsForSameTestVariableIndex: TernarySearchTree<'Level>
+                SubtreeForFollowingIndices: TernarySearchTree<'Level>
+            }
+        and TernarySearchTree<'Level when 'Level: comparison> =
+            SuccessfulSearchTerminationNode
+          | UnsuccessfulSearchTerminationNode
+          | WildcardNode of WildcardNode<'Level>
+          | AugmentedInternalNode of AugmentedInternalNode<'Level>
+          
+            member this.NumberOfLevelsForLeadingTestVariable =
+                match this with
+                    AugmentedInternalNode augmentedInternalNode ->
+                        augmentedInternalNode.NumberOfLevelsForLeadingTestVariable
+                  | _ ->
+                        0u
+                
+        let inline (|InternalNode|) (augmentedInternalNode: AugmentedInternalNode<'Level>) =
+            augmentedInternalNode.InternalNode
+            
+        let inline InternalNode (internalNode: InternalNode<'Level>) =
+            new AugmentedInternalNode<'Level> (internalNode) 
+            
+    open MergedPartialTestVectorRepresentationsDetail
+        
+    type MergedPartialTestVectorRepresentations<'Level when 'Level: comparison>(ternarySearchTree: TernarySearchTree<'Level>) =
+        let createPartialTestVectorSequence () =
             let rec traverseTree tree
                                  testVariableIndex
                                  partialTestVectorBeingBuilt
@@ -40,52 +80,63 @@
                     SuccessfulSearchTerminationNode ->
                         // NOTE: as we are converting to a map, we can be cavalier about the
                         // order in which associative pairs are added to the partial test vector.
-                        seq {if subtreeIsForANewTestVariableIndex
-                             then if not (List.isEmpty partialTestVectorBeingBuilt)
-                                  then yield partialTestVectorBeingBuilt
+                        seq
+                            {
+                                 if subtreeIsForANewTestVariableIndex
+                                 then
+                                    if not (List.isEmpty partialTestVectorBeingBuilt)
+                                    then yield partialTestVectorBeingBuilt
                                              |> Map.ofList
-                                  else raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors result in the original collection.")
-                             else raise (InternalAssertionViolationException "A successful search cannot terminate on a left or right subtree.")}
+                                    else raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors result in the original collection.")
+                                 else
+                                    raise (InternalAssertionViolationException "A successful search cannot terminate on a left or right subtree.")
+                            }
                   | UnsuccessfulSearchTerminationNode ->
                         Seq.empty
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
                         SubtreeForFollowingIndices = subtreeForFollowingIndices
-                    } -> Seq.concat [Seq.delay (fun () ->
-                                                        traverseTree subtreeWithAllLevelsForSameTestVariableIndex
-                                                                     testVariableIndex
-                                                                     partialTestVectorBeingBuilt
-                                                                     false);
-                                     Seq.delay (fun () ->
-                                                        traverseTree subtreeForFollowingIndices
-                                                                     (testVariableIndex + 1u)
-                                                                     partialTestVectorBeingBuilt
-                                                                     true)]
-                  | InternalNode
+                    } ->
+                        Seq.delay (fun () ->
+                                    seq
+                                        {
+                                            yield! traverseTree subtreeWithAllLevelsForSameTestVariableIndex
+                                                                testVariableIndex
+                                                                partialTestVectorBeingBuilt
+                                                                false
+                                            yield! traverseTree subtreeForFollowingIndices
+                                                                (testVariableIndex + 1u)
+                                                                partialTestVectorBeingBuilt
+                                                                true
+                                        })
+                  | AugmentedInternalNode
+                    (InternalNode
                     {
                         LevelForTestVariableIndex = levelForTestVariableIndex
                         SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
                         SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
                         SubtreeForFollowingIndices = subtreeForFollowingIndices
-                    } -> Seq.concat [Seq.delay (fun () ->
-                                                        traverseTree subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                     testVariableIndex
-                                                                     partialTestVectorBeingBuilt
-                                                                     false);
-                                     Seq.delay (fun () ->
-                                                        traverseTree subtreeForFollowingIndices
-                                                                     (testVariableIndex + 1u)
-                                                                     ((testVariableIndex, levelForTestVariableIndex) :: partialTestVectorBeingBuilt)
-                                                                     true);
-                                     Seq.delay (fun () ->
-                                                        traverseTree subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                     testVariableIndex
-                                                                     partialTestVectorBeingBuilt
-                                                                     false)]
-            traverseTree this 0u [] true
-                
-        static member private FillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation =
+                    }) ->
+                        Seq.delay (fun() ->
+                                    seq
+                                        {
+                                            yield! traverseTree subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                testVariableIndex
+                                                                partialTestVectorBeingBuilt
+                                                                false
+                                            yield! traverseTree subtreeForFollowingIndices
+                                                                (testVariableIndex + 1u)
+                                                                ((testVariableIndex, levelForTestVariableIndex) :: partialTestVectorBeingBuilt)
+                                                                true
+                                            yield! traverseTree subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                testVariableIndex
+                                                                partialTestVectorBeingBuilt
+                                                                false
+                                        })
+            traverseTree ternarySearchTree 0u [] true
+
+        let fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation =
             let fillIfNecessary expectedPreviousTestVariableIndex
                                 previousTestVariableIndex
                                 partialResult =
@@ -114,23 +165,27 @@
                 |> Map.toList
                 |> fillInNonConsecutiveIndicesWithIndeterminateEntries  
             fillIfNecessary 0u lowestTestVariableIndex partialTestVectorPossiblyWithLeadingEntriesMissing
-                                 
-        member private this.Add newPartialTestVectorRepresentation =
+
+        let add ternarySearchTree
+                newPartialTestVectorRepresentation
+                randomBehaviour =
             let rec add tree
                         newPartialTestVectorRepresentation
-                        treeIsForNextTestVariableIndex =
+                        treeIsForNextTestVariableIndex
+                        bringNewInternalNodeUpToSubtreeRoot =
                 let buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation newPartialTestVectorRepresentation =
                         List.foldBack (fun optionalLevel
                                          degenerateLinearSubtree ->
                                             match optionalLevel with
                                                 Some level ->
-                                                    InternalNode
+                                                    AugmentedInternalNode
+                                                        (InternalNode
                                                         {
                                                             LevelForTestVariableIndex = level
                                                             SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                                                             SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                                                             SubtreeForFollowingIndices = degenerateLinearSubtree
-                                                        }
+                                                        })
                                               | None ->
                                                     WildcardNode
                                                         {
@@ -138,7 +193,6 @@
                                                             SubtreeForFollowingIndices = degenerateLinearSubtree
                                                         })
                                       newPartialTestVectorRepresentation SuccessfulSearchTerminationNode  
-                                      
                 match tree
                       , newPartialTestVectorRepresentation with
                     UnsuccessfulSearchTerminationNode
@@ -151,105 +205,138 @@
                     , _ :: _ when treeIsForNextTestVariableIndex ->
                         buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation newPartialTestVectorRepresentation
                   | WildcardNode
-                    {
+                    ({
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
-                        SubtreeForFollowingIndices = subtreeForFollowingIndices
-                    }
+                        SubtreeForFollowingIndices = _
+                     } as wildcardNodeRepresentation)
                     , Some _ :: _ when treeIsForNextTestVariableIndex ->
+                        let modifiedSubtreeWithAllLevelsForSameTestVariableIndex =
+                            add subtreeWithAllLevelsForSameTestVariableIndex
+                                newPartialTestVectorRepresentation
+                                false
+                                false
                         WildcardNode
                             {
-                                SubtreeWithAllLevelsForSameTestVariableIndex = add subtreeWithAllLevelsForSameTestVariableIndex
-                                                                                   newPartialTestVectorRepresentation
-                                                                                   true
-                                SubtreeForFollowingIndices = subtreeForFollowingIndices
-                            }      
-                  | WildcardNode
-                    {
-                        SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
-                        SubtreeForFollowingIndices = subtreeForFollowingIndices
-                    }
-                    , None :: tailFromNewPartialTestVectorRepresentation when treeIsForNextTestVariableIndex ->
-                        WildcardNode
-                            {
-                                SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
-                                SubtreeForFollowingIndices = add subtreeForFollowingIndices
-                                                               tailFromNewPartialTestVectorRepresentation
-                                                               true
-                            }      
-                  | WildcardNode
-                    {
-                        SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
-                        SubtreeForFollowingIndices = subtreeForFollowingIndices
-                    }
-                    , [] when treeIsForNextTestVariableIndex ->
-                        WildcardNode
-                            {
-                                SubtreeWithAllLevelsForSameTestVariableIndex = add subtreeWithAllLevelsForSameTestVariableIndex
-                                                                                   []
-                                                                                   true
-                                SubtreeForFollowingIndices = subtreeForFollowingIndices
+                                wildcardNodeRepresentation with
+                                    SubtreeWithAllLevelsForSameTestVariableIndex = modifiedSubtreeWithAllLevelsForSameTestVariableIndex
                             }
-                  | InternalNode
-                    {
+                  | WildcardNode
+                    ({
+                        SubtreeWithAllLevelsForSameTestVariableIndex = _
+                        SubtreeForFollowingIndices = subtreeForFollowingIndices
+                     } as wildcardNodeRepresentation)
+                    , None :: tailFromNewPartialTestVectorRepresentation when treeIsForNextTestVariableIndex ->
+                        let modifiedSubtreeForFollowingIndices =
+                            add subtreeForFollowingIndices
+                                tailFromNewPartialTestVectorRepresentation
+                                true
+                                false
+                        WildcardNode
+                            {
+                                wildcardNodeRepresentation with
+                                    SubtreeForFollowingIndices = modifiedSubtreeForFollowingIndices
+                            }
+                  | AugmentedInternalNode
+                    (InternalNode
+                    ({
                         LevelForTestVariableIndex = levelForTestVariableIndex
                         SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
                         SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
                         SubtreeForFollowingIndices = subtreeForFollowingIndices
-                    }
+                     } as internalNodeRepresentation))
                     , Some levelFromNewPartialTestVectorRepresentation :: tailFromNewPartialTestVectorRepresentation ->
+                        let bringNewInternalNodeUpToSubtreeRoot =
+                                if bringNewInternalNodeUpToSubtreeRoot
+                                then
+                                    true
+                                else
+                                    let chosenNumber =
+                                        (randomBehaviour: Random).ChooseAnyNumberFromOneTo (1u + (tree: TernarySearchTree<'Level>).NumberOfLevelsForLeadingTestVariable)
+                                    1u = chosenNumber
                         match compare levelFromNewPartialTestVectorRepresentation levelForTestVariableIndex with
                             result when result < 0  ->
-                            InternalNode
-                                {
-                                    LevelForTestVariableIndex =
-                                        levelForTestVariableIndex
-                                    SubtreeWithLesserLevelsForSameTestVariableIndex =
-                                        add subtreeWithLesserLevelsForSameTestVariableIndex newPartialTestVectorRepresentation false
-                                    SubtreeWithGreaterLevelsForSameTestVariableIndex =
-                                        subtreeWithGreaterLevelsForSameTestVariableIndex
-                                    SubtreeForFollowingIndices =
-                                        subtreeForFollowingIndices
-                                }
+                                let modifiedSubtreeWithLesserLevelsForSameTestVariableIndex =
+                                    add subtreeWithLesserLevelsForSameTestVariableIndex
+                                        newPartialTestVectorRepresentation
+                                        false
+                                        bringNewInternalNodeUpToSubtreeRoot
+                                match modifiedSubtreeWithLesserLevelsForSameTestVariableIndex with
+                                    AugmentedInternalNode
+                                    (InternalNode
+                                    ({
+                                        SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeToSwapAcross   
+                                     } as modifiedSubtreeNodeRepresentation)) when bringNewInternalNodeUpToSubtreeRoot ->
+                                        AugmentedInternalNode
+                                            (InternalNode
+                                            {
+                                                modifiedSubtreeNodeRepresentation with
+                                                   SubtreeWithGreaterLevelsForSameTestVariableIndex =
+                                                        AugmentedInternalNode
+                                                            (InternalNode
+                                                            {
+                                                                internalNodeRepresentation with
+                                                                   SubtreeWithLesserLevelsForSameTestVariableIndex =
+                                                                        subtreeToSwapAcross
+                                                            })  
+                                            })
+                                  | _ ->
+                                        AugmentedInternalNode
+                                            (InternalNode
+                                            {
+                                                internalNodeRepresentation with
+                                                   SubtreeWithLesserLevelsForSameTestVariableIndex =
+                                                        modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
+                                            })
                           | result when result > 0 ->
-                            InternalNode
-                                {
-                                    LevelForTestVariableIndex =
-                                        levelForTestVariableIndex
-                                    SubtreeWithLesserLevelsForSameTestVariableIndex =
-                                        subtreeWithLesserLevelsForSameTestVariableIndex
-                                    SubtreeWithGreaterLevelsForSameTestVariableIndex =
-                                        add subtreeWithGreaterLevelsForSameTestVariableIndex newPartialTestVectorRepresentation false
-                                    SubtreeForFollowingIndices =
-                                        subtreeForFollowingIndices
-                                }
+                                let modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex =
+                                    add subtreeWithGreaterLevelsForSameTestVariableIndex
+                                        newPartialTestVectorRepresentation
+                                        false
+                                        bringNewInternalNodeUpToSubtreeRoot
+                                match modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex with
+                                    AugmentedInternalNode
+                                    (InternalNode
+                                    ({
+                                        SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeToSwapAcross   
+                                     } as modifiedSubtreeNodeRepresentation)) when bringNewInternalNodeUpToSubtreeRoot ->
+                                        AugmentedInternalNode
+                                            (InternalNode
+                                            {
+                                                modifiedSubtreeNodeRepresentation with
+                                                   SubtreeWithLesserLevelsForSameTestVariableIndex =
+                                                        AugmentedInternalNode
+                                                            (InternalNode
+                                                            {
+                                                                internalNodeRepresentation with
+                                                                   SubtreeWithGreaterLevelsForSameTestVariableIndex =
+                                                                        subtreeToSwapAcross
+                                                            })  
+                                            })
+                                  | _ ->
+                                        AugmentedInternalNode
+                                            (InternalNode
+                                            {
+                                                internalNodeRepresentation with
+                                                    SubtreeWithGreaterLevelsForSameTestVariableIndex =
+                                                        modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                            })
                           | _ ->
-                            InternalNode
-                                {
-                                    LevelForTestVariableIndex =
-                                        levelForTestVariableIndex
-                                    SubtreeWithLesserLevelsForSameTestVariableIndex =
-                                        subtreeWithLesserLevelsForSameTestVariableIndex
-                                    SubtreeWithGreaterLevelsForSameTestVariableIndex =
-                                        subtreeWithGreaterLevelsForSameTestVariableIndex
-                                    SubtreeForFollowingIndices =
-                                        add subtreeForFollowingIndices tailFromNewPartialTestVectorRepresentation true
-                                }
-                  | InternalNode
-                    {
-                        LevelForTestVariableIndex = _
-                        SubtreeWithLesserLevelsForSameTestVariableIndex = _
-                        SubtreeWithGreaterLevelsForSameTestVariableIndex = _
-                        SubtreeForFollowingIndices = _
-                    }
+                                let modifiedSubtreeForFollowingIndices =
+                                    add subtreeForFollowingIndices
+                                        tailFromNewPartialTestVectorRepresentation
+                                        true
+                                        false
+                                AugmentedInternalNode
+                                    (InternalNode
+                                    {
+                                        internalNodeRepresentation with
+                                            SubtreeForFollowingIndices =
+                                                modifiedSubtreeForFollowingIndices
+                                    })
+                  | AugmentedInternalNode _
                     , None :: tailFromNewPartialTestVectorRepresentation when not treeIsForNextTestVariableIndex ->
                         raise (InternalAssertionViolationException "Cannot build a wildcard node at the root of a left or right subtree.")
-                  | InternalNode
-                    {
-                        LevelForTestVariableIndex = _
-                        SubtreeWithLesserLevelsForSameTestVariableIndex = _
-                        SubtreeWithGreaterLevelsForSameTestVariableIndex = _
-                        SubtreeForFollowingIndices = _
-                    }
+                  | AugmentedInternalNode _
                     , None :: tailFromNewPartialTestVectorRepresentation ->
                         WildcardNode
                             {
@@ -269,18 +356,19 @@
                   | _
                     , [] ->
                         raise (InternalAssertionViolationException ("Two problems: left or right subtrees should only be traversed with a non-empty new partial test vector representation"
-                                                                    + " this kind of node should not be the root of a left or right subtree."))
-            add this newPartialTestVectorRepresentation true
-                           
-        member private this.Remove queryPartialTestVectorRepresentation =
-            let buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
-                                                                                        subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                        subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                        subtreeForFollowingIndices =
+                                                                     + " this kind of node should not be the root of a left or right subtree."))
+            add ternarySearchTree newPartialTestVectorRepresentation true false
+
+        let remove tree
+                   queryPartialTestVectorRepresentation =
+            let rec buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                                                                            subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                            subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                            subtreeForFollowingIndices =
                 match subtreeWithLesserLevelsForSameTestVariableIndex
                       , subtreeWithGreaterLevelsForSameTestVariableIndex
                       , subtreeForFollowingIndices with
-                    UnsuccessfulSearchTerminationNode
+                  | UnsuccessfulSearchTerminationNode
                     , UnsuccessfulSearchTerminationNode
                     , UnsuccessfulSearchTerminationNode ->
                         UnsuccessfulSearchTerminationNode
@@ -292,8 +380,46 @@
                     , UnsuccessfulSearchTerminationNode
                     , UnsuccessfulSearchTerminationNode ->
                         subtreeWithLesserLevelsForSameTestVariableIndex
+                  | _
+                    , _
+                    , UnsuccessfulSearchTerminationNode ->
+                        if subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
+                           > subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
+                        then
+                            let levelForTestVariableIndexFromRemovedNode
+                                , subtreeForFollowingIndicesFromRemovedNode
+                                , subtreeWithLesserLevelsForSameTestVariableIndexWithoutThatNode = removeInternalNodeWithGreatestLevelInSubtree subtreeWithLesserLevelsForSameTestVariableIndex
+                            AugmentedInternalNode
+                                (InternalNode
+                                {
+                                    LevelForTestVariableIndex =
+                                        levelForTestVariableIndexFromRemovedNode
+                                    SubtreeWithLesserLevelsForSameTestVariableIndex =
+                                        subtreeWithLesserLevelsForSameTestVariableIndexWithoutThatNode
+                                    SubtreeWithGreaterLevelsForSameTestVariableIndex =
+                                        subtreeWithGreaterLevelsForSameTestVariableIndex
+                                    SubtreeForFollowingIndices =
+                                        subtreeForFollowingIndicesFromRemovedNode
+                                })
+                        else
+                            let levelForTestVariableIndexFromRemovedNode
+                                , subtreeForFollowingIndicesFromRemovedNode
+                                , subtreeWithGreaterLevelsForSameTestVariableIndexWithoutThatNode = removeInternalNodeWithLeastLevelInSubtree subtreeWithGreaterLevelsForSameTestVariableIndex
+                            AugmentedInternalNode
+                                (InternalNode
+                                {
+                                    LevelForTestVariableIndex =
+                                        levelForTestVariableIndexFromRemovedNode
+                                    SubtreeWithLesserLevelsForSameTestVariableIndex =
+                                        subtreeWithLesserLevelsForSameTestVariableIndex
+                                    SubtreeWithGreaterLevelsForSameTestVariableIndex =
+                                        subtreeWithGreaterLevelsForSameTestVariableIndexWithoutThatNode
+                                    SubtreeForFollowingIndices =
+                                        subtreeForFollowingIndicesFromRemovedNode
+                                })                        
                   | _ ->
-                        InternalNode
+                        AugmentedInternalNode
+                            (InternalNode
                             {
                                 LevelForTestVariableIndex =
                                     levelForTestVariableIndex
@@ -303,37 +429,77 @@
                                     subtreeWithGreaterLevelsForSameTestVariableIndex
                                 SubtreeForFollowingIndices =
                                     subtreeForFollowingIndices
-                            }
-            let buildResultFromInternalNodeFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex levelForTestVariableIndex
-                                                                                                                  subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                                  subtreeForFollowingIndices =
-                Option.bind (fun (modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
-                                  , removedPartialTestVector) ->
-                                    Some (buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
-                                                                                                                  modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                  subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                                  subtreeForFollowingIndices
-                                          , removedPartialTestVector))
-            let buildResultFromInternalNodeFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex levelForTestVariableIndex
-                                                                                                                   subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                   subtreeForFollowingIndices =
-                Option.bind (fun (modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                  , removedPartialTestVector) ->
-                                    Some (buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
-                                                                                                                  subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                  modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                                  subtreeForFollowingIndices
-                                          , removedPartialTestVector))
-            let buildResultFromInternalNodeFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
-                                                                                                       subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                       subtreeWithGreaterLevelsForSameTestVariableIndex =
-                Option.bind (fun (modifiedSubtreeForFollowingTestVariableIndices
-                                  , removedPartialTestVector) ->
-                                    Some (buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
-                                                                                                                  subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                  subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                                  modifiedSubtreeForFollowingTestVariableIndices
-                                          , (Some levelForTestVariableIndex :: removedPartialTestVector)))
+                            })
+            and removeInternalNodeWithGreatestLevelInSubtree subtree =
+                match subtree with
+                    AugmentedInternalNode
+                    (InternalNode
+                    {
+                        LevelForTestVariableIndex = levelForTestVariableIndex
+                        SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
+                        SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                        SubtreeForFollowingIndices = subtreeForFollowingIndices
+                    }) ->
+                        levelForTestVariableIndex
+                        , subtreeForFollowingIndices
+                        , buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                                                                                  subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                  UnsuccessfulSearchTerminationNode
+                                                                                                  UnsuccessfulSearchTerminationNode                                                                                                 
+                  | AugmentedInternalNode
+                    (InternalNode
+                    {
+                        LevelForTestVariableIndex = levelForTestVariableIndex
+                        SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
+                        SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                        SubtreeForFollowingIndices = subtreeForFollowingIndices
+                    }) ->
+                        let levelForTestVariableIndexFromRemovedNode
+                            , subtreeForFollowingIndicesFromRemovedNode
+                            , remainingSubtreeWithGreaterLevelsForSameTestVariableIndex = removeInternalNodeWithGreatestLevelInSubtree subtreeWithGreaterLevelsForSameTestVariableIndex
+                        levelForTestVariableIndexFromRemovedNode
+                        , subtreeForFollowingIndicesFromRemovedNode
+                        , buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                                                                                  subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                  remainingSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                  subtreeForFollowingIndices
+                  | _ ->
+                        raise (InternalAssertionViolationException "This kind of node should not have been encountered.")
+            and removeInternalNodeWithLeastLevelInSubtree subtree =
+                match subtree with
+                    AugmentedInternalNode
+                    (InternalNode
+                    {
+                        LevelForTestVariableIndex = levelForTestVariableIndex
+                        SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                        SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                        SubtreeForFollowingIndices = subtreeForFollowingIndices
+                    }) ->
+                        levelForTestVariableIndex
+                        , subtreeForFollowingIndices
+                        , buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                                                                                  UnsuccessfulSearchTerminationNode
+                                                                                                  subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                  UnsuccessfulSearchTerminationNode                                                                                                 
+                  | AugmentedInternalNode
+                    (InternalNode
+                    {
+                        LevelForTestVariableIndex = levelForTestVariableIndex
+                        SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
+                        SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                        SubtreeForFollowingIndices = subtreeForFollowingIndices
+                    }) ->
+                        let levelForTestVariableIndexFromRemovedNode
+                            , subtreeForFollowingIndicesFromRemovedNode
+                            , remainingSubtreeWithLesserLevelsForSameTestVariableIndex = removeInternalNodeWithLeastLevelInSubtree subtreeWithLesserLevelsForSameTestVariableIndex
+                        levelForTestVariableIndexFromRemovedNode
+                        , subtreeForFollowingIndicesFromRemovedNode
+                        , buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                                                                                  remainingSubtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                  subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                  subtreeForFollowingIndices
+                  | _ ->
+                        raise (InternalAssertionViolationException "This kind of node should not have been encountered.")
             let buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
                                                                                         subtreeForFollowingIndices =
                 match subtreeWithAllLevelsForSameTestVariableIndex
@@ -352,19 +518,6 @@
                                 SubtreeForFollowingIndices =
                                     subtreeForFollowingIndices
                             }
-            let buildResultFromWildcardNodeFromPartialResultFromSubtreeForAllLevelsForTheSameTestVariableIndex subtreeForFollowingIndices =
-                Option.bind (fun (modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                                  , removedPartialTestVector) ->
-                                    Some (buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                                                                                                                  subtreeForFollowingIndices
-                                          , removedPartialTestVector))
-            let buildResultFromWildcardNodeFromPartialResultFromSubtreeForFollowingTestVariableIndices optionalLevelForTestVariableIndex
-                                                                                                       subtreeWithAllLevelsForSameTestVariableIndex =
-                Option.bind (fun (modifiedSubtreeForFollowingTestVariableIndices
-                                  , removedPartialTestVector) ->
-                                    Some (buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
-                                                                                                                  modifiedSubtreeForFollowingTestVariableIndices
-                                          , (optionalLevelForTestVariableIndex :: removedPartialTestVector)))
             let rec remove tree
                            queryPartialTestVectorRepresentation
                            treeIsForNextTestVariableIndex
@@ -387,135 +540,75 @@
                         SubtreeForFollowingIndices = subtreeForFollowingIndices
                     }
                     , headFromQueryPartialTestVectorRepresentation :: tailFromQueryPartialTestVectorRepresentation when treeIsForNextTestVariableIndex ->
-                        remove subtreeWithAllLevelsForSameTestVariableIndex
-                               queryPartialTestVectorRepresentation
-                               true
-                               testVariableIndex
-                        |> buildResultFromWildcardNodeFromPartialResultFromSubtreeForAllLevelsForTheSameTestVariableIndex subtreeForFollowingIndices                                         
-                        |> BargainBasement.DeferredDefault (fun () ->
-                                                                remove subtreeForFollowingIndices
-                                                                       tailFromQueryPartialTestVectorRepresentation
-                                                                       true
-                                                                       (testVariableIndex + 1u)
-                                                                |> buildResultFromWildcardNodeFromPartialResultFromSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
-                                                                                                                                                          subtreeWithAllLevelsForSameTestVariableIndex)
-                  | WildcardNode
-                    {
-                        SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
-                        SubtreeForFollowingIndices = subtreeForFollowingIndices
-                    }
-                    , [] when treeIsForNextTestVariableIndex ->
-                        // This has the effect of padding out a query partial test vector on the fly, thereby
-                        // allowing a match as a prefix of some suitable stored vector, should one already be present.      
-                        remove subtreeWithAllLevelsForSameTestVariableIndex
-                               [None]
-                               true
-                               testVariableIndex
-                        |> buildResultFromWildcardNodeFromPartialResultFromSubtreeForAllLevelsForTheSameTestVariableIndex subtreeForFollowingIndices                                         
-                        |> BargainBasement.DeferredDefault (fun () ->
-                                                                remove subtreeForFollowingIndices
-                                                                       [None]
-                                                                       true
-                                                                       (testVariableIndex + 1u)
-                                                                |> buildResultFromWildcardNodeFromPartialResultFromSubtreeForFollowingTestVariableIndices None
-                                                                                                                                                          subtreeWithAllLevelsForSameTestVariableIndex)
-                  | InternalNode
+                        buildResultFromWildcardNodeModifyingSubtreeForAllLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
+                                                                                                           testVariableIndex
+                                                                                                           subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                           subtreeForFollowingIndices
+                        |> BargainBasement.Flip Option.LazyMPlus
+                                                (lazy buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices queryPartialTestVectorRepresentation
+                                                                                                                                 testVariableIndex
+                                                                                                                                 subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                                                 subtreeForFollowingIndices)
+                  | AugmentedInternalNode
+                    (InternalNode
                     {
                         LevelForTestVariableIndex = levelForTestVariableIndex
                         SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
                         SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
                         SubtreeForFollowingIndices = subtreeForFollowingIndices
-                    }
+                    })
                     , Some levelFromQueryPartialTestVectorRepresentation :: tailFromQueryPartialTestVectorRepresentation ->
                         match compare levelFromQueryPartialTestVectorRepresentation levelForTestVariableIndex with
                             result when result < 0 ->
-                                remove subtreeWithLesserLevelsForSameTestVariableIndex
-                                       queryPartialTestVectorRepresentation
-                                       false
-                                       testVariableIndex
-                                |> buildResultFromInternalNodeFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex levelForTestVariableIndex
-                                                                                                                                     subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                                                     subtreeForFollowingIndices
+                                buildResultFromInternalNodeModifyingSubtreeForLesserLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
+                                                                                                                      testVariableIndex
+                                                                                                                      levelForTestVariableIndex
+                                                                                                                      subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                      subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                      subtreeForFollowingIndices                          
                           | result when result > 0 ->
-                                remove subtreeWithGreaterLevelsForSameTestVariableIndex
-                                       queryPartialTestVectorRepresentation
-                                       false
-                                       testVariableIndex
-                                |> buildResultFromInternalNodeFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex levelForTestVariableIndex
-                                                                                                                                      subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                                      subtreeForFollowingIndices
+                                buildResultFromInternalNodeModifyingSubtreeForGreaterLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
+                                                                                                                       testVariableIndex
+                                                                                                                       levelForTestVariableIndex
+                                                                                                                       subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                       subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                       subtreeForFollowingIndices                          
                           | _ ->
-                                remove subtreeForFollowingIndices
-                                       tailFromQueryPartialTestVectorRepresentation
-                                       true
-                                       (testVariableIndex + 1u)
-                                |> buildResultFromInternalNodeFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
-                                                                                                                          subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                          subtreeWithGreaterLevelsForSameTestVariableIndex
-                  | InternalNode
+                                buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices queryPartialTestVectorRepresentation
+                                                                                                           testVariableIndex
+                                                                                                           levelForTestVariableIndex
+                                                                                                           subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                           subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                           subtreeForFollowingIndices
+                  | AugmentedInternalNode
+                    (InternalNode
                     {
                         LevelForTestVariableIndex = levelForTestVariableIndex
                         SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
                         SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
                         SubtreeForFollowingIndices = subtreeForFollowingIndices
-                    }
+                    })
                     , None :: tailFromQueryPartialTestVectorRepresentation ->
-                        remove subtreeForFollowingIndices
-                               tailFromQueryPartialTestVectorRepresentation
-                               true
-                               (testVariableIndex + 1u)
-                        |> buildResultFromInternalNodeFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
-                                                                                                                  subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                  subtreeWithGreaterLevelsForSameTestVariableIndex
-                        |> BargainBasement.DeferredDefault (fun () ->
-                                                                remove subtreeWithLesserLevelsForSameTestVariableIndex 
-                                                                       queryPartialTestVectorRepresentation
-                                                                       false
-                                                                       testVariableIndex
-                                                                |> buildResultFromInternalNodeFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex levelForTestVariableIndex
-                                                                                                                                                                     subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                                                                                     subtreeForFollowingIndices)
-                        |> BargainBasement.DeferredDefault (fun () ->
-                                                                remove subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                       queryPartialTestVectorRepresentation
-                                                                       false
-                                                                       testVariableIndex
-                                                                |> buildResultFromInternalNodeFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex levelForTestVariableIndex
-                                                                                                                                                                      subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                                                                      subtreeForFollowingIndices)
-                  | InternalNode
-                    {
-                        LevelForTestVariableIndex = levelForTestVariableIndex
-                        SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
-                        SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
-                        SubtreeForFollowingIndices = subtreeForFollowingIndices
-                    }
-                    , [] ->
-                        // This has the effect of padding out a query partial test vector on the fly, thereby 
-                        // allowing a match as a prefix of some suitable stored vector, should one already be present.
-                        remove subtreeForFollowingIndices
-                               [None]
-                               true
-                               (testVariableIndex + 1u)
-                        |> buildResultFromInternalNodeFromPartialResultFromSubtreeForFollowingTestVariableIndices levelForTestVariableIndex
-                                                                                                                  subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                  subtreeWithGreaterLevelsForSameTestVariableIndex
-                        |> BargainBasement.DeferredDefault (fun () ->
-                                                                remove subtreeWithLesserLevelsForSameTestVariableIndex 
-                                                                       [None]
-                                                                       false
-                                                                       testVariableIndex
-                                                                |> buildResultFromInternalNodeFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex levelForTestVariableIndex
-                                                                                                                                                                     subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                                                                                     subtreeForFollowingIndices)
-                        |> BargainBasement.DeferredDefault (fun () ->
-                                                                remove subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                       [None]
-                                                                       false
-                                                                       testVariableIndex
-                                                                |> buildResultFromInternalNodeFromPartialResultFromSubtreeForGreaterLevelsForTheSameTestVariableIndex levelForTestVariableIndex
-                                                                                                                                                                      subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                                                                      subtreeForFollowingIndices)
+                        buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices queryPartialTestVectorRepresentation
+                                                                                                   testVariableIndex
+                                                                                                   levelForTestVariableIndex
+                                                                                                   subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                   subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                   subtreeForFollowingIndices
+                        |> BargainBasement.Flip Option.LazyMPlus
+                                                (lazy buildResultFromInternalNodeModifyingSubtreeForLesserLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
+                                                                                                                                            testVariableIndex
+                                                                                                                                            levelForTestVariableIndex
+                                                                                                                                            subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                                            subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                                            subtreeForFollowingIndices)
+                        |> BargainBasement.Flip Option.LazyMPlus
+                                           (lazy buildResultFromInternalNodeModifyingSubtreeForGreaterLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
+                                                                                                                                        testVariableIndex
+                                                                                                                                        levelForTestVariableIndex
+                                                                                                                                        subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                                        subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                                        subtreeForFollowingIndices)
                   | _
                     , _ :: _ when not treeIsForNextTestVariableIndex ->
                         raise (InternalAssertionViolationException "This kind of node should not be the root of a left or right subtree.")
@@ -524,26 +617,262 @@
                         raise (InternalAssertionViolationException "NOT ACTUALLY POSSIBLE: COVERED BY THE PREVIOUS PATTERN, BUT THE COMPILER DOESN'T KNOW THAT.")
                   | _
                     , [] when treeIsForNextTestVariableIndex ->
-                        raise (InternalAssertionViolationException "Attempt to remove a partial test vector representation that is a prefix of a previous one without extending it.")
+                        // This has the effect of padding out a query partial test vector on the fly, thereby
+                        // allowing a match as a prefix of some suitable stored vector, should one already be present.
+                        remove tree
+                               [None]
+                               treeIsForNextTestVariableIndex
+                               testVariableIndex
                   | _
                     , [] ->
-                        raise (InternalAssertionViolationException ("Two problems: left or right subtrees should only be traversed with a non-empty new partial test vector representation"
-                                                                    + " this kind of node should not be the root of a left or right subtree."))                
-            remove this queryPartialTestVectorRepresentation true 0u
+                        raise (InternalAssertionViolationException ("Left or right subtrees should only be traversed with a non-empty new partial test vector representation"))
+            and buildResultFromInternalNodeModifyingSubtreeForLesserLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
+                                                                                                      testVariableIndex
+                                                                                                      levelForTestVariableIndex
+                                                                                                      subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                      subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                      subtreeForFollowingIndices =
+                    optionWorkflow
+                        {
+                            let! modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
+                                 , removedPartialTestVector =
+                                remove subtreeWithLesserLevelsForSameTestVariableIndex
+                                       queryPartialTestVectorRepresentation
+                                       false
+                                       testVariableIndex
+                            return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                                                                                           modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                           subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                           subtreeForFollowingIndices
+                                   , removedPartialTestVector
+                        }
+            and buildResultFromInternalNodeModifyingSubtreeForGreaterLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
+                                                                                                       testVariableIndex
+                                                                                                       levelForTestVariableIndex
+                                                                                                       subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                       subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                       subtreeForFollowingIndices =
+                    optionWorkflow
+                        {
+                            let! modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                 , removedPartialTestVector =
+                                remove subtreeWithGreaterLevelsForSameTestVariableIndex
+                                       queryPartialTestVectorRepresentation
+                                       false
+                                       testVariableIndex
+                            return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                                                                                           subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                           modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                           subtreeForFollowingIndices
+                                   , removedPartialTestVector
+                        }
+            and buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices queryPartialTestVectorRepresentation
+                                                                                           testVariableIndex
+                                                                                           levelForTestVariableIndex
+                                                                                           subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                           subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                           subtreeForFollowingIndices = 
+                    optionWorkflow  
+                        {
+                            let! modifiedSubtreeForFollowingTestVariableIndices
+                                 , removedPartialTestVector =
+                                remove subtreeForFollowingIndices
+                                       (List.tail queryPartialTestVectorRepresentation)
+                                       true
+                                       (testVariableIndex + 1u)
+                            return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                                                                                           subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                           subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                           modifiedSubtreeForFollowingTestVariableIndices
+                                   , (Some levelForTestVariableIndex :: removedPartialTestVector)
+                        }
+            and buildResultFromWildcardNodeModifyingSubtreeForAllLevelsForTheSameTestVariableIndex queryPartialTestVectorRepresentation
+                                                                                                   testVariableIndex
+                                                                                                   subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                   subtreeForFollowingIndices =
+                    optionWorkflow
+                        {
+                            let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                 , removedPartialTestVector = 
+                                remove subtreeWithAllLevelsForSameTestVariableIndex
+                                       queryPartialTestVectorRepresentation
+                                       true
+                                       testVariableIndex
+                            return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                           subtreeForFollowingIndices
+                                   , removedPartialTestVector
+                        }
+            and buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices queryPartialTestVectorRepresentation
+                                                                                           testVariableIndex
+                                                                                           subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                           subtreeForFollowingIndices =
+                    optionWorkflow
+                        {
+                            let! modifiedSubtreeForFollowingTestVariableIndices
+                                 , removedPartialTestVector =
+                                remove subtreeForFollowingIndices
+                                       (List.tail queryPartialTestVectorRepresentation)
+                                       true
+                                       (testVariableIndex + 1u)
+                            return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                           modifiedSubtreeForFollowingTestVariableIndices
+                                   , (List.head queryPartialTestVectorRepresentation :: removedPartialTestVector)
+                        }
+            remove tree queryPartialTestVectorRepresentation true 0u
             
-        member this.MergeOrAdd partialTestVectorRepresentation =
+        let checkInvariant tree =
+            let rec checkInvariant tree
+                                   treeIsForNextTestVariableIndex
+                                   lowerBound
+                                   upperBound =
+                match tree with
+                    SuccessfulSearchTerminationNode when not treeIsForNextTestVariableIndex ->
+                        raise (LogicErrorException "Successful searches cannot terminate at left or right subtree heads.")
+                  | SuccessfulSearchTerminationNode ->
+                        1u
+                  | UnsuccessfulSearchTerminationNode ->
+                        0u
+                  | WildcardNode _ when not treeIsForNextTestVariableIndex ->
+                        raise (LogicErrorException "Wildcard matches must be located at the head of a subtree for all levels belonging to a test variable.")
+                  | WildcardNode
+                    {
+                        SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
+                        SubtreeForFollowingIndices = subtreeForFollowingIndices
+                    } ->
+                        let numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex =
+                            checkInvariant subtreeWithAllLevelsForSameTestVariableIndex
+                                           false
+                                           lowerBound
+                                           upperBound
+                        let numberOfSuccessfulPathsFromSubtreeForFollowingIndices =
+                            checkInvariant subtreeForFollowingIndices
+                                           true
+                                           NegativeInfinity
+                                           PositiveInfinity
+                        match numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex
+                              , numberOfSuccessfulPathsFromSubtreeForFollowingIndices with
+                            0u
+                            , 0u ->
+                                raise (LogicErrorException "Redundant wildcard node with no successful search paths leading through it.")
+                          | _
+                            , 0u ->
+                                raise (LogicErrorException "Redundant wildcard node that has no successful paths using its wildcard match leading through it.")
+                          | _
+                            , _ ->
+                                numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex
+                                + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
+                  | AugmentedInternalNode
+                    (InternalNode
+                    {
+                        LevelForTestVariableIndex = levelForTestVariableIndex
+                        SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
+                        SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                        SubtreeForFollowingIndices = subtreeForFollowingIndices
+                    }) ->
+                        let liftedLevel =
+                            Finite levelForTestVariableIndex
+                        if liftedLevel >= upperBound
+                        then
+                            raise (LogicErrorException "Level is greater than or equal to exclusive upper bound.")
+                        if liftedLevel <= lowerBound
+                        then
+                            raise (LogicErrorException "Level is less than or equal to exclusive lower bound.")
+                        let numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex =
+                            checkInvariant subtreeWithLesserLevelsForSameTestVariableIndex
+                                           false
+                                           lowerBound
+                                           liftedLevel
+                        let numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex =
+                            checkInvariant subtreeWithGreaterLevelsForSameTestVariableIndex
+                                           false
+                                           liftedLevel
+                                           upperBound
+                        let numberOfSuccessfulPathsFromSubtreeForFollowingIndices =
+                            checkInvariant subtreeForFollowingIndices
+                                           true
+                                           NegativeInfinity
+                                           PositiveInfinity
+                        match numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
+                              , numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
+                              , numberOfSuccessfulPathsFromSubtreeForFollowingIndices with
+                            0u
+                            , 0u
+                            , 0u ->
+                                raise (LogicErrorException "Redundant internal node with no successful search paths leading through it.")
+                          | _
+                            , 0u
+                            , 0u ->
+                                raise (LogicErrorException "Redundant internal node with all successful search paths leading via subtree for lesser levels.")
+                          | 0u
+                            , _
+                            , 0u ->
+                                raise (LogicErrorException "Redundant internal node with all successful search paths leading via subtree for greater levels.")
+                          | _
+                            , _
+                            , 0u ->
+                                raise (LogicErrorException "Redundant internal node with its own 'ghost' level that participates in no successful search paths.")
+                          | 0u
+                            , _
+                            , _ ->
+                                if numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex > 1u
+                                then
+                                    Diagnostics.Debug.Print ("Lone greater subtree with: {0} successful paths through it.", numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex)
+                                numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
+                          | _
+                            , 0u
+                            , _ ->
+                                if numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex > 1u
+                                then
+                                    Diagnostics.Debug.Print ("Lone lesser subtree with: {0} successful paths through it.", numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex)
+                                numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
+                                + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
+                          | _ ->
+                                numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
+                                + numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
+            if 0u = checkInvariant tree
+                                   true
+                                   NegativeInfinity
+                                   PositiveInfinity
+            then
+                raise (LogicErrorException "No successful search paths but tree is should be non-empty.")
+                                                      
+        interface IEnumerable<Map<UInt32, 'Level>> with
+            member this.GetEnumerator () =
+                createPartialTestVectorSequence().GetEnumerator ()
+        interface IEnumerable with
+            member this.GetEnumerator () =
+                (createPartialTestVectorSequence() :> IEnumerable).GetEnumerator ()
+                
+        static member Initial =
+            MergedPartialTestVectorRepresentations<'Level> (UnsuccessfulSearchTerminationNode)
+
+        member this.MergeOrAdd partialTestVectorRepresentation
+                               randomBehaviour =
             if Map.isEmpty partialTestVectorRepresentation
-            then this
-            else let partialTestVectorRepresentation =
-                    MergedPartialTestVectorRepresentations.FillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation
-                 match this.Remove partialTestVectorRepresentation with
-                    Some (thisWithoutMergeCandidate
-                          , mergedPartialTestVectorRepresentation) ->
-                        thisWithoutMergeCandidate.Add mergedPartialTestVectorRepresentation
-                  | None ->
-                        this.Add partialTestVectorRepresentation
-        
-    module MergedPartialTestVectorRepresentations =
-        let initial =
-            UnsuccessfulSearchTerminationNode
-    
+            then
+                this
+            else
+                let partialTestVectorRepresentation =
+                    fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation
+                let modifiedTernarySearchTree =
+                    match remove ternarySearchTree
+                                 partialTestVectorRepresentation with
+                        Some (ternarySearchTreeWithoutMergeCandidate
+                              , mergedPartialTestVectorRepresentation) ->
+//                            match remove ternarySearchTreeWithoutMergeCandidate
+//                                         mergedPartialTestVectorRepresentation with
+//                                Some _ ->
+//                                    raise (LogicErrorException "The merged removed partial vector still matches with something left behind!")
+//                              | _ ->
+//                                    ()   
+                            add ternarySearchTreeWithoutMergeCandidate
+                                mergedPartialTestVectorRepresentation
+                                randomBehaviour
+                      | None ->
+                            add ternarySearchTree
+                                partialTestVectorRepresentation
+                                randomBehaviour
+//                checkInvariant modifiedTernarySearchTree
+                MergedPartialTestVectorRepresentations modifiedTernarySearchTree

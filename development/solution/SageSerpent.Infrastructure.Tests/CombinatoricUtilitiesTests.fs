@@ -2,6 +2,8 @@ namespace SageSerpent.Infrastructure.Tests
 
     open NUnit.Framework
     open SageSerpent.Infrastructure
+    open SageSerpent.Infrastructure.IEnumerableExtensions
+    open System.Collections.Generic
 
     [<TestFixture>]
     type CombinatoricUtilitiesTestFixture () =
@@ -239,7 +241,7 @@ namespace SageSerpent.Infrastructure.Tests
                 for size in 1u .. maximumSize do
                     let shouldBeTrue =
                         not (CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder size items
-                             |> Seq.exists (not << BargainBasement.IsSorted))
+                             |> Seq.exists (not << IEnumerable<_>.IsSorted))
                     Assert.IsTrue shouldBeTrue    
                     
         [<Test>]

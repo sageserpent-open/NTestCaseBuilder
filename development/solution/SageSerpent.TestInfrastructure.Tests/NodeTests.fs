@@ -3,6 +3,8 @@
     open NUnit.Framework
     
     open SageSerpent.Infrastructure
+    open SageSerpent.Infrastructure.ListExtensions
+    open SageSerpent.Infrastructure.RandomExtensions
     open SageSerpent.TestInfrastructure
     open System
     open System.Windows.Forms
@@ -71,7 +73,7 @@
         let randomBehaviourSeed = 23
         
         let createTreesTopDownAndHandEachOffToTest distributionModeWrtInterleavingNode testHandoff =
-            let randomBehaviour = RandomBehaviour randomBehaviourSeed
+            let randomBehaviour = Random randomBehaviourSeed
             let didTheSingleTestVariableEdgeCase = ref false
             let timeAtStart = DateTime.Now
             for treeNumber in 1u .. 100u do
@@ -257,7 +259,7 @@
                     Map.foldBack (fun _ numberOfLevels partialResult ->
                                     [0 .. int32 numberOfLevels - 1] :: partialResult)
                                  trackedTestVariableToNumberOfLevelsMap []
-                    |> BargainBasement.CrossProduct
+                    |> List.CrossProduct
                     |> Set.ofList
                 let shouldBeTrue =
                     resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength = crossProductOfLevelIndices
@@ -281,7 +283,7 @@
             
         [<Test>]
         member this.TestCorrectnessOfTestVariableLevelIndicesAndThatASentinelLevelValueIsCreatedForInterleavedVariableIndicesNotChosenInACombination () =
-            let randomBehaviour = RandomBehaviour randomBehaviourSeed
+            let randomBehaviour = Random randomBehaviourSeed
             let didTheSingleTestVariableEdgeCase = ref false
             let timeAtStart = DateTime.Now
             for treeNumber in 1u .. 100u do
@@ -313,8 +315,7 @@
                                         nodeAndItsSpannedTestVariableIndicesPairs
                                         |> List.map (snd >> randomBehaviour.ChooseOneOf)
                                      let chosenPair =
-                                        randomBehaviour.ChooseSeveralOf testVariableIndicesChosenFromSeparateSpans
-                                                                        2u
+                                        randomBehaviour.ChooseSeveralOf (testVariableIndicesChosenFromSeparateSpans, 2u)
                                      Some (chosenPair.[0], chosenPair.[1])
                                 else None                                 
                             let chosenPairsOfInterleavedTestVariableIndices =
