@@ -15,3 +15,5 @@ let b = Map.of_list [(1, "Hi"); (3, "Rabbit!"); (2, "there")]
 let o = 2:>obj
 
 let p = BargainBasement.CrossProduct [[1;2;3];[67; -23];[0]]
+
+let q = BargainBasement.MergeSortedListsAllowingDuplicates [1;2;3;4] [2;2;4;78]

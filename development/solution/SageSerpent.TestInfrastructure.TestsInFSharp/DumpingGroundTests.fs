@@ -77,10 +77,12 @@ namespace SageSerpent.TestInfrastructure.Tests
                     then if numberOfTrackedTestVariables = 1u
                          then TestVariableNode ([for level in 1u .. trackedTestVariableToNumberOfLevelsMap.[int32 indexForLeftmostTrackedTestVariable] do
                                                     yield box (Tracked (indexForLeftmostTrackedTestVariable, level))])
-                              , indexForLeftmostTrackedTestVariable + 1u   
+                              , indexForLeftmostTrackedTestVariable + 1u
+                              , interleavedTrackedVariablesFromSiblingsOfParents  
                          else TestVariableNode ([for level in 1u .. chooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable do
                                                     yield box (Untracked level)])
                               , indexForLeftmostTrackedTestVariable
+                              , interleavedTrackedVariablesFromSiblingsOfParents
                     else let allOnOneSubtreeDistributionMaker numberOfSubtrees numberOfTrackedTestVariables =
                             let choice =
                                 chooseAnyNumberFromOneTo numberOfSubtrees
@@ -148,9 +150,14 @@ namespace SageSerpent.TestInfrastructure.Tests
                                           interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtreesOfNode =
                             let numberOfSubtrees =
                                 chooseAnyNumberFromOneTo maximumNumberOfSubtreeHeadsPerAncestorNode
-                            let gatherSubtree (previouslyGatheredSubtrees, indexForLeftmostTrackedTestVariable)
-                                              (numberOfTrackedVariables, interleavedTrackedVariablesFromSiblings) =
-                                let subtree, maximumTrackingVariableIndexFromSubtree =
+                            let gatherSubtree (previouslyGatheredSubtrees
+                                               , indexForLeftmostTrackedTestVariable
+                                               , trackedVariablesFoundPreviouslyThatConflictWithUntrackedOnesWithDuplicateEntries)
+                                              (numberOfTrackedVariables
+                                               , interleavedTrackedVariablesFromSiblings) =
+                                let subtree
+                                    , maximumTrackingVariableIndexFromSubtree
+                                    , trackedVariablesFoundInSubtreeThatConflictWithUntrackedOnesWithDuplicateEntries =
                                     createTree distributionModeWrtInterleavingNode
                                                indexForLeftmostTrackedTestVariable
                                                numberOfTrackedVariables
@@ -158,16 +165,23 @@ namespace SageSerpent.TestInfrastructure.Tests
                                                 then maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables - 1u
                                                 else maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables)
                                                interleavedTrackedVariablesFromSiblings
-                                subtree :: previouslyGatheredSubtrees, maximumTrackingVariableIndexFromSubtree
+                                subtree :: previouslyGatheredSubtrees
+                                , maximumTrackingVariableIndexFromSubtree
+                                , BargainBasement.MergeSortedListsAllowingDuplicates trackedVariablesFoundInSubtreeThatConflictWithUntrackedOnesWithDuplicateEntries
+                                                                                     trackedVariablesFoundPreviouslyThatConflictWithUntrackedOnesWithDuplicateEntries
                             let distributionOfNumberOfTrackedTestVariablesForEachSubtree =
                                 distributionMaker numberOfSubtrees numberOfTrackedTestVariables
                             let interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtrees =
                                 interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtreesOfNode distributionOfNumberOfTrackedTestVariablesForEachSubtree
                                                                                                         interleavedTrackedVariablesFromSiblingsOfParents
-                            let subtrees, maximumTrackingVariableIndex =
+                            let subtrees
+                                , maximumTrackingVariableIndex
+                                , trackedVariablesThatConflictWithUntrackedOnesWithDuplicateEntries =
                                 List.zip distributionOfNumberOfTrackedTestVariablesForEachSubtree interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtrees                     
-                                |> List.fold_left gatherSubtree ([], indexForLeftmostTrackedTestVariable)
-                            nodeFactory subtrees, maximumTrackingVariableIndex
+                                |> List.fold_left gatherSubtree ([], indexForLeftmostTrackedTestVariable, [])
+                            nodeFactory subtrees
+                            , maximumTrackingVariableIndex
+                            , trackedVariablesThatConflictWithUntrackedOnesWithDuplicateEntries
                          let interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtreesOfInterleavingNode distribution contributionFromParentNode =
                             let rec accumulateContributionsFromTheLeftAndThenJoinInContributionsFromTheRight distribution
                                                                                                              (contributionsFromTheLeft, indexForLeftmostTrackedTestVariable) =
@@ -198,11 +212,14 @@ namespace SageSerpent.TestInfrastructure.Tests
                          else generateNode (fun subtrees -> SynthesizingNode subtrees)
                                            distributionMakerForSynthesizingNodes
                                            interleavedTrackedVariablesFromSiblingsGroupedAccordingToSubtreesOfSynthesizingNode                          
-                let tree, _ = createTree distributionModeWrtInterleavingNode
-                                         0u
-                                         numberOfTrackedTestVariables
-                                         maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables
-                                         []
+                let tree
+                    , _
+                    , trackedVariablesThatConflictWithUntrackedOnesWithDuplicateEntries = 
+                    createTree distributionModeWrtInterleavingNode
+                               0u
+                               numberOfTrackedTestVariables
+                               maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables
+                               []
                 let maximumStrengthOfTestVariableCombination =
                     tree.MaximumStrengthOfTestVariableCombination
                 if maximumStrengthOfTestVariableCombination < 60u

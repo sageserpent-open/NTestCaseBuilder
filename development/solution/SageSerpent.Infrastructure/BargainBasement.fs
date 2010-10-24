@@ -22,3 +22,17 @@ let rec CrossProduct lists =
                                                         itemInHead :: itemInCrossProductOfTail))
                         |> List.concat
 
+
+let rec MergeSortedListsAllowingDuplicates first second =
+    match first, second with
+        _, [] ->
+            first
+      | [], _ ->
+            second
+      | headFromFirst :: tailFromFirst, headFromSecond :: _ when headFromFirst < headFromSecond ->
+            headFromFirst :: MergeSortedListsAllowingDuplicates tailFromFirst second
+      | headFromFirst :: _, headFromSecond :: tailFromSecond when headFromFirst > headFromSecond ->
+            headFromSecond :: MergeSortedListsAllowingDuplicates first tailFromSecond
+      | headFromFirst :: tailFromFirst, headFromSecond :: tailFromSecond ->
+            headFromFirst :: headFromSecond :: MergeSortedListsAllowingDuplicates tailFromFirst tailFromSecond
+            

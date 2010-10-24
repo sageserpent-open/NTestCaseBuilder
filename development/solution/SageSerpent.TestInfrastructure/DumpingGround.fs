@@ -64,8 +64,10 @@ namespace SageSerpent.TestInfrastructure
                           | InterleavingNode subtreeRootNodes ->
                                 let rec joinPairsAtEachStrength first second =
                                     match first, second with
-                                        _, [] -> first
-                                      | [], _ -> second
+                                        _, [] ->
+                                            first
+                                      | [], _ ->
+                                            second
                                       | headFromFirst :: tailFromFirst, headFromSecond :: tailFromSecond ->
                                             (List.append headFromFirst headFromSecond) :: (joinPairsAtEachStrength tailFromFirst tailFromSecond)
                                 let mergeTestVariableIndexListsFromSubtree (previouslyMergedTestVariableIndexLists
