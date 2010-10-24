@@ -21,7 +21,7 @@ namespace SageSerpent.TestInfrastructure.Tests
     
     [<TestFixture>]
     type DumpingGroundTestFixture () =
-        let maximumNumberOfTestVariables = 20u
+        let maximumNumberOfTrackedTestVariables = 5u
         let maximumNumberOfTestLevelsForATestVariable = 10u
         let maximumNumberOfSubtreeHeadsPerAncestorNode = 5u
         let maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 1u
@@ -33,9 +33,8 @@ namespace SageSerpent.TestInfrastructure.Tests
             let chooseAnyNumberFromZeroToOneLessThan = int32 >> randomBehaviour.Next >> uint32
             let chooseAnyNumberFromOneTo = chooseAnyNumberFromZeroToOneLessThan >> (+) 1u
             let headsItIs () = chooseAnyNumberFromZeroToOneLessThan 2u = 0u
-            for i in [0 .. 100] do
-                let numberOfTestVariables = chooseAnyNumberFromOneTo maximumNumberOfTestVariables
-                let numberOfTrackedTestVariables = chooseAnyNumberFromOneTo numberOfTestVariables
+            for _ in [0u .. 10u] do
+                let numberOfTrackedTestVariables = chooseAnyNumberFromOneTo maximumNumberOfTrackedTestVariables
                 let trackedTestVariableToNumberOfLevelsMap =
                     Map.of_list (List.init (int32 numberOfTrackedTestVariables)
                                            (fun testVariable -> testVariable, chooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable))
@@ -171,19 +170,20 @@ namespace SageSerpent.TestInfrastructure.Tests
                                     |> Map.of_list  // Sort by the tracked test variable index - hence the roundtrip from list -> map -> list!
                                     |> Map.to_list
                                     |> List.map (function _, level -> level))
+                    |> Seq.filter (fun levels -> uint32 levels.Length = numberOfTrackedTestVariables)
                     |> Set.of_seq
-                    |> Set.to_list
                 let resultsWithOnlyLevelsFromTrackedTestVariables =
                     retainOnlyLevelsFromTrackedTestVariables resultsAtMaximumStrength
                 let crossProductOfTrackedTestVariableLevels =
                     Map.fold_right (fun _ level partialResult ->
                                         [1u .. level]::partialResult)
                                    trackedTestVariableToNumberOfLevelsMap []
-                    |> Set.of_list
-                    |> Set.to_list
                     |> BargainBasement.CrossProduct
+                    |> Set.of_list
                 let shouldBeTrue =
                     resultsWithOnlyLevelsFromTrackedTestVariables = crossProductOfTrackedTestVariableLevels
+                printf "%A\n" resultsWithOnlyLevelsFromTrackedTestVariables
+                printf "%A\n" crossProductOfTrackedTestVariableLevels
                 Assert.IsTrue shouldBeTrue
        
     
