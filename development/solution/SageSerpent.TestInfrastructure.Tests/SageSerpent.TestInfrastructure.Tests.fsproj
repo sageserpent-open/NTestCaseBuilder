@@ -8,10 +8,10 @@
     <ProjectGuid>{75f3b456-3bbd-41e9-8ac4-fe6c6ba0d8cf}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>SageSerpent.TestInfrastructure.TestsInFSharp</RootNamespace>
-    <AssemblyName>SageSerpent.TestInfrastructure.TestsInFSharp</AssemblyName>
+    <AssemblyName>SageSerpent.TestInfrastructure.Tests</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <Name>SageSerpent.TestInfrastructure.TestsInFSharp</Name>
+    <Name>SageSerpent.TestInfrastructure.Tests</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
