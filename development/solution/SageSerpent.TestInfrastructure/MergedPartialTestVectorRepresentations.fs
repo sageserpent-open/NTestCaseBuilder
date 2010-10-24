@@ -240,8 +240,7 @@
                                                 subtreeForGreaterIndices
                                         }
                         let removeInAppropriateSubtree headFromQueryPartialTestVectorRepresentation
-                                                       tailFromQueryPartialTestVectorRepresentation
-                                                       levelForTestVariableIndex =
+                                                       tailFromQueryPartialTestVectorRepresentation =
                             let buildResultFromPartialResultFromSubtreeForLesserLevelsForTheSameTestVariableIndex =
                                 Option.bind (fun (modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
                                                   , removedPartialTestVector) ->
@@ -338,13 +337,11 @@
                                         // out by merging. Unlike the case above, this has been observed through testing, but only occurs about 6% of the
                                         // time during a test run, so again the optimisation has been omitted.
                                      removeInAppropriateSubtree Indeterminate
-                                                                []
-                                                                levelForTestVariableIndex                  
+                                                                []                  
                                 else raise (InternalAssertionViolationException "Left or right subtrees should only be searched with a non-empty query partial test vector representation.") 
                           | headFromQueryPartialTestVectorRepresentation :: tailFromQueryPartialTestVectorRepresentation ->
                                 removeInAppropriateSubtree headFromQueryPartialTestVectorRepresentation
                                                            tailFromQueryPartialTestVectorRepresentation
-                                                           levelForTestVariableIndex
             remove this queryPartialTestVectorRepresentation true 0u
             
         member this.MergeOrAdd partialTestVectorRepresentation =
