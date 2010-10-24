@@ -36,9 +36,13 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DocumentationFile>bin\Release\SageSerpent.Infrastructure.Tests.XML</DocumentationFile>
+    <OtherFlags>
+    </OtherFlags>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="FSharp.Core" />
+    <Reference Include="FSharp.Core">
+      <HintPath>C:\Program Files\FSharp-1.9.7.8\bin\FSharp.Core.dll</HintPath>
+    </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="nunit.framework">
       <HintPath>Z:\Documents\SageSerpent\workInProgressForSageSerpentOpenSource\development\solution\ThirdParty\NUnit\bin\nunit.framework.dll</HintPath>

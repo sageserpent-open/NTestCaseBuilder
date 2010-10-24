@@ -38,6 +38,8 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DocumentationFile>bin\Release\.XML</DocumentationFile>
+    <OtherFlags>
+    </OtherFlags>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInformation.fs" />
@@ -49,7 +51,9 @@
     <None Include="Script.fsx" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FSharp.Core" />
+    <Reference Include="FSharp.Core">
+      <HintPath>C:\Program Files\FSharp-1.9.7.8\bin\FSharp.Core.dll</HintPath>
+    </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="nunit.core">
       <HintPath>Z:\Documents\SageSerpent\workInProgressForSageSerpentOpenSource\development\solution\ThirdParty\NUnit\bin\nunit.core.dll</HintPath>
