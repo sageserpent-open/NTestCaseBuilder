@@ -68,7 +68,7 @@ namespace SageSerpent.TestInfrastructure.Examples
 
         private class OperationListBuilder
         {
-            private const Key MaximumValueRepresentation = 20U;
+            private const UInt32 MaximumValueRepresentation = 20U;
             private readonly Key _key;
 
             private readonly IDictionary<OperationKind, OperationCreator>
@@ -135,21 +135,30 @@ namespace SageSerpent.TestInfrastructure.Examples
                 }
             }
 
-            private void AddDoNothingOperation() { Operations.Add(obj => { }); }
+            private void AddDoNothingOperation()
+            {
+                Operations.Add(obj => { });
+            }
 
-            private void AddQueryOperationThatShouldFail() { Operations.Add(indexedSortedDictionary => Assert.IsFalse(indexedSortedDictionary.ContainsKey(_key))); }
+            private void AddQueryOperationThatShouldFail()
+            {
+                Operations.Add(indexedSortedDictionary => Assert.IsFalse(indexedSortedDictionary.ContainsKey(_key)));
+            }
 
             private void AddQueryOperationThatShouldSucceed()
             {
                 Operations.Add
                     (delegate(IndexedSortedDictionary<Key, Value> indexedSortedDictionary1)
-                     {
-                         Assert.IsTrue(indexedSortedDictionary1.ContainsKey(_key));
-                         Assert.IsTrue(indexedSortedDictionary1[_key] == _value);
-                     });
+                         {
+                             Assert.IsTrue(indexedSortedDictionary1.ContainsKey(_key));
+                             Assert.IsTrue(indexedSortedDictionary1[_key] == _value);
+                         });
             }
 
-            private void AddDeletionOperationThatShouldFail() { Operations.Add(indexedSortedDictionary => Assert.IsFalse(indexedSortedDictionary.Remove(_key))); }
+            private void AddDeletionOperationThatShouldFail()
+            {
+                Operations.Add(indexedSortedDictionary => Assert.IsFalse(indexedSortedDictionary.Remove(_key)));
+            }
 
             private void AddDeletionOperationThatShouldSucceed()
             {
@@ -167,26 +176,26 @@ namespace SageSerpent.TestInfrastructure.Examples
             {
                 Operations.Add
                     (delegate(IndexedSortedDictionary<Key, Value> indexedSortedDictionary)
-                     {
-                         try
                          {
-                             indexedSortedDictionary.Add(_key, MakeRandomValue());
-                         }
-                         catch (ArgumentException)
-                         {
-                             return;
-                         }
+                             try
+                             {
+                                 indexedSortedDictionary.Add(_key, MakeRandomValue());
+                             }
+                             catch (ArgumentException)
+                             {
+                                 return;
+                             }
 
-                         var stringBuilder = new StringBuilder();
+                             var stringBuilder = new StringBuilder();
 
-                         stringBuilder.AppendFormat
-                             ("Should not have been able to insert with key {0} as it already has an entry in the dictionary {1} of {2}",
-                              _key,
-                              indexedSortedDictionary,
-                              _value);
+                             stringBuilder.AppendFormat
+                                 ("Should not have been able to insert with key {0} as it already has an entry in the dictionary {1} of {2}",
+                                  _key,
+                                  indexedSortedDictionary,
+                                  _value);
 
-                         Assert.Fail(stringBuilder.ToString());
-                     });
+                             Assert.Fail(stringBuilder.ToString());
+                         });
             }
 
             private void AddReplacementOperation()
@@ -195,7 +204,10 @@ namespace SageSerpent.TestInfrastructure.Examples
                 Operations.Add(indexedSortedDictionary => indexedSortedDictionary[_key] = _value);
             }
 
-            private Value MakeRandomValue() { return _randomBehaviour.ChooseAnyNumberFromOneTo.Invoke(MaximumValueRepresentation).ToString(); }
+            private Value MakeRandomValue()
+            {
+                return _randomBehaviour.ChooseAnyNumberFromOneTo.Invoke(MaximumValueRepresentation).ToString();
+            }
 
             #region Nested type: OperationCreator
 
@@ -239,7 +251,9 @@ namespace SageSerpent.TestInfrastructure.Examples
         private static void BaseCaseForPlacementOfOperationsIntoFinalOrder
             (UInt32 numberOfIndicesToChooseFrom,
              MappingToAvoidPreviouslyChosenIndices mappingToAvoidPreviouslyChosenIndices,
-             IList<Operation> operationsPlacedIntoFinalOrder) { }
+             IList<Operation> operationsPlacedIntoFinalOrder)
+        {
+        }
 
         private static PlacementOfOperationsIntoFinalOrder BuildInductiveCaseForPlacementOfOperationsIntoFinalOrder
             (IList<Operation> operationsPertainingToTheSameKeyToPlaceIntoFinalOrder,
@@ -250,44 +264,47 @@ namespace SageSerpent.TestInfrastructure.Examples
                                                                   MappingToAvoidPreviouslyChosenIndices
                                                                       mappingToAvoidPreviouslyChosenIndices,
                                                                   IList<Operation> operationsPlacedIntoFinalOrder)
-                                                         {
-                                                             var numberOfIndicesToChoose =
-                                                                 (UInt32)
-                                                                 operationsPertainingToTheSameKeyToPlaceIntoFinalOrder.
-                                                                     Count;
-                                                             if (numberOfIndicesToChooseFrom < numberOfIndicesToChoose)
                                                              {
-                                                                 throw new LogicErrorException
-                                                                     ("Test has an internal logic error - should have eventually reached base case"
-                                                                      +
-                                                                      " where all indices for placement had been chosen without having to look for more");
-                                                             }
+                                                                 var numberOfIndicesToChoose =
+                                                                     (UInt32)
+                                                                     operationsPertainingToTheSameKeyToPlaceIntoFinalOrder
+                                                                         .
+                                                                         Count;
+                                                                 if (numberOfIndicesToChooseFrom <
+                                                                     numberOfIndicesToChoose)
+                                                                 {
+                                                                     throw new LogicErrorException
+                                                                         ("Test has an internal logic error - should have eventually reached base case"
+                                                                          +
+                                                                          " where all indices for placement had been chosen without having to look for more");
+                                                                 }
 
-                                                             var indicesToPlaceAt = ChooseIndicesToPlaceAt
-                                                                 (numberOfIndicesToChooseFrom,
-                                                                  numberOfIndicesToChoose,
-                                                                  combinationSelector);
+                                                                 var indicesToPlaceAt = ChooseIndicesToPlaceAt
+                                                                     (numberOfIndicesToChooseFrom,
+                                                                      numberOfIndicesToChoose,
+                                                                      combinationSelector);
 
-                                                             PlaceOperations
-                                                                 (operationsPertainingToTheSameKeyToPlaceIntoFinalOrder,
-                                                                  indicesToPlaceAt,
-                                                                  mappingToAvoidPreviouslyChosenIndices,
-                                                                  operationsPlacedIntoFinalOrder);
-
-                                                             var composedMappingToAvoidAllIndices =
-                                                                 ComposeMappingToAvoidAllIndices
-                                                                     (indicesToPlaceAt,
-                                                                      mappingToAvoidPreviouslyChosenIndices);
-
-                                                             if (numberOfIndicesToChooseFrom > numberOfIndicesToChoose)
-                                                             {
-                                                                 placementOfOperationsForRemainingKeysIntoFinalOrder
-                                                                     (numberOfIndicesToChooseFrom
-                                                                      - numberOfIndicesToChoose,
-                                                                      composedMappingToAvoidAllIndices,
+                                                                 PlaceOperations
+                                                                     (operationsPertainingToTheSameKeyToPlaceIntoFinalOrder,
+                                                                      indicesToPlaceAt,
+                                                                      mappingToAvoidPreviouslyChosenIndices,
                                                                       operationsPlacedIntoFinalOrder);
-                                                             }
-                                                         };
+
+                                                                 var composedMappingToAvoidAllIndices =
+                                                                     ComposeMappingToAvoidAllIndices
+                                                                         (indicesToPlaceAt,
+                                                                          mappingToAvoidPreviouslyChosenIndices);
+
+                                                                 if (numberOfIndicesToChooseFrom >
+                                                                     numberOfIndicesToChoose)
+                                                                 {
+                                                                     placementOfOperationsForRemainingKeysIntoFinalOrder
+                                                                         (numberOfIndicesToChooseFrom
+                                                                          - numberOfIndicesToChoose,
+                                                                          composedMappingToAvoidAllIndices,
+                                                                          operationsPlacedIntoFinalOrder);
+                                                                 }
+                                                             };
 
 
             return result;
@@ -397,7 +414,8 @@ namespace SageSerpent.TestInfrastructure.Examples
                 (new[]
                      {
                          synthesizingFactoryForOperationSequence,
-                         testVariableLevelFactoryForFinalOperationsListIndexCombinations, factoryDealingWithRemainingKeys
+                         testVariableLevelFactoryForFinalOperationsListIndexCombinations,
+                         factoryDealingWithRemainingKeys
                      },
                  (InductiveCasePlacementBuilder) BuildInductiveCaseForPlacementOfOperationsIntoFinalOrder);
         }
