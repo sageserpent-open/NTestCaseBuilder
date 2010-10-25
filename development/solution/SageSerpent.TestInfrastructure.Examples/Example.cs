@@ -37,7 +37,7 @@ namespace SageSerpent.TestInfrastructure.Examples
                                resultTwo) => string.Format("{0}, {1}", resultOne.ToString(), resultTwo.ToString())));
             var d = TestVariableLevelEnumerableFactory.Create(LevelsOne);
 
-            var e = InterleavedTestCaseEnumerableFactory.Create(new List<ITestCaseEnumerableFactory> {d, c});
+            var e = InterleavedTestCaseEnumerableFactory.Create(new List<TestCaseEnumerableFactory> {d, c});
 
             var strength = e.MaximumStrength;
 
@@ -363,7 +363,7 @@ namespace SageSerpent.TestInfrastructure.Examples
             ((IList<Int32>) Enum.GetValues(typeof (OperationKind)), constant => (OperationKind) constant);
 
 
-        private static ITestCaseEnumerableFactory MakeTestCaseEnumerableFactory
+        private static TestCaseEnumerableFactory MakeTestCaseEnumerableFactory
             (Random randomBehaviour,
              UInt32 sequenceLength,
              IList<Key> keys)
@@ -393,7 +393,7 @@ namespace SageSerpent.TestInfrastructure.Examples
                  factoryDealingWithRemainingKeys);
         }
 
-        private static ITestCaseEnumerableFactory MakeTestVariableLevelFactoryForIndexCombinationEnumerable
+        private static TestCaseEnumerableFactory MakeTestVariableLevelFactoryForIndexCombinationEnumerable
             (UInt32 numberOfCombinations)
         {
             var combinationSelector = numberOfCombinations;
@@ -407,10 +407,10 @@ namespace SageSerpent.TestInfrastructure.Examples
             return TestVariableLevelEnumerableFactory.Create(combinationSelectors);
         }
 
-        private static ITestCaseEnumerableFactory MakeRecursionInductiveCaseFactory
-            (ITestCaseEnumerableFactory synthesizingFactoryForOperationSequence,
-             ITestCaseEnumerableFactory testVariableLevelFactoryForFinalOperationsListIndexCombinations,
-             ITestCaseEnumerableFactory factoryDealingWithRemainingKeys)
+        private static TestCaseEnumerableFactory MakeRecursionInductiveCaseFactory
+            (TestCaseEnumerableFactory synthesizingFactoryForOperationSequence,
+             TestCaseEnumerableFactory testVariableLevelFactoryForFinalOperationsListIndexCombinations,
+             TestCaseEnumerableFactory factoryDealingWithRemainingKeys)
         {
             return SynthesizedTestCaseEnumerableFactory.Create
                 (new[]
@@ -422,18 +422,18 @@ namespace SageSerpent.TestInfrastructure.Examples
                  (InductiveCasePlacementBuilder) BuildInductiveCaseForPlacementOfOperationsIntoFinalOrder);
         }
 
-        private static ITestCaseEnumerableFactory MakeRecursionBaseFactory()
+        private static TestCaseEnumerableFactory MakeRecursionBaseFactory()
         {
             return SingletonTestCaseEnumerableFactory.Create
                 ((PlacementOfOperationsIntoFinalOrder) BaseCaseForPlacementOfOperationsIntoFinalOrder);
         }
 
-        private static ITestCaseEnumerableFactory MakeSynthesizingFactoryForOperationSequenceEnumerable
+        private static TestCaseEnumerableFactory MakeSynthesizingFactoryForOperationSequenceEnumerable
             (UInt32 sequenceLength,
              Key key,
              Random randomBehaviour)
         {
-            var testVariableLevelFactoriesForOperationKinds = new List<ITestCaseEnumerableFactory>();
+            var testVariableLevelFactoriesForOperationKinds = new List<TestCaseEnumerableFactory>();
 
             var numberOfFactoriesLeftToCreate = sequenceLength;
 

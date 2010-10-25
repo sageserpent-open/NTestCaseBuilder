@@ -8,4 +8,4 @@
     let Create singletonTestCase =
         let node =
             SageSerpent.TestInfrastructure.SingletonNode singletonTestCase
-        TestCaseEnumerableFactoryCommonImplementation node :> ITestCaseEnumerableFactory
+        TestCaseEnumerableFactory node

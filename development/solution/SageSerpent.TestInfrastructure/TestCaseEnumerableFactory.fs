@@ -1,7 +1,12 @@
-namespace SageSerpent.TestInfrastructure
+﻿namespace SageSerpent.TestInfrastructure
 
     open System.Collections
-    
+    open System.Collections.Generic
+    open System
+    open SageSerpent.Infrastructure
+    open SageSerpent.Infrastructure.RandomExtensions
+    open SageSerpent.Infrastructure.IEnumerableExtensions
+
     /// <summary>Test case enumerable factories form a composite data structure, where a factory is the root
     /// of a tree of simpler factories, and can itself be part of a larger tree (or even part of several trees,
     /// as sharing is permitted). Ultimately a valid tree of test case enumerable factories will have leaf node
@@ -50,8 +55,51 @@ namespace SageSerpent.TestInfrastructure
     /// attempt will be made to work around this behaviour and try alternative combinations that satisfy the
     /// strength requirements but create fewer collisions.</remarks>
 
-    type ITestCaseEnumerableFactory =
-        abstract member CreateEnumerable: System.UInt32 /// <param name="desiredStrength">Desired strength of combination of test levels from different test variables.</param>
-                                          -> IEnumerable;
-                                          
-        abstract member MaximumStrength: System.UInt32;
+    type TestCaseEnumerableFactory (node: Node) =
+        member internal this.Node = node
+        
+        member this.CreateEnumerable maximumDesiredStrength =
+            match node.PruneTree with
+                Some prunedNode ->
+                    let associationFromStrengthToPartialTestVectorRepresentations
+                        , associationFromTestVariableIndexToNumberOfItsLevels =
+                        prunedNode.AssociationFromStrengthToPartialTestVectorRepresentations maximumDesiredStrength
+                    let randomBehaviour =
+                        Random 0
+                    let randomBehaviourConsumerProducingSequenceOfFinalValues =
+                        let mergedPartialTestVectorRepresentations =
+                            MergedPartialTestVectorRepresentations.Initial
+                            // Do a fold back so that high strength vectors get in there first. Hopefully the lesser strength vectors
+                            // should have a greater chance of finding an earlier, larger vector to merge with this way. 
+                            |> Map.foldBack (fun _
+                                                 partialTestVectorsAtTheSameStrength
+                                                 mergedPartialTestVectorRepresentations ->
+                                                    partialTestVectorsAtTheSameStrength
+                                                    |> Seq.fold (fun mergedPartialTestVectorRepresentations
+                                                                     partialTestVector ->
+                                                                        let mergedPartialTestVectorRepresentations =
+                                                                            mergedPartialTestVectorRepresentations
+                                                                        mergedPartialTestVectorRepresentations.MergeOrAdd partialTestVector
+                                                                                                                          randomBehaviour)
+                                                                mergedPartialTestVectorRepresentations)
+                                             associationFromStrengthToPartialTestVectorRepresentations
+                        seq
+                            {
+                                for mergedPartialTestVector in mergedPartialTestVectorRepresentations do
+                                    let filledOutPartialTestVectorRepresentation =
+                                        prunedNode.FillOutPartialTestVectorRepresentation associationFromTestVariableIndexToNumberOfItsLevels
+                                                                                          mergedPartialTestVector
+                                                                                          randomBehaviour
+                                    yield prunedNode.CreateFinalValueFrom filledOutPartialTestVectorRepresentation
+                            }
+                    randomBehaviourConsumerProducingSequenceOfFinalValues
+                    :> IEnumerable
+                    
+              | None ->
+                    Seq.empty :> IEnumerable
+        member this.MaximumStrength =
+            match node.PruneTree with
+                Some prunedNode ->
+                    prunedNode.MaximumStrengthOfTestVariableCombination
+              | None ->
+                    0u

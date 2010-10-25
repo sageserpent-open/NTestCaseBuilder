@@ -4,7 +4,7 @@ module SageSerpent.TestInfrastructure.SynthesizedTestCaseEnumerableFactory
     open System
     open SageSerpent.Infrastructure
 
-    let Create (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITestCaseEnumerableFactory>)
+    let Create (sequenceOfFactoriesProvidingInputsToSynthesis: seq<TestCaseEnumerableFactory>)
                (synthesisDelegate: Delegate) =
         if Seq.isEmpty sequenceOfFactoriesProvidingInputsToSynthesis
         then raise (PreconditionViolationException "Must provide at least one component.")               
@@ -12,6 +12,6 @@ module SageSerpent.TestInfrastructure.SynthesizedTestCaseEnumerableFactory
             SynthesizingNode ((sequenceOfFactoriesProvidingInputsToSynthesis
                               |> List.ofSeq
                               |> List.map (fun factory
-                                            -> (factory :?> TestCaseEnumerableFactoryCommonImplementation).Node))
+                                            -> factory.Node))
                               , synthesisDelegate)
-        TestCaseEnumerableFactoryCommonImplementation node :> ITestCaseEnumerableFactory
+        TestCaseEnumerableFactory node

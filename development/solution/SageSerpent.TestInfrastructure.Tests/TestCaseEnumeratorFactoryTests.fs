@@ -506,7 +506,7 @@
                         |> Seq.map (List.map fst)
                     PowerCollections.Bag<_>(combinationsOfTestVariableIndices,
                                             comparer)
-                let testCaseSequence (testCaseEnumerableFactory: ITestCaseEnumerableFactory) =
+                let testCaseSequence (testCaseEnumerableFactory: TestCaseEnumerableFactory) =
                     seq {for testCase in testCaseEnumerableFactory.CreateEnumerable(maximumStrength) do
                             yield unbox<List<TestVariableLevel>> testCase}
                 let shouldBeTrue = (testCaseSequence testCaseEnumerableFactory

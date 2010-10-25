@@ -10,6 +10,6 @@ module SageSerpent.TestInfrastructure.TestVariableLevelEnumerableFactory
             |> Array.ofSeq
         let node =
             SageSerpent.TestInfrastructure.TestVariableNode weaklyTypedLevels
-        TestCaseEnumerableFactoryCommonImplementation node :> ITestCaseEnumerableFactory
+        TestCaseEnumerableFactory node
 
         
