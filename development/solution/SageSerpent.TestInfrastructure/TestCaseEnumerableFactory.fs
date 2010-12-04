@@ -54,12 +54,24 @@
     /// whereby several distinct combinations of simpler test cases all create the same output test case, then no
     /// attempt will be made to work around this behaviour and try alternative combinations that satisfy the
     /// strength requirements but create fewer collisions.</remarks>
-
+    
+    [<AbstractClass>]
     type TestCaseEnumerableFactory (node: Node) =
         member internal this.Node = node
+    
+        abstract CreateEnumerable: UInt32 -> IEnumerable
         
-        member this.CreateEnumerable maximumDesiredStrength =
-            match node.PruneTree with
+        abstract MaximumStrength: UInt32
+        
+    type TypedTestCaseEnumerableFactory<'TestCase> (node: Node) =
+        inherit TestCaseEnumerableFactory (node)
+        
+        default this.CreateEnumerable maximumDesiredStrength =
+            this.CreateTypedEnumerable maximumDesiredStrength
+            :> IEnumerable
+        
+        member this.CreateTypedEnumerable maximumDesiredStrength =
+            match this.Node.PruneTree with
                 Some prunedNode ->
                     let associationFromStrengthToPartialTestVectorRepresentations
                         , associationFromTestVariableIndexToNumberOfItsLevels =
@@ -83,6 +95,8 @@
                                                                                                                           randomBehaviour)
                                                                 mergedPartialTestVectorRepresentations)
                                              associationFromStrengthToPartialTestVectorRepresentations
+                        let finalValueCreator =
+                            prunedNode.FinalValueCreator ()
                         seq
                             {
                                 for mergedPartialTestVector in mergedPartialTestVectorRepresentations do
@@ -90,15 +104,16 @@
                                         prunedNode.FillOutPartialTestVectorRepresentation associationFromTestVariableIndexToNumberOfItsLevels
                                                                                           mergedPartialTestVector
                                                                                           randomBehaviour
-                                    yield prunedNode.CreateFinalValueFrom filledOutPartialTestVectorRepresentation
+                                    yield finalValueCreator filledOutPartialTestVectorRepresentation
                             }
                     randomBehaviourConsumerProducingSequenceOfFinalValues
-                    :> IEnumerable
+                    :> IEnumerable<'TestCase>
                     
               | None ->
-                    Seq.empty :> IEnumerable
-        member this.MaximumStrength =
-            match node.PruneTree with
+                    Seq.empty :> IEnumerable<'TestCase>
+                    
+        default this.MaximumStrength =
+            match this.Node.PruneTree with
                 Some prunedNode ->
                     prunedNode.MaximumStrengthOfTestVariableCombination
               | None ->

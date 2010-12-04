@@ -29,7 +29,7 @@ namespace SageSerpent.Infrastructure.Tests
         let sumContributions = List.reduceBack (+)
         
         let sequenceOfOrderedListsOfUniqueItems = List.init 10 (fun item -> item)
-                                                  |> (BargainBasement.Flip (List.scanBack (BargainBasement.Curry List.Cons))) []
+                                                  |> (BargainBasement.Flip (List.scanBack (FuncConvert.FuncFromTupled List.Cons))) []
                                                           
         [<Test>]
         member this.TestThatAttemptingToChooseContributionsFromAnEmptyListResultsInAnEmptyResultList () =

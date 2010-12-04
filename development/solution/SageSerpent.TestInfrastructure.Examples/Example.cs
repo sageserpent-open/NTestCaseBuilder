@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using NUnit.Framework;
@@ -18,9 +17,6 @@ namespace SageSerpent.TestInfrastructure.Examples
     [TestFixture]
     public class SimpleExample
     {
-        private delegate Value Synthesis(Key resultOne,
-                                         Key resultTwo);
-
         private static readonly Key[] LevelsOne = {0u, 56u, 789u, 789u}, LevelsTwo = {100u, 123u};
 
         ///<summary>
@@ -31,13 +27,26 @@ namespace SageSerpent.TestInfrastructure.Examples
             var a = TestVariableLevelEnumerableFactory.Create(LevelsOne);
             var b = TestVariableLevelEnumerableFactory.Create(LevelsTwo);
 
-            var c = SynthesizedTestCaseEnumerableFactory.Create
-                (new[] {a, b},
-                 (Synthesis) ((resultOne,
-                               resultTwo) => string.Format("{0}, {1}", resultOne.ToString(), resultTwo.ToString())));
-            var d = TestVariableLevelEnumerableFactory.Create(LevelsOne);
+            var c = SynthesizedTestCaseEnumerableFactory.Create(a, b,
+                                                                ((resultOne,
+                                                                  resultTwo) =>
+                                                                 string.Format(
+                                                                     "{0}, {1}",
+                                                                     resultOne.
+                                                                         ToString
+                                                                         (),
+                                                                     resultTwo.
+                                                                         ToString
+                                                                         ())));
 
-            var e = InterleavedTestCaseEnumerableFactory.Create(new List<TestCaseEnumerableFactory> {d, c});
+            var d =
+                SynthesizedTestCaseEnumerableFactory.Create(
+                    TestVariableLevelEnumerableFactory.Create(LevelsOne), input => input.ToString());
+
+            var dWithATwist = SynthesizedTestCaseEnumerableFactory.Create(
+                new List<TestCaseEnumerableFactory> {d}, (Converter<Object, Object>) (thing => thing));
+
+            var e = InterleavedTestCaseEnumerableFactory.Create(new List<TestCaseEnumerableFactory> {dWithATwist, c});
 
             var strength = e.MaximumStrength;
 
@@ -232,12 +241,6 @@ namespace SageSerpent.TestInfrastructure.Examples
             return operationsListBuilder.Operations;
         }
 
-        private delegate IList<Operation> OperationsCreator(OperationKind operationKindOne,
-                                                            OperationKind operationKindTwo,
-                                                            OperationKind operationKindThree,
-                                                            OperationKind operationKindFour,
-                                                            OperationKind operationKindFive);
-
         private delegate UInt32 MappingToAvoidPreviouslyChosenIndices(UInt32 index);
 
         private delegate void PlacementOfOperationsIntoFinalOrder(UInt32 numberOfIndicesToChooseFrom,
@@ -262,54 +265,49 @@ namespace SageSerpent.TestInfrastructure.Examples
              UInt32 combinationSelector,
              PlacementOfOperationsIntoFinalOrder placementOfOperationsForRemainingKeysIntoFinalOrder)
         {
-            PlacementOfOperationsIntoFinalOrder result = delegate(UInt32 numberOfIndicesToChooseFrom,
-                                                                  MappingToAvoidPreviouslyChosenIndices
-                                                                      mappingToAvoidPreviouslyChosenIndices,
-                                                                  IList<Operation> operationsPlacedIntoFinalOrder)
-                                                             {
-                                                                 var numberOfIndicesToChoose =
-                                                                     (UInt32)
-                                                                     operationsPertainingToTheSameKeyToPlaceIntoFinalOrder
-                                                                         .
-                                                                         Count;
-                                                                 if (numberOfIndicesToChooseFrom <
-                                                                     numberOfIndicesToChoose)
-                                                                 {
-                                                                     throw new LogicErrorException
-                                                                         ("Test has an internal logic error - should have eventually reached base case"
-                                                                          +
-                                                                          " where all indices for placement had been chosen without having to look for more");
-                                                                 }
+            return
+                (numberOfIndicesToChooseFrom, mappingToAvoidPreviouslyChosenIndices, operationsPlacedIntoFinalOrder) =>
+                    {
+                        var numberOfIndicesToChoose1 =
+                            (UInt32)
+                            operationsPertainingToTheSameKeyToPlaceIntoFinalOrder
+                                .
+                                Count;
+                        if (numberOfIndicesToChooseFrom <
+                            numberOfIndicesToChoose1)
+                        {
+                            throw new LogicErrorException
+                                ("Test has an internal logic error - should have eventually reached base case"
+                                 +
+                                 " where all indices for placement had been chosen without having to look for more");
+                        }
 
-                                                                 var indicesToPlaceAt = ChooseIndicesToPlaceAt
-                                                                     (numberOfIndicesToChooseFrom,
-                                                                      numberOfIndicesToChoose,
-                                                                      combinationSelector);
+                        var indicesToPlaceAt1 = ChooseIndicesToPlaceAt
+                            (numberOfIndicesToChooseFrom,
+                             numberOfIndicesToChoose1,
+                             combinationSelector);
 
-                                                                 PlaceOperations
-                                                                     (operationsPertainingToTheSameKeyToPlaceIntoFinalOrder,
-                                                                      indicesToPlaceAt,
-                                                                      mappingToAvoidPreviouslyChosenIndices,
-                                                                      operationsPlacedIntoFinalOrder);
+                        PlaceOperations
+                            (operationsPertainingToTheSameKeyToPlaceIntoFinalOrder,
+                             indicesToPlaceAt1,
+                             mappingToAvoidPreviouslyChosenIndices,
+                             operationsPlacedIntoFinalOrder);
 
-                                                                 var composedMappingToAvoidAllIndices =
-                                                                     ComposeMappingToAvoidAllIndices
-                                                                         (indicesToPlaceAt,
-                                                                          mappingToAvoidPreviouslyChosenIndices);
+                        var composedMappingToAvoidAllIndices1 =
+                            ComposeMappingToAvoidAllIndices
+                                (indicesToPlaceAt1,
+                                 mappingToAvoidPreviouslyChosenIndices);
 
-                                                                 if (numberOfIndicesToChooseFrom >
-                                                                     numberOfIndicesToChoose)
-                                                                 {
-                                                                     placementOfOperationsForRemainingKeysIntoFinalOrder
-                                                                         (numberOfIndicesToChooseFrom
-                                                                          - numberOfIndicesToChoose,
-                                                                          composedMappingToAvoidAllIndices,
-                                                                          operationsPlacedIntoFinalOrder);
-                                                                 }
-                                                             };
-
-
-            return result;
+                        if (numberOfIndicesToChooseFrom >
+                            numberOfIndicesToChoose1)
+                        {
+                            placementOfOperationsForRemainingKeysIntoFinalOrder
+                                (numberOfIndicesToChooseFrom
+                                 - numberOfIndicesToChoose1,
+                                 composedMappingToAvoidAllIndices1,
+                                 operationsPlacedIntoFinalOrder);
+                        }
+                    };
         }
 
         private static MappingToAvoidPreviouslyChosenIndices ComposeMappingToAvoidAllIndices
@@ -363,7 +361,7 @@ namespace SageSerpent.TestInfrastructure.Examples
             ((IList<Int32>) Enum.GetValues(typeof (OperationKind)), constant => (OperationKind) constant);
 
 
-        private static TestCaseEnumerableFactory MakeTestCaseEnumerableFactory
+        private static TypedTestCaseEnumerableFactory<PlacementOfOperationsIntoFinalOrder> MakeTestCaseEnumerableFactory
             (Random randomBehaviour,
              UInt32 sequenceLength,
              IList<Key> keys)
@@ -376,7 +374,7 @@ namespace SageSerpent.TestInfrastructure.Examples
             var key = keys[0];
 
             var synthesizingFactoryForOperationSequenceEnumerable =
-                MakeSynthesizingFactoryForOperationSequenceEnumerable(sequenceLength, key, randomBehaviour);
+                MakeSynthesizingFactoryForOperationSequenceEnumerable(key, randomBehaviour);
 
             var numberOfCombinations = BargainBasement.NumberOfCombinations
                 (sequenceLength * (UInt32) keys.Count, sequenceLength);
@@ -393,7 +391,7 @@ namespace SageSerpent.TestInfrastructure.Examples
                  factoryDealingWithRemainingKeys);
         }
 
-        private static TestCaseEnumerableFactory MakeTestVariableLevelFactoryForIndexCombinationEnumerable
+        private static TypedTestCaseEnumerableFactory<UInt32> MakeTestVariableLevelFactoryForIndexCombinationEnumerable
             (UInt32 numberOfCombinations)
         {
             var combinationSelector = numberOfCombinations;
@@ -407,57 +405,51 @@ namespace SageSerpent.TestInfrastructure.Examples
             return TestVariableLevelEnumerableFactory.Create(combinationSelectors);
         }
 
-        private static TestCaseEnumerableFactory MakeRecursionInductiveCaseFactory
-            (TestCaseEnumerableFactory synthesizingFactoryForOperationSequence,
-             TestCaseEnumerableFactory testVariableLevelFactoryForFinalOperationsListIndexCombinations,
-             TestCaseEnumerableFactory factoryDealingWithRemainingKeys)
+        private static TypedTestCaseEnumerableFactory<PlacementOfOperationsIntoFinalOrder>
+            MakeRecursionInductiveCaseFactory
+            (TypedTestCaseEnumerableFactory<IList<Operation>> synthesizingFactoryForOperationSequence,
+             TypedTestCaseEnumerableFactory<UInt32> testVariableLevelFactoryForFinalOperationsListIndexCombinations,
+             TypedTestCaseEnumerableFactory<PlacementOfOperationsIntoFinalOrder> factoryDealingWithRemainingKeys)
         {
-            return SynthesizedTestCaseEnumerableFactory.Create
-                (new[]
-                     {
-                         synthesizingFactoryForOperationSequence,
-                         testVariableLevelFactoryForFinalOperationsListIndexCombinations,
-                         factoryDealingWithRemainingKeys
-                     },
-                 (InductiveCasePlacementBuilder) BuildInductiveCaseForPlacementOfOperationsIntoFinalOrder);
+            return
+                SynthesizedTestCaseEnumerableFactory.Create
+                    <IList<Operation>, UInt32, PlacementOfOperationsIntoFinalOrder, PlacementOfOperationsIntoFinalOrder>
+                    (synthesizingFactoryForOperationSequence,
+                     testVariableLevelFactoryForFinalOperationsListIndexCombinations,
+                     factoryDealingWithRemainingKeys,
+                     BuildInductiveCaseForPlacementOfOperationsIntoFinalOrder);
         }
 
-        private static TestCaseEnumerableFactory MakeRecursionBaseFactory()
+        private static TypedTestCaseEnumerableFactory<PlacementOfOperationsIntoFinalOrder> MakeRecursionBaseFactory()
         {
             return SingletonTestCaseEnumerableFactory.Create
                 ((PlacementOfOperationsIntoFinalOrder) BaseCaseForPlacementOfOperationsIntoFinalOrder);
         }
 
-        private static TestCaseEnumerableFactory MakeSynthesizingFactoryForOperationSequenceEnumerable
-            (UInt32 sequenceLength,
-             Key key,
+        private static TypedTestCaseEnumerableFactory<IList<Operation>>
+            MakeSynthesizingFactoryForOperationSequenceEnumerable
+            (Key key,
              Random randomBehaviour)
         {
-            var testVariableLevelFactoriesForOperationKinds = new List<TestCaseEnumerableFactory>();
-
-            var numberOfFactoriesLeftToCreate = sequenceLength;
-
-            while (0U != numberOfFactoriesLeftToCreate--)
-            {
-                testVariableLevelFactoriesForOperationKinds.Add
-                    (TestVariableLevelEnumerableFactory.Create(OperationKinds));
-            }
-
-            return SynthesizedTestCaseEnumerableFactory.Create
-                (testVariableLevelFactoriesForOperationKinds,
-                 (OperationsCreator) ((operationKindOne,
-                                       operationKindTwo,
-                                       operationKindThree,
-                                       operationKindFour,
-                                       operationKindFive) =>
-                                      CreateOperationsAccordingToSequenceOfKinds
-                                          (new[]
-                                               {
-                                                   operationKindOne, operationKindTwo, operationKindThree,
-                                                   operationKindFour, operationKindFive
-                                               },
-                                           key,
-                                           randomBehaviour)));
+            return SynthesizedTestCaseEnumerableFactory.Create(
+                TestVariableLevelEnumerableFactory.Create(OperationKinds),
+                TestVariableLevelEnumerableFactory.Create(OperationKinds),
+                TestVariableLevelEnumerableFactory.Create(OperationKinds),
+                TestVariableLevelEnumerableFactory.Create(OperationKinds),
+                TestVariableLevelEnumerableFactory.Create(OperationKinds),
+                ((operationKindOne,
+                  operationKindTwo,
+                  operationKindThree,
+                  operationKindFour,
+                  operationKindFive) =>
+                 CreateOperationsAccordingToSequenceOfKinds
+                     (new[]
+                          {
+                              operationKindOne, operationKindTwo, operationKindThree,
+                              operationKindFour, operationKindFive
+                          },
+                      key,
+                      randomBehaviour)));
         }
 
         private const UInt32 SequenceLength = 5U;
@@ -496,7 +488,7 @@ namespace SageSerpent.TestInfrastructure.Examples
                 }
             }
 
-           System.Diagnostics.Debug.Print("Number of test cases: {0}.\n", numberOfTestCases);
+            System.Diagnostics.Debug.Print("Number of test cases: {0}.\n", numberOfTestCases);
         }
     }
 }

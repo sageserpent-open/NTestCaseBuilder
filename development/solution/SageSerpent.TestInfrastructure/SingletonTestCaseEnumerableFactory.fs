@@ -5,7 +5,7 @@
     open SageSerpent.Infrastructure
     
     
-    let Create singletonTestCase =
+    let Create (singletonTestCase: 'SingletonTestCase) =
         let node =
             SageSerpent.TestInfrastructure.SingletonNode singletonTestCase
-        TestCaseEnumerableFactory node
+        TypedTestCaseEnumerableFactory<'SingletonTestCase> node

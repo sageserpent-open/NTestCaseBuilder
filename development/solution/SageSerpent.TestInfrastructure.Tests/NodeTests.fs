@@ -44,12 +44,11 @@
                         treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
                         for subtree in subtrees do
                             dumpNode subtree subtreeGuiNode
-                  | SynthesizingNode (subtrees
-                                      , _) ->
+                  | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                         let subtreeGuiNode =
                             TreeNode ("SynthesizingNode\n")
                         treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
-                        for subtree in subtrees do
+                        for subtree in fixedCombinationOfSubtreeNodesForSynthesis.Nodes do
                             dumpNode subtree subtreeGuiNode
             dumpNode tree treeGuiNode
             treeView.ExpandAll ()
@@ -59,7 +58,7 @@
             printf "**************************\n"
             testVectorRepresentation
             |> Map.iter (fun testVariableIndex level ->
-                            printf "Index: %d, " testVariableIndex
+                            printf "Level: %d, " testVariableIndex
                             match level with
                                 Some actualLevel ->
                                     printf "value: %A.\n" actualLevel
@@ -185,8 +184,8 @@
                          if randomBehaviour.HeadsItIs ()
                          then generateNode (fun subtrees -> InterleavingNode subtrees)
                                            distributionMakerForInterleavedNodes
-                         else generateNode (fun subtrees -> SynthesizingNode (subtrees
-                                                                              , BargainBasement.IdentityFunctionDelegate))
+                         else generateNode (fun subtrees -> Node.CreateSynthesizingNode subtrees
+                                                                                        BargainBasement.IdentityFunctionDelegate)
                                            distributionMakerForSynthesizingNodes                          
                 let tree
                     , trackedTestVariablesIndexedByTestVariable
@@ -230,7 +229,7 @@
                             let testVectorRepresentationForTrackedVariablesOnly = 
                                     Map.foldBack (fun testVariableIndex level partialResult ->
                                                     match level with
-                                                        Index testVariableLevelIndex ->
+                                                        Level testVariableLevelIndex ->
                                                             match trackedTestVariablesIndexedByTestVariable.[int32 testVariableIndex] with
                                                                 Some trackedTestVariableIndex ->
                                                                     (trackedTestVariableIndex, testVariableLevelIndex)
@@ -346,8 +345,8 @@
                                         |> List.concat
                                      (if whetherInterleavedNodeChoice
                                       then InterleavingNode nodes
-                                      else SynthesizingNode (nodes
-                                                             , BargainBasement.IdentityFunctionDelegate))
+                                      else Node.CreateSynthesizingNode nodes
+                                                                       BargainBasement.IdentityFunctionDelegate)
                                      , spannedTestVariableIndices
                             let nextLevelOfNodeAndItsSpannedTestVariableIndicesPairs =
                                 (List.zip groupsForSubtreeRoots whetherInterleavedNodeChoices)
@@ -394,7 +393,7 @@
                     |> Seq.reduce Seq.append
                 let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap testVariableIndex testVariableLevelIndex =
                     match testVariableLevelIndex with
-                        Index testVariableLevelIndex ->
+                        Level testVariableLevelIndex ->
                             match Map.tryFind testVariableIndex testVariableIndexToMaximumLevelIndexMap with
                                 Some previousTestVariableLevelIndex ->
                                     if previousTestVariableLevelIndex < testVariableLevelIndex
@@ -427,7 +426,7 @@
                         let testVariableIndex = entry.Key
                         let testVariableLevelIndex = entry.Value
                         match testVariableLevelIndex with
-                            Index _ ->
+                            Level _ ->
                                 if associationFromTestVariableIndexToInterleavedTestVariableIndices.ContainsKey testVariableIndex
                                 then let interleavedTestVariableIndices =
                                         associationFromTestVariableIndexToInterleavedTestVariableIndices.FindAll testVariableIndex

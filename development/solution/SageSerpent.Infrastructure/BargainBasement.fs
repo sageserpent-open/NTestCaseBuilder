@@ -82,12 +82,6 @@
     let Flip f x y =
         f y x   
         
-    let Curry f x y =
-        f (x, y)
-        
-    let Uncurry f (x, y) =
-        f x y
-                
     let NumberOfPermutations originalSize permutationSize =
         if permutationSize > originalSize
         then 0u
