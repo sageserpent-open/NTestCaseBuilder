@@ -62,10 +62,6 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core, Version=3.5.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-    <Reference Include="System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <Name>System.Drawing</Name>
-      <AssemblyName>System.Drawing.dll</AssemblyName>
-    </Reference>
     <Reference Include="System.Windows.Forms" />
     <ProjectReference Include="..\SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj">
       <Name>SageSerpent.Infrastructure</Name>
