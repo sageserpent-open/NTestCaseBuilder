@@ -248,11 +248,6 @@ namespace SageSerpent.TestInfrastructure.Examples
                                                                       mappingToAvoidPreviouslyChosenIndices,
                                                                   IList<Operation> operationsPlacedIntoFinalOrder);
 
-        private delegate PlacementOfOperationsIntoFinalOrder InductiveCasePlacementBuilder(
-            IList<Operation> operationsPertainingToTheSameKeyToPlaceIntoFinalOrder,
-            UInt32 combinationSelector,
-            PlacementOfOperationsIntoFinalOrder placementOfOperationsForRemainingKeysIntoFinalOrder);
-
         private static void BaseCaseForPlacementOfOperationsIntoFinalOrder
             (UInt32 numberOfIndicesToChooseFrom,
              MappingToAvoidPreviouslyChosenIndices mappingToAvoidPreviouslyChosenIndices,

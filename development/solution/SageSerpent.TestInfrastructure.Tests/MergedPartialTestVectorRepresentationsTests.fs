@@ -7,7 +7,6 @@
     open SageSerpent.Infrastructure.RandomExtensions
     open System
     open System.Windows.Forms
-    open System.Drawing
     open System.Collections.Generic
     open Microsoft.FSharp.Collections
     

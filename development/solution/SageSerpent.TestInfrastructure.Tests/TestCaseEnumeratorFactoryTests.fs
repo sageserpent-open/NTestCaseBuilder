@@ -10,7 +10,6 @@
     open SageSerpent.TestInfrastructure
     open System
     open System.Windows.Forms
-    open System.Drawing
     open System.Collections.Generic
     open Microsoft.FSharp.Collections
     open Microsoft.FSharp.Quotations
