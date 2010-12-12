@@ -107,7 +107,17 @@ namespace SageSerpent.TestInfrastructure
                                                     SubtreeForFollowingIndices = rootSubtreeForFollowingIndices
                                                 } as internalNodeRepresentationForRoot)
                                                addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                               addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels =
+                                               addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                               interchangeRolesOfFlankingSubtreesOnBehalfOfCaller =
+                let addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                    , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels =
+                    if interchangeRolesOfFlankingSubtreesOnBehalfOfCaller
+                    then
+                        addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                        , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                    else
+                        addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                        , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
                 let inline splayAtRootNode () =
                     {
                         internalNodeRepresentationForRoot with
@@ -179,17 +189,11 @@ namespace SageSerpent.TestInfrastructure
                                                     }
                                                     |> MirroredInternalNode localMirroring
                                                     |> AugmentedInternalNode))
-                                        if localMirroring
-                                        then
-                                            accumulateFlankingSubtrees
-                                                internalNodeRepresentationforZigZig
-                                                addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
-                                                addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                        else
-                                            accumulateFlankingSubtrees
-                                                internalNodeRepresentationforZigZig
-                                                addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                                addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                        accumulateFlankingSubtrees
+                                            internalNodeRepresentationforZigZig
+                                            addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                                            addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                            localMirroring
                                   | zigResult
                                     , _
                                     , AugmentedInternalNode (InternalNode internalNodeRepresentationforZigZag) when zigResult > 0 ->
@@ -212,17 +216,11 @@ namespace SageSerpent.TestInfrastructure
                                                     }
                                                     |> MirroredInternalNode localMirroring
                                                     |> AugmentedInternalNode))
-                                        if localMirroring
-                                        then                                                                                                                                         
-                                            accumulateFlankingSubtrees
-                                                internalNodeRepresentationforZigZag
-                                                addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
-                                                addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                        else
-                                            accumulateFlankingSubtrees
-                                                internalNodeRepresentationforZigZag
-                                                addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                                addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                        accumulateFlankingSubtrees
+                                            internalNodeRepresentationforZigZag
+                                            addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                                            addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                            localMirroring
                                   | _ ->
                                         // Zig-only case (either the level has been found, or found least upper bound instead)...
                                         let internalNodeRepresentationForSplayedZig =                                        
@@ -257,6 +255,7 @@ namespace SageSerpent.TestInfrastructure
             accumulateFlankingSubtrees internalNodeRepresentation
                                        BargainBasement.Identity
                                        BargainBasement.Identity
+                                       false
                              
     open MergedPartialTestVectorRepresentationsDetail
         
