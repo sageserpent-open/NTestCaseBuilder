@@ -70,8 +70,36 @@ namespace SageSerpent.TestInfrastructure
         let inline InternalNode (internalNode: InternalNode<'Level>) =
             new AugmentedInternalNode<'Level> (internalNode)
             
+        let inline mirrorInternalNode mirroring
+                                      internalNodeRepresentation =
+            if mirroring
+            then
+                match internalNodeRepresentation with
+                    {
+                        SubtreeWithLesserLevelsForSameTestVariableIndex = rootSubtreeWithLesserLevelsForSameTestVariableIndex
+                        SubtreeWithGreaterLevelsForSameTestVariableIndex = rootSubtreeWithGreaterLevelsForSameTestVariableIndex
+                    } ->
+                        {
+                            internalNodeRepresentation with
+                                SubtreeWithLesserLevelsForSameTestVariableIndex = rootSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                SubtreeWithGreaterLevelsForSameTestVariableIndex = rootSubtreeWithLesserLevelsForSameTestVariableIndex                            
+                        }     
+            else
+                internalNodeRepresentation
+                
+        let inline (|MirroredInternalNode|) mirroring =
+            (|InternalNode|)
+            >> mirrorInternalNode mirroring
+            
+        let inline MirroredInternalNode mirroring =
+            mirrorInternalNode mirroring
+            >> InternalNode
+
         let splayInternalNodeWithMatchingOrNeighbouringLevel internalNodeRepresentation
                                                              comparisonWrtImplicitLevel =
+            let mirroredComparisonWrtImplicitLevel =
+                comparisonWrtImplicitLevel
+                >> (~-)
             let rec accumulateFlankingSubtrees ({
                                                     LevelForTestVariableIndex = rootLevelForTestVariableIndex
                                                     SubtreeWithLesserLevelsForSameTestVariableIndex = rootSubtreeWithLesserLevelsForSameTestVariableIndex
@@ -89,10 +117,40 @@ namespace SageSerpent.TestInfrastructure
                     , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels rootSubtreeWithLesserLevelsForSameTestVariableIndex
                     , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels rootSubtreeWithGreaterLevelsForSameTestVariableIndex               
                 match comparisonWrtImplicitLevel rootLevelForTestVariableIndex with
-                    rootResult when rootResult < 0 ->
+                    0 ->
+                        // Degenerate root node only case (level has been found)...
+                        splayAtRootNode ()
+                  | rootResult ->
+                        // NOTE: comments for this section refer to the 'unmirrored' case. So in the mirrored case,
+                        // 'zig-zag' becomes 'zag-zig', 'least upper bound' becomes 'greatest lower bound', etc.
+                        let localMirroring
+                            , comparisonWrtImplicitLevel
+                            , internalNodeRepresentationForRoot
+                            , rootSubtreeWithLesserLevelsForSameTestVariableIndex
+                            , rootSubtreeWithGreaterLevelsForSameTestVariableIndex
+                            , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                            , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels =
+                            if rootResult > 0
+                            then
+                                true
+                                , mirroredComparisonWrtImplicitLevel
+                                , mirrorInternalNode true
+                                                     internalNodeRepresentationForRoot
+                                , rootSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                , rootSubtreeWithLesserLevelsForSameTestVariableIndex
+                                , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                            else
+                                false
+                                , comparisonWrtImplicitLevel
+                                , internalNodeRepresentationForRoot
+                                , rootSubtreeWithLesserLevelsForSameTestVariableIndex
+                                , rootSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                                , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
                         match rootSubtreeWithLesserLevelsForSameTestVariableIndex with
                             AugmentedInternalNode
-                            (InternalNode
+                            (MirroredInternalNode localMirroring
                             ({
                                 LevelForTestVariableIndex = zigLevelForTestVariableIndex
                                 SubtreeWithLesserLevelsForSameTestVariableIndex = zigSubtreeWithLesserLevelsForSameTestVariableIndex
@@ -105,143 +163,97 @@ namespace SageSerpent.TestInfrastructure
                                     , AugmentedInternalNode (InternalNode internalNodeRepresentationforZigZig)
                                     , _ when zigResult < 0 ->
                                         // Zig-zig case...
-                                        accumulateFlankingSubtrees
-                                            internalNodeRepresentationforZigZig
-                                            addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                                        let addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels =
                                             (fun nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels ->
                                                 addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
                                                     ({
                                                         internalNodeRepresentationForZig with
                                                             SubtreeWithLesserLevelsForSameTestVariableIndex = nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels
-                                                            SubtreeWithGreaterLevelsForSameTestVariableIndex =
+                                                            SubtreeWithGreaterLevelsForSameTestVariableIndex = 
                                                                 {
                                                                     internalNodeRepresentationForRoot with
                                                                         SubtreeWithLesserLevelsForSameTestVariableIndex = zigSubtreeWithGreaterLevelsForSameTestVariableIndex
                                                                 }
-                                                                |> InternalNode
+                                                                |> MirroredInternalNode localMirroring
                                                                 |> AugmentedInternalNode
                                                     }
-                                                    |> InternalNode
+                                                    |> MirroredInternalNode localMirroring
                                                     |> AugmentedInternalNode))
+                                        if localMirroring
+                                        then
+                                            accumulateFlankingSubtrees
+                                                internalNodeRepresentationforZigZig
+                                                addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                                addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                                        else
+                                            accumulateFlankingSubtrees
+                                                internalNodeRepresentationforZigZig
+                                                addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                                                addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
                                   | zigResult
                                     , _
                                     , AugmentedInternalNode (InternalNode internalNodeRepresentationforZigZag) when zigResult > 0 ->
                                         // Zig-zag case...
-                                        accumulateFlankingSubtrees
-                                            internalNodeRepresentationforZigZag
+                                        let addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels =
+                                            (fun nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels ->
+                                                addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                                    ({
+                                                        internalNodeRepresentationForRoot with
+                                                            SubtreeWithLesserLevelsForSameTestVariableIndex = nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels
+                                                    }
+                                                    |> MirroredInternalNode localMirroring
+                                                    |> AugmentedInternalNode))
+                                        let addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels =
                                             (fun nodeWithGreatestLevelToBeAddedToFlankingSubtreeWithLesserLevels ->
                                                 addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
                                                     ({
                                                         internalNodeRepresentationForZig with
                                                             SubtreeWithGreaterLevelsForSameTestVariableIndex = nodeWithGreatestLevelToBeAddedToFlankingSubtreeWithLesserLevels
                                                     }
-                                                    |> InternalNode
+                                                    |> MirroredInternalNode localMirroring
                                                     |> AugmentedInternalNode))
-                                            (fun nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels ->
+                                        if localMirroring
+                                        then                                                                                                                                         
+                                            accumulateFlankingSubtrees
+                                                internalNodeRepresentationforZigZag
                                                 addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
-                                                    ({
-                                                        internalNodeRepresentationForRoot with
-                                                            SubtreeWithLesserLevelsForSameTestVariableIndex = nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels
-                                                    }
-                                                    |> InternalNode
-                                                    |> AugmentedInternalNode))                                                                                  
+                                                addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                                        else
+                                            accumulateFlankingSubtrees
+                                                internalNodeRepresentationforZigZag
+                                                addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                                                addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
                                   | _ ->
-                                        // Zig case (either the level has been found, or found least upper bound instead)...
-                                        {
-                                            internalNodeRepresentationForZig with
-                                                SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                                SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                        }
-                                        , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                            zigSubtreeWithLesserLevelsForSameTestVariableIndex
-                                        , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
-                                            ({
-                                                internalNodeRepresentationForRoot with
-                                                    SubtreeWithLesserLevelsForSameTestVariableIndex = zigSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                        // Zig-only case (either the level has been found, or found least upper bound instead)...
+                                        let internalNodeRepresentationForSplayedZig =                                        
+                                            {
+                                                internalNodeRepresentationForZig with
+                                                    SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                                    SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                                             }
-                                            |> InternalNode
-                                            |> AugmentedInternalNode)                                                                         
+                                        let flankingSubtreeWithLesserLevels
+                                            = addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                                                zigSubtreeWithLesserLevelsForSameTestVariableIndex
+                                        let flankingSubtreeWithGreaterLevels
+                                            = addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                                ({
+                                                    internalNodeRepresentationForRoot with
+                                                        SubtreeWithLesserLevelsForSameTestVariableIndex = zigSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                                 }
+                                                |> MirroredInternalNode localMirroring
+                                                |> AugmentedInternalNode)
+                                        if localMirroring
+                                        then
+                                            internalNodeRepresentationForSplayedZig
+                                            , flankingSubtreeWithGreaterLevels
+                                            , flankingSubtreeWithLesserLevels
+                                        else
+                                            internalNodeRepresentationForSplayedZig                                                                        
+                                            , flankingSubtreeWithLesserLevels
+                                            , flankingSubtreeWithGreaterLevels
                           | _ ->
                                 // Degenerate root node only case (level has not been found, found least upper bound instead)...
                                 splayAtRootNode ()
-                  | rootResult when rootResult > 0 ->
-                        match rootSubtreeWithGreaterLevelsForSameTestVariableIndex with
-                            AugmentedInternalNode
-                            (InternalNode
-                            ({
-                                LevelForTestVariableIndex = zagLevelForTestVariableIndex
-                                SubtreeWithLesserLevelsForSameTestVariableIndex = zagSubtreeWithLesserLevelsForSameTestVariableIndex
-                                SubtreeWithGreaterLevelsForSameTestVariableIndex = zagSubtreeWithGreaterLevelsForSameTestVariableIndex
-                            } as internalNodeRepresentationForZag)) ->
-                                match comparisonWrtImplicitLevel zagLevelForTestVariableIndex
-                                      , zagSubtreeWithLesserLevelsForSameTestVariableIndex
-                                      , zagSubtreeWithGreaterLevelsForSameTestVariableIndex with
-                                    zagResult
-                                    , _
-                                    , AugmentedInternalNode (InternalNode internalNodeRepresentationforZagZag) when zagResult > 0 ->
-                                        // Zag-zag case...
-                                        accumulateFlankingSubtrees
-                                            internalNodeRepresentationforZagZag
-                                            (fun nodeWithGreatestLevelToBeAddedToFlankingSubtreeWithLesserLevels ->
-                                                addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                                    ({
-                                                        internalNodeRepresentationForZag with
-                                                            SubtreeWithLesserLevelsForSameTestVariableIndex = 
-                                                                {
-                                                                    internalNodeRepresentationForRoot with
-                                                                        SubtreeWithGreaterLevelsForSameTestVariableIndex = zagSubtreeWithLesserLevelsForSameTestVariableIndex
-                                                                }
-                                                                |> InternalNode
-                                                                |> AugmentedInternalNode
-                                                            SubtreeWithGreaterLevelsForSameTestVariableIndex = nodeWithGreatestLevelToBeAddedToFlankingSubtreeWithLesserLevels
-                                                    }
-                                                    |> InternalNode
-                                                    |> AugmentedInternalNode))
-                                            addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
-                                  | zagResult
-                                    , AugmentedInternalNode (InternalNode internalNodeRepresentationforZagZig)
-                                    , _ when zagResult < 0 ->
-                                        // Zag-zig case...
-                                        accumulateFlankingSubtrees
-                                            internalNodeRepresentationforZagZig
-                                            (fun nodeWithGreatestLevelToBeAddedToFlankingSubtreeWithLesserLevels ->
-                                                addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                                    ({
-                                                        internalNodeRepresentationForRoot with
-                                                            SubtreeWithGreaterLevelsForSameTestVariableIndex = nodeWithGreatestLevelToBeAddedToFlankingSubtreeWithLesserLevels
-                                                    }
-                                                    |> InternalNode
-                                                    |> AugmentedInternalNode)) 
-                                            (fun nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels ->
-                                                addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
-                                                    ({
-                                                        internalNodeRepresentationForZag with
-                                                            SubtreeWithLesserLevelsForSameTestVariableIndex = nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels
-                                                    }
-                                                    |> InternalNode
-                                                    |> AugmentedInternalNode))                                                                                                                                         
-                                  | _ ->
-                                        // Zag case (either the level has been found, or found greatest lower bound instead)...
-                                        {
-                                            internalNodeRepresentationForZag with
-                                                SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                                SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                        }
-                                        , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                            ({
-                                                internalNodeRepresentationForRoot with
-                                                    SubtreeWithGreaterLevelsForSameTestVariableIndex = zagSubtreeWithLesserLevelsForSameTestVariableIndex
-                                            }
-                                            |> InternalNode
-                                            |> AugmentedInternalNode)                                                                             
-                                        , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
-                                            zagSubtreeWithGreaterLevelsForSameTestVariableIndex
-                          | _ ->
-                                // Degenerate root node only case (level has not been found, found greatest lower bound instead)...
-                                splayAtRootNode ()
-                  | _ ->
-                        // Degenerate root node only case (level has been found)...
-                        splayAtRootNode ()
             accumulateFlankingSubtrees internalNodeRepresentation
                                        BargainBasement.Identity
                                        BargainBasement.Identity
