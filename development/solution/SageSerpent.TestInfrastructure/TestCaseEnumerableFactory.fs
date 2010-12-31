@@ -3,6 +3,9 @@
     open System.Collections
     open System.Collections.Generic
     open System
+    open System.Runtime.Serialization.Formatters.Binary
+    open System.IO
+    open System.Numerics
     open SageSerpent.Infrastructure
     open SageSerpent.Infrastructure.RandomExtensions
     open SageSerpent.Infrastructure.IEnumerableExtensions
@@ -55,9 +58,60 @@
     /// attempt will be made to work around this behaviour and try alternative combinations that satisfy the
     /// strength requirements but create fewer collisions.</remarks>
     
+    module TestCaseEnumerableFactoryDetail =
+        let baseSize =
+            bigint (int32 Byte.MaxValue) + 1I
+                    
+        let serialize (fullTestVector: FullTestVector) =
+            let binaryFormatter = BinaryFormatter ()
+            use memoryStream = new MemoryStream ()
+            binaryFormatter.Serialize (memoryStream, fullTestVector)
+            let byteArray =
+                memoryStream.GetBuffer ()
+            let byteArrayRepresentedByBigInteger =
+                byteArray
+                |> Seq.fold (fun representationOfPreviousBytes
+                                 byte ->
+                                 bigint (int32 byte) + representationOfPreviousBytes * baseSize)
+                            1I  // NOTE: start with one rather than the obvious choice of zero: this avoids losing leading zero-bytes which
+                                // from the point of view of building a number to the base of 'baseSize' are redundant.
+            byteArrayRepresentedByBigInteger
+            
+        let deserialize byteArrayRepresentedByBigInteger =
+            let binaryFormatter = BinaryFormatter ()
+            let byteArray =
+                byteArrayRepresentedByBigInteger
+                |> Seq.unfold (fun representationOfBytes ->
+                                if 1I = representationOfBytes   // NOTE: see comment in implementation of 'serialize'.
+                                then
+                                    None
+                                else
+                                    Some (byte (int32 (representationOfBytes % baseSize))
+                                          , representationOfBytes / baseSize))
+                |> Array.ofSeq
+                |> Array.rev
+            use memoryStream = new MemoryStream (byteArray)
+            binaryFormatter.Deserialize memoryStream
+            |> unbox
+            : FullTestVector
+    
+        let makeDescriptionOfReproductionString fullTestVector =
+            String.Format ("Text token for reproduction of test case follows on next line as C# string:\n\"{0}\"",
+                           (serialize fullTestVector).ToString())
+    open TestCaseEnumerableFactoryDetail
+    
+    type TestCaseReproductionException (fullTestVector
+                                        , innerException) =
+        inherit Exception (makeDescriptionOfReproductionString fullTestVector
+                           , innerException)
+    
     [<AbstractClass>]
     type TestCaseEnumerableFactory (node: Node) =
         member internal this.Node = node
+        
+        abstract ExecuteParameterisedUnitTestForAllTestCases: UInt32 * (Object -> Unit) -> Unit
+        
+        abstract ExecuteParameterisedUnitTestForReproducedTestCase: (Object -> Unit) * String -> Unit
     
         abstract CreateEnumerable: UInt32 -> IEnumerable
         
@@ -66,11 +120,58 @@
     type TypedTestCaseEnumerableFactory<'TestCase> (node: Node) =
         inherit TestCaseEnumerableFactory (node)
         
+        default this.ExecuteParameterisedUnitTestForAllTestCases (maximumDesiredStrength
+                                                                  , parameterisedUnitTest) =
+            this.ExecuteParameterisedUnitTestForAllTypedTestCases (maximumDesiredStrength
+                                                                   , parameterisedUnitTest)
+            
+        default this.ExecuteParameterisedUnitTestForReproducedTestCase (parameterisedUnitTest
+                                                                        , reproductionString) =
+            this.ExecuteParameterisedUnitTestForReproducedTypedTestCase (parameterisedUnitTest
+                                                                         , reproductionString)
+        
         default this.CreateEnumerable maximumDesiredStrength =
             this.CreateTypedEnumerable maximumDesiredStrength
             :> IEnumerable
         
+        default this.MaximumStrength =
+            match this.Node.PruneTree with
+                Some prunedNode ->
+                    prunedNode.MaximumStrengthOfTestVariableCombination
+              | None ->
+                    0u
+                    
         member this.CreateTypedEnumerable maximumDesiredStrength =
+            this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
+            |> Seq.map fst
+            
+        member this.ExecuteParameterisedUnitTestForAllTypedTestCases (maximumDesiredStrength
+                                                                      , parameterisedUnitTest) =
+            for testCase
+                , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength do
+                try
+                    parameterisedUnitTest testCase
+                with
+                    anyException ->
+                        raise (TestCaseReproductionException (fullTestVector
+                                                              , anyException))
+                                                              
+        member this.ExecuteParameterisedUnitTestForReproducedTypedTestCase (parameterisedUnitTest
+                                                                            , reproductionString) =
+            match this.Node.PruneTree with
+                Some prunedNode ->
+                    let fullTestVector =
+                        BigInteger.Parse reproductionString
+                        |> deserialize
+                    let finalValueCreator =
+                        prunedNode.FinalValueCreator ()
+                    let testCase =
+                        finalValueCreator fullTestVector: 'TestCase
+                    parameterisedUnitTest testCase                    
+              | None ->
+                    ()             
+                    
+        member private this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength =
             match this.Node.PruneTree with
                 Some prunedNode ->
                     let associationFromStrengthToPartialTestVectorRepresentations
@@ -78,7 +179,7 @@
                         prunedNode.AssociationFromStrengthToPartialTestVectorRepresentations maximumDesiredStrength
                     let randomBehaviour =
                         Random 0
-                    let randomBehaviourConsumerProducingSequenceOfFinalValues =
+                    let sequenceOfFinalValues =
                         let mergedPartialTestVectorRepresentations =
                             MergedPartialTestVectorRepresentations.Initial
                             // Do a fold back so that high strength vectors get in there first. Hopefully the lesser strength vectors
@@ -100,21 +201,15 @@
                         seq
                             {
                                 for mergedPartialTestVector in mergedPartialTestVectorRepresentations do
-                                    let filledOutPartialTestVectorRepresentation =
+                                    let fullTestVector =
                                         prunedNode.FillOutPartialTestVectorRepresentation associationFromTestVariableIndexToNumberOfItsLevels
                                                                                           mergedPartialTestVector
                                                                                           randomBehaviour
-                                    yield finalValueCreator filledOutPartialTestVectorRepresentation
+                                    yield (finalValueCreator fullTestVector: 'TestCase)
+                                           , fullTestVector
                             }
-                    randomBehaviourConsumerProducingSequenceOfFinalValues
-                    :> IEnumerable<'TestCase>
+                    sequenceOfFinalValues
                     
               | None ->
-                    Seq.empty :> IEnumerable<'TestCase>
+                    Seq.empty
                     
-        default this.MaximumStrength =
-            match this.Node.PruneTree with
-                Some prunedNode ->
-                    prunedNode.MaximumStrengthOfTestVariableCombination
-              | None ->
-                    0u

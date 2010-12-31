@@ -25,12 +25,15 @@ namespace SageSerpent.TestInfrastructure
       | SingletonPlaceholder
       | Exclusion
       
+    type FullTestVector =
+        array<TestVariable<Int32>>
+      
     type IFixedCombinationOfSubtreeNodesForSynthesis =
         abstract Prune: Option<IFixedCombinationOfSubtreeNodesForSynthesis>
     
         abstract Nodes: List<Node>
             
-        abstract FinalValueCreator: Unit -> (List<array<TestVariable<Int32>>> -> 'CallerViewOfSynthesizedTestCase)
+        abstract FinalValueCreator: Unit -> (List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase)
 
     and Node =
         TestVariableNode of array<Object>

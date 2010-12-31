@@ -12,7 +12,7 @@ namespace SageSerpent.TestInfrastructure
     open Microsoft.FSharp.Collections
     
     module MergedPartialTestVectorRepresentationsDetail =
-        type AugmentedInternalNode<'Level when 'Level: comparison>(internalNode: InternalNode<'Level>) =
+        type AugmentedInternalNode<'Level when 'Level: comparison> (internalNode: InternalNode<'Level>) =
             let numberOfLevelsForLeadingTestVariable =
                 match internalNode with
                     {

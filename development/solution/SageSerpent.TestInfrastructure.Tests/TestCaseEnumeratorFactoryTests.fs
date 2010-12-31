@@ -11,6 +11,7 @@
     open System
     open System.Windows.Forms
     open System.Collections.Generic
+    open System.Text.RegularExpressions
     open Microsoft.FSharp.Collections
     open Microsoft.FSharp.Quotations
     open Microsoft.FSharp.Quotations.Patterns
@@ -579,6 +580,69 @@
                     |> Set.count
                      > 0
                 Assert.IsTrue shouldBeTrue
+
+        [<Test>]
+        member this.TestReproductionOfSpecificTestCases () =
+            let randomBehaviour = Random randomBehaviourSeed
+            for _ in 1u .. overallTestRepeats do
+                printf "\n\n\n******************************\n\n\n"
+                let testCaseEnumerableFactory
+                    , _
+                    , _ =
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour false
+                let randomStrength =
+                    randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
+                let randomTestCase =
+                    seq
+                        {
+                            for testCase in testCaseEnumerableFactory.CreateEnumerable randomStrength do
+                                yield testCase
+                        }
+                    |> randomBehaviour.ChooseOneOf
+                let failOnSpecificTestCase testCase =
+                    if randomTestCase = testCase
+                    then
+                        raise (LogicErrorException (testCase.ToString ()))
+                let shouldBeNone =
+                    try testCaseEnumerableFactory.ExecuteParameterisedUnitTestForAllTestCases (randomStrength
+                                                                                               , failOnSpecificTestCase)
+                        |> Some with
+                        :? TestCaseReproductionException as testCaseReproductionException ->
+                            let innerException =
+                                testCaseReproductionException.InnerException
+                            let descriptionOfReproductionString =
+                                testCaseReproductionException.Message
+                            let reproductionString =
+                                let regex =
+                                    Regex @"^[^\""]*""([^\""]*)""$"
+                                let groupsFromMatch =
+                                    (regex.Match descriptionOfReproductionString).Groups
+                                Assert.AreEqual (2
+                                                 , groupsFromMatch.Count)
+                                groupsFromMatch.[1].Value
+                            let shouldBeNone = 
+                                try testCaseEnumerableFactory.ExecuteParameterisedUnitTestForReproducedTestCase (failOnSpecificTestCase
+                                                                                                                 , reproductionString)
+                                    |> Some with
+                                    reproducedException ->
+                                        let shouldBeTrue =
+                                            innerException.Message = reproducedException.Message
+                                        Assert.IsTrue shouldBeTrue
+                                        None
+                            Assert.IsTrue shouldBeNone.IsNone
+                            None
+                      | _ ->
+                            Assert.Fail "No other exception should have been thrown."
+                            None
+                Assert.IsTrue shouldBeNone.IsNone
+                let neverFail =
+                    ignore
+                try testCaseEnumerableFactory.ExecuteParameterisedUnitTestForAllTestCases (randomStrength
+                                                                                           , neverFail) with
+                    :? TestCaseReproductionException as testCaseReproductionException ->
+                        Assert.Fail "Should not be throwing this specific kind of exception if the unit test succeeded."
+                  | _ ->
+                        Assert.Fail "No other exception should have been thrown."                
                 
         [<Test>]
         member this.SmokeTestForProfiling () =

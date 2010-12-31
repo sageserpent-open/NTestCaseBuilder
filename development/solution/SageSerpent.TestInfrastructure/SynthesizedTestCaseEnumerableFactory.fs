@@ -10,7 +10,7 @@ namespace SageSerpent.TestInfrastructure
     type SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase> =
         {
             Prune: unit -> Option<SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase>>
-            ContinuationToApplyResultsFromAllButRightmostFactory: 'SynthesisFunction -> List<array<TestVariable<Int32>>> -> 'SynthesizedTestCase
+            ContinuationToApplyResultsFromAllButRightmostFactory: 'SynthesisFunction -> List<FullTestVector> -> 'SynthesizedTestCase
             NodesInRightToLeftOrder: List<Node>
         }
         
@@ -76,7 +76,8 @@ namespace SageSerpent.TestInfrastructure
                                                     combinationOfAllOtherFactories
             
     and FixedCombinationOfFactoriesForSynthesis<'SynthesisFunction, 'SynthesizedTestCase>
-            (heterogenousCombinationOfFactoriesForSynthesis: SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase>, synthesisFunction) =
+            (heterogenousCombinationOfFactoriesForSynthesis: SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase>
+             , synthesisFunction) =
         let nodes =
             List.rev heterogenousCombinationOfFactoriesForSynthesis.NodesInRightToLeftOrder
             
@@ -98,10 +99,10 @@ namespace SageSerpent.TestInfrastructure
             member this.Nodes =
                 nodes
                 
-            member this.FinalValueCreator (): List<array<TestVariable<Int32>>> -> 'CallerViewOfSynthesizedTestCase =
+            member this.FinalValueCreator (): List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase =
                 match createFinalValueFrom
                       |> box with
-                    :? (List<array<TestVariable<Int32>>> -> 'CallerViewOfSynthesizedTestCase) as finalValueCreatorWithAgreedTypeSignature ->
+                    :? (List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase) as finalValueCreatorWithAgreedTypeSignature ->
                         finalValueCreatorWithAgreedTypeSignature
                         // We have to mediate between the expected precise type of the result and the actual type
                         // that is hidden by the abstracting interface 'IFixedCombinationOfSubtreeNodesForSynthesis'
@@ -112,8 +113,8 @@ namespace SageSerpent.TestInfrastructure
                         // then be repeatedly applied to lots of full test variable vectors by the caller.
                   | _ ->
                         createFinalValueFrom >> box >> unbox
-                            // Plan B: if the caller wants the synthesized test case typed other than 'SynthesizedTestCase
-                            // then lets do a conversion via 'Object'. In practice the desired type will be 'Object' and
+                            // Plan B: if the caller wants the synthesized test case typed other than 'SynthesizedTestCase'
+                            // then let's do a conversion via 'Object'. In practice the desired type will be 'Object' and
                             // the unbox operation will be trivial.
                 
     type UnaryDelegate<'Argument, 'Result> =
