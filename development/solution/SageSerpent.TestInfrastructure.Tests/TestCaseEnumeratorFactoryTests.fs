@@ -605,7 +605,7 @@
                         raise (LogicErrorException (testCase.ToString ()))
                 let shouldBeNone =
                     try testCaseEnumerableFactory.ExecuteParameterisedUnitTestForAllTestCases (randomStrength
-                                                                                               , failOnSpecificTestCase)
+                                                                                               , Action<Object>(failOnSpecificTestCase))
                         |> Some with
                         :? TestCaseReproductionException as testCaseReproductionException ->
                             let innerException =
@@ -621,7 +621,7 @@
                                                  , groupsFromMatch.Count)
                                 groupsFromMatch.[1].Value
                             let shouldBeNone = 
-                                try testCaseEnumerableFactory.ExecuteParameterisedUnitTestForReproducedTestCase (failOnSpecificTestCase
+                                try testCaseEnumerableFactory.ExecuteParameterisedUnitTestForReproducedTestCase (Action<Object>(failOnSpecificTestCase)
                                                                                                                  , reproductionString)
                                     |> Some with
                                     reproducedException ->
@@ -638,7 +638,7 @@
                 let neverFail =
                     ignore
                 try testCaseEnumerableFactory.ExecuteParameterisedUnitTestForAllTestCases (randomStrength
-                                                                                           , neverFail) with
+                                                                                           , Action<Object>(neverFail)) with
                     :? TestCaseReproductionException as testCaseReproductionException ->
                         Assert.Fail "Should not be throwing this specific kind of exception if the unit test succeeded."
                   | _ ->

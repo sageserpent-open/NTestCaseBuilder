@@ -467,23 +467,43 @@ namespace SageSerpent.TestInfrastructure.Examples
 
             var numberOfTestCases = 0ul;
 
-            foreach (PlacementOfOperationsIntoFinalOrder placementOfOperationsIntoFinalOrder in
-                testCasesEnumerableFactory.CreateEnumerable(CombinationStrength))
-            {
-                placementOfOperationsIntoFinalOrder(totalNumberOfOperations, index => index, operations);
-
-                var indexedSortedDictionary = new IndexedSortedDictionary<UInt32, Value>();
-
-                ++numberOfTestCases;
-
-                foreach (var operation in operations)
-                {
-                    //operation(indexedSortedDictionary);
-                    //Assert.IsTrue(BargainBasement.IsSorted(indexedSortedDictionary.Keys));
-                }
-            }
+            testCasesEnumerableFactory.ExecuteParameterisedUnitTestForAllTypedTestCases(CombinationStrength,
+                                                                                        testCase
+                                                                                        =>
+                                                                                        ExerciseTestCase(
+                                                                                            testCase,
+                                                                                            totalNumberOfOperations,
+                                                                                            operations,
+                                                                                            ref numberOfTestCases));
 
             System.Diagnostics.Debug.Print("Number of test cases: {0}.\n", numberOfTestCases);
+        }
+
+        private static void ExerciseTestCase(PlacementOfOperationsIntoFinalOrder testCase,
+                                             UInt32 totalNumberOfOperations, IList<Operation> operations,
+                                             ref UInt64 numberOfTestCases)
+        {
+            testCase
+                (totalNumberOfOperations,
+                 index => index,
+                 operations);
+
+            var
+                indexedSortedDictionary
+                    =
+                    new IndexedSortedDictionary
+                        <UInt32,
+                            Value>();
+
+            ++numberOfTestCases;
+
+            foreach (
+                var operation in
+                    operations)
+            {
+                //operation(indexedSortedDictionary);
+                //Assert.IsTrue(BargainBasement.IsSorted(indexedSortedDictionary.Keys));
+            }
         }
     }
 }
