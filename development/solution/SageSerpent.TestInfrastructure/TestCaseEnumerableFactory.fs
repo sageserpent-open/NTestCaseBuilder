@@ -48,7 +48,7 @@
             : FullTestVector
     
         let makeDescriptionOfReproductionString fullTestVector =
-            String.Format ("Text token for reproduction of test case follows on next line as C# string:\n\"{0}\"",
+            String.Format ("Encoded text for reproduction of test case follows on next line as C# string:\n\"{0}\"",
                            (serialize fullTestVector).ToString())
     open TestCaseEnumerableFactoryDetail
     
@@ -114,19 +114,42 @@
     /// whereby several distinct combinations of simpler test cases all create the same output test case, then no
     /// attempt will be made to work around this behaviour and try alternative combinations that satisfy the
     /// strength requirements but create fewer collisions.</remarks>
-    
     [<AbstractClass>]
     type TestCaseEnumerableFactory (node: Node) =
         member internal this.Node = node
         
+        /// <summary>Creates an enumerable sequence of test cases during execution and repeatedly executes
+        /// a parameterised unit test for each test case in the sequence.</summary>
+        /// <remarks>If an exception is thrown during execution of the unit test for some test case in the sequence, then this is
+        /// wrapped as an inner exception into an instance of TestCaseReproductionException. The test case reproduction exception
+        /// also contains a description of a text token (denoted by a string literal) that can be cut and pasted into a call to
+        /// the ExecuteParameterisedUnitTestForReproducedTestCase method to reproduce the failing test case without going over
+        /// the other successful test cases.</remarks>
+        /// <param name="maximumDesiredStrength">Maximum strength of test variable combinations that must be covered by the sequence.</param>
+        /// <param name="parameterisedUnitTest">A call to this delegate runs a unit test over the test case passed in as the single parameter.</param>
+        /// <seealso cref="ExecuteParameterisedUnitTestForReproducedTestCase"/>
         abstract ExecuteParameterisedUnitTestForAllTestCases: UInt32 * Action<Object> -> Unit
         
+        /// <summary>Executes a parameterised unit test for some specific test case described by a reproduction string.</summary>
+        /// <remarks>The reproduction string is obtained by catching (or examining via a debugger) a test case reproduction exeception
+        /// obtained while running ExecuteParameterisedUnitTestForAllTestCases.</remarks>
+        /// <param name="parameterisedUnitTest">A call to this delegate runs a unit test over the test case passed in as the single parameter.</param>
+        /// <param name="reproductionString">Encoded text that reproduces the test case: this is obtained by inspection of a test case reproduction
+        /// exception when running a failing test via ExecuteParameterisedUnitTestForAllTestCases.</param>
         abstract ExecuteParameterisedUnitTestForReproducedTestCase: Action<Object> * String -> Unit
     
+        /// <summary>Creates an emumerable sequence of test cases that provides a guarantee of strength of
+        /// combination of test variables across the entire sequence.</summary>
+        /// <param name="maximumDesiredStrength">Maximum strength of test variable combinations that must be covered by the sequence.</param>
+        /// <returns>A sequence of test cases typed as a non-generic IEnumerable.</returns>
         abstract CreateEnumerable: UInt32 -> IEnumerable
         
+        /// <value>The maximum strength of combination of test variables that the factory can make guarantees about in a call to CreateEnumerable.</value>
         abstract MaximumStrength: UInt32
         
+    /// <summary>This extends the API provided by TestCaseEnumerableFactory to deal with test cases of a specific type given
+    /// by the type parameter TestCase.</summary>
+    /// <seealso cref="TestCaseEnumerableFactory">The core API provided by the baseclass.</seealso>
     type TypedTestCaseEnumerableFactory<'TestCase> (node: Node) =
         inherit TestCaseEnumerableFactory (node)
         

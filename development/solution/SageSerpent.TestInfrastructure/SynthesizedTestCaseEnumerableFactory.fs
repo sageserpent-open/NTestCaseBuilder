@@ -7,6 +7,9 @@ namespace SageSerpent.TestInfrastructure
     open SageSerpent.Infrastructure.OptionWorkflow
     open BargainBasement
     
+    /// <summary>Low-level F#-specific API for collecting together child factories to construct a synthesized TestCaseEnumerableFactory.</summary>
+    /// <seealso cref="SynthesizedTestCaseEnumerableFactory">Higher-level facade API that encapsulates usage of this class: try this first.</seealso>
+    /// <seealso cref="FixedCombinationOfFactoriesForSynthesis">Cooperating class</seealso>
     type SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase> =
         {
             Prune: unit -> Option<SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase>>
@@ -75,6 +78,9 @@ namespace SageSerpent.TestInfrastructure
             createCombinationWithExtraRightmostNode nodeFromRightmostFactory
                                                     combinationOfAllOtherFactories
             
+    /// <summary>Low-level F#-specific API for collecting together child factories to construct a synthesized TestCaseEnumerableFactory.</summary>
+    /// <seealso cref="SynthesizedTestCaseEnumerableFactory">Higher-level facade API that encapsulates usage of this class: try this first.</seealso>
+    /// <seealso cref="SynthesisInputs">Cooperating class</seealso>
     and FixedCombinationOfFactoriesForSynthesis<'SynthesisFunction, 'SynthesizedTestCase>
             (heterogenousCombinationOfFactoriesForSynthesis: SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase>
              , synthesisFunction) =
@@ -148,6 +154,11 @@ namespace SageSerpent.TestInfrastructure
                                             synthesisDelegate
             TypedTestCaseEnumerableFactory<_> node
             :> TestCaseEnumerableFactory
+            
+        static member inline Create (fixedCombinationOfSubtreeNodesForSynthesis: FixedCombinationOfFactoriesForSynthesis<_, 'SynthesizedTestCase>) =
+            TypedTestCaseEnumerableFactory<'SynthesizedTestCase> (fixedCombinationOfSubtreeNodesForSynthesis
+                                                                  :> IFixedCombinationOfSubtreeNodesForSynthesis
+                                                                  |> SynthesizingNode)
    
         // TODO: re-implement with special-case implementations of 'IFixedCombinationOfSubtreeNodesForSynthesis';
         // we don't need the full API using 'SynthesisInputs<_, _>' to do these tuple cases.
@@ -159,9 +170,7 @@ namespace SageSerpent.TestInfrastructure
             let fixedCombinationOfSubtreeNodesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (singletonCombinationOfFactoriesForSynthesis
                                                          , synthesisDelegate.Invoke)
-            TypedTestCaseEnumerableFactory<'SynthesizedTestCase> (fixedCombinationOfSubtreeNodesForSynthesis
-                                                                  :> IFixedCombinationOfSubtreeNodesForSynthesis
-                                                                  |> SynthesizingNode)
+            SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfSubtreeNodesForSynthesis
                                        
         static member Create (argumentOne: TypedTestCaseEnumerableFactory<_>,
                               argumentTwo: TypedTestCaseEnumerableFactory<_>,
@@ -174,9 +183,7 @@ namespace SageSerpent.TestInfrastructure
             let fixedCombinationOfSubtreeNodesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
-            TypedTestCaseEnumerableFactory<'SynthesizedTestCase> (fixedCombinationOfSubtreeNodesForSynthesis
-                                                                  :> IFixedCombinationOfSubtreeNodesForSynthesis
-                                                                  |> SynthesizingNode)
+            SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfSubtreeNodesForSynthesis
                                        
         static member Create (argumentOne: TypedTestCaseEnumerableFactory<_>,
                               argumentTwo: TypedTestCaseEnumerableFactory<_>,
@@ -193,9 +200,7 @@ namespace SageSerpent.TestInfrastructure
             let fixedCombinationOfSubtreeNodesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
-            TypedTestCaseEnumerableFactory<'SynthesizedTestCase> (fixedCombinationOfSubtreeNodesForSynthesis
-                                                                  :> IFixedCombinationOfSubtreeNodesForSynthesis
-                                                                  |> SynthesizingNode)
+            SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfSubtreeNodesForSynthesis
             
         static member Create (argumentOne: TypedTestCaseEnumerableFactory<_>,
                               argumentTwo: TypedTestCaseEnumerableFactory<_>,
@@ -216,9 +221,7 @@ namespace SageSerpent.TestInfrastructure
             let fixedCombinationOfSubtreeNodesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
-            TypedTestCaseEnumerableFactory<'SynthesizedTestCase> (fixedCombinationOfSubtreeNodesForSynthesis
-                                                                  :> IFixedCombinationOfSubtreeNodesForSynthesis
-                                                                  |> SynthesizingNode)
+            SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfSubtreeNodesForSynthesis
 
         static member Create (argumentOne: TypedTestCaseEnumerableFactory<_>,
                               argumentTwo: TypedTestCaseEnumerableFactory<_>,
@@ -243,6 +246,4 @@ namespace SageSerpent.TestInfrastructure
             let fixedCombinationOfSubtreeNodesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, _, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
-            TypedTestCaseEnumerableFactory<'SynthesizedTestCase> (fixedCombinationOfSubtreeNodesForSynthesis
-                                                                  :> IFixedCombinationOfSubtreeNodesForSynthesis
-                                                                  |> SynthesizingNode)
+            SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfSubtreeNodesForSynthesis
