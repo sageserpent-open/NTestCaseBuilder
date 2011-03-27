@@ -24,7 +24,7 @@
     <WarningLevel>3</WarningLevel>
     <OtherFlags>
     </OtherFlags>
-    <DocumentationFile>bin\Debug\.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\SageSerpent.Infrastructure.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -33,9 +33,9 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\.XML</DocumentationFile>
     <OtherFlags>
     </OtherFlags>
+    <DocumentationFile>bin\Release\SageSerpent.Infrastructure.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInformation.fs" />
