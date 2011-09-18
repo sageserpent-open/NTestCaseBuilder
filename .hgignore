@@ -1,0 +1,16 @@
+syntax:glob
+*~
+Debug
+Release
+obj
+bin
+*.ncb
+*.dat
+*[Rr]eSharper*
+*.pdb
+*DXCore.Solution
+*.vcproj*.user
+*.suo
+
+
+
