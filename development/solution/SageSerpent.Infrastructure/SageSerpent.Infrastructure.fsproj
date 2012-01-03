@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Infrastructure</RootNamespace>
     <AssemblyName>SageSerpent.Infrastructure</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Name>SageSerpent.Infrastructure</Name>
     <TargetFrameworkProfile />
@@ -58,7 +58,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FSharp.Core" />
     <Reference Include="mscorlib" />
     <Reference Include="nunit-console-runner">
       <Private>True</Private>

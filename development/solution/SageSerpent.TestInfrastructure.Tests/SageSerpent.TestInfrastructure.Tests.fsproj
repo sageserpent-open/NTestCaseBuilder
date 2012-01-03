@@ -9,7 +9,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>SageSerpent.TestInfrastructure.TestsInFSharp</RootNamespace>
     <AssemblyName>SageSerpent.TestInfrastructure.Tests</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Name>SageSerpent.TestInfrastructure.Tests</Name>
     <TargetFrameworkProfile />
@@ -38,6 +38,9 @@
     <Compile Include="MergedPartialTestVectorRepresentationsTests.fs" />
     <Compile Include="TestCaseEnumeratorFactoryTests.fs" />
     <Compile Include="Driver.fs" />
+    <None Include="App.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Script.fsx" />
     <None Include="..\ThirdParty\NUnit\bin\net-2.0\framework\nunit.framework.dll">
       <Link>nunit.framework.dll</Link>
@@ -47,7 +50,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FSharp.Core" />
     <Reference Include="FSharp.PowerPack, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809" />
     <Reference Include="FSharp.PowerPack.Linq, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809" />
     <Reference Include="mscorlib" />
@@ -58,7 +60,6 @@
       <HintPath>..\ThirdParty\PowerCollections\Binaries\PowerCollections.dll</HintPath>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="System.Core, Version=3.5.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
     <Reference Include="System.Windows.Forms" />
     <ProjectReference Include="..\SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj">
       <Name>SageSerpent.Infrastructure</Name>

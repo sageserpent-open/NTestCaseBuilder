@@ -9,7 +9,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>Tests</RootNamespace>
     <AssemblyName>SageSerpent.Infrastructure.Tests</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Name>SageSerpent.Infrastructure.Tests</Name>
     <TargetFrameworkProfile />
@@ -43,9 +43,11 @@
     <None Include="..\ThirdParty\NUnit\bin\net-2.0\framework\nunit.framework.dll">
       <Link>nunit.framework.dll</Link>
     </None>
+    <None Include="App.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FSharp.Core" />
     <Reference Include="mscorlib" />
     <Reference Include="nunit.framework">
       <Private>True</Private>

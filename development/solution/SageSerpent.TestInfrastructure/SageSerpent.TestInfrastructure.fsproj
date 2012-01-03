@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>TestInfrastructure</RootNamespace>
     <AssemblyName>SageSerpent.TestInfrastructure</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Name>SageSerpent.TestInfrastructure</Name>
     <TargetFrameworkProfile />
@@ -52,13 +52,14 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FSharp.Core" />
     <Reference Include="FSharp.PowerPack, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809" />
     <Reference Include="mscorlib" />
     <Reference Include="PowerCollections">
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Workflow.ComponentModel" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj">
