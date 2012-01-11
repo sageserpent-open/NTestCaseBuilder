@@ -4,7 +4,7 @@
     open System.Collections.Generic
     open System
 
-    [<CustomComparison; CustomEquality>]
+    [<CustomComparison; StructuralEquality>]
     type Unbounded<'X> when 'X: comparison=
         Finite of 'X
       | PositiveInfinity
@@ -39,15 +39,3 @@
                   | _
                     , NegativeInfinity ->
                         1
-                        
-        override this.Equals another =
-            0 = (this :> IComparable).CompareTo another
-            
-        override this.GetHashCode () =
-            match this with
-                Finite unlifted ->
-                    2 + hash unlifted
-              | PositiveInfinity ->
-                    1
-              | NegativeInfinity ->
-                    0
