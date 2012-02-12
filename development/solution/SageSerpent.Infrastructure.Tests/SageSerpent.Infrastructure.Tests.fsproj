@@ -39,8 +39,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="CombinatoricUtilitiesTests.fs" />
-    <Compile Include="Driver.fs" />
     <Compile Include="UnboundedTests.fs" />
+    <Compile Include="Driver.fs" />
     <None Include="..\ThirdParty\NUnit\bin\net-2.0\framework\nunit.framework.dll">
       <Link>nunit.framework.dll</Link>
     </None>
