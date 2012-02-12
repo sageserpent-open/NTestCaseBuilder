@@ -40,13 +40,13 @@
   <ItemGroup>
     <Compile Include="CombinatoricUtilitiesTests.fs" />
     <Compile Include="Driver.fs" />
+    <Compile Include="UnboundedTests.fs" />
     <None Include="..\ThirdParty\NUnit\bin\net-2.0\framework\nunit.framework.dll">
       <Link>nunit.framework.dll</Link>
     </None>
     <None Include="App.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <Compile Include="UnboundedTests.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
