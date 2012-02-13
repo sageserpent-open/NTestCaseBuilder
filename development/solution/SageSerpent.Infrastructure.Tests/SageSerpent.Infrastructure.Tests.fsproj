@@ -43,6 +43,7 @@
     <None Include="..\ThirdParty\NUnit\bin\net-2.0\framework\nunit.framework.dll">
       <Link>nunit.framework.dll</Link>
     </None>
+    <Compile Include="UnboundedTests.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
