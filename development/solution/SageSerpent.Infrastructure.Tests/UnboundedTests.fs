@@ -42,8 +42,6 @@
 
             Assert.IsTrue (NegativeInfinity < twentyThree)
 
-            let positiveInfinity = PositiveInfinity
-
             Assert.IsTrue (positiveInfinity > fortyFive)
 
             Assert.IsTrue (positiveInfinity > Finite 45)
@@ -78,15 +76,15 @@
                 NegativeInfinity = NegativeInfinity
             Assert.IsTrue shouldBeTrue
 
-            Assert.IsTrue (NegativeInfinity <= NegativeInfinity && NegativeInfinity >= NegativeInfinity)
             Assert.IsTrue (not (NegativeInfinity > NegativeInfinity || NegativeInfinity < NegativeInfinity))
+            Assert.IsTrue (NegativeInfinity <= NegativeInfinity && NegativeInfinity >= NegativeInfinity)
 
             let shouldBeTrue =
                 PositiveInfinity = PositiveInfinity
             Assert.IsTrue shouldBeTrue
 
-            Assert.IsTrue (PositiveInfinity <= PositiveInfinity && PositiveInfinity >= PositiveInfinity)
             Assert.IsTrue (not (PositiveInfinity > PositiveInfinity || PositiveInfinity < PositiveInfinity))
+            Assert.IsTrue (PositiveInfinity <= PositiveInfinity && PositiveInfinity >= PositiveInfinity)
 
             Assert.IsTrue (NegativeInfinity <> PositiveInfinity)
             Assert.IsTrue (NegativeInfinity < PositiveInfinity)
