@@ -23,7 +23,7 @@
             
 
         [<Test>]
-        member this.testFinitesAndInfinitesInCombination () =
+        member this.TestFinitesAndInfinitesInCombination () =
             Assert.IsTrue (negativeInfinity < fortyFive)
 
             Assert.IsTrue (negativeInfinity < Finite 45)
