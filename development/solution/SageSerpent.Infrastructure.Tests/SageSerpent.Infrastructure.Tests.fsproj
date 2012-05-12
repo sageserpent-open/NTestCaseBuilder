@@ -49,9 +49,18 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="ExportedScalaPort">
+      <HintPath>Y:\JarToIKVMCSandbox\ExportedScalaPort.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.Core">
+      <HintPath>C:\ikvm-7.0.4335.0\bin\IKVM.OpenJDK.Core.dll</HintPath>
+    </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="nunit.framework">
       <Private>True</Private>
+    </Reference>
+    <Reference Include="scala-library">
+      <HintPath>Y:\JarToIKVMCSandbox\scala-library.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <ProjectReference Include="..\SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj">

@@ -2,79 +2,91 @@
 
     open NUnit.Framework
 
+    open scala.util
+    open scala.collection.immutable
+    open com.sageserpent.infrastructure
     open SageSerpent.Infrastructure
-    open System
-    open RandomExtensions
 
     [<TestFixture>]
     type RandomExtensionsTestFixture() =
-        let inclusiveUpToExclusiveRange inclusiveLimit exclusiveLimit =
-            Seq.init (int32 (exclusiveLimit - inclusiveLimit)) (fun x -> inclusiveLimit + uint32 x)
+        let inclusiveUpToExclusiveRange inclusiveLowerLimit exclusiveUpperLimit =
+            Range(inclusiveLowerLimit, exclusiveUpperLimit, 1)
+
+        let inclusiveUpToInclusiveRange inclusiveLowerLimit inclusiveUpperLimit =
+            Range.Inclusive(inclusiveLowerLimit, inclusiveUpperLimit, 1)
+
+        let jemmyScalaCollectionToFSharpSeq (scalaCollection: scala.collection.Seq): seq<'X> =
+            let iterator = scalaCollection.iterator()
+
+            seq {
+                while iterator.hasNext() do
+                    yield unbox<'X> (iterator.next())
+            }
 
         let commonTestStructureForTestingOfChoosingSeveralItems testOnSuperSetAndItemsChosenFromIt =
-            let  random = Random 1
+            let  random = RichRandom (Random 1)
 
-            for inclusiveLowerBound in 58u .. 98u do
-                for numberOfConsecutiveItems in 1u .. 50u do
-                    let superSet = inclusiveUpToExclusiveRange inclusiveLowerBound (inclusiveLowerBound + numberOfConsecutiveItems) |> Set.ofSeq
-                    for subsetSize in 1u .. numberOfConsecutiveItems do
+            for inclusiveLowerBound in 58 .. 98 do
+                for numberOfConsecutiveItems in 1 .. 50 do
+                    let superSet = (inclusiveUpToExclusiveRange inclusiveLowerBound (inclusiveLowerBound + numberOfConsecutiveItems)).toSet()
+                    for subsetSize in 1 .. numberOfConsecutiveItems do
                         for _ in 1 .. 10 do
-                            let chosenItems = random.ChooseSeveralOf(superSet, subsetSize)
+                            let chosenItems = random.chooseSeveralOf(superSet, subsetSize)
                             testOnSuperSetAndItemsChosenFromIt superSet chosenItems subsetSize
 
         let pig maximumUpperBound =
-            let random = Random 678
-            let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0u maximumUpperBound
+            let random = RichRandom (Random 678)
+            let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0 maximumUpperBound
     
             for _ in 1 .. 10 do
-                let chosenItems = random.ChooseSeveralOf(concreteRangeOfIntegers, maximumUpperBound)
-                for chosenItem in chosenItems do
+                let chosenItems = random.chooseSeveralOf(concreteRangeOfIntegers, maximumUpperBound)
+                for chosenItem in chosenItems |> jemmyScalaCollectionToFSharpSeq do
                     ()  
 
         [<Test>]
         member this.TestCoverageOfIntegersUpToExclusiveUpperBound() =
-            let random = Random 29
+            let random = RichRandom (Random 29)
 
-            let maximumUpperBound = 30u
+            let maximumUpperBound = 30
 
-            for upperBound in 0u .. maximumUpperBound do
-                let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0u upperBound
+            for upperBound in 0 .. maximumUpperBound do
+                let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0 upperBound
 
-                let chosenItems = random.ChooseSeveralOf(concreteRangeOfIntegers, upperBound)
-                let expectedRange = inclusiveUpToExclusiveRange 0u upperBound
-                let shouldBeTrue = (chosenItems |> Set.ofArray) = (expectedRange |> Set.ofSeq)
+                let chosenItems = random.chooseSeveralOf(concreteRangeOfIntegers, upperBound)
+                let expectedRange = inclusiveUpToExclusiveRange 0 upperBound
+                let shouldBeTrue = chosenItems.toSet() = expectedRange.toSet()
                 Assert.IsTrue shouldBeTrue
 
         [<Test>]
         member this.TestUniquenessOfIntegersProduced() =
-            let random = Random 678
+            let random = RichRandom (Random 678)
 
-            let maximumUpperBound = 30u
+            let maximumUpperBound = 30
 
-            for upperBound in 0u .. maximumUpperBound do
-                let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0u upperBound
+            for upperBound in 0 .. maximumUpperBound do
+                let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0 upperBound
 
-                let chosenItems = random.ChooseSeveralOf(concreteRangeOfIntegers, upperBound)
-                let shouldBeTrue = upperBound = (chosenItems |> Set.ofArray |> Seq.length |> uint32)
+                let chosenItems = random.chooseSeveralOf(concreteRangeOfIntegers, upperBound)
+                let shouldBeTrue = upperBound = chosenItems.toSet().size()
                 Assert.IsTrue shouldBeTrue
-                let shouldBeTrue = upperBound = (chosenItems |> Array.length |> uint32)
+                let shouldBeTrue = upperBound = chosenItems.size()
                 Assert.IsTrue shouldBeTrue
 
         [<Test>]
         member this.TestDistributionOfSuccessiveSequencesWithTheSameUpperBound() =
-            let random = Random 1
+            let random = RichRandom (Random 1)
 
-            let maximumUpperBound = 30u
+            let maximumUpperBound = 30
 
-            for upperBound in 0u .. maximumUpperBound do
-                let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0u upperBound
+            for upperBound in 0 .. maximumUpperBound do
+                let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0 upperBound
 
                 let numberOfTrials = 100000
 
                 let itemToCountAndSumOfPositionsMap = Array.create (int32 upperBound) (0, 0.0)
 
                 for _ in 1 .. numberOfTrials do
-                    for position, item in random.ChooseSeveralOf(concreteRangeOfIntegers, upperBound) |> Seq.mapi (fun position item -> position, item) do
+                    for position, item in random.chooseSeveralOf(concreteRangeOfIntegers, upperBound) |> jemmyScalaCollectionToFSharpSeq |> Seq.mapi (fun position item -> position, item) do
                         let count, sumOfPositions = itemToCountAndSumOfPositionsMap.[int32 item]
                         itemToCountAndSumOfPositionsMap.[int32 item] <- 1 + count, (float position + sumOfPositions)
 
@@ -83,7 +95,7 @@
                 let shouldBeTrue =
                     itemToCountAndSumOfPositionsMap
                     |> Seq.forall (fun (count, sumOfPositions)
-                                    -> let difference = (sumOfPositions / (float count) - float (0u + upperBound - 1u) / 2.0)
+                                    -> let difference = (sumOfPositions / (float count) - float (0 + upperBound - 1) / 2.0)
                                        difference < toleranceEpsilon)     
 
                 Assert.IsTrue shouldBeTrue
@@ -91,89 +103,89 @@
         [<Test>]
         member this.TestThatAllItemsChosenBelongToTheSourceSequence() =
             commonTestStructureForTestingOfChoosingSeveralItems (fun superSet chosenItems _ ->
-                                                                    let shouldBeTrue = (chosenItems |> Set.ofArray).IsSubsetOf superSet
+                                                                    let shouldBeTrue = chosenItems.toSet().subsetOf(superSet)
                                                                     Assert.IsTrue shouldBeTrue)
 
         [<Test>]
         member this.TestThatTheNumberOfItemsRequestedIsHonouredIfPossible() =
             commonTestStructureForTestingOfChoosingSeveralItems (fun _ chosenItems subsetSize ->
-                                                                    let shouldBeTrue = (chosenItems |> Array.length) = (subsetSize |> int32)
+                                                                    let shouldBeTrue = chosenItems.size() = subsetSize
                                                                     Assert.IsTrue shouldBeTrue)
 
         [<Test>]
         member this.TestThatUniqueItemsInTheSourceSequenceAreNotDuplicated() =
             commonTestStructureForTestingOfChoosingSeveralItems (fun _ chosenItems _ ->
-                                                                    let shouldBeTrue = (chosenItems |> Set.ofArray |> Seq.length) = (chosenItems |> Array.length)
+                                                                    let shouldBeTrue = chosenItems.toSet().size() = chosenItems.size()
                                                                     Assert.IsTrue shouldBeTrue)
 
         [<Test>]
         member this.TestThatChoosingItemsRepeatedlyEventuallyCoversAllPermutations() =
             let empiricallyDeterminedMultiplicationFactorToEnsureCoverage = double 70500 / (BargainBasement.Factorial 7u |> double)
 
-            let random = Random 1
+            let random = RichRandom (Random 1)
 
-            for inclusiveLowerBound in 58u .. 98u do
-                for numberOfConsecutiveItems in 1u .. 7u do
-                    let superSet = inclusiveUpToExclusiveRange inclusiveLowerBound (inclusiveLowerBound + numberOfConsecutiveItems) |> Set.ofSeq
-                    for subsetSize in 1u .. numberOfConsecutiveItems do
-                        let expectedNumberOfPermutations = BargainBasement.NumberOfPermutations numberOfConsecutiveItems subsetSize
+            for inclusiveLowerBound in 58 .. 98 do
+                for numberOfConsecutiveItems in 1 .. 7 do
+                    let superSet = (inclusiveUpToExclusiveRange inclusiveLowerBound (inclusiveLowerBound + numberOfConsecutiveItems)).toSet()
+                    for subsetSize in 1 .. numberOfConsecutiveItems do
+                        let expectedNumberOfPermutations = BargainBasement.NumberOfPermutations (numberOfConsecutiveItems |> uint32) (subsetSize |> uint32)
                         let oversampledOutputs =
                             seq {
-                                for _ in 1 .. Math.Ceiling(empiricallyDeterminedMultiplicationFactorToEnsureCoverage * double expectedNumberOfPermutations) |> int32 do
-                                    yield random.ChooseSeveralOf(superSet, subsetSize) |> List.ofArray
+                                for _ in 1 .. scala.math.package.ceil(empiricallyDeterminedMultiplicationFactorToEnsureCoverage * double expectedNumberOfPermutations) |> int32 do
+                                    yield random.chooseSeveralOf(superSet, subsetSize) |> jemmyScalaCollectionToFSharpSeq |> List.ofSeq
                                 }
                         let shouldBeTrue = oversampledOutputs |> Set.ofSeq |> Seq.length = (expectedNumberOfPermutations |> int32)
                         Assert.IsTrue shouldBeTrue
 
         [<Test>]
         member this.TestPig0GetInTheTrough() =
-            pig 64000u
+            pig 64000
 
         [<Test>]
         member this.TestPig1() =
-            pig 1000u
+            pig 1000
 
         [<Test>]
         member this.TestPig2() =
-            pig 2000u
+            pig 2000
 
         [<Test>]
         member this.TestPig3() =
-            pig 4000u
+            pig 4000
 
         [<Test>]
         member this.TestPig4() =
-            pig 8000u
+            pig 8000
 
         [<Test>]
         member this.TestPig5() =
-            pig 16000u
+            pig 16000
 
         [<Test>]
         member this.TestPig6() =
-            pig 32000u
+            pig 32000
 
         [<Test>]
         member this.TestPig7() =
-            pig 64000u
+            pig 64000
 
         [<Test>]
         member this.TestPig8() =
-            pig 50000u
+            pig 50000
 
         [<Test>]
         member this.TestPig9() =
-            pig 100000u
+            pig 100000
 
         [<Test>]
         member this.TestPig10() =
-            pig 200000u
+            pig 200000
 
         [<Test>]
         member this.TestPig11() =
-            pig 500000u
+            pig 500000
 
         [<Test>]
         member this.TestPig12() =
-            pig 1000000u
+            pig 1000000
 
