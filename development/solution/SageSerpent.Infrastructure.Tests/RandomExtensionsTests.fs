@@ -15,12 +15,13 @@
         let inclusiveUpToInclusiveRange inclusiveLowerLimit inclusiveUpperLimit =
             Range.Inclusive(inclusiveLowerLimit, inclusiveUpperLimit, 1)
 
-        let jemmyScalaCollectionToFSharpSeq (scalaCollection: scala.collection.Seq): seq<'X> =
+        let jemmyScalaCollectionToFSharpSeq (scalaCollection: scala.collection.Seq) =
             let iterator = scalaCollection.iterator()
 
             seq {
                 while iterator.hasNext() do
-                    yield unbox<'X> (iterator.next())
+                    let mysterioso = iterator.next()    
+                    yield (unbox<java.lang.Number> mysterioso).intValue()
             }
 
         let commonTestStructureForTestingOfChoosingSeveralItems testOnSuperSetAndItemsChosenFromIt =
