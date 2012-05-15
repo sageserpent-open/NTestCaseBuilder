@@ -230,9 +230,11 @@ module SageSerpent.Infrastructure.RandomExtensions
 
                           | true
                             , true ->
-                                match compare indexOfVacantSlotAsOrderedByMissingItem effectiveIndexAssociatedWithThisInteriorNode with
-                                    -1 -> recurseOnLesserSubtree ()
-                                  | _ -> recurseOnGreaterSubtree ()
+                                if 0 > compare indexOfVacantSlotAsOrderedByMissingItem effectiveIndexAssociatedWithThisInteriorNode
+                                then
+                                    recurseOnLesserSubtree ()
+                                else
+                                    recurseOnGreaterSubtree ()
 
                   | EmptySubtree ->
                         let generatedItem = inclusiveLowerBound + indexOfVacantSlotAsOrderedByMissingItem
