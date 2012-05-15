@@ -302,7 +302,7 @@ module SageSerpent.Infrastructure.RandomExtensions
                     let (chosenItemsAsBinaryTree, chosenItem) =
                         previouslyChosenItemsAsBinaryTree.AddNewItemInTheVacantSlotAtIndex(this.ChooseAnyNumberFromZeroToOneLessThan(uint32 exclusiveLimitOnVacantSlotIndex) |> int32, exclusiveLimit)
 
-                    LazyList.cons (uint32 chosenItem) (chooseAndRecordUniqueItems (exclusiveLimitOnVacantSlotIndex - 1) chosenItemsAsBinaryTree)
+                    LazyList.consDelayed (uint32 chosenItem) (fun () -> chooseAndRecordUniqueItems (exclusiveLimitOnVacantSlotIndex - 1) chosenItemsAsBinaryTree)
 
             chooseAndRecordUniqueItems exclusiveLimit EmptySubtree
 
