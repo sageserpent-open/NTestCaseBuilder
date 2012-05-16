@@ -297,12 +297,16 @@ module SageSerpent.Infrastructure.RandomExtensions
             let rec chooseAndRecordUniqueItems exclusiveLimitOnVacantSlotIndex (previouslyChosenItemsAsBinaryTree: BinaryTreeNode) =
                 if 0 = exclusiveLimitOnVacantSlotIndex
                     then
-                        LazyList.empty
+                        Seq.empty
                 else
                     let (chosenItemsAsBinaryTree, chosenItem) =
                         previouslyChosenItemsAsBinaryTree.AddNewItemInTheVacantSlotAtIndex(this.ChooseAnyNumberFromZeroToOneLessThan(uint32 exclusiveLimitOnVacantSlotIndex) |> int32, exclusiveLimit)
 
-                    LazyList.consDelayed (uint32 chosenItem) (fun () -> chooseAndRecordUniqueItems (exclusiveLimitOnVacantSlotIndex - 1) chosenItemsAsBinaryTree)
+                    seq
+                        {
+                            yield uint32 chosenItem
+                            yield! chooseAndRecordUniqueItems (exclusiveLimitOnVacantSlotIndex - 1) chosenItemsAsBinaryTree
+                        }
 
             chooseAndRecordUniqueItems exclusiveLimit EmptySubtree
 
@@ -338,7 +342,7 @@ module SageSerpent.Infrastructure.RandomExtensions
                 let permutationOfIndicesOfOriginalOrderOfCandidates = this.BuildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(numberOfCandidates)
 
                 [|
-                        for permutedIndex in permutationOfIndicesOfOriginalOrderOfCandidates |> LazyList.take (int32 numberToChoose) do
+                        for permutedIndex in permutationOfIndicesOfOriginalOrderOfCandidates |> Seq.take (int32 numberToChoose) do
                             yield candidatesWithRandomAccess.[int32 permutedIndex]
                  |]
 
