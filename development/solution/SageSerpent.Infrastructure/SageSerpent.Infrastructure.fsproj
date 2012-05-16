@@ -42,13 +42,8 @@
     <Compile Include="Exceptions.fs" />
     <Compile Include="Unbounded.fs" />
     <Compile Include="RandomExtensions.fs" />
-    <Compile Include="IEnumerableExtensions.fs" />
-    <Compile Include="ListExtensions.fs" />
     <Compile Include="BargainBasement.fs" />
-    <Compile Include="CombinatoricUtilities.fs" />
     <Compile Include="NUnitTestSuiteDriver.fs" />
-    <Compile Include="OptionWorkflow.fs" />
-    <Compile Include="OptionExtensions.fs" />
     <None Include="Script.fsx" />
     <None Include="..\ThirdParty\PowerCollections\Binaries\PowerCollections.dll">
       <Link>PowerCollections.dll</Link>

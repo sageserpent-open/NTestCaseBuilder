@@ -38,7 +38,6 @@
     </OtherFlags>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="CombinatoricUtilitiesTests.fs" />
     <Compile Include="UnboundedTests.fs" />
     <Compile Include="RandomExtensionsTests.fs" />
     <Compile Include="Driver.fs" />
