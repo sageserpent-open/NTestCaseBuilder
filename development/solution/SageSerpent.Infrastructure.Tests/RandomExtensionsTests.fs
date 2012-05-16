@@ -108,7 +108,7 @@
 
         [<Test>]
         member this.TestThatChoosingItemsRepeatedlyEventuallyCoversAllPermutations() =
-            let empiricallyDeterminedMultiplicationFactorToEnsureCoverage = double 70800 / (BargainBasement.Factorial 7u |> double)
+            let empiricallyDeterminedMultiplicationFactorToEnsureCoverage = double 70900 / (BargainBasement.Factorial 7u |> double)
 
             let random = Random 1
 
