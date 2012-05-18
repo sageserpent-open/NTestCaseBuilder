@@ -161,3 +161,19 @@
         member this.TestPig8() =
             pig 50000u
 
+        [<Test>]
+        member this.TestPig9() =
+            pig 100000u
+
+        [<Test>]
+        member this.TestPig10() =
+            pig 200000u
+
+        [<Test>]
+        member this.TestPig11() =
+            pig 500000u
+
+        [<Test>]
+        member this.TestPig12() =
+            pig 1000000u
+
