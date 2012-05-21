@@ -49,14 +49,14 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FunctionalSwapImplementation">
-      <HintPath>..\ThirdParty\IKVMConversions\FunctionalSwapImplementation.dll</HintPath>
-    </Reference>
     <Reference Include="IKVM.OpenJDK.Core">
       <HintPath>..\ThirdParty\IKVMConversions\IKVM.OpenJDK.Core.dll</HintPath>
     </Reference>
     <Reference Include="IKVM.Runtime">
       <HintPath>..\ThirdParty\IKVMConversions\IKVM.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="ImperativeSwapImplementation">
+      <HintPath>..\ThirdParty\IKVMConversions\ImperativeSwapImplementation.dll</HintPath>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="nunit.framework">
