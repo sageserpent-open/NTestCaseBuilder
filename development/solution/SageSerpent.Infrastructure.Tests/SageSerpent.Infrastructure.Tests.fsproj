@@ -49,18 +49,18 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="ExportedScalaPort">
-      <HintPath>Y:\JarToIKVMCSandbox\ExportedScalaPort.dll</HintPath>
-    </Reference>
     <Reference Include="IKVM.OpenJDK.Core">
-      <HintPath>C:\ikvm-7.0.4335.0\bin\IKVM.OpenJDK.Core.dll</HintPath>
+      <HintPath>..\ThirdParty\IKVMConversions\IKVM.OpenJDK.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.Runtime">
+      <HintPath>..\ThirdParty\IKVMConversions\IKVM.Runtime.dll</HintPath>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="nunit.framework">
       <Private>True</Private>
     </Reference>
     <Reference Include="scala-library">
-      <HintPath>Y:\JarToIKVMCSandbox\scala-library.dll</HintPath>
+      <HintPath>..\ThirdParty\IKVMConversions\scala-library.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <ProjectReference Include="..\SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj">
@@ -68,6 +68,9 @@
       <Project>{35dfa6a2-9439-4e92-8d73-540c36d3beae}</Project>
       <Private>True</Private>
     </ProjectReference>
+    <Reference Include="TreeBasedImplementationWithSpaceLeak">
+      <HintPath>..\ThirdParty\IKVMConversions\TreeBasedImplementationWithSpaceLeak.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\FSharp\1.0\Microsoft.FSharp.Targets" Condition="!Exists('$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll')" />
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets" Condition="Exists('$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll')" />
