@@ -68,8 +68,8 @@
       <Project>{35dfa6a2-9439-4e92-8d73-540c36d3beae}</Project>
       <Private>True</Private>
     </ProjectReference>
-    <Reference Include="TreeBasedImplementationWithSpaceLeak">
-      <HintPath>..\ThirdParty\IKVMConversions\TreeBasedImplementationWithSpaceLeak.dll</HintPath>
+    <Reference Include="TreeBasedImplementationFixedTheSpaceLeak">
+      <HintPath>..\ThirdParty\IKVMConversions\TreeBasedImplementationFixedTheSpaceLeak.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\FSharp\1.0\Microsoft.FSharp.Targets" Condition="!Exists('$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll')" />
