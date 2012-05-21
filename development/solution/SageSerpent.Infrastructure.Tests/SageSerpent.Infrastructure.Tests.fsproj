@@ -49,6 +49,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="FunctionalSwapImplementation">
+      <HintPath>..\ThirdParty\IKVMConversions\FunctionalSwapImplementation.dll</HintPath>
+    </Reference>
     <Reference Include="IKVM.OpenJDK.Core">
       <HintPath>..\ThirdParty\IKVMConversions\IKVM.OpenJDK.Core.dll</HintPath>
     </Reference>
@@ -68,9 +71,6 @@
       <Project>{35dfa6a2-9439-4e92-8d73-540c36d3beae}</Project>
       <Private>True</Private>
     </ProjectReference>
-    <Reference Include="TreeBasedImplementationFixedTheSpaceLeak">
-      <HintPath>..\ThirdParty\IKVMConversions\TreeBasedImplementationFixedTheSpaceLeak.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\FSharp\1.0\Microsoft.FSharp.Targets" Condition="!Exists('$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll')" />
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets" Condition="Exists('$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll')" />
