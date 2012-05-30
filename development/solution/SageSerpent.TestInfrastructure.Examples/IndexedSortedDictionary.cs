@@ -63,5 +63,10 @@ namespace SageSerpent.TestInfrastructure.Examples
         }
 
         #endregion
+
+        public TValue this[int index]
+        {
+            get { throw new NotImplementedException();}
+        }
     }
 }
