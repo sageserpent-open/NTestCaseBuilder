@@ -148,7 +148,8 @@ Omitting some of the detail, the example above becomes:
                 switch (stateBeforeOperationIsApplied)
                 {
                     case State.Closed:
-                        Assert.IsFalse(testCase.Foo.Bar.IsAtLastOrders);	// 'Last orders' is in a sense a sub-state of being open.
+                        Assert.IsFalse(testCase.Foo.Bar.IsAtLastOrders);	// 'Last orders' is in a sense
+																			// a sub-state of being open.
 
                         switch (operation)
                         {
@@ -303,6 +304,7 @@ When I say 'low-hanging bugs', I mean things like:-
 2. The division by zero one of your colleagues put in for a joke while you took a comfort break.
 3. The off by one error in a loop that was definitely your fault.
 4. The lack of initialisation that the compiler warned you about, but of course, we all know better than to trust diagnostic advice from a compiler.
+5. The silly mistake in the implementation that was caused by a cosmic ray hitting a brain cell while typing a line of code.
 
 Typically, a smoke test will expose most of these kinds of errors (and this is why it's still worth writing smoke tests in the early stages of implementation, assuming you haven't written any kind of test with expectations).
 
@@ -330,9 +332,40 @@ Great - but there is still a problem. I forgot to mention that possibility that 
 
 The procedure is only systematic about combinations of levels from test variables in the same group, so it won't necessarily generate the magic test case; but it is a tantalising idea: could we somehow produce a much smaller sequence of test cases than the full 95367431640625, and still guarantee that *for any choice of one, two, three or four test variables*, the sequence would *guarantee that every combination of levels for those variables* would be completely covered.
 
-Think about that last statement - the guarantee isn't merely that there is *some* choice of test variables whose level combinations are covered - it is saying that *any* choice of test variables you ask me has its level combinations covered; from within the same sequence of test cases.
+Think about that last statement - the guarantee isn't merely that there is *some* choice of test variables whose level combinations are covered - it is saying that *any* choice of test variables you ask for has its level combinations covered; from within the same sequence of test cases.
+
+This is the guarantee provided by any of the factories mentioned above - a factory can if given a *strength* produce a sequence of test case that provides that guarantee for any number of test variables up to and including the given strength.
+
+As the strength is increased, the factory has to work harder to meet this guarantee - so if we set the strength all the way up to 20 in this example, we are back to generating all 95367431640625 test cases. In practice, strengths of up to 4 are probably good enough.
+
+Note that when we use factories are part of the composite design pattern, there is no obvious relationship between the sequences of simpler test cases produced by factories in subtrees and the sequence of complex test cases produced by the overall root factory. This is because for a given strength, there are an increasing number of ways in which combinations of test variable levels can be overlaid into the same test case.
+
+The exception is when we ask for the full strength including all test variables and we only use synthesizing factories: in this case we can think of the sequence of the test cases made by the root factory as being a cross-product of the levels taking from all the test variables at the leaves of the tree of factories.
+
+However, we can say that as the number of test cases in the sequence goes up the closer to the root factory we go, it gets increasinly 'thinner' taken relative to the full cross-product of levels taken from all test variables. The amount of thinning as we go up the tree is more dramatic for lower strengths.
 
 
+So we've met the players - to recap, we have:-
+
+1. A test case: structured data, composed out of simpler pieces.
+
+2. A test variable: the simplest piece of data that can show variation between one test case and another.
+
+3. Levels: these are the values that a test variable is allowed to take.
+
+4. A singleton: the simplest piece of data that can never vary from one test case to another.
+
+5. Factories: these produce sequences of test cases that guarantee coverage of combinations of test variable levels according to a given strength. These can be combined according to the composite design pattern to make a tree structure.
+
+6. A synthesizing factory: puts together the kinds of test cases produced by its child factories to make more complex test cases. It should be an interior node in any tree of factories. 
+
+7. An interleaving factory: interleaves the kinds of test cases produced by its child factories to give alternatives in its sequence. It should be an interior node in any tree of factories.
+
+8. A test variable level factory: introduces a test variable and its levels into a factory tree. It is always a leaf node in any tree of factories.
+
+9. A singleton factory: introduces a singleton data value into a factory tree. Does not affect the strength guarantee because it has no test variable - which is why it is preferable to making a faux test variable factory with a single level. It is always a leaf node in any tree of factories.
+
+10. A strength - the strength of guarantee a factory makes about the coverage of combinations of levels from different test variables. The higher the strength, the more test variables a combination can refer to in the guarantee - and the longer the sequence of test cases will be to meet that guarantee.
 
 Walk me through an example!
 ---------------------------
@@ -351,7 +384,9 @@ Yes:
 
 1. Publish this via NuGet for immediate consumption of binaries in Visual Studio.
 
-2. Add the capability to recursively build up a tree of factories, so that the final generated test cases can be arbitrarily 'long'. The encoding example above is a case in point: it has been arbitrarily limited to just ten characters per string test case, but it shoule be able to produce longer and longer strings until the test decides that it has run long enough.
+2. Add the capability to recursively build up a tree of factories, so that the final generated test cases can be arbitrarily 'long'. The encoding example above is a case in point: it has been arbitrarily limited to just ten characters per string test case, but it should be able to produce longer and longer strings in a lazily-evaluated fashion until the test decides that it has run long enough.
+
+4. In a similar vein, consider a progressive approach where the strength is increased and again, the sequence is produced via lazy-evaluation; the test can keep going until a time limit is reached.
 
 3. Allow local caps on the strengh for subtrees within the tree of factories. This is because we may know that some test variables will have largely independent behaviour, so we can trade off a lower strength of combination for just these variables against having a higher overall strength of combination.
 
