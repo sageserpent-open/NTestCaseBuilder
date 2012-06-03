@@ -407,8 +407,8 @@ As both the test case data combination utility and Pex are in the business of pr
 
 What differentiates the two are:-
 
-			Pex																Test Case Data Combination Utility
-			---																----------------------------------
+									Pex										Test Case Data Combination Utility
+									---										----------------------------------
 
 			Automatically generates test cases that efficiently
 			pick out branch paths in code. Not only effective, but
@@ -420,19 +420,19 @@ What differentiates the two are:-
 			so if the implementation misses some aspect of a
 			specification, this may not show up at all.
 			
-																			Allows test variable levels to be set explicitly,
-																			so a specification can be used to drive it.
+																	Allows test variable levels to be set explicitly,
+																	so a specification can be used to drive it.
 																			
-																			Requires manual entry of the test levels as code, or
-																			at least the writing of code to generate test levels
-																			according to some scheme.
+																	Requires manual entry of the test levels as code, or
+																	at least the writing of code to generate test levels
+																	according to some scheme.
 																			
 			Only understands IL - so cannot drive a GUI or a network
 			connection or a native code component.
 			
-																			Has no understanding of any kind of code at all - but
-																			can be used to drive anything that can be described via
-																			test variables and levels.
+																	Has no understanding of any kind of code at all - but
+																	can be used to drive anything that can be described via
+																	test variables and levels.
 																			
 			NOTE: Pex can be taught to drive a GUI or a network
 			connection or a native component by creating logic in
@@ -443,8 +443,8 @@ What differentiates the two are:-
 			has had to manually denote the test variables and levels
 			in the driver logic - so Pex is not automating their discovery.
 			
-																			Scales up to progressively more complex test cases for
-																			testing higher-level components.
+																	Scales up to progressively more complex test cases for
+																	testing higher-level components.
 																			
 			Does not scale well for higher-level components: requires
 			a cutoff so that it does become overwhelmed by the analysis
