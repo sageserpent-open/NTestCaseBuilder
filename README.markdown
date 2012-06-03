@@ -18,7 +18,7 @@ If a parameterised test fails with an exception for a specific test case, the li
 The sources are written in F#, but the API can be used just as comfortably from C# as from F#.
 
 
-Some introductory background and a full worked example are given below.
+Some introductory background and a full worked example are given below. A note on a related .NET utility, Pex, is also provided at the towards the end along with a link to a thought-provoking article relevant to this library.
 
 Background
 ----------
@@ -225,7 +225,7 @@ It is easy to realise that parameter objects can become quite complex very quick
 
 To take the high road of writing parameterised unit tests requires two lots of effort - the first is to build the parameterised test function itself, the second to supply test cases to repeated calls to that function.
 
-The first task is essentially specific to the component under test and in my experience, on a par with implementing the component itself. Consequently, the utility doesn't attempt to do this part - that is for the author of the component's specification to do.
+The first task is essentially specific to the component under test and in my experience, at least on a par with implementing the component itself. Consequently, the utility doesn't pretend to automate this part - writing a test is an activity of some sophistication that is for the author of the component's specification to think carefully about and realise manually.
 
 The second task is what the test case data combination utility addresses.
 
@@ -367,6 +367,8 @@ So we've met the players - to recap, we have:-
 
 10. A strength - the strength of guarantee a factory makes about the coverage of combinations of levels from different test variables. The higher the strength, the more test variables a combination can refer to in the guarantee - and the longer the sequence of test cases will be to meet that guarantee.
 
+NOTE: testing with a strength of 2 is commonly known as 'pairwise testing'.
+
 Walk me through an example!
 ---------------------------
 
@@ -377,6 +379,83 @@ How do I install this thing?
 
 Uh-huh.
 
+A Thought-Provoking Article you should read
+-------------------------------------------
+
+[http://www.testingeducation.org/wtst5/PairwisePNSQC2004.pdf](http://www.testingeducation.org/wtst5/PairwisePNSQC2004.pdf).
+
+There are several points that the article makes, but ones which can be addressed here are:-
+
+1. If there are certain test cases that are much more probable than others, it is possible to make this explicit by setting up the tree of factories with an interleaving factory. One child of the interleave is the conventional synthesis of a test case from a multitude of test variables and their levels; the other can be a test variable level factory that supplies special cases that are much more probable in practice and would be missed by low-strength testing.
+
+These special cases can themselves by synthesized from a special-case test variables if desired. What would be nice would be the ability to specify a very high strength of combination to apply to the special case part of the interleave, but revert back to say, a strength of 2 on the ordinary part of the interleave to get pairwise testing for the other test variables - this is on the current todo list below.
+
+2. It is possible to explore the effect of increasing the strength and re-running the tests so see whether increased strengths flush out a new bug. If so, one can look at the combination of test variables that provoked the test failure and increase the strength of combination for just these test varaibles - this is on the current todo list below.
+
+3. The number of levels for a test variable may be effectively infinite (think of floating-point numbers), or so large as to preclude putting in every level. This means that even an exhaustive enumeration of the cross-product of all test variable levels could miss exposing a bug.
+
+In this situation, there either needs to be some thought as to whether there are levels for a test variable that are obvious 'trouble-spots' from the specification, or consider the use of a tool such as Pex (discussed below) as a cheap way of generating a good set of levels.
+
+Pex: the 800-pound gorilla?
+---------------------------
+
+It is impossible not to refer to the Pex tool developed by Microsoft Research (see: [http://research.microsoft.com/en-us/projects/pex](http://research.microsoft.com/en-us/projects/pex)).
+
+This tool examines compiled IL for .NET components and creates a sequence of test cases automatically that cover paths in the IL - it claims to be able to deal with executables written in C#, F# and Visual Basic (and I have successfully tried it on snippets of both C# and F# code).
+
+As both the test case data combination utility and Pex are in the business of producing sequences of test cases with a view to provoking bug detection in parameterised unit tests, there is obviously considerable overlap between the two.
+
+What differentiates the two are:-
+
+			Pex																Test Case Data Combination Utility
+			---																----------------------------------
+
+			Automatically generates test cases that efficiently
+			pick out branch paths in code. Not only effective, but
+			quite convenient as it avoids having to manually enter
+			lots of test variable levels - the tool works them out
+			behind the scenes.
+			
+			Relies entirely on the implementation to guide it:
+			so if the implementation misses some aspect of a
+			specification, this may not show up at all.
+			
+																			Allows test variable levels to be set explicitly,
+																			so a specification can be used to drive it.
+																			
+																			Requires manual entry of the test levels as code, or
+																			at least the writing of code to generate test levels
+																			according to some scheme.
+																			
+			Only understands IL - so cannot drive a GUI or a network
+			connection or a native code component.
+			
+																			Has no understanding of any kind of code at all - but
+																			can be used to drive anything that can be described via
+																			test variables and levels.
+																			
+			NOTE: Pex can be taught to drive a GUI or a network
+			connection or a native component by creating logic in
+			the test cases that does the driving - Pex can then
+			analyse this logic as IL. This is in fact exactly how
+			the test case data combination utility would be used.
+			The point is that once this step is done, the user
+			has had to manually denote the test variables and levels
+			in the driver logic - so Pex is not automating their discovery.
+			
+																			Scales up to progressively more complex test cases for
+																			testing higher-level components.
+																			
+			Does not scale well for higher-level components: requires
+			a cutoff so that it does become overwhelmed by the analysis
+			of lower-level component dependencies.
+			
+I think there is a synergy that can be exploited between the two approaches: Pex can be used to create test levels for low-level components - so instead of using a tree factory to synthesize a low-level component, Pex can be used to create fully-fledged instances of the low-level component that are in turn treated as test levels by the test case data combination utility.
+
+The idea here is that the test variable levels correspond to distinct branches in the low-level component implementation logic - so the effect of combining such levels should stand a good chance of exposing bugs at higher levels as well. What Pex brings is the ability to find these 'interesting' levels automatically. What the test case data combination utility brings is the ability to combine these together for higher-level components in a scalable fashion.
+			
+			
+			
 Can this possibly be improved?
 ------------------------------
 
@@ -390,4 +469,10 @@ Yes:
 
 3. Allow local caps on the strengh for subtrees within the tree of factories. This is because we may know that some test variables will have largely independent behaviour, so we can trade off a lower strength of combination for just these variables against having a higher overall strength of combination.
 
-4. Carry on with the Scala port of this code at *sageserpent-open/fsharp-to-scala-port-case-study*. **Maybe...**
+4. Allow increases on the strength of combination of test variables taken from arbitrary positions from the overall tree (this is in contrast to #3, which sets its caps on all test variables within the same subtree).
+
+5. Integrate with Pex - smooth the path for importing Pex-generated test cases as test-levels for higher-level tests, also for integrating with Pex's notion of a parameterised test.
+
+6. Add support for automated permuting of 'operation'-style test cases. Also take into account a variable number of operations.
+
+6. Carry on with the Scala port of this code at *sageserpent-open/fsharp-to-scala-port-case-study*. **Maybe...**
