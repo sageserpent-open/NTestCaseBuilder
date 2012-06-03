@@ -1,9 +1,9 @@
-The Test Case Data Combination Utility, for .NET Testing
-========================================================
+NTestCaseBuilder, for .NET Testing
+==================================
 
 **WARNING: LIVING DOCUMENT - WORK VERY MUCH IN PROGRESS**
 
-This is a .NET library that generates sets of test case, for use by parameterised tests.
+This is a .NET library that generates sets of test cases, for use by parameterised tests.
 
 Each test case is built up progressively from smaller pieces of data that are combined together.
 
@@ -225,9 +225,9 @@ It is easy to realise that parameter objects can become quite complex very quick
 
 To take the high road of writing parameterised unit tests requires two lots of effort - the first is to build the parameterised test function itself, the second to supply test cases to repeated calls to that function.
 
-The first task is essentially specific to the component under test and in my experience, at least on a par with implementing the component itself. Consequently, the utility doesn't pretend to automate this part - writing a test is an activity of some sophistication that is for the author of the component's specification to think carefully about and realise manually.
+The first task is essentially specific to the component under test and in my experience, at least on a par with implementing the component itself. Consequently, NTestCaseBuilder doesn't pretend to automate this part - writing a test is an activity of some sophistication that is for the author of the component's specification to think carefully about and realise manually.
 
-The second task is what the test case data combination utility addresses.
+The second task is what NTestCaseBuilder addresses.
 
 ### Technical Terms ###
 
@@ -260,7 +260,7 @@ This leaves the operations themselves - for each of the 4 slots in the sequence,
 
 How do we make our alternate 'Foo' instances? One way is to call the parameterless constructor for 'Foo'. In this case, there is nothing to vary - we just get a 'Foo' without being able to play with its configuration: we can think of this as being a data *singleton*, because any overall test case that uses one of these 'Foo' instances should get the same value of 'Foo' each time (we assume that 'Foo' is well-behaved, so successive calls to the parameterless constructor yield what are effectively copies of the same object, sharing the same subsequent behaviour).
 
-Note that unlike the usual usage of the work 'singleton', we do not insist that the singleton object actually be the same object reference each time - merely we can't get any initial variation when we ask for one.
+Note that unlike the usual usage of the work 'singleton', we do not insist that the singleton object actually be the same object reference each time - merely we that can't get any initial variation when we ask for one.
 
 The other way of making a 'Foo' is to supply a 'Bar' - if we have a constructor (not shown above) for 'Bar' that takes a parameter describing whether the 'Bar' is closed, doing normal business or is taking last orders, then we could represent this as a synthesis of a 'Foo' from a 'Bar' which in turn is synthesized from a test variable with three levels.
 
@@ -271,14 +271,15 @@ Taking these italicesed terms and applying them to the breakdown above yields a 
 															-	Singleton (of a Foo created with the parameterless constructor)
 															-	Synthesis (of a Foo)
 																					-	Synthesis (of a Bar)
-																										-	Test Variable (of the 'Bar' constructor parameter with 3 levels - closed, normal business and taking last orders)
+																										-	Test Variable (of the 'Bar' constructor parameter with 3 levels
+																											               - closed, normal business and taking last orders)
 								-	Synthesis (of a sequence of Operation)
 															- 	Test Variable (of an 'Operation' with two levels - execute 'DoThis()' and execute 'DoThat()')
 															-	Test Variable (ditto)
 															-	Test Variable (ditto)
 															-	Test Variable (ditto)
 
-The utility realises such conceptual trees as trees of *test case factories* - each factory can be either a *synthesizing factory*, an *interleaving factory*, a *test variable level factory* or a *singleton factory*.																									
+NTestCaseBuilder realises such conceptual trees as trees of *test case factories* - each factory can be either a *synthesizing factory*, an *interleaving factory*, a *test variable level factory* or a *singleton factory*.																									
 
 A factory has two roles:-
 
@@ -291,7 +292,7 @@ Moving on, let's look at the test variables that contribute to the making of a '
 
 That means there are potentially 4 * 2 * 1 * 3 = 24 different test cases to produce.
 
-That wasn't really a complex example - in practice one might easily have, say 20 test variables with 5 levels - meaning 5^20 = 95367431640625 test cases would result.
+That wasn't really a complex example - one can realistically imagine, say 20 test variables with 5 levels - meaning 5^20 = 95367431640625 test cases would result.
 
 That's rather a lot of test cases - do we really need all of them?
 
@@ -399,12 +400,12 @@ It is impossible not to refer to the Pex tool developed by Microsoft Research (s
 
 This tool examines compiled IL for .NET components and creates a sequence of test cases automatically that cover paths in the IL - it claims to be able to deal with executables written in C#, F# and Visual Basic (and I have successfully tried it on snippets of both C# and F# code).
 
-As both the test case data combination utility and Pex are in the business of producing sequences of test cases with a view to provoking bug detection in parameterised unit tests, there is obviously considerable overlap between the two.
+As both NTestCaseBuilder and Pex are in the business of producing sequences of test cases with a view to provoking bug detection in parameterised unit tests, there is obviously considerable overlap between the two.
 
 What differentiates the two are:-
 
-									Pex										Test Case Data Combination Utility
-									---										----------------------------------
+									Pex										NTestCaseBuilder
+									---										----------------
 
 			Automatically generates test cases that efficiently
 			pick out branch paths in code. Not only effective, but
@@ -434,7 +435,8 @@ What differentiates the two are:-
 			connection or a native component by creating logic in
 			the test cases that does the driving - Pex can then
 			analyse this logic as IL. This is in fact exactly how
-			the test case data combination utility would be used.
+			NTestCaseBuilder would be used.
+
 			The point is that once this step is done, the user
 			has had to manually denote the test variables and levels
 			in the driver logic - so Pex is not automating their discovery.
@@ -446,9 +448,9 @@ What differentiates the two are:-
 			a cutoff so that it does become overwhelmed by the analysis
 			of lower-level component dependencies.
 			
-I think there is a synergy that can be exploited between the two approaches: Pex can be used to create test levels for low-level components - so instead of using a tree factory to synthesize a low-level component, Pex can be used to create fully-fledged instances of the low-level component that are in turn treated as test levels by the test case data combination utility.
+I think there is a synergy that can be exploited between the two approaches: Pex can be used to create test levels for low-level components - so instead of using a tree factory to synthesize a low-level component, Pex can be used to create fully-fledged instances of the low-level component that are in turn treated as test levels by NTestCaseBuilder.
 
-The idea here is that the test variable levels correspond to distinct branches in the low-level component implementation logic - so the effect of combining such levels should stand a good chance of exposing bugs at higher levels as well. What Pex brings is the ability to find these 'interesting' levels automatically. What the test case data combination utility brings is the ability to combine these together for higher-level components in a scalable fashion.
+The idea here is that the test variable levels correspond to distinct branches in the low-level component implementation logic - so the effect of combining such levels should stand a good chance of exposing bugs at higher levels as well. What Pex brings is the ability to find these 'interesting' levels automatically. What NTestCaseBuilder brings is the ability to combine these together for higher-level components in a scalable fashion.
 			
 			
 			
