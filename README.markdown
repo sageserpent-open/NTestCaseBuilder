@@ -389,9 +389,7 @@ There are several points that the article makes, but ones which can be addressed
 
 1. If there are certain test cases that are much more probable than others, it is possible to make this explicit by setting up the tree of factories with an interleaving factory. One child of the interleave is the conventional synthesis of a test case from a multitude of test variables and their levels; the other can be a test variable level factory that supplies special cases that are much more probable in practice and would be missed by low-strength testing. These special cases can themselves by synthesized from a special-case test variables if desired. What would be nice would be the ability to specify a very high strength of combination to apply to the special case part of the interleave, but revert back to say, a strength of 2 on the ordinary part of the interleave to get pairwise testing for the other test variables - this is on the current todo list below.
 
-2. It is possible to explore the effect of increasing the strength and re-running the tests so see whether increased strengths flush out a new bug. If so, one can look at the combination of test variables that provoked the test failure and increase the strength of combination for just these test varaibles - this is on the current todo list below.
-
-3. The number of levels for a test variable may be effectively infinite (think of floating-point numbers), or so large as to preclude putting in every level. This means that even an exhaustive enumeration of the cross-product of all test variable levels could miss exposing a bug. In this situation, there either needs to be some thought as to whether there are levels for a test variable that are obvious 'trouble-spots' from the specification, or consider the use of a tool such as Pex (discussed below) as a cheap way of generating a good set of levels.
+2. The number of levels for a test variable may be effectively infinite (think of floating-point numbers), or so large as to preclude putting in every level. This means that even an exhaustive enumeration of the cross-product of all test variable levels taken from finite sets could miss exposing a bug. In this situation, there either needs to be some thought as to whether there are levels for a test variable that are obvious 'trouble-spots' from the specification, or consider the use of a tool such as Pex (discussed below) as a cheap way of generating a good set of levels.
 
 Pex: the 800-pound gorilla?
 ---------------------------
@@ -467,10 +465,8 @@ Yes:
 
 3. Allow local caps on the strengh for subtrees within the tree of factories. This is because we may know that some test variables will have largely independent behaviour, so we can trade off a lower strength of combination for just these variables against having a higher overall strength of combination.
 
-4. Allow increases on the strength of combination of test variables taken from arbitrary positions from the overall tree (this is in contrast to #3, which sets its caps on all test variables within the same subtree).
+4. Integrate with Pex - smooth the path for importing Pex-generated test cases as test-levels for higher-level tests, also for integrating with Pex's notion of a parameterised test.
 
-5. Integrate with Pex - smooth the path for importing Pex-generated test cases as test-levels for higher-level tests, also for integrating with Pex's notion of a parameterised test.
-
-6. Add support for automated permuting of 'operation'-style test cases. Also take into account a variable number of operations.
+5. Add support for automated permuting of 'operation'-style test cases. Also take into account a variable number of operations.
 
 6. Carry on with the Scala port of this code at *sageserpent-open/fsharp-to-scala-port-case-study*. **Maybe...**
