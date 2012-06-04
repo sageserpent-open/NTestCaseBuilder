@@ -343,7 +343,7 @@ Note that when we use factories are part of the composite design pattern, there 
 
 The exception is when we ask for the full strength including all test variables and we only use synthesizing factories: in this case we can think of the sequence of the test cases made by the root factory as being a cross-product of the levels taking from all the test variables at the leaves of the tree of factories.
 
-However, we can say that as the number of test cases in the sequence goes up the closer to the root factory we go, it gets increasinly 'thinner' taken relative to the full cross-product of levels taken from all test variables. The amount of thinning as we go up the tree is more dramatic for lower strengths.
+However, we can say that as the number of test cases in the sequence goes up the closer to the root factory we go, it gets increasingly 'thinner' taken relative to the full cross-product of levels taken from all test variables. The amount of thinning as we go up the tree is more dramatic for lower strengths.
 
 
 So we've met the players - to recap, we have:-
