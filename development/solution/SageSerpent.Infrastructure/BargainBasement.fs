@@ -3,17 +3,17 @@
     open System.Collections.Generic
     open System
     open ListExtensions
-    open RandomExtensions 
-    open SageSerpent.Infrastructure.IEnumerableExtensions   
-                            
+    open RandomExtensions
+    open SageSerpent.Infrastructure.IEnumerableExtensions
+
     let IsSorted items =
         IEnumerable<_>.IsSorted items
-                            
+
     let AssociatedValues association =
         (association :> IDictionary<'Key, 'Value>).Values
-        
 
-        
+
+
     let Memoize computation =
         let cache =
             System.Collections.Generic.Dictionary ()
@@ -24,22 +24,22 @@
                     computation input
                  cache.Add (input, result)
                  result
-                 
+
     let Identity x =
         x
-                 
+
     type private TypePreservingFunction<'X> =
         delegate of 'X -> 'X
-                
+
     let IdentityFunctionDelegate =
-        TypePreservingFunction Identity :> Delegate 
-        
+        TypePreservingFunction Identity :> Delegate
+
     let PartitionSizeIntoSectionsOfRandomNonZeroLength size
                                                        numberOfSubgroups
                                                        randomBehaviour =
         if size = 0u
         then
-            raise (PreconditionViolationException "Must have at least one item to start with for subgroups to have non-zero length.")                                                         
+            raise (PreconditionViolationException "Must have at least one item to start with for subgroups to have non-zero length.")
         else
             match numberOfSubgroups with
                 0u ->
@@ -67,7 +67,7 @@
                         |> Seq.map (function lesserPartitionPoint
                                             , greaterPartitionPoint -> greaterPartitionPoint - lesserPartitionPoint)
                         |> List.ofSeq
-                 
+
     let PartitionItemsIntoSubgroupsOfRandomNonZeroLength items
                                                          numberOfSubgroups
                                                          randomBehaviour =
@@ -78,10 +78,10 @@
                                                            numberOfSubgroups
                                                            randomBehaviour
         items.ChopUpList spans
-        
+
     let Flip f x y =
-        f y x   
-        
+        f y x
+
     let NumberOfPermutations originalSize permutationSize =
         if permutationSize > originalSize
         then 0u
@@ -92,15 +92,15 @@
                 then partialResult
                 else productOfPartialResultAndNumberOfSubpermutations (originalSize - 1u) (originalSize * partialResult)
              productOfPartialResultAndNumberOfSubpermutations originalSize 1u
-        
+
     let Factorial x =
         NumberOfPermutations x x
-        
+
     let NumberOfCombinations originalSize combinationSize =
         NumberOfPermutations originalSize combinationSize
         / Factorial combinationSize
-        
-        
+
+
     let MappingAvoidingIndices sortedIndicesToAvoid =
         if Seq.length sortedIndicesToAvoid = 0
         then raise (PreconditionViolationException "Must have at least one index to avoid.")
@@ -143,7 +143,7 @@
                      else 0u
             index + incrementToApplyToIndex
         remapIndex
-        
+
     let MergeAssociations lhs rhs =
         let rec mergeSortedAssociationLists lhs rhs =
             match lhs
