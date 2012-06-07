@@ -10,7 +10,7 @@
                                             |> List.map (fun itemInCrossProductOfTail ->
                                                             itemInHead :: itemInCrossProductOfTail))
                             |> List.concat
-                            
+
     let rec private mergeSortedListsAllowingDuplicates first second =
         match first, second with
             _, [] ->
@@ -23,7 +23,7 @@
                 headFromSecond :: mergeSortedListsAllowingDuplicates first tailFromSecond
           | headFromFirst :: tailFromFirst, headFromSecond :: tailFromSecond ->
                 headFromFirst :: headFromSecond :: mergeSortedListsAllowingDuplicates tailFromFirst tailFromSecond
-                            
+
     let private countDuplicatesInSortedList list =
         let rec produceItemCountPairs list =
             match list with
@@ -36,7 +36,7 @@
               | head :: tail ->
                     (head, 1u) :: produceItemCountPairs tail
         produceItemCountPairs list
-                            
+
     let rec private breakOff sizeOfFirstPart listBeingBroken =
         match sizeOfFirstPart
               , listBeingBroken with
@@ -52,7 +52,7 @@
                 head :: partialFirstPart
                 , secondPart
           | _ -> raise (PreconditionViolationException "Attempt to break off more elements than present in list.")
-    
+
     let rec private chopUpList listBeingChopped spans =
             match spans with
                 [] ->
@@ -61,7 +61,7 @@
                     let section
                         , remainder =
                         breakOff span listBeingChopped
-                    section :: chopUpList remainder tail     
+                    section :: chopUpList remainder tail
 
     type Microsoft.FSharp.Collections.List<'X> with
         static member CrossProductWithCommonSuffix commonSuffix lists =
@@ -75,9 +75,9 @@
 
         static member CountDuplicatesInSortedList list =
             countDuplicatesInSortedList list
-            
+
         member this.BreakOff sizeOfFirstPart =
             breakOff sizeOfFirstPart this
-            
+
         member this.ChopUpList spans =
-            chopUpList this spans           
+            chopUpList this spans

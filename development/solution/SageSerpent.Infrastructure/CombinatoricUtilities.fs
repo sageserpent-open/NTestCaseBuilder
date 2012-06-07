@@ -1,9 +1,9 @@
 module SageSerpent.Infrastructure.CombinatoricUtilities
 
     open Microsoft.FSharp.Core.Operators.Checked
-    
+
     open System
-    
+
     /// <summary>Given a list of non-negative integer limits, create lists of contributions that sum up to a total
     /// such that each contribution cannot exceed its corresponding limit. The contribution lists are returned
     /// within a list: if the total is too high to be met given the limits, the result is an empty list.</summary>
@@ -18,12 +18,12 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
                                 let resultFromTail = ChooseContributionsToMeetTotal tail (total - contributionFromHead)
                                 if not resultFromTail.IsEmpty
                                 then yield! List.map (function item -> contributionFromHead::item) resultFromTail]
-                            
+
     /// <summary>Given a list of non-negative integer limits, create lists of contributions that sum up to a total
     /// such that each contribution cannot exceed its corresponding limit: this calculation is repeated for
     /// a range of totals from zero up to and including the limit. Each result for a given total is placed
     /// into a map that associates totals with non-empty result lists.</summary>
-                                
+
     let rec ChooseContributionsToMeetTotalsUpToLimit contributionLimits limit =
         match contributionLimits with
             [] -> Map.empty
@@ -38,8 +38,8 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
                                                     then yield! List.map (function item -> contributionFromHead::item) resultFromTail.[totalRequiredFromTail]]
                                             if not resultForTotal.IsEmpty
                                             then yield (total, resultForTotal)]
-                            
-                                
+
+
     /// <summary>Creates a sequence of combinations of items, each combination having the
     /// given size. The order of the items chosen by a combination is a sub-sequence of the
     /// original item sequence. It is permissible to either request too many items, in which
@@ -59,7 +59,7 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
                     Seq.append combinationsIncludingHead combinationsExcludingHead
                | _ ->
                     Seq.empty
-                               
+
     /// <summary>This is an optimised form of 'GenerateCombinationsOfGivenSizePreservingOrder'
     /// that creates just the specific sorted combination picked out from all the possible
     /// sorted combinations by 'indexOfCombination'. So:-
@@ -67,7 +67,7 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
     ///         GenerateCombinationsOfGivenSizePreservingOrder size items
     ///         |> Seq.nth indexOfCombination
     /// However, the actual implementation does not create any combinations other than
-    /// the one requested.</summary>     
+    /// the one requested.</summary>
     let GenerateCombinationOfGivenSizePreservingOrder size items indexOfCombination =
         let numberOfItems =
             Array.length items
@@ -104,7 +104,6 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
          yield items.[int32 indexToPickItemAt]]
 
 
-                
 
-                    
-        
+
+

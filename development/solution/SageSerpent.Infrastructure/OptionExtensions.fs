@@ -13,4 +13,3 @@
                     lhs
               | None ->
                     rhs.Value
-                    

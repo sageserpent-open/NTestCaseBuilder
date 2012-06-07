@@ -9,11 +9,11 @@
         Finite of 'X
       | PositiveInfinity
       | NegativeInfinity
-      
+
         interface IComparable with
             member this.CompareTo another =
                     (this :> IComparable<Unbounded<'X>>).CompareTo (another :?> Unbounded<'X>)
-      
+
         interface IComparable<Unbounded<'X>> with
             member this.CompareTo another =
                 match this
