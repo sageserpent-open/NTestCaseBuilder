@@ -339,7 +339,7 @@ This is the guarantee provided by any of the factories mentioned above - a facto
 
 As the strength is increased, the factory has to work harder to meet this guarantee - so if we set the strength all the way up to 20 in this example, we are back to generating all 95367431640625 test cases. In practice, strengths of up to 4 are probably good enough.
 
-Note that when we use factories are part of the composite design pattern, there is no obvious relationship between the sequences of simpler test cases produced by factories in subtrees and the sequence of complex test cases produced by the overall root factory. This is because for a given strength, there are an increasing number of ways in which combinations of test variable levels can be overlaid into the same test case.
+Note that when we use factories are part of the composite design pattern, there is no obvious relationship between the sequences of simpler test cases produced by factories in subtrees and the sequence of complex test cases produced by the overall root factory. This is because for a given strength, as we start combining more and more subtrees together, there are an increasing number of opportunities for combinations of test variable levels to be overlaid into the same test case - there are more test variables relative to the strength.
 
 The exception is when we ask for the full strength including all test variables and we only use synthesizing factories: in this case we can think of the sequence of the test cases made by the root factory as being a cross-product of the levels taking from all the test variables at the leaves of the tree of factories.
 
