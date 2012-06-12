@@ -313,7 +313,7 @@ So at this point we have an implementation for our component under test that see
 
 We then expect that our parameteried unit test will be repeatedly called with each new test case, and will repeatedly succeed, until at some point - **KERBOOM**: Test failure!
 
-So the failing test case contains a magic combination of levels for its test variables that cause the component to fail. Is it likely that **all** of the test variable contribute to the failure? All 20 of them?
+So the failing test case contains a magic combination of levels for its test variables that cause the component to fail. Is it likely that **all** of the test variables contribute to the failure? All 20 of them?
 
 It's safe to assume - at least as a starting point - that maybe only one, two, three or four test variables contribute the magic combination of levels that cause the failure. All of the other test variables could have their levels set to whatever choices we'd like and we'd still get a failure.
 
