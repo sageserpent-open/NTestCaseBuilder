@@ -335,7 +335,7 @@ The procedure is only systematic about combinations of levels from test variable
 
 Think about that last statement - the guarantee isn't merely that there is *some* choice of test variables whose level combinations are covered - it is saying that *any* choice of test variables you ask for has its level combinations covered; from within the same sequence of test cases.
 
-This is the guarantee provided by any of the factories mentioned above - a factory can if given a *strength* produce a sequence of test case that provides that guarantee for any number of test variables up to and including the given strength.
+This is the guarantee provided by any of the factories mentioned above - a factory can if given a *strength* produce a sequence of test cases that provides that guarantee for any number of test variables up to and including the given strength.
 
 As the strength is increased, the factory has to work harder to meet this guarantee - so if we set the strength all the way up to 20 in this example, we are back to generating all 95367431640625 test cases. In practice, strengths of up to 4 are probably good enough.
 
