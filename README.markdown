@@ -100,7 +100,7 @@ So mocks are good for being able to quickly write 'executable documentation' uni
 
 This leads to the next stage, which is to write parameterised unit tests...
 
-A parameterised unit test is written as a function with a single parameter passed to it: the parameter contains all the information needed to completely set up both the component under test and the sequence of actions to be performed on it. This also includes a presecription for setting up any component dependencies required by the component under test.
+A parameterised unit test is written as a function with a single parameter passed to it: the parameter contains all the information needed to completely set up both the component under test and the sequence of actions to be performed on it. This also includes a prescription for setting up any component dependencies required by the component under test.
 
 The idea is to repeatedly run the function with variations of the parameter in order to flush out breakages of the unit test that only occur for some state of the component under test, or the dependency components that it is built from / interacts with in the test, or for some specific variation of the sequence of operations performed by the test.
 
