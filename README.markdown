@@ -252,7 +252,7 @@ Each test case has to be built up from smaller pieces of data. Here, we have a b
 					
 We say that a TestCase is *synthesized* from a Foo and a sequence of Operation instances - this synthesis might be a plain constructor call, passing the two items as parameters, or might be some more involved process requiring the subsequent setting of properties.
 
-How is the 'Foo' instance built up? We have a choice here - we could use the parameterless constructor for 'Foo', or perhaps build up or own 'Bar' instance and supply it to an alternative constructor for 'Foo' (not shown above). So to cover both situations, we need to express an *interleaving* where a 'Foo' can be built in more than one way.
+How is the 'Foo' instance built up? We have a choice here - we could use the parameterless constructor for 'Foo', or perhaps build up our own 'Bar' instance and supply it to an alternative constructor for 'Foo' (not shown above). So to cover both situations, we need to express an *interleaving* where a 'Foo' can be built in more than one way.
 
 Looking at the sequence of 'Operation' instances, the sequence itself can be built up by taking a fixed number of operations and synthesizing a sequence from them. For now, let's fix this at 4 operations; we will see later how to loosen this rather arbitrary choice to get sequences of varying length.
 
