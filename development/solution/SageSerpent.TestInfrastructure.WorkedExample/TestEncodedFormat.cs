@@ -14,6 +14,15 @@ namespace SageSerpent.TestInfrastructure.WorkedExample
             ParameterisedUnitTestForEncodingAndDecodingRoundtrip(String.Empty);
         }
 
+        [Test]
+        public void TestEncodingAndDecodingRoundtripStage2()
+        {
+            var factory = SingletonTestCaseEnumerableFactory.Create(String.Empty);
+            const Int32 strength = 3;
+
+            factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength, ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+        }
+
         public void ParameterisedUnitTestForEncodingAndDecodingRoundtrip(String testCase)
         {
             IDictionary<Char, Int32> histogramFromTestCase = BuildHistogramOfCharacterFrequencies(testCase);

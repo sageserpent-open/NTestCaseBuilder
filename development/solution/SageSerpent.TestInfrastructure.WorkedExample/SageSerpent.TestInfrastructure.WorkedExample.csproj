@@ -49,6 +49,12 @@
     <Compile Include="TestEncodedFormat.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SageSerpent.TestInfrastructure\SageSerpent.TestInfrastructure.fsproj">
+      <Project>{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}</Project>
+      <Name>SageSerpent.TestInfrastructure</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
