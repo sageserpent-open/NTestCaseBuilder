@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using NUnit.Framework;
 
@@ -8,6 +9,12 @@ namespace SageSerpent.TestInfrastructure.WorkedExample
     [TestFixture]
     public class TestEncodedFormat
     {
+        private const Char MinimumLevel = 'a';
+        private const Char MaximumLevel = 'z';
+
+        private readonly TypedTestCaseEnumerableFactory<String> _singletonFactoryForEmptyString = SingletonTestCaseEnumerableFactory.Create(String.Empty);
+        private readonly TypedTestCaseEnumerableFactory<Char> _factoryForSingleCharacters = TestVariableLevelEnumerableFactory.Create(Enumerable.Range(0, 1 + MaximumLevel - MinimumLevel).Select(index => (Char)(MinimumLevel + index)));
+
         [Test]
         public void TestEncodingAndDecodingRoundtripStage1()
         {
@@ -21,6 +28,34 @@ namespace SageSerpent.TestInfrastructure.WorkedExample
             const Int32 strength = 3;
 
             factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength, ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+        }
+
+        [Test]
+        public void TestEncodingAndDecodingRoundtripStage3()
+        {
+            const Int32 maximumStringLength = 5;
+
+            var factory = BuildFactoryRecursively(maximumStringLength);
+            const Int32 strength = 3;
+
+            var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength, ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+
+            Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
+        }
+
+        public TypedTestCaseEnumerableFactory<String> BuildFactoryRecursively(Int32 maximumStringLength)
+        {
+            if (0 == maximumStringLength)
+            {
+                return _singletonFactoryForEmptyString;
+            }
+
+            var simplerFactoryForShorterStrings = BuildFactoryRecursively(maximumStringLength - 1);
+
+            var factoryForNonEmptyStrings = SynthesizedTestCaseEnumerableFactory.Create(
+                _factoryForSingleCharacters, simplerFactoryForShorterStrings, (leftmostCharacterToPrepend, shorterString) => leftmostCharacterToPrepend + shorterString);
+
+            return InterleavedTestCaseEnumerableFactory.Create(new[] { _singletonFactoryForEmptyString, factoryForNonEmptyStrings });
         }
 
         public void ParameterisedUnitTestForEncodingAndDecodingRoundtrip(String testCase)
