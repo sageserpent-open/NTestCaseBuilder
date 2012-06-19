@@ -6,7 +6,7 @@ namespace SageSerpent.TestInfrastructure
     open SageSerpent.Infrastructure
     open SageSerpent.Infrastructure.OptionWorkflow
     open BargainBasement
-    
+
     /// <summary>Low-level F#-specific API for collecting together child factories to construct a synthesized TestCaseEnumerableFactory.</summary>
     /// <seealso cref="SynthesizedTestCaseEnumerableFactory">Higher-level facade API that encapsulates usage of this class: try this first.</seealso>
     /// <seealso cref="FixedCombinationOfFactoriesForSynthesis">Cooperating class from low-level F#-specific API</seealso>
@@ -16,7 +16,7 @@ namespace SageSerpent.TestInfrastructure
             ContinuationToApplyResultsFromAllButRightmostFactory: 'SynthesisFunction -> List<FullTestVector> -> 'SynthesizedTestCase
             NodesInRightToLeftOrder: List<Node>
         }
-        
+
         static member StartWithLeftmostFactory (leftmostFactory: TypedTestCaseEnumerableFactory<'TestCaseFromLeftmostFactory>) =
             let nodeFromLeftmostFactory =
                 leftmostFactory.Node
@@ -40,7 +40,7 @@ namespace SageSerpent.TestInfrastructure
                         [ nodeFromLeftmostFactory ]
                 }
             createSingletonCombination nodeFromLeftmostFactory
-                    
+
         static member AddFactoryToTheRight (combinationOfAllOtherFactories,
                                             rightmostFactory: TypedTestCaseEnumerableFactory<'TestCaseFromRightmostFactory>) =
             let nodeFromRightmostFactory =
@@ -66,7 +66,7 @@ namespace SageSerpent.TestInfrastructure
                                     sliceOfFullTestVectorForRightmostFactory :: remainingSlicesOfFullTestVectorForAllButRightmostFactory ->
                                         let synthesisFunctionPartiallyAppliedToResultsFromAllButRightmostFactory =
                                             combinationOfAllOtherFactories.ContinuationToApplyResultsFromAllButRightmostFactory synthesisFunction
-                                                                                                                                remainingSlicesOfFullTestVectorForAllButRightmostFactory                              
+                                                                                                                                remainingSlicesOfFullTestVectorForAllButRightmostFactory
                                         (nodeFromRightmostFactory.FinalValueCreator ()
                                                                                     sliceOfFullTestVectorForRightmostFactory: 'TestCaseFromRightmostFactory)
                                         |> synthesisFunctionPartiallyAppliedToResultsFromAllButRightmostFactory
@@ -77,7 +77,7 @@ namespace SageSerpent.TestInfrastructure
                 }
             createCombinationWithExtraRightmostNode nodeFromRightmostFactory
                                                     combinationOfAllOtherFactories
-            
+
     /// <summary>Low-level F#-specific API for bundling together a collection of child factories and a synthesis function to construct a synthesized TestCaseEnumerableFactory.</summary>
     /// <seealso cref="SynthesizedTestCaseEnumerableFactory">Higher-level facade API that encapsulates usage of this class: try this first.</seealso>
     /// <seealso cref="SynthesisInputs">Cooperating class from low-level F#-specific API</seealso>
@@ -86,11 +86,11 @@ namespace SageSerpent.TestInfrastructure
              , synthesisFunction) =
         let nodes =
             List.rev heterogenousCombinationOfFactoriesForSynthesis.NodesInRightToLeftOrder
-            
+
         let createFinalValueFrom =
             List.rev
             >> heterogenousCombinationOfFactoriesForSynthesis.ContinuationToApplyResultsFromAllButRightmostFactory synthesisFunction
-         
+
         interface IFixedCombinationOfSubtreeNodesForSynthesis with
             member this.Prune =
                 optionWorkflow
@@ -101,10 +101,10 @@ namespace SageSerpent.TestInfrastructure
                                                                         synthesisFunction)
                                :> IFixedCombinationOfSubtreeNodesForSynthesis
                     }
-                    
+
             member this.Nodes =
                 nodes
-                
+
             member this.FinalValueCreator (): List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase =
                 match createFinalValueFrom
                       |> box with
@@ -122,22 +122,22 @@ namespace SageSerpent.TestInfrastructure
                             // Plan B: if the caller wants the synthesized test case typed other than 'SynthesizedTestCase'
                             // then let's do a conversion via 'Object'. In practice the desired type will be 'Object' and
                             // the unbox operation will be trivial.
-                
+
     type UnaryDelegate<'Argument, 'Result> =
         delegate of 'Argument -> 'Result
-        
+
     type BinaryDelegate<'ArgumentOne, 'ArgumentTwo, 'Result> =
         delegate of 'ArgumentOne * 'ArgumentTwo -> 'Result
-                
+
     type TernaryDelegate<'ArgumentOne, 'ArgumentTwo, 'ArgumentThree, 'Result> =
         delegate of 'ArgumentOne * 'ArgumentTwo * 'ArgumentThree -> 'Result
-                
+
     type QuatenaryDelegate<'ArgumentOne, 'ArgumentTwo, 'ArgumentThree, 'ArgumentFour, 'Result> =
         delegate of 'ArgumentOne * 'ArgumentTwo * 'ArgumentThree * 'ArgumentFour -> 'Result
-                
+
     type QuintenaryDelegate<'ArgumentOne, 'ArgumentTwo, 'ArgumentThree, 'ArgumentFour, 'ArgumentFive, 'Result> =
         delegate of 'ArgumentOne * 'ArgumentTwo * 'ArgumentThree * 'ArgumentFour * 'ArgumentFive -> 'Result
-                
+
     type SynthesizedTestCaseEnumerableFactory =
         /// <summary>Constructor function that creates an instance of TestCaseEnumerableFactory.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -157,7 +157,7 @@ namespace SageSerpent.TestInfrastructure
                               synthesisDelegate: Delegate) =
             if Seq.isEmpty sequenceOfFactoriesProvidingInputsToSynthesis
             then
-                raise (PreconditionViolationException "Must provide at least one component.")  
+                raise (PreconditionViolationException "Must provide at least one component.")
             let node =
                 let subtreeRootNodes =
                     sequenceOfFactoriesProvidingInputsToSynthesis
@@ -168,7 +168,7 @@ namespace SageSerpent.TestInfrastructure
                                             synthesisDelegate
             TypedTestCaseEnumerableFactory<_> node
             :> TestCaseEnumerableFactory
-            
+
         /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
@@ -182,10 +182,10 @@ namespace SageSerpent.TestInfrastructure
             TypedTestCaseEnumerableFactory<'SynthesizedTestCase> (fixedCombinationOfFactoriesForSynthesis
                                                                   :> IFixedCombinationOfSubtreeNodesForSynthesis
                                                                   |> SynthesizingNode)
-   
+
         // TODO: re-implement with special-case implementations of 'IFixedCombinationOfSubtreeNodesForSynthesis';
         // we don't need the full API using 'SynthesisInputs<_, _>' to do these tuple cases.
-    
+
         /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
         /// out of an input test case taken from the sequence yielded by the the child factory used to construct the factory.
@@ -201,7 +201,7 @@ namespace SageSerpent.TestInfrastructure
                 FixedCombinationOfFactoriesForSynthesis (singletonCombinationOfFactoriesForSynthesis
                                                          , synthesisDelegate.Invoke)
             SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfFactoriesForSynthesis
-                                       
+
         /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
@@ -222,7 +222,7 @@ namespace SageSerpent.TestInfrastructure
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
             SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfFactoriesForSynthesis
-                                       
+
         /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
@@ -247,7 +247,7 @@ namespace SageSerpent.TestInfrastructure
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
             SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfFactoriesForSynthesis
-            
+
         /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child

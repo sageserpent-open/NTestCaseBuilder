@@ -11,7 +11,7 @@ namespace SageSerpent.TestInfrastructure
     open SageSerpent.Infrastructure.OptionWorkflow
     open Microsoft.FSharp.Collections
     open Wintellect.PowerCollections
-    
+
     type NodeVisitOperations<'Result> =
         {
             TestVariableNodeResult: array<Object> -> 'Result
@@ -19,20 +19,20 @@ namespace SageSerpent.TestInfrastructure
             CombineResultsFromInterleavingNodeSubtrees: seq<'Result> -> 'Result
             CombineResultsFromSynthesizingNodeSubtrees: seq<'Result> -> 'Result
         }
-        
+
     type TestVariable<'Data> =
         Level of 'Data
       | SingletonPlaceholder
       | Exclusion
-      
+
     type FullTestVector =
         array<TestVariable<Int32>>
-      
+
     type IFixedCombinationOfSubtreeNodesForSynthesis =
         abstract Prune: Option<IFixedCombinationOfSubtreeNodesForSynthesis>
-    
+
         abstract Nodes: List<Node>
-            
+
         abstract FinalValueCreator: Unit -> (List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase)
 
     and Node =
@@ -40,7 +40,7 @@ namespace SageSerpent.TestInfrastructure
       | SingletonNode of Object
       | InterleavingNode of List<Node>
       | SynthesizingNode of IFixedCombinationOfSubtreeNodesForSynthesis
-      
+
     module NodeDetail =
         let traverseTree nodeOperations =
             let rec memoizedCalculation =
@@ -59,7 +59,7 @@ namespace SageSerpent.TestInfrastructure
                                                     |> Seq.map (fun subtreeHead -> memoizedCalculation subtreeHead)
                                                     |> nodeOperations.CombineResultsFromSynthesizingNodeSubtrees)
             memoizedCalculation
-      
+
         let countTestVariables =
             traverseTree    {
                                 TestVariableNodeResult = fun _ -> 1u
@@ -67,7 +67,7 @@ namespace SageSerpent.TestInfrastructure
                                 CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
                                 CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                             }
-                            
+
         let sumLevelCountsFromAllTestVariables =
             traverseTree    {
                                 TestVariableNodeResult = fun levels -> uint32 (Seq.length levels)
@@ -75,7 +75,7 @@ namespace SageSerpent.TestInfrastructure
                                 CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
                                 CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                             }
-      
+
         let maximumStrengthOfTestVariableCombination =
             traverseTree    {
                                 TestVariableNodeResult = fun _ -> 1u
@@ -85,17 +85,17 @@ namespace SageSerpent.TestInfrastructure
                             }
 
     open NodeDetail
-                                
+
     type Node with
         member this.CountTestVariables =
             countTestVariables this
-            
+
         member this.SumLevelCountsFromAllTestVariables =
             sumLevelCountsFromAllTestVariables this
-            
+
         member this.MaximumStrengthOfTestVariableCombination =
             maximumStrengthOfTestVariableCombination this
-    
+
         member this.PruneTree =
             let rec walkTree node =
                 match node with
@@ -120,9 +120,9 @@ namespace SageSerpent.TestInfrastructure
                             Some (InterleavingNode prunedSubtreeRootNodes)
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                         fixedCombinationOfSubtreeNodesForSynthesis.Prune
-                        |> Option.map SynthesizingNode 
+                        |> Option.map SynthesizingNode
             walkTree this
-                                
+
         member this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
             let rec walkTree node
                              indexForLeftmostTestVariable
@@ -142,7 +142,7 @@ namespace SageSerpent.TestInfrastructure
                     indexForLeftmostTestVariable + 1u
                     , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
                       |> List.append forwardInterleavingPairs
-                      |> List.append backwardInterleavingPairs   
+                      |> List.append backwardInterleavingPairs
                 match node with
                     TestVariableNode _ ->
                         resultsForASingleTestVariable ()
@@ -186,7 +186,7 @@ namespace SageSerpent.TestInfrastructure
                 result =
                     walkTree this 0u [] []
             HashMultiMap (result, HashIdentity.Structural)
-                                
+
         member this.AssociationFromStrengthToPartialTestVectorRepresentations maximumDesiredStrength =
             let rec walkTree node maximumDesiredStrength indexForLeftmostTestVariable =
                 match node with
@@ -200,12 +200,12 @@ namespace SageSerpent.TestInfrastructure
                         , [indexForLeftmostTestVariable
                            , Array.length levels
                              |> uint32]
-                        
+
                   | SingletonNode _ ->
                         Map.ofList [0u, [[indexForLeftmostTestVariable]]]
                         , indexForLeftmostTestVariable + 1u
                         , []
-                  
+
                   | InterleavingNode subtreeRootNodes ->
                         let mergeTestVariableCombinationsFromSubtree (previousAssociationFromStrengthToTestVariableCombinations
                                                                       , indexForLeftmostTestVariable
@@ -221,10 +221,10 @@ namespace SageSerpent.TestInfrastructure
                                 List.append associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree previousAssociationFromTestVariableIndexToNumberOfItsLevels
                             mergedAssociationFromStrengthToTestVariableCombinations
                             , maximumTestVariableIndexFromSubtree
-                           , associationFromTestVariableIndexToNumberOfItsLevels                               
+                           , associationFromTestVariableIndexToNumberOfItsLevels
                         subtreeRootNodes
                         |> Seq.fold mergeTestVariableCombinationsFromSubtree (Map.empty, indexForLeftmostTestVariable, [])
-                    
+
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                         let gatherTestVariableCombinationsFromSubtree (previousPerSubtreeAssociationsFromStrengthToTestVariableCombinations
                                                                        , indexForLeftmostTestVariable
@@ -299,7 +299,7 @@ namespace SageSerpent.TestInfrastructure
                             then
                                 partialAssociationFromStrengthToTestVariableCombinations
                             else
-                                Map.add totalStrength 
+                                Map.add totalStrength
                                         testVariableCombinationsWithTotalStrength
                                         partialAssociationFromStrengthToTestVariableCombinations
                         let associationFromStrengthToTestVariableCombinations =
@@ -313,7 +313,7 @@ namespace SageSerpent.TestInfrastructure
                 walkTree this maximumDesiredStrength 0u
             let associationFromTestVariableIndexToNumberOfItsLevels =
                 associationFromTestVariableIndexToNumberOfItsLevels
-                |> Map.ofList 
+                |> Map.ofList
             let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
             let createTestVectorRepresentations testVariableCombination =
@@ -334,7 +334,7 @@ namespace SageSerpent.TestInfrastructure
                             Some numberOfLevels ->
                                 numberOfLevels
                           | None ->
-                                1u    
+                                1u
                     testVariableCombination
                     |> List.sortWith (fun first second ->
                                         compare (numberOfLevelsForTestVariable second)
@@ -359,7 +359,7 @@ namespace SageSerpent.TestInfrastructure
                             |> Seq.map createTestVectorRepresentations
                             |> Seq.concat)
             , associationFromTestVariableIndexToNumberOfItsLevels
-                                
+
         member this.FillOutPartialTestVectorRepresentation associationFromTestVariableIndexToNumberOfItsLevels
                                                            partialTestVectorRepresentation
                                                            randomBehaviour =
@@ -392,7 +392,7 @@ namespace SageSerpent.TestInfrastructure
                           | None ->
                                 // This case picks up a test variable index for a singleton test case:
                                 // the map is built so that it doesn't have entries for these.
-                                SingletonPlaceholder  
+                                SingletonPlaceholder
                     let entryForChosenTestVariable =
                         chosenTestVariableIndex
                         , levelForChosenTestVariable
@@ -421,7 +421,7 @@ namespace SageSerpent.TestInfrastructure
                                    // makes no guarantee about the ordering - we want to preserve the order we
                                    // just established above.
                    |> List.toArray
-        
+
         member this.FinalValueCreator () =
             let indicesInVectorForLeftmostTestVariableInEachSubtree subtreeRootNodes =
                 subtreeRootNodes
@@ -526,7 +526,7 @@ namespace SageSerpent.TestInfrastructure
                                               , onePastIndexForRightmostTestVariable) ->
                                             fullTestVector.[indexForLeftmostTestVariable .. onePastIndexForRightmostTestVariable - 1])
                         finalValueCreator slicesOfFullTestVectorCorrespondingToSubtrees
-                   
+
         static member CreateSynthesizingNode subtreeRootNodes
                                              synthesisDelegate =
             let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
@@ -548,10 +548,10 @@ namespace SageSerpent.TestInfrastructure
                                 |> Some
                             else
                                 None
-                    
+
                         member this.Nodes =
                             subtreeRootNodes
-                            
+
                         member this.FinalValueCreator () =
                             fun slicesOfFullTestVector ->
                                 let resultsFromSubtrees =
@@ -564,7 +564,7 @@ namespace SageSerpent.TestInfrastructure
                                     resultsFromSubtrees
                                     |> Seq.toArray
                                 (synthesisDelegate: Delegate).DynamicInvoke invocationArguments
-                                |> unbox       
+                                |> unbox
                 }
             fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes
-            |> SynthesizingNode                     
+            |> SynthesizingNode

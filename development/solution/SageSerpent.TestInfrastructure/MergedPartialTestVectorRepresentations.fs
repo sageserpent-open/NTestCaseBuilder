@@ -10,7 +10,7 @@ namespace SageSerpent.TestInfrastructure
     open SageSerpent.Infrastructure.OptionExtensions
     open SageSerpent.Infrastructure.RandomExtensions
     open Microsoft.FSharp.Collections
-    
+
     module MergedPartialTestVectorRepresentationsDetail =
         type AugmentedInternalNode<'Level when 'Level: comparison> (internalNode: InternalNode<'Level>) =
             let numberOfLevelsForLeadingTestVariable =
@@ -29,13 +29,13 @@ namespace SageSerpent.TestInfrastructure
                         1u
                         + subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
                         + subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
-                        
+
             member this.InternalNode =
                 internalNode
-                
+
             member this.NumberOfLevelsForLeadingTestVariable =
-                numberOfLevelsForLeadingTestVariable                
-                
+                numberOfLevelsForLeadingTestVariable
+
         and InternalNode<'Level when 'Level: comparison> =
             {
                 LevelForTestVariableIndex: 'Level
@@ -46,14 +46,14 @@ namespace SageSerpent.TestInfrastructure
         and BinaryTreeOfLevelsForTestVariable<'Level when 'Level: comparison> =
             UnsuccessfulSearchTerminationNode
           | AugmentedInternalNode of AugmentedInternalNode<'Level>
-          
+
             member this.NumberOfLevelsForLeadingTestVariable =
                 match this with
                     AugmentedInternalNode augmentedInternalNode ->
                         augmentedInternalNode.NumberOfLevelsForLeadingTestVariable
                   | _ ->
                         0u
-                        
+
         and WildcardNode<'Level when 'Level: comparison> =
             {
                 SubtreeWithAllLevelsForSameTestVariableIndex: BinaryTreeOfLevelsForTestVariable<'Level>
@@ -63,13 +63,13 @@ namespace SageSerpent.TestInfrastructure
             SuccessfulSearchTerminationNode
           | WildcardNode of WildcardNode<'Level>
           | BinaryTreeOfLevelsForTestVariable of BinaryTreeOfLevelsForTestVariable<'Level>
-          
+
         let inline (|InternalNode|) (augmentedInternalNode: AugmentedInternalNode<'Level>) =
             augmentedInternalNode.InternalNode
-            
+
         let inline InternalNode (internalNode: InternalNode<'Level>) =
             new AugmentedInternalNode<'Level> (internalNode)
-            
+
         let inline mirrorInternalNode mirroring
                                       internalNodeRepresentation =
             if mirroring
@@ -82,15 +82,15 @@ namespace SageSerpent.TestInfrastructure
                         {
                             internalNodeRepresentation with
                                 SubtreeWithLesserLevelsForSameTestVariableIndex = rootSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                SubtreeWithGreaterLevelsForSameTestVariableIndex = rootSubtreeWithLesserLevelsForSameTestVariableIndex                            
-                        }     
+                                SubtreeWithGreaterLevelsForSameTestVariableIndex = rootSubtreeWithLesserLevelsForSameTestVariableIndex
+                        }
             else
                 internalNodeRepresentation
-                
+
         let inline (|MirroredInternalNode|) mirroring =
             (|InternalNode|)
             >> mirrorInternalNode mirroring
-            
+
         let inline MirroredInternalNode mirroring =
             mirrorInternalNode mirroring
             >> InternalNode
@@ -125,7 +125,7 @@ namespace SageSerpent.TestInfrastructure
                             SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                     }
                     , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels rootSubtreeWithLesserLevelsForSameTestVariableIndex
-                    , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels rootSubtreeWithGreaterLevelsForSameTestVariableIndex               
+                    , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels rootSubtreeWithGreaterLevelsForSameTestVariableIndex
                 match comparisonWrtImplicitLevel rootLevelForTestVariableIndex with
                     0 ->
                         // Degenerate root node only case (level has been found)...
@@ -179,7 +179,7 @@ namespace SageSerpent.TestInfrastructure
                                                     ({
                                                         internalNodeRepresentationForZig with
                                                             SubtreeWithLesserLevelsForSameTestVariableIndex = nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels
-                                                            SubtreeWithGreaterLevelsForSameTestVariableIndex = 
+                                                            SubtreeWithGreaterLevelsForSameTestVariableIndex =
                                                                 {
                                                                     internalNodeRepresentationForRoot with
                                                                         SubtreeWithLesserLevelsForSameTestVariableIndex = zigSubtreeWithGreaterLevelsForSameTestVariableIndex
@@ -223,7 +223,7 @@ namespace SageSerpent.TestInfrastructure
                                             localMirroring
                                   | _ ->
                                         // Zig-only case (either the level has been found, or found least upper bound instead)...
-                                        let internalNodeRepresentationForSplayedZig =                                        
+                                        let internalNodeRepresentationForSplayedZig =
                                             {
                                                 internalNodeRepresentationForZig with
                                                     SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
@@ -246,7 +246,7 @@ namespace SageSerpent.TestInfrastructure
                                             , flankingSubtreeWithGreaterLevels
                                             , flankingSubtreeWithLesserLevels
                                         else
-                                            internalNodeRepresentationForSplayedZig                                                                        
+                                            internalNodeRepresentationForSplayedZig
                                             , flankingSubtreeWithLesserLevels
                                             , flankingSubtreeWithGreaterLevels
                           | _ ->
@@ -256,9 +256,9 @@ namespace SageSerpent.TestInfrastructure
                                        BargainBasement.Identity
                                        BargainBasement.Identity
                                        false
-                             
+
     open MergedPartialTestVectorRepresentationsDetail
-        
+
     type MergedPartialTestVectorRepresentations<'Level when 'Level: comparison>(ternarySearchTree: TernarySearchTree<'Level>) =
         let createPartialTestVectorSequence () =
             let rec traverseTernarySearchTree ternarySearchTree
@@ -283,8 +283,8 @@ namespace SageSerpent.TestInfrastructure
                                                 yield! traverseTernarySearchTree subtreeForFollowingIndices
                                                                                  (testVariableIndex + 1u)
                                                                                  ((testVariableIndex, levelForTestVariableIndex) :: partialTestVectorBeingBuilt)
-                                                yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex                                                                
-                                            })               
+                                                yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
+                                            })
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
                         // NOTE: as we are converting to a map, we can be cavalier about the
@@ -342,12 +342,11 @@ namespace SageSerpent.TestInfrastructure
                 , lowestTestVariableIndex =
                 partialTestVectorRepresentation
                 |> Map.toList
-                |> fillInNonConsecutiveIndicesWithIndeterminateEntries  
+                |> fillInNonConsecutiveIndicesWithIndeterminateEntries
             fillIfNecessary 0u lowestTestVariableIndex partialTestVectorPossiblyWithLeadingEntriesMissing
 
         let add ternarySearchTree
-                newPartialTestVectorRepresentation
-                randomBehaviour =
+                newPartialTestVectorRepresentation =
             let rec addToTernarySearchTree ternarySearchTree
                                            newPartialTestVectorRepresentation =
                 let buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation newPartialTestVectorRepresentation =
@@ -414,7 +413,7 @@ namespace SageSerpent.TestInfrastructure
                                             buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation tailFromNewPartialTestVectorRepresentation
                                     }
                                     |> InternalNode
-                                    |> AugmentedInternalNode                                  
+                                    |> AugmentedInternalNode
                               | result when result > 0 ->
                                     let flankingSubtreeWithLesserLevels =
                                         {
@@ -431,7 +430,7 @@ namespace SageSerpent.TestInfrastructure
                                             buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation tailFromNewPartialTestVectorRepresentation
                                     }
                                     |> InternalNode
-                                    |> AugmentedInternalNode                                    
+                                    |> AugmentedInternalNode
                               | _ ->
                                     let modifiedSubtreeForFollowingIndices =
                                         addToTernarySearchTree splayedSubtreeForFollowingIndices
@@ -439,7 +438,7 @@ namespace SageSerpent.TestInfrastructure
                                     {
                                         splayedInternalNodeRepresentation with
                                             SubtreeWithLesserLevelsForSameTestVariableIndex = flankingSubtreeWithLesserLevels
-                                            SubtreeWithGreaterLevelsForSameTestVariableIndex = flankingSubtreeWithGreaterLevels                                    
+                                            SubtreeWithGreaterLevelsForSameTestVariableIndex = flankingSubtreeWithGreaterLevels
                                             SubtreeForFollowingIndices = modifiedSubtreeForFollowingIndices
                                     }
                                     |> InternalNode
@@ -458,11 +457,10 @@ namespace SageSerpent.TestInfrastructure
                             addLevelToBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
                                                                         levelFromNewPartialTestVectorRepresentation
                                                                         tailFromNewPartialTestVectorRepresentation
-                        WildcardNode
-                            {
-                                wildcardNodeRepresentation with
-                                    SubtreeWithAllLevelsForSameTestVariableIndex = modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                            }
+                        {
+                            wildcardNodeRepresentation with
+                                SubtreeWithAllLevelsForSameTestVariableIndex = modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                        } |> WildcardNode
                   | WildcardNode
                     ({
                         SubtreeForFollowingIndices = subtreeForFollowingIndices
@@ -478,10 +476,10 @@ namespace SageSerpent.TestInfrastructure
                         |> WildcardNode
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                     , Some levelFromNewPartialTestVectorRepresentation :: tailFromNewPartialTestVectorRepresentation ->
-                        addLevelToBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable  
+                        addLevelToBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                     levelFromNewPartialTestVectorRepresentation
                                                                     tailFromNewPartialTestVectorRepresentation
-                        |> BinaryTreeOfLevelsForTestVariable                      
+                        |> BinaryTreeOfLevelsForTestVariable
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                     , None :: tailFromNewPartialTestVectorRepresentation ->
                         {
@@ -524,7 +522,7 @@ namespace SageSerpent.TestInfrastructure
                                                                      comparisonWrtNegativeInfinity
                 splayedLevelForTestVariableIndex
                 , splayedSubtreeForFollowingIndices
-                , flankingSubtreeWithGreaterLevels                   
+                , flankingSubtreeWithGreaterLevels
             let buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
                                                                                         subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                         subtreeWithGreaterLevelsForSameTestVariableIndex
@@ -582,7 +580,7 @@ namespace SageSerpent.TestInfrastructure
                                     subtreeForFollowingIndicesFromRemovedNode
                             }
                             |> InternalNode
-                            |> AugmentedInternalNode)                        
+                            |> AugmentedInternalNode)
                   | _ ->
                         ({
                             LevelForTestVariableIndex =
@@ -684,7 +682,7 @@ namespace SageSerpent.TestInfrastructure
                                                                                                                                            modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                                                            subtreeForFollowingIndices
                                                                    , removedPartialTestVector
-                                                        })                                                                                                           
+                                                        })
             and removeFromTernarySearchTree ternarySearchTree
                                             queryPartialTestVectorRepresentation =
                 let inline adaptResult result =
@@ -696,7 +694,7 @@ namespace SageSerpent.TestInfrastructure
                                    , partialTestVector
                         }
                 match ternarySearchTree
-                      , queryPartialTestVectorRepresentation with                
+                      , queryPartialTestVectorRepresentation with
                     BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
                     , _ ->
                         None
@@ -713,7 +711,7 @@ namespace SageSerpent.TestInfrastructure
                         optionWorkflow
                             {
                                 let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                                     , removedPartialTestVector = 
+                                     , removedPartialTestVector =
                                     removeLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
                                                                                      levelFromQueryPartialTestVectorRepresentation
                                                                                      tailFromQueryPartialTestVectorRepresentation
@@ -735,7 +733,7 @@ namespace SageSerpent.TestInfrastructure
                         optionWorkflow
                             {
                                 let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                                     , removedPartialTestVector = 
+                                     , removedPartialTestVector =
                                     removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
                                                                                              tailFromQueryPartialTestVectorRepresentation
                                 return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
@@ -768,8 +766,8 @@ namespace SageSerpent.TestInfrastructure
                                                                                            levelForTestVariableIndex
                                                                                            subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                            subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                           subtreeForFollowingIndices = 
-                    optionWorkflow  
+                                                                                           subtreeForFollowingIndices =
+                    optionWorkflow
                         {
                             let! modifiedSubtreeForFollowingTestVariableIndices
                                  , removedPartialTestVector =
@@ -796,7 +794,7 @@ namespace SageSerpent.TestInfrastructure
                                    , (headFromQueryPartialTestVectorRepresentation :: removedPartialTestVector)
                         }
             removeFromTernarySearchTree ternarySearchTree queryPartialTestVectorRepresentation
-            
+
         let checkInvariant ternarySearchTree =
             let rec checkInvariantOfTernarySearchTree ternarySearchTree
                                                       lowerBound
@@ -873,7 +871,7 @@ namespace SageSerpent.TestInfrastructure
                               | _ ->
                                     numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
                                     + numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                    + numberOfSuccessfulPathsFromSubtreeForFollowingIndices                                                                          
+                                    + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
                         1u
@@ -911,15 +909,15 @@ namespace SageSerpent.TestInfrastructure
                                                       NegativeInfinity
                                                       PositiveInfinity
             then
-                raise (LogicErrorException "No successful search paths but tree is should be non-empty.")
-                                                      
+                raise (LogicErrorException "No successful search paths but tree should be non-empty.")
+
         interface IEnumerable<Map<UInt32, 'Level>> with
             member this.GetEnumerator () =
                 createPartialTestVectorSequence().GetEnumerator ()
         interface IEnumerable with
             member this.GetEnumerator () =
                 (createPartialTestVectorSequence() :> IEnumerable).GetEnumerator ()
-                
+
         static member Initial =
             MergedPartialTestVectorRepresentations<'Level> (BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode)
 
@@ -943,14 +941,12 @@ namespace SageSerpent.TestInfrastructure
 //                                    raise (LogicErrorException "The merged removed partial vector still matches with something left behind!")
 //                              | _ ->
 //                                    ()
-//                            // ... end of check.  
+//                            // ... end of check.
                             add ternarySearchTreeWithoutMergeCandidate
                                 mergedPartialTestVectorRepresentation
-                                randomBehaviour
                       | None ->
                             add ternarySearchTree
                                 partialTestVectorRepresentation
-                                randomBehaviour
 //                // Invariant check...
 //                checkInvariant modifiedTernarySearchTree
 //                // ... end of invariant check.
