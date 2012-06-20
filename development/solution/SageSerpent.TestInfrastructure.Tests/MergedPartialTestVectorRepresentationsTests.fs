@@ -116,7 +116,9 @@
                                     then testVariableIndex - maximumRandomWalkStep
                                     else 0u
                                  let upperBoundInclusive =
-                                    testVariableIndex + maximumRandomWalkStep
+                                    if testVariableIndex + maximumRandomWalkStep >= maximumNumberOfTestVariables
+                                    then maximumNumberOfTestVariables - 1u
+                                    else testVariableIndex + maximumRandomWalkStep
                                  let chosenAbitraryTestVariableIndex =
                                     lowerBoundInclusive + randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (upperBoundInclusive + 1u - lowerBoundInclusive)
                                  (chosenAbitraryTestVariableIndex
@@ -226,17 +228,30 @@
         [<Test>]
         member this.TestMergingOfVectorsInWithExistingPartialVectors () =
             let randomBehaviour = Random randomBehaviourSeed
+
             let testHandoff partialTestVectorsThatDoNotOverlap =
+                let numberOfIndicesToAvoid =
+                    randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfIndicesToAvoid
                 let sortedIndicesToAvoid =
-                    randomBehaviour.ChooseSeveralOf ((List.init (int32 maximumNumberOfTestVariables) (fun count -> uint32 count))
-                                                     , (randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfIndicesToAvoid))
+                    randomBehaviour.ChooseSeveralOf ((List.init (int32 maximumNumberOfTestVariables) uint32)
+                                                     , numberOfIndicesToAvoid)
                     |> List.ofArray
                     |> List.sort
+                let mappingAvoidingIndices =
+                    BargainBasement.MappingAvoidingIndices sortedIndicesToAvoid
+                let maximumNumberOfTestVariablesAfterRemapping =
+                    maximumNumberOfTestVariables + numberOfIndicesToAvoid
+                let rotationOffsetToAllowCoverageOfTrailingIndices =
+                    randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfIndicesToAvoid
+                let rotation =
+                    fun testVariableIndex -> (rotationOffsetToAllowCoverageOfTrailingIndices + testVariableIndex) % maximumNumberOfTestVariablesAfterRemapping
+                let mappingAvoidingIndicesThenRotation =
+                    mappingAvoidingIndices >> rotation
                 let remappedPartialTestVectors =
                     partialTestVectorsThatDoNotOverlap
                     |> List.map (Map.toList >> List.map (function index
                                                                   , level ->
-                                                                    BargainBasement.MappingAvoidingIndices sortedIndicesToAvoid index
+                                                                    mappingAvoidingIndicesThenRotation index
                                                                     , level) >> Map.ofList)
                 let mergedPartialTestVectors =
                     mergeOrAddPartialTestVectors remappedPartialTestVectors
@@ -254,30 +269,33 @@
                                              =
                             Map.add testVariableIndex level partialTestVector
                         Seq.fold addIndexAndLevel partialTestVector)
+                let sortedIndicesToAvoidWithRotationApplied =
+                    sortedIndicesToAvoid
+                    |> List.map rotation
                 let partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices =
                     remappedPartialTestVectors
-                    |> List.map (possiblyAddLevelsForIndices sortedIndicesToAvoid)
+                    |> List.map (possiblyAddLevelsForIndices sortedIndicesToAvoidWithRotationApplied)
                 let remergedPartialTestVectors =
                     mergeOrAddPartialTestVectors partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
                                                  mergedPartialTestVectors
                                                  randomBehaviour
                 let shouldBeTrue =
                     Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices = Set.ofSeq remergedPartialTestVectors
-//                if not shouldBeTrue
-//                then let originals = Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
-//                     let remerged = Set.ofSeq remergedPartialTestVectors
-//                     let common = Set.intersect originals remerged
-//                     printf "remappedPartialTestVectors:\n"
-//                     Set.ofList remappedPartialTestVectors |> Set.iter dumpPartialTestVector
-//                     printf "mergedPartialTestVectors:\n"
-//                     Set.ofSeq mergedPartialTestVectors |> Set.iter dumpPartialTestVector
-//                     printf "Only in originals:-\n"
-//                     (originals - common) |> Set.iter dumpPartialTestVector
-//                     printf "Only in remerged:-\n"
-//                     (remerged - common) |> Set.iter dumpPartialTestVector
-//                     printf "Common:-\n"
-//                     common |> Set.iter dumpPartialTestVector
-//                     printf "Indices to avoid: %A\n" sortedIndicesToAvoid
+                if not shouldBeTrue
+                then let originals = Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
+                     let remerged = Set.ofSeq remergedPartialTestVectors
+                     let common = Set.intersect originals remerged
+                     printf "remappedPartialTestVectors:\n"
+                     Set.ofList remappedPartialTestVectors |> Set.iter dumpPartialTestVector
+                     printf "mergedPartialTestVectors:\n"
+                     Set.ofSeq mergedPartialTestVectors |> Set.iter dumpPartialTestVector
+                     printf "Only in originals:-\n"
+                     (originals - common) |> Set.iter dumpPartialTestVector
+                     printf "Only in remerged:-\n"
+                     (remerged - common) |> Set.iter dumpPartialTestVector
+                     printf "Common:-\n"
+                     common |> Set.iter dumpPartialTestVector
+                     printf "Indices to avoid with rotation applied: %A\n" sortedIndicesToAvoidWithRotationApplied
                 Assert.IsTrue shouldBeTrue
             createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
 
@@ -334,11 +352,12 @@
 
         [<Test>]
         member this.TestInitialStateIsEmptyAndDoesNotContainATrivialEmptyPartialTestVector () =
-            let initial =
-                MergedPartialTestVectorRepresentations.Initial
-            let containedPartialTestVectors =
-                initial
-                |> List.ofSeq
-            let shouldBeTrue =
-                containedPartialTestVectors.Length = 0
-            Assert.IsTrue shouldBeTrue
+            for maximumNumberOfTestVariables in 0u .. maximumNumberOfTestVariables do   // NOTE: includes the boundary case of no test variables whatsover.
+                let initial =
+                    MergedPartialTestVectorRepresentations.Initial
+                let containedPartialTestVectors =
+                    initial
+                    |> List.ofSeq
+                let shouldBeTrue =
+                    containedPartialTestVectors.Length = 0
+                Assert.IsTrue shouldBeTrue
