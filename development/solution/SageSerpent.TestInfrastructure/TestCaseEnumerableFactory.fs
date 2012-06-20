@@ -220,11 +220,13 @@
                     let associationFromStrengthToPartialTestVectorRepresentations
                         , associationFromTestVariableIndexToNumberOfItsLevels =
                         prunedNode.AssociationFromStrengthToPartialTestVectorRepresentations maximumDesiredStrength
+                    let overallNumberOfTestVariables =
+                        prunedNode.CountTestVariables
                     let randomBehaviour =
                         Random 0
                     let sequenceOfFinalValues =
                         let mergedPartialTestVectorRepresentations =
-                            MergedPartialTestVectorRepresentations.Initial
+                            MergedPartialTestVectorRepresentations.Initial overallNumberOfTestVariables
                             // Do a fold back so that high strength vectors get in there first. Hopefully the lesser strength vectors
                             // should have a greater chance of finding an earlier, larger vector to merge with this way.
                             |> Map.foldBack (fun _

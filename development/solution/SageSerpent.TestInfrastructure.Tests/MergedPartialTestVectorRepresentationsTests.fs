@@ -154,7 +154,7 @@
             let testHandoff partialTestVectorsThatDoNotOverlap =
                 let mergedPartialTestVectors =
                     mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap
-                                                 MergedPartialTestVectorRepresentations.Initial
+                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
                                                  randomBehaviour
                 let shouldBeTrue =
                     Set.ofList partialTestVectorsThatDoNotOverlap = Set.ofSeq mergedPartialTestVectors
@@ -177,7 +177,7 @@
             let testHandoff partialTestVectorsThatDoNotOverlap =
                 let mergedPartialTestVectors =
                     mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap
-                                                 MergedPartialTestVectorRepresentations.Initial
+                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
                                                  randomBehaviour
                 let mutantsOrCopiesOf partialTestVector =
                     let maximumRecursionDepth = 50u
@@ -255,7 +255,7 @@
                                                                     , level) >> Map.ofList)
                 let mergedPartialTestVectors =
                     mergeOrAddPartialTestVectors remappedPartialTestVectors
-                                                 MergedPartialTestVectorRepresentations.Initial
+                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariablesAfterRemapping)
                                                  randomBehaviour
                 let possiblyAddLevelsForIndices indicesToAdd partialTestVector =
                     let chosenIndicesToAdd =
@@ -305,7 +305,7 @@
             let testHandoff partialTestVectors =
                 let mergedPartialTestVectors =
                         mergeOrAddPartialTestVectors partialTestVectors
-                                                     MergedPartialTestVectorRepresentations.Initial
+                                                     (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
                                                      randomBehaviour
                 let numberOfMergedPartialTestVectors =
                     Seq.length mergedPartialTestVectors
@@ -339,7 +339,7 @@
             let testHandoff partialTestVectors =
                 let mergedPartialTestVectors =
                     mergeOrAddPartialTestVectors partialTestVectors
-                                                 MergedPartialTestVectorRepresentations.Initial
+                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
                                                  randomBehaviour
                 let remergedPartialTestVectors =
                     mergeOrAddPartialTestVectors [Map.empty]
@@ -354,7 +354,7 @@
         member this.TestInitialStateIsEmptyAndDoesNotContainATrivialEmptyPartialTestVector () =
             for maximumNumberOfTestVariables in 0u .. maximumNumberOfTestVariables do   // NOTE: includes the boundary case of no test variables whatsover.
                 let initial =
-                    MergedPartialTestVectorRepresentations.Initial
+                    MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables
                 let containedPartialTestVectors =
                     initial
                     |> List.ofSeq

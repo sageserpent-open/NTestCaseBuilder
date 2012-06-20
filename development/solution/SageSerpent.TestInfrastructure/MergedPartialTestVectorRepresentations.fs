@@ -259,11 +259,18 @@ namespace SageSerpent.TestInfrastructure
 
     open MergedPartialTestVectorRepresentationsDetail
 
-    type MergedPartialTestVectorRepresentations<'Level when 'Level: comparison>(ternarySearchTree: TernarySearchTree<'Level>) =
+    type MergedPartialTestVectorRepresentations<'Level when 'Level: comparison>(ternarySearchTree: TernarySearchTree<'Level>,
+                                                                                maximumNumberOfTestVariablesOverall: UInt32) =
         let createPartialTestVectorSequence () =
             let rec traverseTernarySearchTree ternarySearchTree
                                               testVariableIndex
                                               partialTestVectorBeingBuilt =
+                if maximumNumberOfTestVariablesOverall < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
+                                                                            // for a full (and possibly removed) test vector, because successful and unsuccessful searches go through
+                                                                            // at least one node corresponding to each test variable index, *then* land on a node indicating whether
+                                                                            // the search was successful or not: so the zero-relative index gets incremented one more time.
+                then
+                    raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
                 let rec traverseBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
@@ -333,6 +340,9 @@ namespace SageSerpent.TestInfrastructure
                         []
                         , None
                   | (testVariableIndex, level) :: tail ->
+                        if maximumNumberOfTestVariablesOverall <= testVariableIndex
+                        then
+                            raise (PreconditionViolationException "The partial test vector being either merged or added has a test variable index that is greater than the permitted maximum.")
                         let partialResult
                             , previousTestVariableIndex =
                             fillInNonConsecutiveIndicesWithIndeterminateEntries tail
@@ -918,8 +928,9 @@ namespace SageSerpent.TestInfrastructure
             member this.GetEnumerator () =
                 (createPartialTestVectorSequence() :> IEnumerable).GetEnumerator ()
 
-        static member Initial =
-            MergedPartialTestVectorRepresentations<'Level> (BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode)
+        static member Initial maximumNumberOfTestVariablesOverall =
+            MergedPartialTestVectorRepresentations<'Level> (BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode,
+                                                            maximumNumberOfTestVariablesOverall)
 
         member this.MergeOrAdd partialTestVectorRepresentation
                                randomBehaviour =
@@ -950,4 +961,5 @@ namespace SageSerpent.TestInfrastructure
 //                // Invariant check...
 //                checkInvariant modifiedTernarySearchTree
 //                // ... end of invariant check.
-                MergedPartialTestVectorRepresentations modifiedTernarySearchTree
+                MergedPartialTestVectorRepresentations (modifiedTernarySearchTree,
+                                                        maximumNumberOfTestVariablesOverall)
