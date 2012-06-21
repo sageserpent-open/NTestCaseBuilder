@@ -237,26 +237,28 @@
                                 })
                             |> List.ofSeq
 
-                        let rec lazilyProduceMergedPartialTestVectors mergedPartialTestVectorRepresentations
-                                                                      partialTestVectors =
-                            match partialTestVectors with
-                                [] ->
-                                    (mergedPartialTestVectorRepresentations :> seq<_>)
-                              | partialTestVector
-                                :: remainingPartialTestVectors ->
-                                    match (mergedPartialTestVectorRepresentations: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector
-                                                                                                                                         randomBehaviour with
-                                        updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
-                                        , Some resultingFullTestCaseVector ->
-                                            Seq.append (Seq.singleton resultingFullTestCaseVector)
-                                                       (Seq.delay (fun () ->
-                                                                        printf "Incremental generation of full test vector: %A\n" resultingFullTestCaseVector
-                                                                        lazilyProduceMergedPartialTestVectors updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
-                                                                                                              remainingPartialTestVectors))
-                                      | updatedMergedPartialTestVectorRepresentations
-                                        , None ->
-                                            lazilyProduceMergedPartialTestVectors updatedMergedPartialTestVectorRepresentations
-                                                                                  remainingPartialTestVectors
+                        let lazilyProduceMergedPartialTestVectors mergedPartialTestVectorRepresentations
+                                                                  partialTestVectors =
+                            seq
+                                {
+                                    let locallyModifiedMergedPartialTestVectorRepresentations =
+                                        ref mergedPartialTestVectorRepresentations
+
+                                    for partialTestVector in partialTestVectors do
+                                        match (!locallyModifiedMergedPartialTestVectorRepresentations: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector
+                                                                                                                                                            randomBehaviour with
+                                            updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
+                                            , Some resultingFullTestCaseVector ->
+                                                yield resultingFullTestCaseVector
+
+                                                printf "Incremental generation of full test vector: %A\n" resultingFullTestCaseVector
+                                                locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
+                                          | updatedMergedPartialTestVectorRepresentations
+                                            , None ->
+                                                locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentations
+
+                                    yield! !locallyModifiedMergedPartialTestVectorRepresentations
+                                }
 
                         let lazilyProducedMergedPartialTestVectors =
                             lazilyProduceMergedPartialTestVectors (MergedPartialTestVectorRepresentations.Initial overallNumberOfTestVariables)
