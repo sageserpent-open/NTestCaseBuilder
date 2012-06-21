@@ -135,11 +135,25 @@
         let mergeOrAddPartialTestVectors partialTestVectors
                                          initialCollection
                                          randomBehaviour =
-            partialTestVectors
-            |> List.fold (fun mergedPartialTestVectors partialTestVector ->
-                            (mergedPartialTestVectors: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector
-                                                                                                             randomBehaviour)
-                         initialCollection
+            let mergedPartialTestVectors
+                , setOfFullTestVectors =
+                partialTestVectors
+                |> List.fold (fun (mergedPartialTestVectors, setOfFullTestVectors) partialTestVector ->
+                                match (mergedPartialTestVectors: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector
+                                                                                                                       randomBehaviour with
+                                    updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
+                                    , Some resultingFullTestCaseVector ->
+                                        updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
+                                        , Set.add resultingFullTestCaseVector
+                                                  setOfFullTestVectors
+                                  | updatedMergedPartialTestVectorRepresentations
+                                    , None ->
+                                        updatedMergedPartialTestVectorRepresentations
+                                        , setOfFullTestVectors)
+                             (initialCollection, Set.empty)
+            mergedPartialTestVectors
+            , (Set.ofSeq mergedPartialTestVectors
+               |> Set.union setOfFullTestVectors)
 
         let dumpPartialTestVector partialTestVector =
             printf "[ "
@@ -152,12 +166,13 @@
         member this.TestAdditionOfUnmergeableVectorsPreservesIndividualVectors () =
             let randomBehaviour = Random randomBehaviourSeed
             let testHandoff partialTestVectorsThatDoNotOverlap =
-                let mergedPartialTestVectors =
+                let mergedPartialTestVectors
+                    , setOfMergedPartialTestVectors =
                     mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap
                                                  (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
                                                  randomBehaviour
                 let shouldBeTrue =
-                    Set.ofList partialTestVectorsThatDoNotOverlap = Set.ofSeq mergedPartialTestVectors
+                    Set.ofList partialTestVectorsThatDoNotOverlap = setOfMergedPartialTestVectors
                 if not shouldBeTrue
                 then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
                      let merged = Set.ofSeq mergedPartialTestVectors
@@ -175,7 +190,8 @@
         member this.TestAdditionOfPartialsOfExistingVectors () =
             let randomBehaviour = Random randomBehaviourSeed
             let testHandoff partialTestVectorsThatDoNotOverlap =
-                let mergedPartialTestVectors =
+                let mergedPartialTestVectors
+                    , _ =
                     mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap
                                                  (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
                                                  randomBehaviour
@@ -206,12 +222,13 @@
                     partialTestVectorsThatDoNotOverlap
                     |> List.map mutantsOrCopiesOf
                     |> List.concat
-                let remergedPartialTestVectors =
+                let remergedPartialTestVectors
+                    , setOfMergedPartialTestVectorsFromRemerge =
                     mergeOrAddPartialTestVectors partialTestVectorsThatAddNoNewInformation
                                                  mergedPartialTestVectors
                                                  randomBehaviour
                 let shouldBeTrue =
-                    (Set.ofList partialTestVectorsThatDoNotOverlap).Count = (Set.ofSeq remergedPartialTestVectors).Count
+                    (Set.ofList partialTestVectorsThatDoNotOverlap).Count = setOfMergedPartialTestVectorsFromRemerge.Count
                 if not shouldBeTrue
                 then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
                      let remerged = Set.ofSeq remergedPartialTestVectors
@@ -253,7 +270,8 @@
                                                                   , level ->
                                                                     mappingAvoidingIndicesThenRotation index
                                                                     , level) >> Map.ofList)
-                let mergedPartialTestVectors =
+                let mergedPartialTestVectors
+                    , _ =
                     mergeOrAddPartialTestVectors remappedPartialTestVectors
                                                  (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariablesAfterRemapping)
                                                  randomBehaviour
@@ -275,12 +293,13 @@
                 let partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices =
                     remappedPartialTestVectors
                     |> List.map (possiblyAddLevelsForIndices sortedIndicesToAvoidWithRotationApplied)
-                let remergedPartialTestVectors =
+                let remergedPartialTestVectors
+                    , setOfMergedPartialTestVectorsFromRemerge =
                     mergeOrAddPartialTestVectors partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
                                                  mergedPartialTestVectors
                                                  randomBehaviour
                 let shouldBeTrue =
-                    Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices = Set.ofSeq remergedPartialTestVectors
+                    Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices = setOfMergedPartialTestVectorsFromRemerge
                 if not shouldBeTrue
                 then let originals = Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
                      let remerged = Set.ofSeq remergedPartialTestVectors
@@ -303,19 +322,18 @@
         member this.TestVectorsAreEitherAddedOrMerged () =
             let randomBehaviour = Random randomBehaviourSeed
             let testHandoff partialTestVectors =
-                let mergedPartialTestVectors =
+                let mergedPartialTestVectors
+                    , setOfMergedPartialTestVectors =
                         mergeOrAddPartialTestVectors partialTestVectors
                                                      (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
                                                      randomBehaviour
                 let numberOfMergedPartialTestVectors =
-                    Seq.length mergedPartialTestVectors
+                    setOfMergedPartialTestVectors.Count
                 let shouldBeTrue = numberOfMergedPartialTestVectors <= partialTestVectors.Length
                 Assert.IsTrue shouldBeTrue
-                let mergedPartialTestVectors =
-                    Set.ofSeq mergedPartialTestVectors
                 let partialVectorsThatWereChanged =
                     partialTestVectors
-                    |> List.filter (fun partialTestVector -> not (mergedPartialTestVectors.Contains partialTestVector))
+                    |> List.filter (fun partialTestVector -> not (setOfMergedPartialTestVectors.Contains partialTestVector))
                     |> Set.ofSeq
                 let checkInclusionInAtLeastOneMergedPartialTestVector partialTestVector =
                     let firstIncludesSecond first second =
@@ -325,7 +343,7 @@
                                                        |> Map.toList
                                                        |> Set.ofList)
                     let shouldBeTrue =
-                        mergedPartialTestVectors
+                        setOfMergedPartialTestVectors
                         |> Set.exists (fun mergedPartialTestVector
                                             -> firstIncludesSecond mergedPartialTestVector partialTestVector)
                     Assert.IsTrue shouldBeTrue
@@ -337,16 +355,18 @@
         member this.TestAdditionOfTrivialEmptyPartialTestVectorsLeavesCollectionUnchanged () =
             let randomBehaviour = Random randomBehaviourSeed
             let testHandoff partialTestVectors =
-                let mergedPartialTestVectors =
+                let mergedPartialTestVectors
+                    , setOfMergedPartialTestVectors =
                     mergeOrAddPartialTestVectors partialTestVectors
                                                  (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
                                                  randomBehaviour
-                let remergedPartialTestVectors =
+                let remergedPartialTestVectors
+                    , setOfMergedPartialTestVectorsFromRemerge =
                     mergeOrAddPartialTestVectors [Map.empty]
                                                  mergedPartialTestVectors
                                                  randomBehaviour
                 let shouldBeTrue =
-                    Set.ofSeq remergedPartialTestVectors = Set.ofSeq mergedPartialTestVectors
+                    setOfMergedPartialTestVectors = setOfMergedPartialTestVectorsFromRemerge
                 Assert.IsTrue shouldBeTrue
             createOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
 

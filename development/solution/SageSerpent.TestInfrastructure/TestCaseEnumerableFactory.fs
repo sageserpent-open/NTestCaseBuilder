@@ -225,25 +225,48 @@
                     let randomBehaviour =
                         Random 0
                     let sequenceOfFinalValues =
-                        let mergedPartialTestVectorRepresentations =
-                            MergedPartialTestVectorRepresentations.Initial overallNumberOfTestVariables
-                            // Do a fold back so that high strength vectors get in there first. Hopefully the lesser strength vectors
-                            // should have a greater chance of finding an earlier, larger vector to merge with this way.
-                            |> Map.foldBack (fun _
-                                                 partialTestVectorsAtTheSameStrength
-                                                 mergedPartialTestVectorRepresentations ->
-                                                    partialTestVectorsAtTheSameStrength
-                                                    |> Seq.fold (fun mergedPartialTestVectorRepresentations
-                                                                     partialTestVector ->
-                                                                        mergedPartialTestVectorRepresentations.MergeOrAdd partialTestVector
-                                                                                                                          randomBehaviour)
-                                                                mergedPartialTestVectorRepresentations)
-                                             associationFromStrengthToPartialTestVectorRepresentations
+                        let partialTestVectorsInOrderOfDecreasingStrength = // Order by decreasing strength so that high strength vectors get in there
+                                                                            // first. Hopefully the lesser strength vectors should have a greater chance
+                                                                            // of finding an earlier, larger vector to merge with this way.
+                            (seq
+                                {
+                                    for partialTestVectorsAtTheSameStrength in associationFromStrengthToPartialTestVectorRepresentations
+                                                                               |> Seq.sortBy (fun keyValuePair -> - (int32 keyValuePair.Key))
+                                                                               |> Seq.map (fun keyValuePair -> keyValuePair.Value) do
+                                        yield! partialTestVectorsAtTheSameStrength
+                                })
+                            |> List.ofSeq
+
+                        let rec lazilyProduceMergedPartialTestVectors mergedPartialTestVectorRepresentations
+                                                                      partialTestVectors =
+                            match partialTestVectors with
+                                [] ->
+                                    (mergedPartialTestVectorRepresentations :> seq<_>)
+                              | partialTestVector
+                                :: remainingPartialTestVectors ->
+                                    match (mergedPartialTestVectorRepresentations: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector
+                                                                                                                                         randomBehaviour with
+                                        updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
+                                        , Some resultingFullTestCaseVector ->
+                                            Seq.append (Seq.singleton resultingFullTestCaseVector)
+                                                       (Seq.delay (fun () ->
+                                                                        printf "Incremental generation of full test vector: %A\n" resultingFullTestCaseVector
+                                                                        lazilyProduceMergedPartialTestVectors updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
+                                                                                                              remainingPartialTestVectors))
+                                      | updatedMergedPartialTestVectorRepresentations
+                                        , None ->
+                                            lazilyProduceMergedPartialTestVectors updatedMergedPartialTestVectorRepresentations
+                                                                                  remainingPartialTestVectors
+
+                        let lazilyProducedMergedPartialTestVectors =
+                            lazilyProduceMergedPartialTestVectors (MergedPartialTestVectorRepresentations.Initial overallNumberOfTestVariables)
+                                                                  partialTestVectorsInOrderOfDecreasingStrength
+
                         let finalValueCreator =
                             prunedNode.FinalValueCreator ()
                         seq
                             {
-                                for mergedPartialTestVector in mergedPartialTestVectorRepresentations do
+                                for mergedPartialTestVector in lazilyProducedMergedPartialTestVectors  do
                                     let fullTestVector =
                                         prunedNode.FillOutPartialTestVectorRepresentation associationFromTestVariableIndexToNumberOfItsLevels
                                                                                           mergedPartialTestVector

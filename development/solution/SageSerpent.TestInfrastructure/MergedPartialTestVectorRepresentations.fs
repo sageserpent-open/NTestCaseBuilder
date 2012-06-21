@@ -937,6 +937,7 @@ namespace SageSerpent.TestInfrastructure
             if Map.isEmpty partialTestVectorRepresentation
             then
                 this
+                , None
             else
                 let partialTestVectorRepresentation =
                     fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation
@@ -963,3 +964,4 @@ namespace SageSerpent.TestInfrastructure
 //                // ... end of invariant check.
                 MergedPartialTestVectorRepresentations (modifiedTernarySearchTree,
                                                         maximumNumberOfTestVariablesOverall)
+                , None
