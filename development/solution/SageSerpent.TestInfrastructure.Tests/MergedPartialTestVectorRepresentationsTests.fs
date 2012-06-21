@@ -136,7 +136,7 @@
                                          initialCollection
                                          randomBehaviour =
             let mergedPartialTestVectors
-                , setOfFullTestVectors =
+                , setOfMergedFullTestVectors =
                 partialTestVectors
                 |> List.fold (fun (mergedPartialTestVectors, setOfFullTestVectors) partialTestVector ->
                                 match (mergedPartialTestVectors: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector
@@ -151,9 +151,14 @@
                                         updatedMergedPartialTestVectorRepresentations
                                         , setOfFullTestVectors)
                              (initialCollection, Set.empty)
+            let setOfMergedPartialTestVectors =
+                Set.ofSeq mergedPartialTestVectors
+
+            Assert.IsTrue (Set.isEmpty (Set.intersect setOfMergedFullTestVectors setOfMergedPartialTestVectors))
+
             mergedPartialTestVectors
-            , (Set.ofSeq mergedPartialTestVectors
-               |> Set.union setOfFullTestVectors)
+            , (setOfMergedPartialTestVectors
+               |> Set.union setOfMergedFullTestVectors)
 
         let dumpPartialTestVector partialTestVector =
             printf "[ "
