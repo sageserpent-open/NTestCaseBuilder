@@ -265,15 +265,16 @@ namespace SageSerpent.TestInfrastructure
             let rec traverseTernarySearchTree ternarySearchTree
                                               testVariableIndex
                                               partialTestVectorBeingBuilt =
-                if maximumNumberOfTestVariablesOverall < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
-                                                                            // for a full (and possibly removed) test vector, because successful and unsuccessful searches go through
-                                                                            // at least one node corresponding to each test variable index, *then* land on a node indicating whether
-                                                                            // the search was successful or not: so the zero-relative index gets incremented one more time.
-                then
-                    raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
                 let rec traverseBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
+                            if maximumNumberOfTestVariablesOverall < testVariableIndex
+                               || maximumNumberOfTestVariablesOverall > 0u  // NOTE: having 'maximumNumberOfTestVariablesOverall' set to zero does permit
+                                                                            // a single empty test vector, hence the need for this guard clause.
+                                  && maximumNumberOfTestVariablesOverall = testVariableIndex
+                            then
+                                raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
+
                             Seq.empty
                       | AugmentedInternalNode
                         (InternalNode
@@ -294,17 +295,25 @@ namespace SageSerpent.TestInfrastructure
                                             })
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
+                        if maximumNumberOfTestVariablesOverall < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
+                                                                                    // for a full (and possibly removed) test vector, because successful searches go through at least one
+                                                                                    // node corresponding to each test variable index, *then* land on a node indicating whether the search
+                                                                                    // was successful or not: so the zero-relative index gets incremented one more time.
+                        then
+                            raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
+
+                        if (List.isEmpty partialTestVectorBeingBuilt)
+                        then
+                            raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors should have resulted in the original collection.")
+
+                        if uint32 partialTestVectorBeingBuilt.Length > maximumNumberOfTestVariablesOverall
+                        then
+                            raise (InternalAssertionViolationException "The test vector has more entries than the permitted maximum number of test variables.")
+
                         // NOTE: as we are converting to a map, we can be cavalier about the
                         // order in which associative pairs are added to the partial test vector.
-                        seq
-                            {
-                                if not (List.isEmpty partialTestVectorBeingBuilt)
-                                then
-                                    yield partialTestVectorBeingBuilt
-                                          |> Map.ofList
-                                else
-                                    raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors result in the original collection.")
-                            }
+                        Seq.singleton (partialTestVectorBeingBuilt
+                                       |> Map.ofList)
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
@@ -323,6 +332,10 @@ namespace SageSerpent.TestInfrastructure
             traverseTernarySearchTree ternarySearchTree 0u []
 
         let fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation =
+            if uint32 (partialTestVectorRepresentation: Map<_, _>).Count > maximumNumberOfTestVariablesOverall
+            then
+                raise (InternalAssertionViolationException "The partial test vector being either merged or added has more entries than the permitted maximum number of test variables.")
+
             let fillIfNecessary expectedPreviousTestVariableIndex
                                 previousTestVariableIndex
                                 partialResult =
@@ -628,7 +641,15 @@ namespace SageSerpent.TestInfrastructure
                                                                      testVariableIndex =
                 match binaryTreeOfLevelsForTestVariable with
                     UnsuccessfulSearchTerminationNode ->
+                        if maximumNumberOfTestVariablesOverall < testVariableIndex
+                            || maximumNumberOfTestVariablesOverall > 0u // NOTE: having 'maximumNumberOfTestVariablesOverall' set to zero does permit
+                                                                        // a single empty test vector, hence the need for this guard clause.
+                                && maximumNumberOfTestVariablesOverall = testVariableIndex
+                        then
+                            raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
+
                         None
+
                   | AugmentedInternalNode
                     (InternalNode internalNodeRepresentation) ->
                         let comparisonWrtImplicitLevel =
@@ -656,7 +677,15 @@ namespace SageSerpent.TestInfrastructure
                                                                          testVariableIndex =
                 match binaryTreeOfLevelsForTestVariable with
                     UnsuccessfulSearchTerminationNode ->
+                        if maximumNumberOfTestVariablesOverall < testVariableIndex
+                            || maximumNumberOfTestVariablesOverall > 0u // NOTE: having 'maximumNumberOfTestVariablesOverall' set to zero does permit
+                                                                        // a single empty test vector, hence the need for this guard clause.
+                                && maximumNumberOfTestVariablesOverall = testVariableIndex
+                        then
+                            raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
+
                         None
+
                   | AugmentedInternalNode
                     (InternalNode
                     {
@@ -702,13 +731,6 @@ namespace SageSerpent.TestInfrastructure
             and removeFromTernarySearchTree ternarySearchTree
                                             queryPartialTestVectorRepresentation
                                             testVariableIndex =
-                if maximumNumberOfTestVariablesOverall < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
-                                                                            // for a full (and possibly removed) test vector, because successful and unsuccessful searches go through
-                                                                            // at least one node corresponding to each test variable index, *then* land on a node indicating whether
-                                                                            // the search was successful or not: so the zero-relative index gets incremented one more time.
-                then
-                    raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
-
                 let inline adaptResult result =
                     optionWorkflow
                         {
@@ -719,11 +741,15 @@ namespace SageSerpent.TestInfrastructure
                         }
                 match ternarySearchTree
                       , queryPartialTestVectorRepresentation with
-                    BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
+                    SuccessfulSearchTerminationNode
                     , _ ->
-                        None
-                  | SuccessfulSearchTerminationNode
-                    , _ ->
+                        if maximumNumberOfTestVariablesOverall < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
+                                                                                    // for a full (and possibly removed) test vector, because successful searches go through at least one
+                                                                                    // node corresponding to each test variable index, *then* land on a node indicating whether the search
+                                                                                    // was successful or not: so the zero-relative index gets incremented one more time.
+                        then
+                            raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
+
                         Some (BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
                               , queryPartialTestVectorRepresentation)
                   | WildcardNode
@@ -833,12 +859,20 @@ namespace SageSerpent.TestInfrastructure
         let checkInvariant ternarySearchTree =
             let rec checkInvariantOfTernarySearchTree ternarySearchTree
                                                       lowerBound
-                                                      upperBound =
+                                                      upperBound
+                                                      testVariableIndex =
                 let rec checkInvariantOfBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                           lowerBound
                                                                           upperBound =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
+                            if maximumNumberOfTestVariablesOverall < testVariableIndex
+                                || maximumNumberOfTestVariablesOverall > 0u // NOTE: having 'maximumNumberOfTestVariablesOverall' set to zero does permit
+                                                                            // a single empty test vector, hence the need for this guard clause.
+                                    && maximumNumberOfTestVariablesOverall = testVariableIndex
+                            then
+                                raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
+
                             0u
                       | AugmentedInternalNode
                         (InternalNode
@@ -852,10 +886,10 @@ namespace SageSerpent.TestInfrastructure
                                 Finite levelForTestVariableIndex
                             if liftedLevel >= upperBound
                             then
-                                raise (LogicErrorException "Level is greater than or equal to exclusive upper bound.")
+                                raise (InvariantViolationException "Level is greater than or equal to exclusive upper bound.")
                             if liftedLevel <= lowerBound
                             then
-                                raise (LogicErrorException "Level is less than or equal to exclusive lower bound.")
+                                raise (InvariantViolationException "Level is less than or equal to exclusive lower bound.")
                             let numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex =
                                 checkInvariantOfBinaryTreeOfLevelsForTestVariable subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                   lowerBound
@@ -868,47 +902,55 @@ namespace SageSerpent.TestInfrastructure
                                 checkInvariantOfTernarySearchTree subtreeForFollowingIndices
                                                                   NegativeInfinity
                                                                   PositiveInfinity
+                                                                  (testVariableIndex + 1u)
                             match numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
                                   , numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
                                   , numberOfSuccessfulPathsFromSubtreeForFollowingIndices with
                                 0u
                                 , 0u
                                 , 0u ->
-                                    raise (LogicErrorException "Redundant internal node with no successful search paths leading through it.")
+                                    raise (InvariantViolationException "Redundant internal node with no successful search paths leading through it.")
                               | _
                                 , 0u
                                 , 0u ->
-                                    raise (LogicErrorException "Redundant internal node with all successful search paths leading via subtree for lesser levels.")
+                                    raise (InvariantViolationException "Redundant internal node with all successful search paths leading via subtree for lesser levels.")
                               | 0u
                                 , _
                                 , 0u ->
-                                    raise (LogicErrorException "Redundant internal node with all successful search paths leading via subtree for greater levels.")
+                                    raise (InvariantViolationException "Redundant internal node with all successful search paths leading via subtree for greater levels.")
                               | _
                                 , _
                                 , 0u ->
-                                    raise (LogicErrorException "Redundant internal node with its own 'ghost' level that participates in no successful search paths.")
-                              | 0u
-                                , _
-                                , _ ->
-                                    if numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex > 1u
-                                    then
-                                        Diagnostics.Debug.Print ("Lone greater subtree with: {0} successful paths through it.", numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex)
-                                    numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                    + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
-                              | _
-                                , 0u
-                                , _ ->
-                                    if numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex > 1u
-                                    then
-                                        Diagnostics.Debug.Print ("Lone lesser subtree with: {0} successful paths through it.", numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex)
-                                    numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
-                                    + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
+                                    raise (InvariantViolationException "Redundant internal node with its own 'ghost' level that participates in no successful search paths.")
+//                              | 0u
+//                                , _
+//                                , _ ->
+//                                    if numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex > 1u
+//                                    then
+//                                        Diagnostics.Debug.Print ("Lone greater subtree with: {0} successful paths through it.", numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex)
+//                                    numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
+//                                    + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
+//                              | _
+//                                , 0u
+//                                , _ ->
+//                                    if numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex > 1u
+//                                    then
+//                                        Diagnostics.Debug.Print ("Lone lesser subtree with: {0} successful paths through it.", numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex)
+//                                    numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
+//                                    + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
                               | _ ->
                                     numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
                                     + numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
                                     + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
+                        if maximumNumberOfTestVariablesOverall < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
+                                                                                    // for a full (and possibly removed) test vector, because successful searches go through at least one
+                                                                                    // node corresponding to each test variable index, *then* land on a node indicating whether the search
+                                                                                    // was successful or not: so the zero-relative index gets incremented one more time.
+                        then
+                            raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
+
                         1u
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable ->
                         checkInvariantOfBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
@@ -927,6 +969,7 @@ namespace SageSerpent.TestInfrastructure
                             checkInvariantOfTernarySearchTree subtreeForFollowingIndices
                                                               NegativeInfinity
                                                               PositiveInfinity
+                                                              (testVariableIndex + 1u)
                         match numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex
                               , numberOfSuccessfulPathsFromSubtreeForFollowingIndices with
                             0u
@@ -943,6 +986,7 @@ namespace SageSerpent.TestInfrastructure
             if 0u = checkInvariantOfTernarySearchTree ternarySearchTree
                                                       NegativeInfinity
                                                       PositiveInfinity
+                                                      0u
             then
                 raise (LogicErrorException "No successful search paths but tree should be non-empty.")
 
@@ -966,27 +1010,39 @@ namespace SageSerpent.TestInfrastructure
             else
                 let partialTestVectorRepresentation =
                     fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation
-                let modifiedTernarySearchTree =
+                let modifiedTernarySearchTree
+                    , fullTestVectorWhichMayHaveResultedFromAMerge =
                     match remove ternarySearchTree
                                  partialTestVectorRepresentation with
                         Some (ternarySearchTreeWithoutMergeCandidate
                               , mergedPartialTestVectorRepresentation) ->
-//                            // Postcondition check...
-//                            match remove ternarySearchTreeWithoutMergeCandidate
-//                                         mergedPartialTestVectorRepresentation with
-//                                Some _ ->
-//                                    raise (LogicErrorException "The merged removed partial vector still matches with something left behind!")
-//                              | _ ->
-//                                    ()
-//                            // ... end of check.
+                            // Postcondition check...
+                            match remove ternarySearchTreeWithoutMergeCandidate
+                                         mergedPartialTestVectorRepresentation with
+                                Some _ ->
+                                    raise (LogicErrorException "The merged removed partial test vector still matches with something left behind!")
+                              | _ ->
+                                    ()
+                            // ... end of check.
+                            let lengthOfMergedPartialTestVectorRepresentation =
+                                uint32 mergedPartialTestVectorRepresentation.Length
+
+                            if lengthOfMergedPartialTestVectorRepresentation > maximumNumberOfTestVariablesOverall
+                            then
+                                raise (InternalAssertionViolationException "The merged removed partial test vector has more entries than the permitted maximum number of test variables.")
+
                             add ternarySearchTreeWithoutMergeCandidate
                                 mergedPartialTestVectorRepresentation
+                            , None
                       | None ->
                             add ternarySearchTree
                                 partialTestVectorRepresentation
-//                // Invariant check...
-//                checkInvariant modifiedTernarySearchTree
-//                // ... end of invariant check.
+                            , None
+                if 7 = (hash this) % 100
+                then
+                    // Invariant check...
+                    checkInvariant modifiedTernarySearchTree
+                    // ... end of invariant check.
                 MergedPartialTestVectorRepresentations (modifiedTernarySearchTree,
                                                         maximumNumberOfTestVariablesOverall)
                 , None
