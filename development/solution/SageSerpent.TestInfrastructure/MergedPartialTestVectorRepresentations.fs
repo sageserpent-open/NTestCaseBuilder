@@ -268,10 +268,7 @@ namespace SageSerpent.TestInfrastructure
                 let rec traverseBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfTestVariablesOverall < testVariableIndex
-                               || maximumNumberOfTestVariablesOverall > 0u  // NOTE: having 'maximumNumberOfTestVariablesOverall' set to zero does permit
-                                                                            // a single empty test vector, hence the need for this guard clause.
-                                  && maximumNumberOfTestVariablesOverall = testVariableIndex
+                            if maximumNumberOfTestVariablesOverall <= testVariableIndex
                             then
                                 raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
@@ -302,18 +299,23 @@ namespace SageSerpent.TestInfrastructure
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
-                        if (List.isEmpty partialTestVectorBeingBuilt)
+                        if 0u = testVariableIndex
                         then
-                            raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors should have resulted in the original collection.")
+                            Seq.empty   // This is a special case representation of the initial state of a 'MergedPartialTestVectorRepresentations' - the
+                                        // tests define this as not possessing any test vectors, not even the trivial empty one.
+                        else
+                            if (List.isEmpty partialTestVectorBeingBuilt)
+                            then
+                                raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors should have resulted in the original collection.")
 
-                        if uint32 partialTestVectorBeingBuilt.Length > maximumNumberOfTestVariablesOverall
-                        then
-                            raise (InternalAssertionViolationException "The test vector has more entries than the permitted maximum number of test variables.")
+                            if uint32 partialTestVectorBeingBuilt.Length > maximumNumberOfTestVariablesOverall
+                            then
+                                raise (InternalAssertionViolationException "The test vector has more entries than the permitted maximum number of test variables.")
 
-                        // NOTE: as we are converting to a map, we can be cavalier about the
-                        // order in which associative pairs are added to the partial test vector.
-                        Seq.singleton (partialTestVectorBeingBuilt
-                                       |> Map.ofList)
+                            // NOTE: as we are converting to a map, we can be cavalier about the
+                            // order in which associative pairs are added to the partial test vector.
+                            Seq.singleton (partialTestVectorBeingBuilt
+                                           |> Map.ofList)
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
@@ -641,10 +643,7 @@ namespace SageSerpent.TestInfrastructure
                                                                      testVariableIndex =
                 match binaryTreeOfLevelsForTestVariable with
                     UnsuccessfulSearchTerminationNode ->
-                        if maximumNumberOfTestVariablesOverall < testVariableIndex
-                            || maximumNumberOfTestVariablesOverall > 0u // NOTE: having 'maximumNumberOfTestVariablesOverall' set to zero does permit
-                                                                        // a single empty test vector, hence the need for this guard clause.
-                                && maximumNumberOfTestVariablesOverall = testVariableIndex
+                        if maximumNumberOfTestVariablesOverall <= testVariableIndex
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
@@ -677,10 +676,7 @@ namespace SageSerpent.TestInfrastructure
                                                                          testVariableIndex =
                 match binaryTreeOfLevelsForTestVariable with
                     UnsuccessfulSearchTerminationNode ->
-                        if maximumNumberOfTestVariablesOverall < testVariableIndex
-                            || maximumNumberOfTestVariablesOverall > 0u // NOTE: having 'maximumNumberOfTestVariablesOverall' set to zero does permit
-                                                                        // a single empty test vector, hence the need for this guard clause.
-                                && maximumNumberOfTestVariablesOverall = testVariableIndex
+                        if maximumNumberOfTestVariablesOverall <= testVariableIndex
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
@@ -866,10 +862,7 @@ namespace SageSerpent.TestInfrastructure
                                                                           upperBound =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfTestVariablesOverall < testVariableIndex
-                                || maximumNumberOfTestVariablesOverall > 0u // NOTE: having 'maximumNumberOfTestVariablesOverall' set to zero does permit
-                                                                            // a single empty test vector, hence the need for this guard clause.
-                                    && maximumNumberOfTestVariablesOverall = testVariableIndex
+                            if maximumNumberOfTestVariablesOverall <= testVariableIndex
                             then
                                 raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
@@ -998,7 +991,7 @@ namespace SageSerpent.TestInfrastructure
                 (createPartialTestVectorSequence() :> IEnumerable).GetEnumerator ()
 
         static member Initial maximumNumberOfTestVariablesOverall =
-            MergedPartialTestVectorRepresentations<'Level> (BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode,
+            MergedPartialTestVectorRepresentations<'Level> (SuccessfulSearchTerminationNode,
                                                             maximumNumberOfTestVariablesOverall)
 
         member this.MergeOrAdd partialTestVectorRepresentation
