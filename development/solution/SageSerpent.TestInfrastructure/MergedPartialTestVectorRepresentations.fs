@@ -30,11 +30,64 @@ namespace SageSerpent.TestInfrastructure
                         + subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
                         + subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
 
+            let multiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero =
+                match internalNode with
+                    {
+                        SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
+                        SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                        SubtreeForFollowingIndices = subtreeForFollowingIndices
+                    } ->
+                        let candidates =
+                            [ subtreeWithLesserLevelsForSameTestVariableIndex.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero;
+                              subtreeWithGreaterLevelsForSameTestVariableIndex.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero;
+                              optionWorkflow
+                                {
+                                    let! multiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero =
+                                        subtreeForFollowingIndices.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero
+                                    return match multiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero with
+                                            multiplicity
+                                            , length -> multiplicity
+                                                        , 1u + length
+                                }]
+                            |> Seq.filter Option.isSome
+                            |> Seq.map Option.get
+                        if Seq.isEmpty candidates
+                        then
+                            None
+                        else
+                            let longestLength =
+                                candidates
+                                |> Seq.map snd
+                                |> Seq.max
+                            let multiplicitySummedOverTheCandidatesSharingTheLongestLength =
+                                candidates
+                                |> Seq.filter (snd >> (fun length -> longestLength = length))
+                                |> Seq.map fst
+                                |> Seq.reduce (+)
+                            Some (multiplicitySummedOverTheCandidatesSharingTheLongestLength, longestLength)
+
+            let allSuccessfulPathsCorrespondToSufficesOfFullTestVectors =
+                match internalNode with
+                    {
+                        SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
+                        SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                        SubtreeForFollowingIndices = subtreeForFollowingIndices
+                    } ->
+                        subtreeForFollowingIndices.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors
+                        && subtreeWithLesserLevelsForSameTestVariableIndex.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors
+                        && subtreeWithGreaterLevelsForSameTestVariableIndex.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors
+
             member this.InternalNode =
                 internalNode
 
             member this.NumberOfLevelsForLeadingTestVariable =
                 numberOfLevelsForLeadingTestVariable
+
+            member this.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero =
+                multiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero
+
+            member this.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors =
+                allSuccessfulPathsCorrespondToSufficesOfFullTestVectors
 
         and InternalNode<'Level when 'Level: comparison> =
             {
@@ -51,8 +104,24 @@ namespace SageSerpent.TestInfrastructure
                 match this with
                     AugmentedInternalNode augmentedInternalNode ->
                         augmentedInternalNode.NumberOfLevelsForLeadingTestVariable
-                  | _ ->
+                  | UnsuccessfulSearchTerminationNode ->
                         0u
+
+            member this.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors =
+                match this with
+                    AugmentedInternalNode augmentedInternalNode ->
+                        augmentedInternalNode.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors
+                  | UnsuccessfulSearchTerminationNode ->
+                        true    // Yes, 'true' - because there are no successful paths. Remember that the result will
+                                // be combined with those of sibling subtrees in a parent node, so we don't want an
+                                // unnecessary 'false' in the combination if all the other siblings report 'true'.
+
+            member this.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero =
+                match this with
+                    AugmentedInternalNode augmentedInternalNode ->
+                        augmentedInternalNode.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero
+                  | _ ->
+                        None
 
         and WildcardNode<'Level when 'Level: comparison> =
             {
@@ -63,6 +132,25 @@ namespace SageSerpent.TestInfrastructure
             SuccessfulSearchTerminationNode
           | WildcardNode of WildcardNode<'Level>
           | BinaryTreeOfLevelsForTestVariable of BinaryTreeOfLevelsForTestVariable<'Level>
+
+            member this.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors =
+                match this with
+                    SuccessfulSearchTerminationNode ->
+                        true
+                  | WildcardNode _ ->
+                        false
+                  | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable ->
+                        binaryTreeOfLevelsForTestVariable.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors
+
+            member this.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero =
+                match this with
+                    SuccessfulSearchTerminationNode -> Some (1u, 0u)
+                  | WildcardNode
+                    {
+                        SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
+                    } -> subtreeWithAllLevelsForSameTestVariableIndex.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero
+                  | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable ->
+                        binaryTreeOfLevelsForTestVariable.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero
 
         let inline (|InternalNode|) (augmentedInternalNode: AugmentedInternalNode<'Level>) =
             augmentedInternalNode.InternalNode
@@ -261,9 +349,10 @@ namespace SageSerpent.TestInfrastructure
 
     type MergedPartialTestVectorRepresentations<'Level when 'Level: comparison>(ternarySearchTree: TernarySearchTree<'Level>,
                                                                                 maximumNumberOfTestVariablesOverall: UInt32) =
-        let createPartialTestVectorSequence () =
+        let createPartialTestVectorSequence revealFullTestVectorsAgain =
             let rec traverseTernarySearchTree ternarySearchTree
                                               testVariableIndex
+                                              hasSuffixContextOfPossibleFullTestVector
                                               partialTestVectorBeingBuilt =
                 let rec traverseBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable =
                     match binaryTreeOfLevelsForTestVariable with
@@ -273,7 +362,7 @@ namespace SageSerpent.TestInfrastructure
                                 raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
                             Seq.empty
-                      | AugmentedInternalNode
+                        | AugmentedInternalNode
                         (InternalNode
                         {
                             LevelForTestVariableIndex = levelForTestVariableIndex
@@ -286,8 +375,9 @@ namespace SageSerpent.TestInfrastructure
                                             {
                                                 yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithLesserLevelsForSameTestVariableIndex
                                                 yield! traverseTernarySearchTree subtreeForFollowingIndices
-                                                                                 (testVariableIndex + 1u)
-                                                                                 ((testVariableIndex, levelForTestVariableIndex) :: partialTestVectorBeingBuilt)
+                                                                                    (testVariableIndex + 1u)
+                                                                                    hasSuffixContextOfPossibleFullTestVector
+                                                                                    ((testVariableIndex, levelForTestVariableIndex) :: partialTestVectorBeingBuilt)
                                                 yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
                                             })
                 match ternarySearchTree with
@@ -299,10 +389,18 @@ namespace SageSerpent.TestInfrastructure
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
-                        if 0u = testVariableIndex
+                        let specialCaseDenotingInitialState =   // The tests define this special state as not possessing any test vectors, not even the trivial empty one.
+                            0u = testVariableIndex
+
+                        let detectedFullTestVector =
+                            not revealFullTestVectorsAgain
+                            && hasSuffixContextOfPossibleFullTestVector
+                            && maximumNumberOfTestVariablesOverall = testVariableIndex
+
+                        if detectedFullTestVector
+                           || specialCaseDenotingInitialState
                         then
-                            Seq.empty   // This is a special case representation of the initial state of a 'MergedPartialTestVectorRepresentations' - the
-                                        // tests define this as not possessing any test vectors, not even the trivial empty one.
+                            Seq.empty
                         else
                             if (List.isEmpty partialTestVectorBeingBuilt)
                             then
@@ -327,48 +425,71 @@ namespace SageSerpent.TestInfrastructure
                                             yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
                                             yield! traverseTernarySearchTree subtreeForFollowingIndices
                                                                              (testVariableIndex + 1u)
+                                                                             false
                                                                              partialTestVectorBeingBuilt
                                         })
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable ->
                         traverseBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-            traverseTernarySearchTree ternarySearchTree 0u []
+            traverseTernarySearchTree ternarySearchTree 0u true []
 
         let fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation =
             if uint32 (partialTestVectorRepresentation: Map<_, _>).Count > maximumNumberOfTestVariablesOverall
             then
                 raise (InternalAssertionViolationException "The partial test vector being either merged or added has more entries than the permitted maximum number of test variables.")
 
-            let fillIfNecessary expectedPreviousTestVariableIndex
-                                previousTestVariableIndex
-                                partialResult =
-                match previousTestVariableIndex with
-                    Some previousTestVariableIndex when previousTestVariableIndex > expectedPreviousTestVariableIndex ->
-                        let filledOutSection =
-                            List.init (int32 (previousTestVariableIndex - expectedPreviousTestVariableIndex))
-                                      (fun _ -> None)
-                        List.append filledOutSection partialResult
-                  | _ ->
-                        partialResult
-            let rec fillInNonConsecutiveIndicesWithIndeterminateEntries partialTestVectorRepresentation =
-                match partialTestVectorRepresentation with
-                    [] ->
-                        []
-                        , None
-                  | (testVariableIndex, level) :: tail ->
-                        if maximumNumberOfTestVariablesOverall <= testVariableIndex
-                        then
-                            raise (PreconditionViolationException "The partial test vector being either merged or added has a test variable index that is greater than the permitted maximum.")
-                        let partialResult
-                            , previousTestVariableIndex =
-                            fillInNonConsecutiveIndicesWithIndeterminateEntries tail
-                        Some (level: 'Level) :: fillIfNecessary (testVariableIndex + 1u) previousTestVariableIndex partialResult
-                        , Some testVariableIndex
-            let partialTestVectorPossiblyWithLeadingEntriesMissing
-                , lowestTestVariableIndex =
+            let testVariableIndicesHavingLevels =
+                partialTestVectorRepresentation
+                |> Seq.map (fun keyValuePair -> keyValuePair.Key)
+                |> Set.ofSeq
+
+            let maximumTestVariableIndexHavingLevel =
+                Seq.max testVariableIndicesHavingLevels
+
+            if maximumTestVariableIndexHavingLevel >= maximumNumberOfTestVariablesOverall
+            then
+                raise (PreconditionViolationException "The partial test vector being either merged or added has a test variable index that is greater than the permitted maximum.")
+
+            let testVariableIndicesForFilledOutTestVector = // NOTE: only up to 'maximumTestVariableIndexHavingLevel' exclusive
+                                                            // - this is to avoid having a tail of indeterminate entries.
+                Seq.init (int32 maximumTestVariableIndexHavingLevel) uint32
+                |> Set.ofSeq
+
+            let testVariableIndicesForIndeterminates =
+                Set.difference testVariableIndicesForFilledOutTestVector testVariableIndicesHavingLevels
+
+            let isPrefixOfFullTestVector =
+                Set.isEmpty testVariableIndicesForIndeterminates
+
+            if isPrefixOfFullTestVector
+            then
+                let isFullTestVector =
+                    maximumNumberOfTestVariablesOverall = 1u + maximumTestVariableIndexHavingLevel
                 partialTestVectorRepresentation
                 |> Map.toList
-                |> fillInNonConsecutiveIndicesWithIndeterminateEntries
-            fillIfNecessary 0u lowestTestVariableIndex partialTestVectorPossiblyWithLeadingEntriesMissing
+                |> List.map (snd >> Some)
+                , isFullTestVector
+            else
+                let sortedAssociationListFromTestVariableIndicesToIndeterminateMarkers =
+                    testVariableIndicesForIndeterminates
+                    |> Set.toList
+                    |> List.map (fun testVariableIndex ->
+                                     testVariableIndex
+                                     , None)
+
+                let sortedAssociationListFromTestVariableIndicesToLevels =
+                    partialTestVectorRepresentation
+                    |> Map.map (fun _ level ->
+                                    Some level)
+                    |> Map.toList
+
+                let mergedAssociationList =
+                    BargainBasement.MergeDisjointSortedAssociationLists sortedAssociationListFromTestVariableIndicesToLevels
+                                                                        sortedAssociationListFromTestVariableIndicesToIndeterminateMarkers
+
+                mergedAssociationList
+                |> List.map snd
+                , false
+
 
         let add ternarySearchTree
                 newPartialTestVectorRepresentation =
@@ -640,7 +761,8 @@ namespace SageSerpent.TestInfrastructure
             let rec removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                      levelFromQueryPartialTestVectorRepresentation
                                                                      tailFromQueryPartialTestVectorRepresentation
-                                                                     testVariableIndex =
+                                                                     testVariableIndex
+                                                                     hasSuffixContextOfPossibleFullTestVector =
                 match binaryTreeOfLevelsForTestVariable with
                     UnsuccessfulSearchTerminationNode ->
                         if maximumNumberOfTestVariablesOverall <= testVariableIndex
@@ -669,11 +791,13 @@ namespace SageSerpent.TestInfrastructure
                                                                                                            flankingSubtreeWithGreaterLevels
                                                                                                            splayedSubtreeForFollowingIndices
                                                                                                            testVariableIndex
+                                                                                                           hasSuffixContextOfPossibleFullTestVector
                           | _ ->
                                 None
             and removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                          tailFromQueryPartialTestVectorRepresentation
-                                                                         testVariableIndex =
+                                                                         testVariableIndex
+                                                                         hasSuffixContextOfPossibleFullTestVector =
                 match binaryTreeOfLevelsForTestVariable with
                     UnsuccessfulSearchTerminationNode ->
                         if maximumNumberOfTestVariablesOverall <= testVariableIndex
@@ -696,44 +820,54 @@ namespace SageSerpent.TestInfrastructure
                                                                                                    subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                    subtreeForFollowingIndices
                                                                                                    testVariableIndex
+                                                                                                   hasSuffixContextOfPossibleFullTestVector
                         |> BargainBasement.Flip Option.LazyMPlus
                                                 (lazy optionWorkflow
                                                         {
                                                             let! modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
-                                                                 , removedPartialTestVector =
+                                                                 , removedPartialTestVector
+                                                                 , mergedWithExistingFullTestVector =
                                                                 removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                                          tailFromQueryPartialTestVectorRepresentation
                                                                                                                          testVariableIndex
+                                                                                                                         hasSuffixContextOfPossibleFullTestVector
                                                             return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
                                                                                                                                            modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                                                            subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                                                            subtreeForFollowingIndices
                                                                    , removedPartialTestVector
+                                                                   , mergedWithExistingFullTestVector
                                                         })
                         |> BargainBasement.Flip Option.LazyMPlus
                                                 (lazy optionWorkflow
                                                         {
                                                             let! modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                 , removedPartialTestVector =
+                                                                 , removedPartialTestVector
+                                                                 , mergedWithExistingFullTestVector =
                                                                 removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                                          tailFromQueryPartialTestVectorRepresentation
                                                                                                                          testVariableIndex
+                                                                                                                         hasSuffixContextOfPossibleFullTestVector
                                                             return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
                                                                                                                                            subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                                                            modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                                                            subtreeForFollowingIndices
                                                                    , removedPartialTestVector
+                                                                   , mergedWithExistingFullTestVector
                                                         })
             and removeFromTernarySearchTree ternarySearchTree
                                             queryPartialTestVectorRepresentation
-                                            testVariableIndex =
+                                            testVariableIndex
+                                            hasSuffixContextOfPossibleFullTestVector =
                 let inline adaptResult result =
                     optionWorkflow
                         {
                             let! binaryTreeOfLevelsForTestVariable
-                                 , partialTestVector = result
+                                 , partialTestVector
+                                 , mergedWithExistingFullTestVector = result
                             return BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                    , partialTestVector
+                                   , mergedWithExistingFullTestVector
                         }
                 match ternarySearchTree
                       , queryPartialTestVectorRepresentation with
@@ -746,8 +880,18 @@ namespace SageSerpent.TestInfrastructure
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
-                        Some (BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
-                              , queryPartialTestVectorRepresentation)
+                        let detectedFullTestVector =
+                            hasSuffixContextOfPossibleFullTestVector
+                            && maximumNumberOfTestVariablesOverall = testVariableIndex
+                        if detectedFullTestVector
+                        then
+                             Some (BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
+                                   , queryPartialTestVectorRepresentation
+                                   , true)
+                        else
+                             Some (BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
+                                   , queryPartialTestVectorRepresentation
+                                   , false)
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
@@ -757,14 +901,17 @@ namespace SageSerpent.TestInfrastructure
                         optionWorkflow
                             {
                                 let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                                     , removedPartialTestVector =
+                                     , removedPartialTestVector
+                                     , mergedWithExistingFullTestVector =
                                     removeLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
                                                                                      levelFromQueryPartialTestVectorRepresentation
                                                                                      tailFromQueryPartialTestVectorRepresentation
                                                                                      testVariableIndex
+                                                                                     hasSuffixContextOfPossibleFullTestVector
                                 return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
                                                                                                                subtreeForFollowingIndices
                                        , removedPartialTestVector
+                                       , mergedWithExistingFullTestVector
                             }
                         |> BargainBasement.Flip Option.LazyMPlus
                                                 (lazy buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
@@ -781,13 +928,16 @@ namespace SageSerpent.TestInfrastructure
                         optionWorkflow
                             {
                                 let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                                     , removedPartialTestVector =
+                                     , removedPartialTestVector
+                                     , mergedWithExistingFullTestVector =
                                     removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
                                                                                              tailFromQueryPartialTestVectorRepresentation
                                                                                              testVariableIndex
+                                                                                             hasSuffixContextOfPossibleFullTestVector
                                 return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
                                                                                                                subtreeForFollowingIndices
                                        , removedPartialTestVector
+                                       , mergedWithExistingFullTestVector
                             }
                         |> BargainBasement.Flip Option.LazyMPlus
                                                 (lazy buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices None
@@ -801,12 +951,14 @@ namespace SageSerpent.TestInfrastructure
                                                                          levelFromQueryPartialTestVectorRepresentation
                                                                          tailFromQueryPartialTestVectorRepresentation
                                                                          testVariableIndex
+                                                                         hasSuffixContextOfPossibleFullTestVector
                         |> adaptResult
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                     , None :: tailFromQueryPartialTestVectorRepresentation ->
                         removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                                  tailFromQueryPartialTestVectorRepresentation
                                                                                  testVariableIndex
+                                                                                 hasSuffixContextOfPossibleFullTestVector
                         |> adaptResult
                   | _
                     , [] ->
@@ -815,24 +967,29 @@ namespace SageSerpent.TestInfrastructure
                         removeFromTernarySearchTree ternarySearchTree
                                                     [None]
                                                     testVariableIndex
+                                                    hasSuffixContextOfPossibleFullTestVector
             and buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices tailFromQueryPartialTestVectorRepresentation
                                                                                            levelForTestVariableIndex
                                                                                            subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                            subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                            subtreeForFollowingIndices
-                                                                                           testVariableIndex =
+                                                                                           testVariableIndex
+                                                                                           hasSuffixContextOfPossibleFullTestVector =
                     optionWorkflow
                         {
                             let! modifiedSubtreeForFollowingTestVariableIndices
-                                 , removedPartialTestVector =
+                                 , removedPartialTestVector
+                                 , mergedWithExistingFullTestVector =
                                 removeFromTernarySearchTree subtreeForFollowingIndices
                                                             tailFromQueryPartialTestVectorRepresentation
                                                             (testVariableIndex + 1u)
+                                                            hasSuffixContextOfPossibleFullTestVector
                             return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
                                                                                                            subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                            subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                            modifiedSubtreeForFollowingTestVariableIndices
                                    , (Some levelForTestVariableIndex :: removedPartialTestVector)
+                                   , mergedWithExistingFullTestVector
                         }
             and buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
                                                                                            tailFromQueryPartialTestVectorRepresentation
@@ -842,15 +999,18 @@ namespace SageSerpent.TestInfrastructure
                     optionWorkflow
                         {
                             let! modifiedSubtreeForFollowingTestVariableIndices
-                                 , removedPartialTestVector =
+                                 , removedPartialTestVector
+                                 , mergedWithExistingFullTestVector =
                                 removeFromTernarySearchTree subtreeForFollowingIndices
                                                             tailFromQueryPartialTestVectorRepresentation
                                                             (testVariableIndex + 1u)
+                                                            false
                             return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                            modifiedSubtreeForFollowingTestVariableIndices
                                    , (headFromQueryPartialTestVectorRepresentation :: removedPartialTestVector)
+                                   , mergedWithExistingFullTestVector
                         }
-            removeFromTernarySearchTree ternarySearchTree queryPartialTestVectorRepresentation 0u
+            removeFromTernarySearchTree ternarySearchTree queryPartialTestVectorRepresentation 0u true
 
         let checkInvariant ternarySearchTree =
             let rec checkInvariantOfTernarySearchTree ternarySearchTree
@@ -983,59 +1143,85 @@ namespace SageSerpent.TestInfrastructure
             then
                 raise (LogicErrorException "No successful search paths but tree should be non-empty.")
 
-        interface IEnumerable<Map<UInt32, 'Level>> with
-            member this.GetEnumerator () =
-                createPartialTestVectorSequence().GetEnumerator ()
-        interface IEnumerable with
-            member this.GetEnumerator () =
-                (createPartialTestVectorSequence() :> IEnumerable).GetEnumerator ()
+        member this.EnumerationOfMergedTestVectors revealFullTestVectorsAgain =
+            createPartialTestVectorSequence revealFullTestVectorsAgain
 
         static member Initial maximumNumberOfTestVariablesOverall =
             MergedPartialTestVectorRepresentations<'Level> (SuccessfulSearchTerminationNode,
                                                             maximumNumberOfTestVariablesOverall)
 
-        member this.MergeOrAdd partialTestVectorRepresentation
-                               randomBehaviour =
-            if Map.isEmpty partialTestVectorRepresentation
+        member this.MergeOrAdd partialTestVectorRepresentationInExternalForm =
+            if Map.isEmpty partialTestVectorRepresentationInExternalForm
             then
                 this
                 , None
             else
-                let partialTestVectorRepresentation =
-                    fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation
+                let partialTestVectorRepresentation
+                    , partialTestVectorRepresentationIsActuallyAlreadyFull =
+                    fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentationInExternalForm
                 let modifiedTernarySearchTree
-                    , fullTestVectorWhichMayHaveResultedFromAMerge =
+                    , fullTestVectorBeingOfferedNowForEarlyAccess =
                     match remove ternarySearchTree
                                  partialTestVectorRepresentation with
                         Some (ternarySearchTreeWithoutMergeCandidate
-                              , mergedPartialTestVectorRepresentation) ->
-                            // Postcondition check...
-                            match remove ternarySearchTreeWithoutMergeCandidate
-                                         mergedPartialTestVectorRepresentation with
-                                Some _ ->
-                                    raise (LogicErrorException "The merged removed partial test vector still matches with something left behind!")
-                              | _ ->
-                                    ()
-                            // ... end of check.
-                            let lengthOfMergedPartialTestVectorRepresentation =
-                                uint32 mergedPartialTestVectorRepresentation.Length
+                              , mergedPartialTestVectorRepresentation
+                              , false) ->
+//                            match remove ternarySearchTreeWithoutMergeCandidate
+//                                         mergedPartialTestVectorRepresentation with
+//                                Some _ ->
+//                                    raise (InternalAssertionViolationException "The merged removed partial test vector still matches with something left behind!")
+//                              | _ ->
+//                                    ()
 
-                            if lengthOfMergedPartialTestVectorRepresentation > maximumNumberOfTestVariablesOverall
-                            then
-                                raise (InternalAssertionViolationException "The merged removed partial test vector has more entries than the permitted maximum number of test variables.")
+                            let detectAndConvertFullTestVector partialTestVectorRepresentation =
+                                let lengthOfPartialTestVectorRepresentation =
+                                    List.length partialTestVectorRepresentation
+                                    |> uint32
 
+                                if lengthOfPartialTestVectorRepresentation > maximumNumberOfTestVariablesOverall
+                                then
+                                    raise (InternalAssertionViolationException "The merged removed partial test vector has more entries than the permitted maximum number of test variables.")
+
+                                if lengthOfPartialTestVectorRepresentation
+                                   |> uint32 < maximumNumberOfTestVariablesOverall
+                                   || partialTestVectorRepresentation
+                                      |> List.exists Option.isNone
+                                then
+                                    None
+                                else
+                                    let testVariableIndicesForFullTestVector =
+                                        List.init (int32 maximumNumberOfTestVariablesOverall)
+                                                  uint32
+
+                                    let testVariableLevelsForFullTestVector =
+                                        partialTestVectorRepresentation
+                                        |> List.map Option.get
+
+                                    List.zip testVariableIndicesForFullTestVector
+                                                testVariableLevelsForFullTestVector
+                                    |> Map.ofList
+                                    |> Some
                             add ternarySearchTreeWithoutMergeCandidate
                                 mergedPartialTestVectorRepresentation
+                            , detectAndConvertFullTestVector mergedPartialTestVectorRepresentation
+                      | Some _ ->
+                            ternarySearchTree
                             , None
                       | None ->
                             add ternarySearchTree
                                 partialTestVectorRepresentation
-                            , None
-                if 7 = (hash this) % 100
-                then
-                    // Invariant check...
-                    checkInvariant modifiedTernarySearchTree
-                    // ... end of invariant check.
+                            , if partialTestVectorRepresentationIsActuallyAlreadyFull
+                              then
+                                Some partialTestVectorRepresentationInExternalForm
+                              else
+                                None
+
+//                if 7 = (hash this) % 100
+//                then
+//                    // Invariant check...
+//                    checkInvariant modifiedTernarySearchTree
+//                    // ... end of invariant check.
+
                 MergedPartialTestVectorRepresentations (modifiedTernarySearchTree,
                                                         maximumNumberOfTestVariablesOverall)
-                , None
+                , fullTestVectorBeingOfferedNowForEarlyAccess

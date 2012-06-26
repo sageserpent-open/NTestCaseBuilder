@@ -216,7 +216,9 @@ namespace SageSerpent.TestInfrastructure
                                 , associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree =
                                 walkTree subtreeRootNode maximumDesiredStrength indexForLeftmostTestVariable
                             let mergedAssociationFromStrengthToTestVariableCombinations =
-                                BargainBasement.MergeAssociations previousAssociationFromStrengthToTestVariableCombinations associationFromStrengthToTestVariableCombinationsFromSubtree
+                                BargainBasement.MergeAssociations List.append
+                                                                  previousAssociationFromStrengthToTestVariableCombinations
+                                                                  associationFromStrengthToTestVariableCombinationsFromSubtree
                             let associationFromTestVariableIndexToNumberOfItsLevels =
                                 List.append associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree previousAssociationFromTestVariableIndexToNumberOfItsLevels
                             mergedAssociationFromStrengthToTestVariableCombinations

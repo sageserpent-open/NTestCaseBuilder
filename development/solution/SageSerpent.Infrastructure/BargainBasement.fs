@@ -144,26 +144,35 @@
             index + incrementToApplyToIndex
         remapIndex
 
-    let MergeAssociations lhs rhs =
+    let MergeSortedAssociationLists joinAtSameKey lhs rhs =
         let rec mergeSortedAssociationLists lhs rhs =
             match lhs
-                  , rhs with
+                    , rhs with
                 []
                 , [] -> []
-              | ((lhsHeadKey, lhsHeadValue) as lhsHead :: lhsTail)
+                | ((lhsHeadKey, lhsHeadValue) as lhsHead :: lhsTail)
                 , ((rhsHeadKey, rhsHeadValue) as rhsHead :: rhsTail) ->
                     match compare lhsHeadKey rhsHeadKey with
                         result when result < 0 ->
                             lhsHead :: mergeSortedAssociationLists lhsTail rhs
-                      | result when result > 0 ->
+                        | result when result > 0 ->
                             rhsHead :: mergeSortedAssociationLists lhs rhsTail
-                      | _ ->
-                            (lhsHeadKey, List.append lhsHeadValue rhsHeadValue) :: mergeSortedAssociationLists lhsTail rhsTail
-              | _
+                        | _ ->
+                            (lhsHeadKey, joinAtSameKey lhsHeadValue rhsHeadValue) :: mergeSortedAssociationLists lhsTail rhsTail
+                | _
                 , [] ->
                     lhs
-              | []
+                | []
                 , _ ->
                     rhs
-        mergeSortedAssociationLists (Map.toList lhs) (Map.toList rhs)
+        mergeSortedAssociationLists lhs rhs
+
+    let MergeDisjointSortedAssociationLists lhs rhs =
+        MergeSortedAssociationLists (fun lhsValue rhsValue ->
+                                        raise (InternalAssertionViolationException "The keys from the two disjoint association lists should not have common entries to join."))
+                                    lhs
+                                    rhs
+
+    let MergeAssociations joinAtSameKey lhs rhs =
+        MergeSortedAssociationLists joinAtSameKey (Map.toList lhs) (Map.toList rhs)
         |> Map.ofList

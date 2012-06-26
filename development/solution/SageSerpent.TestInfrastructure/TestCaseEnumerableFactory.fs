@@ -245,19 +245,17 @@
                                         ref mergedPartialTestVectorRepresentations
 
                                     for partialTestVector in partialTestVectors do
-                                        match (!locallyModifiedMergedPartialTestVectorRepresentations: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector
-                                                                                                                                                            randomBehaviour with
+                                        match (!locallyModifiedMergedPartialTestVectorRepresentations: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector with
                                             updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
                                             , Some resultingFullTestCaseVector ->
                                                 yield resultingFullTestCaseVector
 
-                                                printf "Incremental generation of full test vector: %A\n" resultingFullTestCaseVector
                                                 locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
                                           | updatedMergedPartialTestVectorRepresentations
                                             , None ->
                                                 locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentations
 
-                                    yield! !locallyModifiedMergedPartialTestVectorRepresentations
+                                    yield! (!locallyModifiedMergedPartialTestVectorRepresentations).EnumerationOfMergedTestVectors false
                                 }
 
                         let lazilyProducedMergedPartialTestVectors =

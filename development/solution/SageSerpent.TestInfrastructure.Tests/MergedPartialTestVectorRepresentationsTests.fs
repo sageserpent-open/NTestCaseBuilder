@@ -129,20 +129,68 @@
                             |> Map.ofList
                          partialTestVector :: createPartialTestVectors (testVariableIndex + 1u)
                 createPartialTestVectors 0u
+            let overlappingPartialTestVectors =
+                createPartialTestVectors ()
+
+            let overlappingPartialTestVectorsWithSomeExtraFullTestVectors =
+                seq
+                    {
+                        for partialTestVector in overlappingPartialTestVectors do
+                            yield partialTestVector
+
+                            if randomBehaviour.HeadsItIs()
+                            then
+                                let testVariableIndices =
+                                    partialTestVector
+                                    |> Map.toList
+                                    |> List.map fst
+                                let unusedTestVariableIndices =
+                                    (List.init (int32 maximumNumberOfTestVariables) uint32
+                                     |> Set.ofList) - (testVariableIndices
+                                                       |> Set.ofList)
+                                let extraPadding =
+                                    unusedTestVariableIndices
+                                    |> Seq.map (fun testVariableIndex -> testVariableIndex, randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfTestVariables)
+
+                                yield partialTestVector
+                                |> Map.toSeq
+                                |> Seq.append extraPadding
+                                |> Map.ofSeq
+                    }
+                |> randomBehaviour.Shuffle
+                |> List.ofArray
+
             for _ in 1u .. overallTestRepeats do
-                testHandoff (createPartialTestVectors ())
+                testHandoff overlappingPartialTestVectorsWithSomeExtraFullTestVectors
+
+
+        let dumpPartialTestVector partialTestVector =
+            printf "[ "
+            partialTestVector
+            |> Map.iter (fun testVariableIndex testLevel ->
+                            printf "(%A, %A) " testVariableIndex testLevel)
+            printf "]\n"
 
         let mergeOrAddPartialTestVectors partialTestVectors
                                          initialCollection
-                                         randomBehaviour =
+                                         randomBehaviour
+                                         revealFullTestVectorsAgain =
+            let shuffledDuplicatedPartialTestVectors =
+                (randomBehaviour: Random).Shuffle (List.append partialTestVectors partialTestVectors)
+                |> List.ofArray
             let mergedPartialTestVectors
                 , setOfMergedFullTestVectors =
-                partialTestVectors
+                shuffledDuplicatedPartialTestVectors
                 |> List.fold (fun (mergedPartialTestVectors, setOfFullTestVectors) partialTestVector ->
-                                match (mergedPartialTestVectors: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector
-                                                                                                                       randomBehaviour with
+                                match (mergedPartialTestVectors: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector with
                                     updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
                                     , Some resultingFullTestCaseVector ->
+                                        let shouldBeTrue =
+                                            not (Set.contains resultingFullTestCaseVector
+                                                              setOfFullTestVectors)
+
+                                        Assert.IsTrue shouldBeTrue
+
                                         updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
                                         , Set.add resultingFullTestCaseVector
                                                   setOfFullTestVectors
@@ -151,21 +199,44 @@
                                         updatedMergedPartialTestVectorRepresentations
                                         , setOfFullTestVectors)
                              (initialCollection, Set.empty)
-            let setOfMergedPartialTestVectors =
-                Set.ofSeq mergedPartialTestVectors
+            if revealFullTestVectorsAgain
+            then
+                let setOfAllMergedTestVectors =
+                    mergedPartialTestVectors.EnumerationOfMergedTestVectors true
+                    |> Set.ofSeq
 
-            Assert.IsTrue (Set.isEmpty (Set.intersect setOfMergedFullTestVectors setOfMergedPartialTestVectors))
+                let shouldBeTrue =
+                    Set.isSubset setOfMergedFullTestVectors setOfAllMergedTestVectors
+                Assert.IsTrue shouldBeTrue
 
-            mergedPartialTestVectors
-            , (setOfMergedPartialTestVectors
-               |> Set.union setOfMergedFullTestVectors)
+                mergedPartialTestVectors
+                , setOfAllMergedTestVectors
+            else
+                let setOfMergedPartialTestVectors =
+                    mergedPartialTestVectors.EnumerationOfMergedTestVectors false
+                    |> Set.ofSeq
 
-        let dumpPartialTestVector partialTestVector =
-            printf "[ "
-            partialTestVector
-            |> Map.iter (fun testVariableIndex testLevel ->
-                            printf "(%A, %A) " testVariableIndex testLevel)
-            printf "]\n"
+                let shouldBeTrue =
+                    Set.isEmpty (Set.intersect setOfMergedFullTestVectors setOfMergedPartialTestVectors)
+
+                if not shouldBeTrue
+                then let common = Set.intersect setOfMergedFullTestVectors setOfMergedPartialTestVectors
+                     printf "setOfMergedFullTestVectors:\n"
+                     setOfMergedFullTestVectors |> Set.iter dumpPartialTestVector
+                     printf "setOfMergedPartialTestVectors:\n"
+                     setOfMergedPartialTestVectors  |> Set.iter dumpPartialTestVector
+                     printf "Only in setOfMergedFullTestVectors:-\n"
+                     (setOfMergedFullTestVectors - common) |> Set.iter dumpPartialTestVector
+                     printf "Only in setOfMergedPartialTestVectors:-\n"
+                     (setOfMergedPartialTestVectors - common) |> Set.iter dumpPartialTestVector
+                     printf "Common:-\n"
+                     common |> Set.iter dumpPartialTestVector
+
+                Assert.IsTrue shouldBeTrue
+
+                mergedPartialTestVectors
+                , (setOfMergedPartialTestVectors
+                   |> Set.union setOfMergedFullTestVectors)
 
         [<Test>]
         member this.TestAdditionOfUnmergeableVectorsPreservesIndividualVectors () =
@@ -176,11 +247,12 @@
                     mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap
                                                  (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
                                                  randomBehaviour
+                                                 true
                 let shouldBeTrue =
                     Set.ofList partialTestVectorsThatDoNotOverlap = setOfMergedPartialTestVectors
                 if not shouldBeTrue
                 then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
-                     let merged = Set.ofSeq mergedPartialTestVectors
+                     let merged = mergedPartialTestVectors.EnumerationOfMergedTestVectors true |> Set.ofSeq
                      let common = Set.intersect originals merged
                      printf "Only in originals:-\n"
                      (originals - common) |> Set.iter dumpPartialTestVector
@@ -200,6 +272,7 @@
                     mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap
                                                  (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
                                                  randomBehaviour
+                                                 true
                 let mutantsOrCopiesOf partialTestVector =
                     let maximumRecursionDepth = 50u
                     let rec createMutantOrCopy recursionDepth =
@@ -232,11 +305,12 @@
                     mergeOrAddPartialTestVectors partialTestVectorsThatAddNoNewInformation
                                                  mergedPartialTestVectors
                                                  randomBehaviour
+                                                 true
                 let shouldBeTrue =
                     (Set.ofList partialTestVectorsThatDoNotOverlap).Count = setOfMergedPartialTestVectorsFromRemerge.Count
                 if not shouldBeTrue
                 then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
-                     let remerged = Set.ofSeq remergedPartialTestVectors
+                     let remerged = remergedPartialTestVectors.EnumerationOfMergedTestVectors true |> Set.ofSeq
                      let common = Set.intersect originals remerged
                      printf "Only in originals:-\n"
                      (originals - common) |> Set.iter dumpPartialTestVector
@@ -280,6 +354,7 @@
                     mergeOrAddPartialTestVectors remappedPartialTestVectors
                                                  (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariablesAfterRemapping)
                                                  randomBehaviour
+                                                 true
                 let possiblyAddLevelsForIndices indicesToAdd partialTestVector =
                     let chosenIndicesToAdd =
                         randomBehaviour.ChooseSeveralOf (indicesToAdd
@@ -303,16 +378,17 @@
                     mergeOrAddPartialTestVectors partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
                                                  mergedPartialTestVectors
                                                  randomBehaviour
+                                                 true
                 let shouldBeTrue =
                     Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices = setOfMergedPartialTestVectorsFromRemerge
                 if not shouldBeTrue
                 then let originals = Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
-                     let remerged = Set.ofSeq remergedPartialTestVectors
+                     let remerged = remergedPartialTestVectors.EnumerationOfMergedTestVectors true |> Set.ofSeq
                      let common = Set.intersect originals remerged
                      printf "remappedPartialTestVectors:\n"
                      Set.ofList remappedPartialTestVectors |> Set.iter dumpPartialTestVector
                      printf "mergedPartialTestVectors:\n"
-                     Set.ofSeq mergedPartialTestVectors |> Set.iter dumpPartialTestVector
+                     mergedPartialTestVectors.EnumerationOfMergedTestVectors true |> Set.ofSeq  |> Set.iter dumpPartialTestVector
                      printf "Only in originals:-\n"
                      (originals - common) |> Set.iter dumpPartialTestVector
                      printf "Only in remerged:-\n"
@@ -332,6 +408,7 @@
                         mergeOrAddPartialTestVectors partialTestVectors
                                                      (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
                                                      randomBehaviour
+                                                     true
                 let numberOfMergedPartialTestVectors =
                     setOfMergedPartialTestVectors.Count
                 let shouldBeTrue = numberOfMergedPartialTestVectors <= partialTestVectors.Length
@@ -365,15 +442,67 @@
                     mergeOrAddPartialTestVectors partialTestVectors
                                                  (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
                                                  randomBehaviour
+                                                 true
                 let remergedPartialTestVectors
                     , setOfMergedPartialTestVectorsFromRemerge =
                     mergeOrAddPartialTestVectors [Map.empty]
                                                  mergedPartialTestVectors
                                                  randomBehaviour
+                                                 true
                 let shouldBeTrue =
                     setOfMergedPartialTestVectors = setOfMergedPartialTestVectorsFromRemerge
                 Assert.IsTrue shouldBeTrue
             createOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
+
+        [<Test>]
+        member this.TestThatNotRevealingFullTestVectorsSuppressesThemFromTheEnumerationButNotTheEarlyAccessApi () =
+            let randomBehaviour = Random randomBehaviourSeed
+            let testHandoff partialTestVectors =
+                let commonSeedForRandomBehaviourClones =
+                    randomBehaviour.Next()  // Need to clone the random behaviour instances passed to the two calls to
+                                            // 'mergeOrAddPartialTestVectors', because this function shuffles the partial
+                                            // test vectors internally - which would otherwise legitimately result in
+                                            // different merges in the two calls, and therefore different results.
+                let randomBehaviourCloneOne =
+                    Random(commonSeedForRandomBehaviourClones)
+                let randomBehaviourCloneTwo =
+                    Random(commonSeedForRandomBehaviourClones)
+                let mergedPartialTestVectors
+                    , setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration =
+                    mergeOrAddPartialTestVectors partialTestVectors
+                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
+                                                 randomBehaviourCloneOne
+                                                 true
+                let mergedPartialTestVectors
+                    , setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration =
+                    mergeOrAddPartialTestVectors partialTestVectors
+                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
+                                                 randomBehaviourCloneTwo
+                                                 false
+
+                let shouldBeTrue =
+                    setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration = setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration
+                    // NOTE: this looks odd, but bear in mind that the result from the helper 'mergeOrAddPartialTestVectors' also
+                    // includes the early access API results - so we are saying that nothing is lost overall at this point.
+
+                    // NOTE: the check for suppression of the full test vectors is performed in the helper 'mergeOrAddPartialTestVectors'.
+
+                if not shouldBeTrue
+                then let common = Set.intersect setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration
+                     printf "setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration:\n"
+                     setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration |> Set.iter dumpPartialTestVector
+                     printf "setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration:\n"
+                     setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration  |> Set.iter dumpPartialTestVector
+                     printf "Only in setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration:-\n"
+                     (setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration - common) |> Set.iter dumpPartialTestVector
+                     printf "Only in setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration:-\n"
+                     (setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration - common) |> Set.iter dumpPartialTestVector
+                     printf "Common:-\n"
+                     common |> Set.iter dumpPartialTestVector
+
+                Assert.IsTrue shouldBeTrue
+            createOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
+            createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
 
         [<Test>]
         member this.TestInitialStateIsEmptyAndDoesNotContainATrivialEmptyPartialTestVector () =
@@ -381,7 +510,7 @@
                 let initial =
                     MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables
                 let containedPartialTestVectors =
-                    initial
+                    initial.EnumerationOfMergedTestVectors true
                     |> List.ofSeq
                 let shouldBeTrue =
                     containedPartialTestVectors.Length = 0
