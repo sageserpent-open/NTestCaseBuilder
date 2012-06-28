@@ -152,6 +152,32 @@ namespace SageSerpent.TestInfrastructure
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable ->
                         binaryTreeOfLevelsForTestVariable.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero
 
+        type TreeSearchContextParameters =
+            {
+                TestVariableIndex: UInt32
+                HasSuffixContextOfPossibleFullTestVector: Boolean
+            }
+
+            member this.IsSpecialCaseDenotingInitialState =   // The tests define this special state as not possessing any test vectors, not even the trivial empty one.
+                0u = this.TestVariableIndex
+
+            member this.IsFullTestVector maximumNumberOfTestVariables =
+                this.HasSuffixContextOfPossibleFullTestVector
+                && maximumNumberOfTestVariables = this.TestVariableIndex
+
+            member this.PropagateFromDefinedLevelToNextTestVariable =
+                {
+                    this with
+                        TestVariableIndex = this.TestVariableIndex + 1u
+                }
+
+            member this.PropagateFromWildcardLevelToNextTestVariable =
+                {
+                    this with
+                        TestVariableIndex = this.TestVariableIndex + 1u
+                        HasSuffixContextOfPossibleFullTestVector = false
+                }
+
         let inline (|InternalNode|) (augmentedInternalNode: AugmentedInternalNode<'Level>) =
             augmentedInternalNode.InternalNode
 
@@ -351,13 +377,12 @@ namespace SageSerpent.TestInfrastructure
                                                                                 maximumNumberOfTestVariables: UInt32) =
         let createPartialTestVectorSequence revealFullTestVectorsAgain =
             let rec traverseTernarySearchTree ternarySearchTree
-                                              testVariableIndex
-                                              hasSuffixContextOfPossibleFullTestVector
+                                              (traversalContextParameters: TreeSearchContextParameters)
                                               partialTestVectorBeingBuilt =
                 let rec traverseBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfTestVariables <= testVariableIndex
+                            if maximumNumberOfTestVariables <= traversalContextParameters.TestVariableIndex
                             then
                                 raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
@@ -375,30 +400,23 @@ namespace SageSerpent.TestInfrastructure
                                             {
                                                 yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithLesserLevelsForSameTestVariableIndex
                                                 yield! traverseTernarySearchTree subtreeForFollowingIndices
-                                                                                    (testVariableIndex + 1u)
-                                                                                    hasSuffixContextOfPossibleFullTestVector
-                                                                                    ((testVariableIndex, levelForTestVariableIndex) :: partialTestVectorBeingBuilt)
+                                                                                 traversalContextParameters.PropagateFromDefinedLevelToNextTestVariable
+                                                                                 ((traversalContextParameters.TestVariableIndex, levelForTestVariableIndex) :: partialTestVectorBeingBuilt)
                                                 yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
                                             })
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
-                        if maximumNumberOfTestVariables < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
-                                                                             // for a full (and possibly removed) test vector, because successful searches go through at least one
-                                                                             // node corresponding to each test variable index, *then* land on a node indicating whether the search
-                                                                             // was successful or not: so the zero-relative index gets incremented one more time.
+                        if maximumNumberOfTestVariables < traversalContextParameters.TestVariableIndex
+                            // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
+                            // for a full (and possibly removed) test vector, because successful searches go through at least one
+                            // node corresponding to each test variable index, *then* land on a node indicating whether the search
+                            // was successful or not: so the zero-relative index gets incremented one more time.
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
-                        let specialCaseDenotingInitialState =   // The tests define this special state as not possessing any test vectors, not even the trivial empty one.
-                            0u = testVariableIndex
-
-                        let detectedFullTestVector =
-                            not revealFullTestVectorsAgain
-                            && hasSuffixContextOfPossibleFullTestVector
-                            && maximumNumberOfTestVariables = testVariableIndex
-
-                        if detectedFullTestVector
-                           || specialCaseDenotingInitialState
+                        if not revealFullTestVectorsAgain
+                           && traversalContextParameters.IsFullTestVector maximumNumberOfTestVariables
+                           || traversalContextParameters.IsSpecialCaseDenotingInitialState
                         then
                             Seq.empty
                         else
@@ -424,13 +442,17 @@ namespace SageSerpent.TestInfrastructure
                                         {
                                             yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
                                             yield! traverseTernarySearchTree subtreeForFollowingIndices
-                                                                             (testVariableIndex + 1u)
-                                                                             false
+                                                                             traversalContextParameters.PropagateFromWildcardLevelToNextTestVariable
                                                                              partialTestVectorBeingBuilt
                                         })
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable ->
                         traverseBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-            traverseTernarySearchTree ternarySearchTree 0u true []
+            traverseTernarySearchTree ternarySearchTree
+                                      {
+                                        TestVariableIndex = 0u
+                                        HasSuffixContextOfPossibleFullTestVector = true
+                                      }
+                                      []
 
         let fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation =
             if uint32 (partialTestVectorRepresentation: Map<_, _>).Count > maximumNumberOfTestVariables
@@ -637,7 +659,8 @@ namespace SageSerpent.TestInfrastructure
                     , [] ->
                         raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that is already mergeable with or equivalent to a previous one.")
                         // The above is really a precondition violation, but the precondition should have been enforced at a higher level within the implementation and not by the client.
-            addToTernarySearchTree ternarySearchTree newPartialTestVectorRepresentation
+            addToTernarySearchTree ternarySearchTree
+                                   newPartialTestVectorRepresentation
 
         let remove ternarySearchTree
                    queryPartialTestVectorRepresentation =
@@ -761,11 +784,10 @@ namespace SageSerpent.TestInfrastructure
             let rec removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                      levelFromQueryPartialTestVectorRepresentation
                                                                      tailFromQueryPartialTestVectorRepresentation
-                                                                     testVariableIndex
-                                                                     hasSuffixContextOfPossibleFullTestVector =
+                                                                     treeSearchContextParameters =
                 match binaryTreeOfLevelsForTestVariable with
                     UnsuccessfulSearchTerminationNode ->
-                        if maximumNumberOfTestVariables <= testVariableIndex
+                        if maximumNumberOfTestVariables <= treeSearchContextParameters.TestVariableIndex
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
@@ -790,17 +812,15 @@ namespace SageSerpent.TestInfrastructure
                                                                                                            flankingSubtreeWithLesserLevels
                                                                                                            flankingSubtreeWithGreaterLevels
                                                                                                            splayedSubtreeForFollowingIndices
-                                                                                                           testVariableIndex
-                                                                                                           hasSuffixContextOfPossibleFullTestVector
+                                                                                                           treeSearchContextParameters
                           | _ ->
                                 None
             and removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                          tailFromQueryPartialTestVectorRepresentation
-                                                                         testVariableIndex
-                                                                         hasSuffixContextOfPossibleFullTestVector =
+                                                                         treeSearchContextParameters =
                 match binaryTreeOfLevelsForTestVariable with
                     UnsuccessfulSearchTerminationNode ->
-                        if maximumNumberOfTestVariables <= testVariableIndex
+                        if maximumNumberOfTestVariables <= treeSearchContextParameters.TestVariableIndex
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
@@ -819,8 +839,7 @@ namespace SageSerpent.TestInfrastructure
                                                                                                    subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                    subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                    subtreeForFollowingIndices
-                                                                                                   testVariableIndex
-                                                                                                   hasSuffixContextOfPossibleFullTestVector
+                                                                                                   treeSearchContextParameters
                         |> BargainBasement.Flip Option.LazyMPlus
                                                 (lazy optionWorkflow
                                                         {
@@ -829,8 +848,7 @@ namespace SageSerpent.TestInfrastructure
                                                                  , mergedWithExistingFullTestVector =
                                                                 removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                                          tailFromQueryPartialTestVectorRepresentation
-                                                                                                                         testVariableIndex
-                                                                                                                         hasSuffixContextOfPossibleFullTestVector
+                                                                                                                         treeSearchContextParameters
                                                             return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
                                                                                                                                            modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                                                            subtreeWithGreaterLevelsForSameTestVariableIndex
@@ -846,8 +864,7 @@ namespace SageSerpent.TestInfrastructure
                                                                  , mergedWithExistingFullTestVector =
                                                                 removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                                          tailFromQueryPartialTestVectorRepresentation
-                                                                                                                         testVariableIndex
-                                                                                                                         hasSuffixContextOfPossibleFullTestVector
+                                                                                                                         treeSearchContextParameters
                                                             return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
                                                                                                                                            subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                                                            modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
@@ -857,8 +874,7 @@ namespace SageSerpent.TestInfrastructure
                                                         })
             and removeFromTernarySearchTree ternarySearchTree
                                             queryPartialTestVectorRepresentation
-                                            testVariableIndex
-                                            hasSuffixContextOfPossibleFullTestVector =
+                                            treeSearchContextParameters =
                 let inline adaptResult result =
                     optionWorkflow
                         {
@@ -873,17 +889,15 @@ namespace SageSerpent.TestInfrastructure
                       , queryPartialTestVectorRepresentation with
                     SuccessfulSearchTerminationNode
                     , _ ->
-                        if maximumNumberOfTestVariables < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
-                                                                             // for a full (and possibly removed) test vector, because successful searches go through at least one
-                                                                             // node corresponding to each test variable index, *then* land on a node indicating whether the search
-                                                                             // was successful or not: so the zero-relative index gets incremented one more time.
+                        if maximumNumberOfTestVariables < treeSearchContextParameters.TestVariableIndex
+                            // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
+                            // for a full (and possibly removed) test vector, because successful searches go through at least one
+                            // node corresponding to each test variable index, *then* land on a node indicating whether the search
+                            // was successful or not: so the zero-relative index gets incremented one more time.
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
-                        let detectedFullTestVector =
-                            hasSuffixContextOfPossibleFullTestVector
-                            && maximumNumberOfTestVariables = testVariableIndex
-                        if detectedFullTestVector
+                        if treeSearchContextParameters.IsFullTestVector maximumNumberOfTestVariables
                         then
                              Some (BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
                                    , queryPartialTestVectorRepresentation
@@ -906,8 +920,7 @@ namespace SageSerpent.TestInfrastructure
                                     removeLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
                                                                                      levelFromQueryPartialTestVectorRepresentation
                                                                                      tailFromQueryPartialTestVectorRepresentation
-                                                                                     testVariableIndex
-                                                                                     hasSuffixContextOfPossibleFullTestVector
+                                                                                     treeSearchContextParameters
                                 return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
                                                                                                                subtreeForFollowingIndices
                                        , removedPartialTestVector
@@ -918,7 +931,7 @@ namespace SageSerpent.TestInfrastructure
                                                                                                                                  tailFromQueryPartialTestVectorRepresentation
                                                                                                                                  subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                                                  subtreeForFollowingIndices
-                                                                                                                                 testVariableIndex)
+                                                                                                                                 treeSearchContextParameters)
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
@@ -932,8 +945,7 @@ namespace SageSerpent.TestInfrastructure
                                      , mergedWithExistingFullTestVector =
                                     removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
                                                                                              tailFromQueryPartialTestVectorRepresentation
-                                                                                             testVariableIndex
-                                                                                             hasSuffixContextOfPossibleFullTestVector
+                                                                                             treeSearchContextParameters
                                 return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
                                                                                                                subtreeForFollowingIndices
                                        , removedPartialTestVector
@@ -944,21 +956,19 @@ namespace SageSerpent.TestInfrastructure
                                                                                                                                  tailFromQueryPartialTestVectorRepresentation
                                                                                                                                  subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                                                  subtreeForFollowingIndices
-                                                                                                                                 testVariableIndex)
+                                                                                                                                 treeSearchContextParameters)
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                     , Some levelFromQueryPartialTestVectorRepresentation :: tailFromQueryPartialTestVectorRepresentation ->
                         removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                          levelFromQueryPartialTestVectorRepresentation
                                                                          tailFromQueryPartialTestVectorRepresentation
-                                                                         testVariableIndex
-                                                                         hasSuffixContextOfPossibleFullTestVector
+                                                                         treeSearchContextParameters
                         |> adaptResult
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                     , None :: tailFromQueryPartialTestVectorRepresentation ->
                         removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                                  tailFromQueryPartialTestVectorRepresentation
-                                                                                 testVariableIndex
-                                                                                 hasSuffixContextOfPossibleFullTestVector
+                                                                                 treeSearchContextParameters
                         |> adaptResult
                   | _
                     , [] ->
@@ -966,15 +976,13 @@ namespace SageSerpent.TestInfrastructure
                         // allowing a match as a prefix of some suitable stored vector, should one already be present.
                         removeFromTernarySearchTree ternarySearchTree
                                                     [None]
-                                                    testVariableIndex
-                                                    hasSuffixContextOfPossibleFullTestVector
+                                                    treeSearchContextParameters
             and buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices tailFromQueryPartialTestVectorRepresentation
                                                                                            levelForTestVariableIndex
                                                                                            subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                            subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                            subtreeForFollowingIndices
-                                                                                           testVariableIndex
-                                                                                           hasSuffixContextOfPossibleFullTestVector =
+                                                                                           treeSearchContextParameters =
                     optionWorkflow
                         {
                             let! modifiedSubtreeForFollowingTestVariableIndices
@@ -982,8 +990,7 @@ namespace SageSerpent.TestInfrastructure
                                  , mergedWithExistingFullTestVector =
                                 removeFromTernarySearchTree subtreeForFollowingIndices
                                                             tailFromQueryPartialTestVectorRepresentation
-                                                            (testVariableIndex + 1u)
-                                                            hasSuffixContextOfPossibleFullTestVector
+                                                            treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
                             return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
                                                                                                            subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                            subtreeWithGreaterLevelsForSameTestVariableIndex
@@ -995,7 +1002,7 @@ namespace SageSerpent.TestInfrastructure
                                                                                            tailFromQueryPartialTestVectorRepresentation
                                                                                            subtreeWithAllLevelsForSameTestVariableIndex
                                                                                            subtreeForFollowingIndices
-                                                                                           testVariableIndex =
+                                                                                           treeSearchContextParameters =
                     optionWorkflow
                         {
                             let! modifiedSubtreeForFollowingTestVariableIndices
@@ -1003,14 +1010,18 @@ namespace SageSerpent.TestInfrastructure
                                  , mergedWithExistingFullTestVector =
                                 removeFromTernarySearchTree subtreeForFollowingIndices
                                                             tailFromQueryPartialTestVectorRepresentation
-                                                            (testVariableIndex + 1u)
-                                                            false
+                                                            treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
                             return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                            modifiedSubtreeForFollowingTestVariableIndices
                                    , (headFromQueryPartialTestVectorRepresentation :: removedPartialTestVector)
                                    , mergedWithExistingFullTestVector
                         }
-            removeFromTernarySearchTree ternarySearchTree queryPartialTestVectorRepresentation 0u true
+            removeFromTernarySearchTree ternarySearchTree
+                                        queryPartialTestVectorRepresentation
+                                        {
+                                            TestVariableIndex = 0u
+                                            HasSuffixContextOfPossibleFullTestVector = true
+                                        }
 
         let checkInvariant ternarySearchTree =
             let rec checkInvariantOfTernarySearchTree ternarySearchTree
