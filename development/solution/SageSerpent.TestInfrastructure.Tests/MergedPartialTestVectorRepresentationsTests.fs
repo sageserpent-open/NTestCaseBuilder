@@ -175,6 +175,8 @@
                                          initialCollection
                                          randomBehaviour
                                          revealFullTestVectorsAgain =
+            let maximumNumberOfTestVariables =
+                (initialCollection: MergedPartialTestVectorRepresentations<_>).MaximumNumberOfTestVariables
             let shuffledDuplicatedPartialTestVectors =
                 (randomBehaviour: Random).Shuffle (List.append partialTestVectors partialTestVectors)
                 |> List.ofArray
@@ -199,6 +201,21 @@
                                         updatedMergedPartialTestVectorRepresentations
                                         , setOfFullTestVectors)
                              (initialCollection, Set.empty)
+            let isFullTestVector partialTestVector =
+                let sumOfIndicesExpectedForFullTestVector =
+                    maximumNumberOfTestVariables * (maximumNumberOfTestVariables + 1u) / 2u
+                partialTestVector
+                |> Map.toSeq
+                |> Seq.map (fst >> (fun testVariableIndex -> 1u + testVariableIndex))   // NOTE: shift by one because otherwise the leading term for a sum of zero-relative indices would not show up in the sum!
+                |> Seq.reduce (+)
+                 = sumOfIndicesExpectedForFullTestVector
+
+            let shouldBeTrue =
+                setOfMergedFullTestVectors
+                |> Set.forall isFullTestVector
+
+            Assert.IsTrue shouldBeTrue
+
             if revealFullTestVectorsAgain
             then
                 let setOfAllMergedTestVectors =
@@ -231,6 +248,18 @@
                      (setOfMergedPartialTestVectors - common) |> Set.iter dumpPartialTestVector
                      printf "Common:-\n"
                      common |> Set.iter dumpPartialTestVector
+
+                Assert.IsTrue shouldBeTrue
+
+                let shouldBeTrue =
+                    setOfMergedPartialTestVectors
+                    |> Set.forall (isFullTestVector >> not)
+
+                if not shouldBeTrue
+                then
+                    printf "Maximum number of test variables: %A\n" maximumNumberOfTestVariables
+                    printf "Got at least one full test vector that is just from the enumeration:-\n"
+                    setOfMergedPartialTestVectors |> Set.filter isFullTestVector |> Set.iter dumpPartialTestVector
 
                 Assert.IsTrue shouldBeTrue
 

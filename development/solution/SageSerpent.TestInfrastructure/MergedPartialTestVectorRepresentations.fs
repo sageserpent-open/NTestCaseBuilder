@@ -348,7 +348,7 @@ namespace SageSerpent.TestInfrastructure
     open MergedPartialTestVectorRepresentationsDetail
 
     type MergedPartialTestVectorRepresentations<'Level when 'Level: comparison>(ternarySearchTree: TernarySearchTree<'Level>,
-                                                                                maximumNumberOfTestVariablesOverall: UInt32) =
+                                                                                maximumNumberOfTestVariables: UInt32) =
         let createPartialTestVectorSequence revealFullTestVectorsAgain =
             let rec traverseTernarySearchTree ternarySearchTree
                                               testVariableIndex
@@ -357,12 +357,12 @@ namespace SageSerpent.TestInfrastructure
                 let rec traverseBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfTestVariablesOverall <= testVariableIndex
+                            if maximumNumberOfTestVariables <= testVariableIndex
                             then
                                 raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
                             Seq.empty
-                        | AugmentedInternalNode
+                      | AugmentedInternalNode
                         (InternalNode
                         {
                             LevelForTestVariableIndex = levelForTestVariableIndex
@@ -382,10 +382,10 @@ namespace SageSerpent.TestInfrastructure
                                             })
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
-                        if maximumNumberOfTestVariablesOverall < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
-                                                                                    // for a full (and possibly removed) test vector, because successful searches go through at least one
-                                                                                    // node corresponding to each test variable index, *then* land on a node indicating whether the search
-                                                                                    // was successful or not: so the zero-relative index gets incremented one more time.
+                        if maximumNumberOfTestVariables < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
+                                                                             // for a full (and possibly removed) test vector, because successful searches go through at least one
+                                                                             // node corresponding to each test variable index, *then* land on a node indicating whether the search
+                                                                             // was successful or not: so the zero-relative index gets incremented one more time.
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
@@ -395,7 +395,7 @@ namespace SageSerpent.TestInfrastructure
                         let detectedFullTestVector =
                             not revealFullTestVectorsAgain
                             && hasSuffixContextOfPossibleFullTestVector
-                            && maximumNumberOfTestVariablesOverall = testVariableIndex
+                            && maximumNumberOfTestVariables = testVariableIndex
 
                         if detectedFullTestVector
                            || specialCaseDenotingInitialState
@@ -406,7 +406,7 @@ namespace SageSerpent.TestInfrastructure
                             then
                                 raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors should have resulted in the original collection.")
 
-                            if uint32 partialTestVectorBeingBuilt.Length > maximumNumberOfTestVariablesOverall
+                            if uint32 partialTestVectorBeingBuilt.Length > maximumNumberOfTestVariables
                             then
                                 raise (InternalAssertionViolationException "The test vector has more entries than the permitted maximum number of test variables.")
 
@@ -433,7 +433,7 @@ namespace SageSerpent.TestInfrastructure
             traverseTernarySearchTree ternarySearchTree 0u true []
 
         let fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation =
-            if uint32 (partialTestVectorRepresentation: Map<_, _>).Count > maximumNumberOfTestVariablesOverall
+            if uint32 (partialTestVectorRepresentation: Map<_, _>).Count > maximumNumberOfTestVariables
             then
                 raise (InternalAssertionViolationException "The partial test vector being either merged or added has more entries than the permitted maximum number of test variables.")
 
@@ -445,7 +445,7 @@ namespace SageSerpent.TestInfrastructure
             let maximumTestVariableIndexHavingLevel =
                 Seq.max testVariableIndicesHavingLevels
 
-            if maximumTestVariableIndexHavingLevel >= maximumNumberOfTestVariablesOverall
+            if maximumTestVariableIndexHavingLevel >= maximumNumberOfTestVariables
             then
                 raise (PreconditionViolationException "The partial test vector being either merged or added has a test variable index that is greater than the permitted maximum.")
 
@@ -463,7 +463,7 @@ namespace SageSerpent.TestInfrastructure
             if isPrefixOfFullTestVector
             then
                 let isFullTestVector =
-                    maximumNumberOfTestVariablesOverall = 1u + maximumTestVariableIndexHavingLevel
+                    maximumNumberOfTestVariables = 1u + maximumTestVariableIndexHavingLevel
                 partialTestVectorRepresentation
                 |> Map.toList
                 |> List.map (snd >> Some)
@@ -765,7 +765,7 @@ namespace SageSerpent.TestInfrastructure
                                                                      hasSuffixContextOfPossibleFullTestVector =
                 match binaryTreeOfLevelsForTestVariable with
                     UnsuccessfulSearchTerminationNode ->
-                        if maximumNumberOfTestVariablesOverall <= testVariableIndex
+                        if maximumNumberOfTestVariables <= testVariableIndex
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
@@ -800,7 +800,7 @@ namespace SageSerpent.TestInfrastructure
                                                                          hasSuffixContextOfPossibleFullTestVector =
                 match binaryTreeOfLevelsForTestVariable with
                     UnsuccessfulSearchTerminationNode ->
-                        if maximumNumberOfTestVariablesOverall <= testVariableIndex
+                        if maximumNumberOfTestVariables <= testVariableIndex
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
@@ -873,16 +873,16 @@ namespace SageSerpent.TestInfrastructure
                       , queryPartialTestVectorRepresentation with
                     SuccessfulSearchTerminationNode
                     , _ ->
-                        if maximumNumberOfTestVariablesOverall < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
-                                                                                    // for a full (and possibly removed) test vector, because successful searches go through at least one
-                                                                                    // node corresponding to each test variable index, *then* land on a node indicating whether the search
-                                                                                    // was successful or not: so the zero-relative index gets incremented one more time.
+                        if maximumNumberOfTestVariables < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
+                                                                             // for a full (and possibly removed) test vector, because successful searches go through at least one
+                                                                             // node corresponding to each test variable index, *then* land on a node indicating whether the search
+                                                                             // was successful or not: so the zero-relative index gets incremented one more time.
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
                         let detectedFullTestVector =
                             hasSuffixContextOfPossibleFullTestVector
-                            && maximumNumberOfTestVariablesOverall = testVariableIndex
+                            && maximumNumberOfTestVariables = testVariableIndex
                         if detectedFullTestVector
                         then
                              Some (BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
@@ -1022,7 +1022,7 @@ namespace SageSerpent.TestInfrastructure
                                                                           upperBound =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfTestVariablesOverall <= testVariableIndex
+                            if maximumNumberOfTestVariables <= testVariableIndex
                             then
                                 raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
@@ -1097,10 +1097,10 @@ namespace SageSerpent.TestInfrastructure
                                     + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
-                        if maximumNumberOfTestVariablesOverall < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
-                                                                                    // for a full (and possibly removed) test vector, because successful searches go through at least one
-                                                                                    // node corresponding to each test variable index, *then* land on a node indicating whether the search
-                                                                                    // was successful or not: so the zero-relative index gets incremented one more time.
+                        if maximumNumberOfTestVariables < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
+                                                                             // for a full (and possibly removed) test vector, because successful searches go through at least one
+                                                                             // node corresponding to each test variable index, *then* land on a node indicating whether the search
+                                                                             // was successful or not: so the zero-relative index gets incremented one more time.
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
@@ -1143,6 +1143,9 @@ namespace SageSerpent.TestInfrastructure
             then
                 raise (LogicErrorException "No successful search paths but tree should be non-empty.")
 
+        member this.MaximumNumberOfTestVariables =
+            maximumNumberOfTestVariables
+
         member this.EnumerationOfMergedTestVectors revealFullTestVectorsAgain =
             createPartialTestVectorSequence revealFullTestVectorsAgain
 
@@ -1178,19 +1181,19 @@ namespace SageSerpent.TestInfrastructure
                                     List.length partialTestVectorRepresentation
                                     |> uint32
 
-                                if lengthOfPartialTestVectorRepresentation > maximumNumberOfTestVariablesOverall
+                                if lengthOfPartialTestVectorRepresentation > maximumNumberOfTestVariables
                                 then
                                     raise (InternalAssertionViolationException "The merged removed partial test vector has more entries than the permitted maximum number of test variables.")
 
                                 if lengthOfPartialTestVectorRepresentation
-                                   |> uint32 < maximumNumberOfTestVariablesOverall
+                                   |> uint32 < maximumNumberOfTestVariables
                                    || partialTestVectorRepresentation
                                       |> List.exists Option.isNone
                                 then
                                     None
                                 else
                                     let testVariableIndicesForFullTestVector =
-                                        List.init (int32 maximumNumberOfTestVariablesOverall)
+                                        List.init (int32 maximumNumberOfTestVariables)
                                                   uint32
 
                                     let testVariableLevelsForFullTestVector =
@@ -1223,5 +1226,5 @@ namespace SageSerpent.TestInfrastructure
 //                    // ... end of invariant check.
 
                 MergedPartialTestVectorRepresentations (modifiedTernarySearchTree,
-                                                        maximumNumberOfTestVariablesOverall)
+                                                        maximumNumberOfTestVariables)
                 , fullTestVectorBeingOfferedNowForEarlyAccess
