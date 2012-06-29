@@ -666,7 +666,10 @@ namespace SageSerpent.TestInfrastructure
                                    newPartialTestVectorRepresentation
 
         let remove ternarySearchTree
-                   queryPartialTestVectorRepresentation =
+                   queryPartialTestVectorRepresentation
+                   successfulRemovalContinuation
+                   existingFullTestVectorBlockedRemovalContinuation
+                   nothingFoundToRemoveContinuation =
             let removeInternalNodeWithGreatestLevelInSubtree subtreeInternalNodeRepresentation =
                 let comparisonWrtPositiveInfinity _ =
                     1
@@ -786,54 +789,60 @@ namespace SageSerpent.TestInfrastructure
                         |> WildcardNode
             let rec removeFromTernarySearchTree ternarySearchTree
                                                 queryPartialTestVectorRepresentation
-                                                (treeSearchContextParameters: TreeSearchContextParameters) =
+                                                (treeSearchContextParameters: TreeSearchContextParameters)
+                                                successfulRemovalContinuation
+                                                existingFullTestVectorBlockedRemovalContinuation
+                                                nothingFoundToRemoveContinuation =
                 let buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices tailFromQueryPartialTestVectorRepresentation
                                                                                                levelForTestVariableIndex
                                                                                                subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                               subtreeForFollowingIndices =
-                    optionWorkflow
-                        {
-                            let! modifiedSubtreeForFollowingTestVariableIndices
-                                 , removedPartialTestVector
-                                 , mergedWithExistingFullTestVector =
-                                removeFromTernarySearchTree subtreeForFollowingIndices
-                                                            tailFromQueryPartialTestVectorRepresentation
-                                                            treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
-                            return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
-                                                                                                           subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                           subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                           modifiedSubtreeForFollowingTestVariableIndices
-                                   , (Some levelForTestVariableIndex :: removedPartialTestVector)
-                                   , mergedWithExistingFullTestVector
-                        }
+                                                                                               subtreeForFollowingIndices
+                                                                                               successfulRemovalContinuation
+                                                                                               nothingFoundToRemoveContinuation =
+                    removeFromTernarySearchTree subtreeForFollowingIndices
+                                                tailFromQueryPartialTestVectorRepresentation
+                                                treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
+                                                (fun modifiedSubtreeForFollowingTestVariableIndices
+                                                     removedPartialTestVector ->
+                                                    let modifiedBinarySearchTree =
+                                                        buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                                                                                                                subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                                subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                                modifiedSubtreeForFollowingTestVariableIndices
+                                                    successfulRemovalContinuation modifiedBinarySearchTree
+                                                                                  (Some levelForTestVariableIndex :: removedPartialTestVector))
+                                                existingFullTestVectorBlockedRemovalContinuation
+                                                nothingFoundToRemoveContinuation
                 let buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
                                                                                                tailFromQueryPartialTestVectorRepresentation
                                                                                                subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                subtreeForFollowingIndices =
-                    optionWorkflow
-                        {
-                            let! modifiedSubtreeForFollowingTestVariableIndices
-                                 , removedPartialTestVector
-                                 , mergedWithExistingFullTestVector =
-                                removeFromTernarySearchTree subtreeForFollowingIndices
-                                                            tailFromQueryPartialTestVectorRepresentation
-                                                            treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
-                            return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
-                                                                                                           modifiedSubtreeForFollowingTestVariableIndices
-                                   , (headFromQueryPartialTestVectorRepresentation :: removedPartialTestVector)
-                                   , mergedWithExistingFullTestVector
-                        }
+                    removeFromTernarySearchTree subtreeForFollowingIndices
+                                                tailFromQueryPartialTestVectorRepresentation
+                                                treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
+                                                (fun modifiedSubtreeForFollowingTestVariableIndices
+                                                     removedPartialTestVector ->
+                                                    let modifiedTernarySearchTree =
+                                                        buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                                                modifiedSubtreeForFollowingTestVariableIndices
+                                                    successfulRemovalContinuation modifiedTernarySearchTree
+                                                                                  (headFromQueryPartialTestVectorRepresentation :: removedPartialTestVector))
+                                                existingFullTestVectorBlockedRemovalContinuation
+                                                nothingFoundToRemoveContinuation
+
                 let rec removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                          levelFromQueryPartialTestVectorRepresentation
-                                                                         tailFromQueryPartialTestVectorRepresentation =
+                                                                         tailFromQueryPartialTestVectorRepresentation
+                                                                         successfulRemovalContinuation
+                                                                         nothingFoundToRemoveContinuation =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
                             if maximumNumberOfTestVariables <= treeSearchContextParameters.TestVariableIndex
                             then
                                 raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
-                            None
+                            nothingFoundToRemoveContinuation ()
 
                       | AugmentedInternalNode
                         (InternalNode internalNodeRepresentation) ->
@@ -854,17 +863,21 @@ namespace SageSerpent.TestInfrastructure
                                                                                                                flankingSubtreeWithLesserLevels
                                                                                                                flankingSubtreeWithGreaterLevels
                                                                                                                splayedSubtreeForFollowingIndices
+                                                                                                               successfulRemovalContinuation
+                                                                                                               nothingFoundToRemoveContinuation
                               | _ ->
-                                    None
+                                    nothingFoundToRemoveContinuation ()
                 and removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                                                                             tailFromQueryPartialTestVectorRepresentation =
+                                                                             tailFromQueryPartialTestVectorRepresentation
+                                                                             successfulRemovalContinuation
+                                                                             nothingFoundToRemoveContinuation =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
                             if maximumNumberOfTestVariables <= treeSearchContextParameters.TestVariableIndex
                             then
                                 raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
-                            None
+                            nothingFoundToRemoveContinuation ()
 
                       | AugmentedInternalNode
                         (InternalNode
@@ -879,46 +892,36 @@ namespace SageSerpent.TestInfrastructure
                                                                                                        subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                        subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                        subtreeForFollowingIndices
-                            |> BargainBasement.Flip Option.LazyMPlus
-                                                    (lazy optionWorkflow
-                                                            {
-                                                                let! modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
-                                                                     , removedPartialTestVector
-                                                                     , mergedWithExistingFullTestVector =
-                                                                    removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                             tailFromQueryPartialTestVectorRepresentation
-                                                                return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
-                                                                                                                                               modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                                               subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                                                               subtreeForFollowingIndices
-                                                                       , removedPartialTestVector
-                                                                       , mergedWithExistingFullTestVector
-                                                            })
-                            |> BargainBasement.Flip Option.LazyMPlus
-                                                    (lazy optionWorkflow
-                                                            {
-                                                                let! modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                     , removedPartialTestVector
-                                                                     , mergedWithExistingFullTestVector =
-                                                                    removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                                             tailFromQueryPartialTestVectorRepresentation
-                                                                return buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
-                                                                                                                                               subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                                               modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                                                               subtreeForFollowingIndices
-                                                                       , removedPartialTestVector
-                                                                       , mergedWithExistingFullTestVector
-                                                            })
-                let inline adaptResult result =
-                    optionWorkflow
-                        {
-                            let! binaryTreeOfLevelsForTestVariable
-                                 , partialTestVector
-                                 , mergedWithExistingFullTestVector = result
-                            return BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                                   , partialTestVector
-                                   , mergedWithExistingFullTestVector
-                        }
+                                                                                                       successfulRemovalContinuation
+                                                                                                       (fun () ->
+                                                                                                            removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                                                                     tailFromQueryPartialTestVectorRepresentation
+                                                                                                                                                                     (fun modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                                                                          removedPartialTestVector ->
+                                                                                                                                                                        let modifiedBinaryTree =
+                                                                                                                                                                            buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                                                                                                                                                                                                                                    modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                                                                                                                                                    subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                                                                                                                                                    subtreeForFollowingIndices
+                                                                                                                                                                        successfulRemovalContinuation modifiedBinaryTree
+                                                                                                                                                                                                      removedPartialTestVector)
+                                                                                                                                                                     (fun () ->
+                                                                                                                                                                        removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                                                                                                                                 tailFromQueryPartialTestVectorRepresentation
+                                                                                                                                                                                                                                 (fun modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                                                                                                                                      removedPartialTestVector ->
+                                                                                                                                                                                                                                    let modifiedBinaryTree =
+                                                                                                                                                                                                                                        buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                                                                                                                                                                                                                                                                                                subtreeWithLesserLevelsForSameTestVariableIndex
+                                                                                                                                                                                                                                                                                                                modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                                                                                                                                                                                                                                                                subtreeForFollowingIndices
+                                                                                                                                                                                                                                    successfulRemovalContinuation modifiedBinaryTree
+                                                                                                                                                                                                                                                                  removedPartialTestVector)
+                                                                                                                                                                                                                                 nothingFoundToRemoveContinuation))
+                let adaptSuccessfulRemovalContinuation modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                                       removedPartialTestVector =
+                    successfulRemovalContinuation (BinaryTreeOfLevelsForTestVariable modifiedSubtreeWithAllLevelsForSameTestVariableIndex)
+                                                  removedPartialTestVector
                 match ternarySearchTree
                       , queryPartialTestVectorRepresentation with
                     SuccessfulSearchTerminationNode
@@ -933,71 +936,64 @@ namespace SageSerpent.TestInfrastructure
 
                         if treeSearchContextParameters.IsFullTestVector maximumNumberOfTestVariables
                         then
-                             Some (BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
-                                   , queryPartialTestVectorRepresentation
-                                   , true)
+                            existingFullTestVectorBlockedRemovalContinuation ()
                         else
-                             Some (BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
-                                   , queryPartialTestVectorRepresentation
-                                   , false)
+                            successfulRemovalContinuation (BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode)
+                                                          queryPartialTestVectorRepresentation
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
                         SubtreeForFollowingIndices = subtreeForFollowingIndices
                     }
                     , ((Some levelFromQueryPartialTestVectorRepresentation) as headFromQueryPartialTestVectorRepresentation) :: tailFromQueryPartialTestVectorRepresentation ->
-                        optionWorkflow
-                            {
-                                let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                                     , removedPartialTestVector
-                                     , mergedWithExistingFullTestVector =
-                                    removeLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
-                                                                                     levelFromQueryPartialTestVectorRepresentation
-                                                                                     tailFromQueryPartialTestVectorRepresentation
-                                return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                                                                                                               subtreeForFollowingIndices
-                                       , removedPartialTestVector
-                                       , mergedWithExistingFullTestVector
-                            }
-                        |> BargainBasement.Flip Option.LazyMPlus
-                                                (lazy buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
-                                                                                                                                 tailFromQueryPartialTestVectorRepresentation
-                                                                                                                                 subtreeWithAllLevelsForSameTestVariableIndex
-                                                                                                                                 subtreeForFollowingIndices)
+                        removeLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
+                                                                         levelFromQueryPartialTestVectorRepresentation
+                                                                         tailFromQueryPartialTestVectorRepresentation
+                                                                         (fun modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                                                              removedPartialTestVector ->
+                                                                            let modifiedTernarySearchTree =
+                                                                                buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                                                                        subtreeForFollowingIndices
+                                                                            successfulRemovalContinuation modifiedTernarySearchTree
+                                                                                                          removedPartialTestVector)
+                                                                         (fun () ->
+                                                                            buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
+                                                                                                                                                       tailFromQueryPartialTestVectorRepresentation
+                                                                                                                                                       subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                                                                       subtreeForFollowingIndices)
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
                         SubtreeForFollowingIndices = subtreeForFollowingIndices
                     }
                     , None :: tailFromQueryPartialTestVectorRepresentation ->
-                        optionWorkflow
-                            {
-                                let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                                     , removedPartialTestVector
-                                     , mergedWithExistingFullTestVector =
-                                    removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
-                                                                                             tailFromQueryPartialTestVectorRepresentation
-                                return buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                                                                                                               subtreeForFollowingIndices
-                                       , removedPartialTestVector
-                                       , mergedWithExistingFullTestVector
-                            }
-                        |> BargainBasement.Flip Option.LazyMPlus
-                                                (lazy buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices None
-                                                                                                                                 tailFromQueryPartialTestVectorRepresentation
-                                                                                                                                 subtreeWithAllLevelsForSameTestVariableIndex
-                                                                                                                                 subtreeForFollowingIndices)
+                        removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                 tailFromQueryPartialTestVectorRepresentation
+                                                                                 (fun modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                                                                      removedPartialTestVector ->
+                                                                                    let modifiedTernarySearchTree =
+                                                                                        buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                                                                                subtreeForFollowingIndices
+                                                                                    successfulRemovalContinuation modifiedTernarySearchTree
+                                                                                                                  removedPartialTestVector)
+                                                                                 (fun () ->
+                                                                                    buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices None
+                                                                                                                                                               tailFromQueryPartialTestVectorRepresentation
+                                                                                                                                                               subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                                                                               subtreeForFollowingIndices)
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                     , Some levelFromQueryPartialTestVectorRepresentation :: tailFromQueryPartialTestVectorRepresentation ->
                         removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                          levelFromQueryPartialTestVectorRepresentation
                                                                          tailFromQueryPartialTestVectorRepresentation
-                        |> adaptResult
+                                                                         adaptSuccessfulRemovalContinuation
+                                                                         nothingFoundToRemoveContinuation
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                     , None :: tailFromQueryPartialTestVectorRepresentation ->
                         removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                                  tailFromQueryPartialTestVectorRepresentation
-                        |> adaptResult
+                                                                                 adaptSuccessfulRemovalContinuation
+                                                                                 nothingFoundToRemoveContinuation
                   | _
                     , [] ->
                         // This has the effect of padding out a query partial test vector on the fly, thereby
@@ -1005,9 +1001,15 @@ namespace SageSerpent.TestInfrastructure
                         removeFromTernarySearchTree ternarySearchTree
                                                     [None]
                                                     treeSearchContextParameters
+                                                    successfulRemovalContinuation
+                                                    existingFullTestVectorBlockedRemovalContinuation
+                                                    nothingFoundToRemoveContinuation
             removeFromTernarySearchTree ternarySearchTree
                                         queryPartialTestVectorRepresentation
                                         TreeSearchContextParameters.StartOfSearch
+                                        successfulRemovalContinuation
+                                        existingFullTestVectorBlockedRemovalContinuation
+                                        nothingFoundToRemoveContinuation
 
         let checkInvariant ternarySearchTree =
             let rec checkInvariantOfTernarySearchTree ternarySearchTree
@@ -1161,11 +1163,10 @@ namespace SageSerpent.TestInfrastructure
                     fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentationInExternalForm
                 let modifiedTernarySearchTree
                     , fullTestVectorBeingOfferedNowForEarlyAccess =
-                    match remove ternarySearchTree
-                                 partialTestVectorRepresentation with
-                        Some (ternarySearchTreeWithoutMergeCandidate
-                              , mergedPartialTestVectorRepresentation
-                              , false) ->
+                    remove ternarySearchTree
+                           partialTestVectorRepresentation
+                           (fun ternarySearchTreeWithoutMergeCandidate
+                                mergedPartialTestVectorRepresentation ->
 //                            match remove ternarySearchTreeWithoutMergeCandidate
 //                                         mergedPartialTestVectorRepresentation with
 //                                Some _ ->
@@ -1203,18 +1204,18 @@ namespace SageSerpent.TestInfrastructure
                                     |> Some
                             add ternarySearchTreeWithoutMergeCandidate
                                 mergedPartialTestVectorRepresentation
-                            , detectAndConvertFullTestVector mergedPartialTestVectorRepresentation
-                      | Some _ ->
+                            , detectAndConvertFullTestVector mergedPartialTestVectorRepresentation)
+                           (fun () ->
                             ternarySearchTree
-                            , None
-                      | None ->
+                            , None)
+                           (fun () ->
                             add ternarySearchTree
                                 partialTestVectorRepresentation
                             , if partialTestVectorRepresentationIsActuallyAlreadyFull
                               then
                                 Some partialTestVectorRepresentationInExternalForm
                               else
-                                None
+                                None)
 
 //                if 7 = (hash this) % 100
 //                then
