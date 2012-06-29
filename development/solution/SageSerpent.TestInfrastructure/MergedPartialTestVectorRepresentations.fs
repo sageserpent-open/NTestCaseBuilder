@@ -158,6 +158,12 @@ namespace SageSerpent.TestInfrastructure
                 HasSuffixContextOfPossibleFullTestVector: Boolean
             }
 
+            static member StartOfSearch =
+                {
+                    TestVariableIndex = 0u
+                    HasSuffixContextOfPossibleFullTestVector = true
+                }
+
             member this.IsSpecialCaseDenotingInitialState =   // The tests define this special state as not possessing any test vectors, not even the trivial empty one.
                 0u = this.TestVariableIndex
 
@@ -448,10 +454,7 @@ namespace SageSerpent.TestInfrastructure
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable ->
                         traverseBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
             traverseTernarySearchTree ternarySearchTree
-                                      {
-                                        TestVariableIndex = 0u
-                                        HasSuffixContextOfPossibleFullTestVector = true
-                                      }
+                                      TreeSearchContextParameters.StartOfSearch
                                       []
 
         let fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation =
@@ -1018,10 +1021,7 @@ namespace SageSerpent.TestInfrastructure
                         }
             removeFromTernarySearchTree ternarySearchTree
                                         queryPartialTestVectorRepresentation
-                                        {
-                                            TestVariableIndex = 0u
-                                            HasSuffixContextOfPossibleFullTestVector = true
-                                        }
+                                        TreeSearchContextParameters.StartOfSearch
 
         let checkInvariant ternarySearchTree =
             let rec checkInvariantOfTernarySearchTree ternarySearchTree
