@@ -241,15 +241,15 @@ Each test case has to be built up from smaller pieces of data. Here, we have a b
 				(Foo
 
 				OR
-				
+
 				Foo
 					Bar)
-					
+
 				AND
-				
+
 				sequence of
 						Operation - either a DoThis or a DoThat
-					
+
 We say that a TestCase is *synthesized* from a Foo and a sequence of Operation instances - this synthesis might be a plain constructor call, passing the two items as parameters, or might be some more involved process requiring the subsequent setting of properties.
 
 How is the 'Foo' instance built up? We have a choice here - we could use the parameterless constructor for 'Foo', or perhaps build up our own 'Bar' instance and supply it to an alternative constructor for 'Foo' (not shown above). So to cover both situations, we need to express an *interleaving* where a 'Foo' can be built in more than one way.
@@ -279,7 +279,7 @@ Taking these italicesed terms and applying them to the breakdown above yields a 
 															-	Test Variable (ditto)
 															-	Test Variable (ditto)
 
-NTestCaseBuilder realises such conceptual trees as trees of *test case factories* - each factory can be either a *synthesizing factory*, an *interleaving factory*, a *test variable level factory* or a *singleton factory*.																									
+NTestCaseBuilder realises such conceptual trees as trees of *test case factories* - each factory can be either a *synthesizing factory*, an *interleaving factory*, a *test variable level factory* or a *singleton factory*.
 
 A factory has two roles:-
 
@@ -321,7 +321,7 @@ So we could thin out the number of test cases considerably - say we had a failur
 
 The problem is that we don't know which of the 20 test variables are the ones that can act in concert to expose the bug.
 
-However, imagine that we could generate a sequence of 'incomplete' test case using only the first four test variables - that would give us 625 test cases with holes in them where we haven't yet decided what levels to set the remaining test variables to.
+However, imagine that we could generate a sequence of 'incomplete' test cases using only the first four test variables - that would give us 625 test cases with holes in them where we haven't yet decided what levels to set the remaining test variables to.
 
 Perhaps we could then build another parallel sequence of incomplete test cases using the next four test variables - again that would give is 625 test cases with different holes in them, including the test variables that we filled in in the previous sequence.
 
@@ -329,21 +329,21 @@ So merging the two sequences of test cases together would provide a new sequence
 
 Carrying on with this procedure would yield a sequence of 625 test cases that would cover combinations of test levels from successive groups of four test variables - so for the much lower effort of examining up to 625 test cases, we have some chance of finding the same bug that we would have had to trawl through 95367431640625 test cases!
 
-Great - but there is still a problem. I forgot to mention that possibility that it might be combinations of levels from test variables from *across groups of four* that cause the bug. In other words, maybe it is test variable #2 with level #5, test variable #9 with level #3, test variable #18 with level #3 and test variable #20 with level #1 that exposes the bug.
+Great - but there is still a problem. I forgot to mention that possibility that it might be combinations of levels from test variables from *across the groups of four* that cause the bug. In other words, maybe it is test variable #2 with level #5, test variable #9 with level #3, test variable #18 with level #3 and test variable #20 with level #1 that exposes the bug.
 
 The procedure is only systematic about combinations of levels from test variables in the same group, so it won't necessarily generate the magic test case; but it is a tantalising idea: could we somehow produce a much smaller sequence of test cases than the full 95367431640625, and still guarantee that *for any choice of one, two, three or four test variables*, the sequence would *guarantee that every combination of levels for those variables* would be completely covered.
 
 Think about that last statement - the guarantee isn't merely that there is *some* choice of test variables whose level combinations are covered - it is saying that *any* choice of test variables you ask for has its level combinations covered; from within the same sequence of test cases.
 
-This is the guarantee provided by any of the factories mentioned above - a factory can if given a *strength* produce a sequence of test cases that provides that guarantee for any number of test variables up to and including the given strength.
+This is the guarantee provided by any of the factories mentioned above - a factory can if given a *strength* produce a sequence of test cases that provides that guarantee for any number of test variables in combination up to and including the given strength.
 
 As the strength is increased, the factory has to work harder to meet this guarantee - so if we set the strength all the way up to 20 in this example, we are back to generating all 95367431640625 test cases. In practice, strengths of up to 4 are probably good enough.
 
-Note that when we use factories are part of the composite design pattern, there is no obvious relationship between the sequences of simpler test cases produced by factories in subtrees and the sequence of complex test cases produced by the overall root factory. This is because for a given strength, as we start combining more and more subtrees together, there are an increasing number of opportunities for combinations of test variable levels to be overlaid into the same test case - there are more test variables relative to the strength.
+Note that when we use factories as part of the composite design pattern, there is no obvious relationship between the sequences of simpler test cases produced by factories in subtrees and the sequence of complex test cases produced by the overall root factory. This is because for a given strength, as we start combining more and more subtrees together, there are an increasing number of opportunities for combinations of test variable levels to be overlaid into the same test case - there are more test variables relative to the strength.
 
 The exception is when we ask for the full strength including all test variables and we only use synthesizing factories: in this case we can think of the sequence of the test cases made by the root factory as being a cross-product of the levels taking from all the test variables at the leaves of the tree of factories.
 
-However, we can say that as the number of test cases in the sequence goes up the closer to the root factory we go, it gets increasingly 'thinner' taken relative to the full cross-product of levels taken from all test variables. The amount of thinning as we go up the tree is more dramatic for lower strengths.
+However, we can say that the closer to the root factory we go, the number of test cases in the sequence goes up; in addition that number gets increasingly 'thinner' taken relative to the full cross-product of levels taken from all test variables. The amount of thinning as we go up the tree is more dramatic for lower strengths.
 
 
 So we've met the players - to recap, we have:-
@@ -358,7 +358,7 @@ So we've met the players - to recap, we have:-
 
 5. Factories: these produce sequences of test cases that guarantee coverage of combinations of test variable levels according to a given strength. These can be combined according to the composite design pattern to make a tree structure.
 
-6. A synthesizing factory: puts together the kinds of test cases produced by its child factories to make more complex test cases. It should be an interior node in any tree of factories. 
+6. A synthesizing factory: puts together the kinds of test cases produced by its child factories to make more complex test cases. It should be an interior node in any tree of factories.
 
 7. An interleaving factory: interleaves the kinds of test cases produced by its child factories to give alternatives in its sequence. It should be an interior node in any tree of factories.
 
@@ -370,15 +370,258 @@ So we've met the players - to recap, we have:-
 
 NOTE: testing with a strength of 2 is commonly known as 'pairwise testing'.
 
+
+Oh, one last thing: when a test case is produced that exposes a bug, it is inconvenient to have to repeatedly re-run the entire unit test when restarting a debugging session; one has to wait patiently while the parameterised unit test is presented all over again with a sequence of successful test cases leading up to the one where the test failure occurs.
+
+There is a harness utility that will trap any exceptions propagated out of the parameterised unit test run under its control; when it traps the exception, the harness will create a *signature* that can be used to completely synthesize the test case exposing the bug. The signature and the exception are packaged into a special wrapper exception - examining this in the debugger allows special one-off unit tests to be written that instruct the factory to go directly to creating the failing test case; so these one-off tests can be used to perform the actual debugging.
+
+
+Oh, one last thing: when a test case is produced that exposes a bug, it is inconvenient to have to repeatedly re-run the entire unit test when restarting a debugging session; one has to wait patiently while the parameterised unit test is presented all over again with a sequence of successful test cases leading up to the one where the test failure occurs.
+
+There is a harness utility that will trap any exceptions propagated out of the parameterised unit test run under its control; when it traps the exception, the harness will create a *signature* that can be used to completely synthesize the test case exposing the bug. The signature and the exception are packaged into a special wrapper exception - examining this in the debugger allows special one-off unit tests to be written that instruct the factory to go directly to creating the failing test case; so these one-off tests can be used to perform the actual debugging.
+
 Walk me through an example!
 ---------------------------
 
-Uh-huh.
+Let's test a component that encodes text strings. A reverse decoding of the encoded format back to the original string is also supported.
+
+The encoded format will support the ability to progressively reconstruct the original string as the sequence is received; for each character occurring at least once in the original string, the reconstruction will fill in all of the occurrances of that character in the decoded string in each progressive step.
+
+So the string, "Madam, I'm Adam" would be reconstructed as:-
+
+1. "???????????????"
+1. "?????? ??? ????"
+2. "?????? ?'? ????"
+3. "?????, ?'? ????"
+4. "?????, ?'? A???"
+5. "?????, I'? A???"
+6. "M????, I'? A???"
+7. "Ma?a?, I'? A?a?"
+8. "Mada?, I'? Ada?"
+9. "Madam, I'm Adam"
+
+Where the question mark denotes a placeholder for a missing character.
+
+We'll write the test for this up-front as a parameterised unit test, and design the API at the same time. Then we'll implement it and see how it fares against the unit test, and see how NTestCaseBuilder can help us in the process.
+
+Actually, *we'll* do the first part together on this document, and *I'll* go off and code the second part as a series of commits in this repository; these will go in the directory 'development\solution\SageSerpent.TestInfrastructure.WorkedExample' and will be tagged; with the benefit of hindsight, you can then watch me as I made mistakes and went through the debugging process.
+
+The objective is for you to see some source code that uses NTestCaseBuilder to generate test cases, as well as the use of signatures to create one-off tests for debugging and a special test variable level factory for subsequent higher-level testing.
+
+
+Our parameterised unit test simply takes a string as its parameter - for each string, it encodes it into the encoded format, then progressively decodes the format, checking the partially decoded result against the original string. We know how many steps the progressive decoding will take, because we can count the number of occurrances of each character in the original string in a histogram.
+
+Our API just needs to create an encoded representation from a string, and then allow progressive decoding. How about this:-
+
+    public class EncodedFormatStage1
+    {
+        ///<summary>
+        /// Constructs an encoding of a string.
+        ///</summary>
+        ///<param name="stringToBeEncoded">Non-null string to encode: may be an empty string.</param>
+        public EncodedFormat(String stringToBeEncoded)
+        {
+            throw new NotImplementedException();
+        }
+
+        public class ProgressiveDecoder
+        {
+            /// <summary>
+            /// Carries out a step of the progressive decoding of the format.
+            /// At each step, all of the occurrances of some character in the original encoded
+            /// string will be decoded and placed into a string builder at their original
+            /// locations. Each step deals with a unique character in the original string.
+            /// </summary>
+            /// <param name="builderForPartiallyDecodedString">A non-null string builder for the partially decoded result. This is modified on each call, and is intended to be reused across successive calls to this method to achieve a progressive decoding. Can be set up arbitrarily; will be resized to accomodate the need for additional characters, or will be trimmed if too long. Any existing characters not placed into the buffer by a previous call to this method will eventually be overwritten or truncated over a progressive series of calls.</param>
+            /// <returns>True if 'builderForPartiallyDecodedString' contains the completely decoded string, false if there is more decoding to follow.</returns>
+            public Boolean DecodeIntoAndReportIfCompleted(StringBuilder builderForPartiallyDecodedString)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        /// <summary>
+        /// Creates a new decoder.
+        /// </summary>
+        /// <returns>A freshly-created decoder set to start progressive decoding at the first character.</returns>
+        public ProgressiveDecoder CreateNewDecoder()
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+Our parameterised unit test looks like this:-
+
+	[Test]
+	public void TestEncodingAndDecodingRoundtripStage1()
+	{
+		ParameterisedUnitTestForEncodingAndDecodingRoundtrip(String.Empty);
+	}
+
+	public void ParameterisedUnitTestForEncodingAndDecodingRoundtrip(String testCase)
+	{
+		IDictionary<Char, Int32> histogramFromTestCase = BuildHistogramOfCharacterFrequencies(testCase);
+
+		var encodedFormat = new EncodedFormatStage1(testCase);
+
+		var builderForPartiallyDecodedString = new StringBuilder();
+
+		Int32 expectedSizeOfHistogramFromPartiallyDecodedString = 0;
+
+		EncodedFormat.ProgressiveDecoder decoder = encodedFormat.CreateNewDecoder();
+
+		while (!decoder.DecodeIntoAndReportIfCompleted(builderForPartiallyDecodedString))
+		{
+			// Compute histogram for decoded text: each maplet should be contained in the original histogram, and the number of bins in the histogram should grow by one each time.
+
+			IDictionary<Char, Int32> histogramFromPartiallyDecodedString =
+				BuildHistogramOfCharacterFrequencies(builderForPartiallyDecodedString.ToString());
+
+			foreach (var character in histogramFromPartiallyDecodedString.Keys)
+			{
+				Assert.IsTrue(histogramFromTestCase.ContainsKey(character));
+				Assert.IsTrue(histogramFromTestCase[character] == histogramFromPartiallyDecodedString[character]);
+			}
+
+			++expectedSizeOfHistogramFromPartiallyDecodedString;
+
+			Assert.IsTrue(histogramFromPartiallyDecodedString.Count ==
+						  expectedSizeOfHistogramFromPartiallyDecodedString);
+		}
+
+		String decodedString = builderForPartiallyDecodedString.ToString();
+
+		Assert.IsTrue(decodedString == testCase);
+	}
+
+	private static IDictionary<Char, Int32> BuildHistogramOfCharacterFrequencies(IEnumerable<Char> stringDistribution)
+	{
+		var result = new Dictionary<Char, Int32>();
+
+		foreach (var character in stringDistribution)
+		{
+			Int32 count;
+			if (result.TryGetValue(character, out count))
+			{
+				result[character] = 1 + count;
+			}
+			else
+			{
+				result.Add(character, 1);
+			}
+		}
+
+		return result;
+	}
+
+The method 'ParameterisedUnitTestForEncodingAndDecodingRoundtrip()' is the actual parameterised unit test; the method 'TestEncodingAndDecodingRoundtripStage1' is a simple NUnit test that serves as a driver for it. To start with, we only have one test case - the empty string.
+
+The driver seems a bit anaemic - just one test case of an empty string. Let's do better and put NTestCaseBuilder to work...
+
+First things first - let's introduce NTestCaseBuilder to the test driver. Like this:-
+
+	[Test]
+	public void TestEncodingAndDecodingRoundtripStage2()
+	{
+		var factory = SingletonTestCaseEnumerableFactory.Create(String.Empty);
+		const Int32 strength = 3;
+
+		factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength, ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+	}
+
+Our parameterised unit test remains unchanged, but the driver now creates a factory, and then uses that factory to execute the parameterised unit test as a delegate passed to the method 'ExecuteParameterisedUnitTestForAllTypedTestCases()'.
+
+If we run this test, the stubbed implementation of 'EncodedFormat' promptly throws an exception - if you run under the debugger or use NUnit's logging to capture the output, you will see that NTestCaseBuilder has intercepted the exception and wrapped it inside a 'TestCaseReproductionException'.
+
+This exception refers internally to the original exception - in this case, a 'NotImplementedException' that came from the stubbed implementation. It also adds a *reproduction string*, so that you can reproduce the test failure without having to re-run through all of the preceeding test cases that did succeed.
+
+In this case however, we only have one test case to start with - this is the empty string that was used to construct the singleton factory. So we'll forget about the error message for now and press on.
+
+
+
+OK, that was nice, but all that I really did was to replicate our original anaemeic driver test. Let's add some sophistication in by generating more than one test case - which means that we need to be able to vary the test case; which in turn means we need test variables.
+
+So what are our test variables? Well, our test cases are strings, and a string is essentially a sequence of characters - so we can vary the choice of character at each position in the string. So in some way, each position on the string will have an associated test variable whose levels are the possible values the character at that position can take.
+
+We have to be a bit careful here - for .NET, a character is a **Unicode** character - so we have 2^16 levels to play with. Even doing just pairwise combinations will overwhelm us with at least 2^16^2 combinations, i.e. 4 Gigabytes, regardless of any additional combinatoric complexity that NTestCaseBuilder can actually avoid.
+
+So we need to limit the number of levels, and being a native English speaker, please indulge me in choosing the Roman alphabet lower-case letters 'a'..'z'. Just 26 levels, then.
+
+If our test variables correspond to positions on a string test case, then the number of test variables imposes an upper limit on the string length. So how long should our strings get?
+
+Let's do some very approximate estimation - say we set the maximum length to 5. Forget about shorter strings for now to keep the mathematics simple.
+
+If we do a full cross product of all levels from all test variables, we'll have to churn through 26^5 = 11881376 test cases - nearly 12 million, then. That's too many.
+
+If we set our sights on a strength of three, we might hope to get as low as 26^3 = 17576 combinations - over 17 thousand, then. That's a saving of a factor of almost 700 - not bad, and we could seriously consider this on one of today's modern electronic computing machines. Ahem.
+
+In reality, I was being a bit too optimistic - I just counted the combinations of three of the 5 test variables and forgot the others. Let's try to estimate for doing a strength of three for all 5 of the test variables. Prepare for sloppy mathematics...
+
+So, number of ways we can cover a particular choice of three variables from out of all five of them = 26^3. We just stated this above.
+
+Number of choices of 3 variables taken from 5 = (5 Combination 3) = 5 * 4 / 2. This is from combinatoric theory, if this isn't familiar, go read up on permutations, combinations, factorials and Pascal's triangle. Or just trust me.
+
+In a perfect world we could pack several combinations of different variables into the same test case. Pretending that none of the combinations ever share the same test variables (so we just fill out empty space in a test case), we can estimate a thinning out due to packing = 3 / 5, also conveniently disregarding the fact that 3 doesn't evenly divide 5.
+
+I said this was sloppy mathematics.
+
+So we estimate 26^3 * 5 * 4 / 2 * 3 / 5 = 105456: over 105 thousand. This is a factor of 6 worse than our optimistic calculation, but still a factor of 113 better than slogging through the entire cross product.
+
+I'll wager my mathematics was too sloppy - perhaps NTestCaseBuilder can do better. So let's give it a try with strings of length up to 5 and a strength of 3!
+
+
+
+So far so good - but what about the fact that strings can come in various lengths - including the empty string case?
+
+We can deal with this by thinking inductively - if we start with a factory that produces strings from length 0 (the empty string) up to length N, then we can make this factory a child of a synthesizing factory, and add a sibling that is a test variable level factory. This test variable will correspond to the leftmost position in the strings produced by the synthesizing factory: its levels will be all of the allowable character values. The synthesizing factory will then prepend a character from such a level on to a test case taken from the original factory. Thus adding a character to the front of an existing string of some length between 0 and N inclusive.
+
+So now, we have a synthesizing factory that produces strings of length 1 up to length N+1. If we then take **this** factory and make it a child of an interleaving factory, adding in a sibling that is a singleton factory producing the empty string, then you can see that the resulting tree of factories will produce either an empty string - length 0, or some string of length between 1 and N+1. In other words, we have inductively constructed a factory that produces strings of length 0 to length N+1 out of the original one.
+
+Repeating the induction gives us progressively more complex trees for strings of length N+2, N+3, N+4 ... any positive length.
+
+As a base case to this induction, we choose the simplest possible factory to get things started - again, the singleton factory producing empty strings.
+
+To wire up the factories, we can stand the inductive process on its head, giving us a recursive build of the tree of factories. Like this:-
+
+	[Test]
+	public void TestEncodingAndDecodingRoundtripStage3()
+	{
+		const Int32 maximumStringLength = 5;
+
+		var factory = BuildFactoryRecursively(maximumStringLength);
+		const Int32 strength = 3;
+
+		var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength, ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+
+		Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
+	}
+
+	public TypedTestCaseEnumerableFactory<String> BuildFactoryRecursively(Int32 maximumStringLength)
+	{
+		if (0 == maximumStringLength)
+		{
+			return _singletonFactoryForEmptyString;
+		}
+
+		var simplerFactoryForShorterStrings = BuildFactoryRecursively(maximumStringLength - 1);
+
+		var factoryForNonEmptyStrings = SynthesizedTestCaseEnumerableFactory.Create(
+			_factoryForSingleCharacters, simplerFactoryForShorterStrings, (leftmostCharacterToPrepend, shorterString) => leftmostCharacterToPrepend + shorterString);
+
+		return InterleavedTestCaseEnumerableFactory.Create(new[] { _singletonFactoryForEmptyString, factoryForNonEmptyStrings });
+	}
+
+Notice how I'm now using the return value of the call to 'ExecuteParameterisedUnitTestForAllTypedTestCases' - it tells me how many test cases I got through *if the parameterised unit test succeeded for each test case made by NTestCaseBuilder*.
+
+I'll do this so I can make good on that wager I made beforehand when I've finished. In the meantime, of course, if any test case provokes a failure of the parameterised unit test, then the call will throw an exception and obviously I won't get any return value at all.
+
+It's really just there as a 'feel-good-factor' when you've got your system under test debugged to the point where all the test cases go through with a pass. The 'green-bar moment', if you know what I mean.
+
+
+
 
 How do I install this thing?
 ----------------------------
-
-Uh-huh.
 
 A Thought-Provoking Article you should read
 -------------------------------------------
@@ -387,7 +630,7 @@ A Thought-Provoking Article you should read
 
 There are several points that the article makes, but ones which can be addressed here are:-
 
-1. If there are certain test cases that are much more probable than others, it is possible to make this explicit by setting up the tree of factories with an interleaving factory. One child of the interleave is the conventional synthesis of a test case from a multitude of test variables and their levels; the other can be a test variable level factory that supplies special cases that are much more probable in practice and would be missed by low-strength testing. These special cases can themselves by synthesized from a special-case test variables if desired. What would be nice would be the ability to specify a very high strength of combination to apply to the special case part of the interleave, but revert back to say, a strength of 2 on the ordinary part of the interleave to get pairwise testing for the other test variables - this is on the current todo list below.
+1. If there are certain test cases that are much more probable than others, it is possible to make this explicit by setting up the tree of factories with an interleaving factory. One child of the interleave is the conventional synthesis of a test case from a multitude of test variables and their levels; the other can be a test variable level factory that supplies special cases that are much more probable in practice and would be missed by low-strength testing. These special cases can themselves by synthesized from special-case test variables if desired. What would be nice would be the ability to specify a very high strength of combination to apply to the special case part of the interleave, but revert back to say, a strength of 2 on the ordinary part of the interleave to get pairwise testing for the other test variables - this is on the current todo list below.
 
 2. The number of levels for a test variable may be effectively infinite (think of floating-point numbers), or so large as to preclude putting in every level. This means that even an exhaustive enumeration of the cross-product of all test variable levels taken from finite sets could miss exposing a bug. In this situation, there either needs to be some thought as to whether there are levels for a test variable that are obvious 'trouble-spots' from the specification, or consider the use of a tool such as Pex (discussed below) as a cheap way of generating a good set of levels.
 
@@ -410,25 +653,25 @@ What differentiates the two are:-
 			quite convenient as it avoids having to manually enter
 			lots of test variable levels - the tool works them out
 			behind the scenes.
-			
+
 			Relies entirely on the implementation to guide it:
 			so if the implementation misses some aspect of a
 			specification, this may not show up at all.
-			
+
 																Allows test variable levels to be set explicitly,
 																so a specification can be used to drive it.
-																			
+
 																Requires manual entry of the test levels as code, or
 																at least the writing of code to generate test levels
 																according to some scheme.
-																			
+
 			Only understands IL - so cannot drive a GUI or a network
 			connection or a native code component.
-			
+
 																Has no understanding of any kind of code at all - but
 																can be used to drive anything that can be described via
 																test variables and levels.
-																			
+
 			NOTE: Pex can be taught to drive a GUI or a network
 			connection or a native component by creating logic in
 			the test cases that does the driving - Pex can then
@@ -438,20 +681,20 @@ What differentiates the two are:-
 			The point is that once this step is done, the user
 			has had to manually denote the test variables and levels
 			in the driver logic - so Pex is not automating their discovery.
-			
+
 																Scales up to progressively more complex test cases for
 																testing higher-level components.
-																			
+
 			Does not scale well for higher-level components: requires
 			a cutoff so that it does become overwhelmed by the analysis
 			of lower-level component dependencies.
-			
+
 I think there is a synergy that can be exploited between the two approaches: Pex can be used to create test levels for low-level components - so instead of using a tree factory to synthesize a low-level component, Pex can be used to create fully-fledged instances of the low-level component that are in turn treated as test levels by NTestCaseBuilder.
 
 The idea here is that the test variable levels correspond to distinct branches in the low-level component implementation logic - so the effect of combining such levels should stand a good chance of exposing bugs at higher levels as well. What Pex brings is the ability to find these 'interesting' levels automatically. What NTestCaseBuilder brings is the ability to combine these together for higher-level components in a scalable fashion.
-			
-			
-			
+
+
+
 Can this possibly be improved?
 ------------------------------
 
