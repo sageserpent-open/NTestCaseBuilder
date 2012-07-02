@@ -1,8 +1,8 @@
 ﻿module SageSerpent.Infrastructure.OptionWorkflow
 
     type Builder () =
-        member inline this.Bind (lhs: Option<'UnliftedInput>,
-                                 rhs: 'UnliftedInput -> Option<'UnliftedOutput>): Option<'UnliftedOutput> =
+        member inline this.Bind (lhs: Option<'UnliftedLhsResult>,
+                                 rhs: 'UnliftedLhsResult -> Option<'UnliftedRhsResult>): Option<'UnliftedRhsResult> =
             lhs
             |> Option.bind rhs
 
@@ -12,8 +12,8 @@
         member inline this.ReturnFrom (alreadyLifted: Option<'Unlifted>) =
             alreadyLifted
 
-        member inline this.Let (lhs: 'UnliftedInput,
-                                rhs: 'UnliftedInput -> Option<'UnliftedOutput>): Option<'UnliftedOutput> =
+        member inline this.Let (lhs: 'UnliftedLhsResult,
+                                rhs: 'UnliftedLhsResult -> Option<'UnliftedRhsResult>): Option<'UnliftedRhsResult> =
             rhs lhs
 
         member inline this.Delay (delayedExpression: (Unit -> Option<'Unlifted>)) =

@@ -49,6 +49,7 @@
     <Compile Include="NUnitTestSuiteDriver.fs" />
     <Compile Include="OptionWorkflow.fs" />
     <Compile Include="OptionExtensions.fs" />
+    <Compile Include="ContinuationWorkflow.fs" />
     <None Include="..\ThirdParty\PowerCollections\Binaries\PowerCollections.dll">
       <Link>PowerCollections.dll</Link>
     </None>
