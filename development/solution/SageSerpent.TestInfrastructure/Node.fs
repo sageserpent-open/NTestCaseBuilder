@@ -260,8 +260,10 @@ namespace SageSerpent.TestInfrastructure
                                             then
                                                 0u
                                             else
-                                               (associationFromStrengthToTestVariableCombinationsForOneSubtree :> IDictionary<_, _>).Keys
-                                                |> Algorithms.Maximum)
+                                               associationFromStrengthToTestVariableCombinationsForOneSubtree
+                                               |> Map.toSeq
+                                               |> Seq.map fst
+                                               |> Seq.max)
                         // We have to cope with individual subtrees being requested to yield zero strength combinations: what we
                         // mean is that either the subtree doesn't have to provide any test variables for a given distribution,
                         // in which case we yield a sentinel value of [[]] (which is an identity under the cross product), or that we
