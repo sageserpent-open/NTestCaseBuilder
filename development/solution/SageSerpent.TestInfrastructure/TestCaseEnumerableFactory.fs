@@ -235,7 +235,6 @@
                                                                                |> Seq.map (fun keyValuePair -> keyValuePair.Value) do
                                         yield! partialTestVectorsAtTheSameStrength
                                 })
-                            |> List.ofSeq
 
                         let lazilyProduceMergedPartialTestVectors mergedPartialTestVectorRepresentations
                                                                   partialTestVectors =
