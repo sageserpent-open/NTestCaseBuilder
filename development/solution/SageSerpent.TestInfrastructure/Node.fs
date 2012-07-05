@@ -359,35 +359,43 @@ namespace SageSerpent.TestInfrastructure
                                 Map.ofList testVectorRepresentationAsList)
             associationFromStrengthToTestVariableCombinations
             |> Map.map (fun strength testVariableCombinations ->
-                            let listsOfTestVectorsCorrespondingToTestVariableCombinations =
-                                testVariableCombinations
-                                |> List.map createTestVectorRepresentations
-                            let assembleHeadTestVectorRepresentationsFromEachList listsOfTestVectorsCorrespondingToTestVariableCombinations =
-                                let headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations =
-                                    [ for testVectorsCorrespondingToASingleTestVariableCombination in listsOfTestVectorsCorrespondingToTestVariableCombinations do
-                                        match testVectorsCorrespondingToASingleTestVariableCombination with
-                                            head :: tail ->
-                                                yield head
-                                                      , tail
-                                          | [] ->
-                                                () ]
-                                match headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations with
-                                    [] ->
-                                        None
-                                  | _ ->
-                                        let heads
-                                            , tails =
-                                            headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations
-                                            |> List.unzip
-                                        Some (heads
-                                              , tails)
-                            let groupsOfTestVectorsWhereEachGroupSpansTheTestVariableCombinations
-                                = listsOfTestVectorsCorrespondingToTestVariableCombinations
-                                  |> Seq.unfold assembleHeadTestVectorRepresentationsFromEachList
+                            let createTestVectorRepresentations testVariableCombinations =
+                                let listsOfTestVectorsCorrespondingToTestVariableCombinations =
+                                    testVariableCombinations
+                                    |> List.map createTestVectorRepresentations
+                                let assembleHeadTestVectorRepresentationsFromEachList listsOfTestVectorsCorrespondingToTestVariableCombinations =
+                                    let headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations =
+                                        [ for testVectorsCorrespondingToASingleTestVariableCombination in listsOfTestVectorsCorrespondingToTestVariableCombinations do
+                                            match testVectorsCorrespondingToASingleTestVariableCombination with
+                                                head :: tail ->
+                                                    yield head
+                                                          , tail
+                                              | [] ->
+                                                    () ]
+                                    match headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations with
+                                        [] ->
+                                            None
+                                      | _ ->
+                                            let heads
+                                                , tails =
+                                                headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations
+                                                |> List.unzip
+                                            Some (heads
+                                                  , tails)
+                                let groupsOfTestVectorsWhereEachGroupSpansTheTestVariableCombinations
+                                    = listsOfTestVectorsCorrespondingToTestVariableCombinations
+                                      |> Seq.unfold assembleHeadTestVectorRepresentationsFromEachList
+                                seq
+                                    {
+                                        for group in groupsOfTestVectorsWhereEachGroupSpansTheTestVariableCombinations do
+                                            yield! group
+                                    }
+                            let chunkSizeThatIsSmallEnoughToAvoidMemoryPressure =
+                                100u
                             seq
                                 {
-                                    for group in groupsOfTestVectorsWhereEachGroupSpansTheTestVariableCombinations do
-                                        yield! group
+                                    for chunkOfTestVariableCombinations in testVariableCombinations.Chunks chunkSizeThatIsSmallEnoughToAvoidMemoryPressure do
+                                        yield! createTestVectorRepresentations chunkOfTestVariableCombinations
                                 })
             , associationFromTestVariableIndexToNumberOfItsLevels
 
