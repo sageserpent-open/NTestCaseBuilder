@@ -295,6 +295,7 @@ namespace SageSerpent.TestInfrastructure
                                    List.append
                                 let testVariableCombinationsBuiltFromCrossProduct =
                                     (List.CrossProduct perSubtreeTestVariableCombinations)
+                                    |> List.ofSeq
                                     |> List.map (List.reduce joinTestVariableCombinations)
                                 List.append testVariableCombinationsBuiltFromCrossProduct partialTestVariableCombinations
                             let testVariableCombinationsWithTotalStrength =
@@ -355,8 +356,9 @@ namespace SageSerpent.TestInfrastructure
                                             [(testVariableIndex, SingletonPlaceholder)])
                 levelEntriesForTestVariableIndicesFromList
                 |> List.CrossProductWithCommonSuffix sentinelEntriesForInterleavedTestVariableIndices
-                |> List.map (fun testVectorRepresentationAsList ->
-                                Map.ofList testVectorRepresentationAsList)
+                |> LazyList.ofSeq
+                |> LazyList.map (fun testVectorRepresentationAsList ->
+                                    Map.ofList testVectorRepresentationAsList)
             associationFromStrengthToTestVariableCombinations
             |> Map.map (fun strength testVariableCombinations ->
                             let createTestVectorRepresentations testVariableCombinations =
@@ -367,10 +369,11 @@ namespace SageSerpent.TestInfrastructure
                                     let headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations =
                                         [ for testVectorsCorrespondingToASingleTestVariableCombination in listsOfTestVectorsCorrespondingToTestVariableCombinations do
                                             match testVectorsCorrespondingToASingleTestVariableCombination with
-                                                head :: tail ->
+                                                LazyList.Cons (head
+                                                               , tail) ->
                                                     yield head
                                                           , tail
-                                              | [] ->
+                                              | LazyList.Nil ->
                                                     () ]
                                     match headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations with
                                         [] ->

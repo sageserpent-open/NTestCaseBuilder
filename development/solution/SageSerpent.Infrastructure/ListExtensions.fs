@@ -1,15 +1,26 @@
 ﻿module SageSerpent.Infrastructure.ListExtensions
-
-    let rec private crossProductWithCommonSuffix commonSuffix lists =
-        match lists with
-            [] -> [commonSuffix]
-          | head :: tail -> let crossProductOfTail = crossProductWithCommonSuffix commonSuffix tail
-                            head
-                            |> List.map (fun itemInHead ->
-                                            crossProductOfTail
-                                            |> List.map (fun itemInCrossProductOfTail ->
-                                                            itemInHead :: itemInCrossProductOfTail))
-                            |> List.concat
+    let private crossProductWithCommonSuffix commonSuffix
+                                             lists =
+        let rec enumerateTreeOfCrossProductPrefixes reverseOfCommonPrefix
+                                                    lists =
+            match lists with
+                [] ->
+                    reverseOfCommonPrefix
+                    |> List.fold (fun suffixOfAListInFullCrossProduct
+                                      itemBeingPrepended ->
+                                      itemBeingPrepended :: suffixOfAListInFullCrossProduct)
+                       commonSuffix
+                       |> Seq.singleton
+              | head :: tail ->
+                    Seq.delay (fun () ->
+                                seq
+                                    {
+                                        for item in head do
+                                            yield! enumerateTreeOfCrossProductPrefixes (item :: reverseOfCommonPrefix)
+                                                                                       tail
+                                    })
+        enumerateTreeOfCrossProductPrefixes []
+                                            lists
 
     let rec private mergeSortedListsAllowingDuplicates first second =
         match first, second with

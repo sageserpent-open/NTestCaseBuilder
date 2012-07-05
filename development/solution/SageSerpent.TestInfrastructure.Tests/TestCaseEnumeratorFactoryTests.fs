@@ -450,8 +450,8 @@
                     |> List.filter (snd >> List.isEmpty >> not)
                     |> List.map (snd >> List.head)
                     |> List.CrossProduct
-                    |> List.map Set.ofList
-                    |> Set.ofList
+                    |> Seq.map Set.ofList
+                    |> Set.ofSeq
 
                 let testCases =
                     seq {for testCase in testCaseEnumerable do
