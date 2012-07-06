@@ -400,7 +400,7 @@ namespace SageSerpent.TestInfrastructure
                                             yield! group
                                     }
                             let chunkSizeThatIsSmallEnoughToAvoidMemoryPressure =
-                                100u
+                                1000u
                             seq
                                 {
                                     for chunkOfTestVariableCombinations in testVariableCombinations.Chunks chunkSizeThatIsSmallEnoughToAvoidMemoryPressure do
