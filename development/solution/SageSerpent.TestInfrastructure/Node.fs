@@ -357,8 +357,16 @@ namespace SageSerpent.TestInfrastructure
                 |> LazyList.ofSeq
                 |> LazyList.map (fun testVectorRepresentationAsList ->
                                     Map.ofList testVectorRepresentationAsList)
+            let randomBehaviour =
+                Random 6739
             associationFromStrengthToTestVariableCombinations
             |> Map.map (fun strength testVariableCombinations ->
+                            let testVariableCombinations =
+                                randomBehaviour.Shuffle testVariableCombinations
+                                |> Array.toList // Shuffling the test variable combinations helps break the tendency for successive combinations
+                                                // of test variables to exhibit overlap. This overlap would otherwise make it hard for client code
+                                                // to merge successive partial test vectors generated from the combinations - which in turn would
+                                                // delay the production of full test vectors.
                             let createTestVectorRepresentations testVariableCombinations =
                                 let listsOfTestVectorsCorrespondingToTestVariableCombinations =
                                     testVariableCombinations
