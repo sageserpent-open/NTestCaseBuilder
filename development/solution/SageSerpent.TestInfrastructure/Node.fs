@@ -321,6 +321,8 @@ namespace SageSerpent.TestInfrastructure
                 |> Map.ofList
             let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
+            let randomBehaviour =
+                Random 6739
             let createTestVectorRepresentations testVariableCombination =
                 let sentinelEntriesForInterleavedTestVariableIndices =
                    testVariableCombination
@@ -333,17 +335,14 @@ namespace SageSerpent.TestInfrastructure
                     |> Set.toList
                     |> List.map (fun testVariableIndex ->
                                     (testVariableIndex, Exclusion))
-                let testVariableCombinationSortedByIncreasingNumberOfLevels = // Using this sort order optimizes the cross product later on.
-                    let numberOfLevelsForTestVariable testVariableIndex =
-                        match Map.tryFind testVariableIndex associationFromTestVariableIndexToNumberOfItsLevels with
-                            Some numberOfLevels ->
-                                numberOfLevels
-                          | None ->
-                                1u
-                    testVariableCombination
-                    |> List.sortBy numberOfLevelsForTestVariable
+                let shuffledTestVariableCombination =
+                    randomBehaviour.Shuffle testVariableCombination
+                    |> Array.toList // This has the effect of uncorrelating the cross product of levels we are about to create for this test variable combination
+                                    // with the following cross product for the following test variable combination. The upshot of this is to avoid situations
+                                    // where we keep seeing runs of full test vectors being merged in client code that share a set of test variables whose levels
+                                    // hardly vary from one full test vector to another.
                 let levelEntriesForTestVariableIndicesFromList =
-                    testVariableCombinationSortedByIncreasingNumberOfLevels
+                    shuffledTestVariableCombination
                     |> List.map (fun testVariableIndex ->
                                     match Map.tryFind testVariableIndex associationFromTestVariableIndexToNumberOfItsLevels with
                                         Some numberOfLevels ->
@@ -357,8 +356,6 @@ namespace SageSerpent.TestInfrastructure
                 |> LazyList.ofSeq
                 |> LazyList.map (fun testVectorRepresentationAsList ->
                                     Map.ofList testVectorRepresentationAsList)
-            let randomBehaviour =
-                Random 6739
             associationFromStrengthToTestVariableCombinations
             |> Map.map (fun strength testVariableCombinations ->
                             let testVariableCombinations =
