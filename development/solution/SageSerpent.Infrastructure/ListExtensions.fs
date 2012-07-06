@@ -5,12 +5,17 @@
                                                     lists =
             match lists with
                 [] ->
-                    reverseOfCommonPrefix
-                    |> List.fold (fun suffixOfAListInFullCrossProduct
-                                      itemBeingPrepended ->
-                                      itemBeingPrepended :: suffixOfAListInFullCrossProduct)
-                       commonSuffix
-                       |> Seq.singleton
+                    raise (InternalAssertionViolationException "This case should not occur - there is a guard in the calling function, and the following pattern's logic prevents recursion from getting to the empty list case.")
+              | [ singleton ] ->
+                    seq
+                        {
+                            for item in singleton do
+                                yield item :: reverseOfCommonPrefix
+                                      |> List.fold (fun suffixOfAListInFullCrossProduct
+                                                        itemBeingPrepended ->
+                                                        itemBeingPrepended :: suffixOfAListInFullCrossProduct)
+                                                   commonSuffix
+                        }
               | head :: tail ->
                     Seq.delay (fun () ->
                                 seq
@@ -19,8 +24,12 @@
                                             yield! enumerateTreeOfCrossProductPrefixes (item :: reverseOfCommonPrefix)
                                                                                        tail
                                     })
-        enumerateTreeOfCrossProductPrefixes []
-                                            lists
+        match lists with
+            [] ->
+                Seq.singleton commonSuffix
+          | _ ->
+                enumerateTreeOfCrossProductPrefixes []
+                                                    lists
 
     let rec private mergeSortedListsAllowingDuplicates first second =
         match first, second with
@@ -74,7 +83,7 @@
                         breakOff span listBeingChopped
                     section :: chopUpList remainder tail
 
-    let chunk chunkSize listBeingChunked =
+    let private chunk chunkSize listBeingChunked =
         if 0u = chunkSize
         then
             raise (PreconditionViolationException "Chunk size must be non-zero.")
