@@ -333,7 +333,7 @@ namespace SageSerpent.TestInfrastructure
                     |> Set.toList
                     |> List.map (fun testVariableIndex ->
                                     (testVariableIndex, Exclusion))
-                let testVariableCombinationSortedByDecreasingNumberOfLevels = // Using this sort order optimizes the cross product later on.
+                let testVariableCombinationSortedByIncreasingNumberOfLevels = // Using this sort order optimizes the cross product later on.
                     let numberOfLevelsForTestVariable testVariableIndex =
                         match Map.tryFind testVariableIndex associationFromTestVariableIndexToNumberOfItsLevels with
                             Some numberOfLevels ->
@@ -341,11 +341,9 @@ namespace SageSerpent.TestInfrastructure
                           | None ->
                                 1u
                     testVariableCombination
-                    |> List.sortWith (fun first second ->
-                                        compare (numberOfLevelsForTestVariable second)
-                                                (numberOfLevelsForTestVariable first))
+                    |> List.sortBy numberOfLevelsForTestVariable
                 let levelEntriesForTestVariableIndicesFromList =
-                    testVariableCombinationSortedByDecreasingNumberOfLevels
+                    testVariableCombinationSortedByIncreasingNumberOfLevels
                     |> List.map (fun testVariableIndex ->
                                     match Map.tryFind testVariableIndex associationFromTestVariableIndexToNumberOfItsLevels with
                                         Some numberOfLevels ->
