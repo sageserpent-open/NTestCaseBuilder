@@ -128,7 +128,7 @@
         /// <param name="maximumDesiredStrength">Maximum strength of test variable combinations that must be covered by the sequence.</param>
         /// <param name="parameterisedUnitTest">A call to this delegate runs a unit test over the test case passed in as the single parameter.</param>
         /// <seealso cref="ExecuteParameterisedUnitTestForReproducedTestCase"/>
-        abstract ExecuteParameterisedUnitTestForAllTestCases: UInt32 * Action<Object> -> Unit
+        abstract ExecuteParameterisedUnitTestForAllTestCases: UInt32 * Action<Object> -> UInt32
 
         /// <summary>Executes a parameterised unit test for some specific test case described by a reproduction string.</summary>
         /// <remarks>The reproduction string is obtained by catching (or examining via a debugger) a test case reproduction exeception
@@ -180,14 +180,17 @@
 
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
                                                                                                                 , parameterisedUnitTest) =
+            let mutable count = 0u
             for testCase
                 , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength do
                 try
                     parameterisedUnitTest testCase
+                    count <- count + 1u
                 with
                     anyException ->
                         raise (TestCaseReproductionException (fullTestVector
                                                               , anyException))
+            count
 
         member this.ExecuteParameterisedUnitTestForAllTypedTestCases (maximumDesiredStrength
                                                                       , parameterisedUnitTest: Action<'TestCase>) =

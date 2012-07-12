@@ -638,7 +638,8 @@
                 let neverFail =
                     ignore
                 try testCaseEnumerableFactory.ExecuteParameterisedUnitTestForAllTestCases (randomStrength
-                                                                                           , Action<Object>(neverFail)) with
+                                                                                           , Action<Object>(neverFail))
+                    |> ignore with
                     :? TestCaseReproductionException as testCaseReproductionException ->
                         Assert.Fail "Should not be throwing this specific kind of exception if the unit test succeeded."
                   | _ ->
