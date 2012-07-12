@@ -48,7 +48,7 @@
                          yield! zeroEntries]
                         |> randomBehaviour.Shuffle
                         |> List.ofArray
-                    let rec interspresePreservingOriginalOrders lhs
+                    let rec interspersePreservingOriginalOrders lhs
                                                                 rhs =
                         match lhs
                               , rhs with
@@ -66,12 +66,12 @@
                                     if randomBehaviour.HeadsItIs ()
                                     then
                                         lhsHead
-                                        :: interspresePreservingOriginalOrders lhsTail rhs
+                                        :: interspersePreservingOriginalOrders lhsTail rhs
                                     else
                                         rhsHead
-                                        :: interspresePreservingOriginalOrders lhs rhsTail
+                                        :: interspersePreservingOriginalOrders lhs rhsTail
                     let inputList =
-                        interspresePreservingOriginalOrders binaryChoiceEntries
+                        interspersePreservingOriginalOrders binaryChoiceEntries
                                                             shuffledZeroAndUnitEntries
                     testHandoff inputList
                                 numberOfBinaryChoiceEntries
