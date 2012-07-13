@@ -713,3 +713,7 @@ Yes:
 5. Add support for automated permuting of 'operation'-style test cases. Also take into account a variable number of operations.
 
 6. Carry on with the Scala port of this code at *sageserpent-open/fsharp-to-scala-port-case-study*. **Maybe...**
+
+7. Return an enumerable that computes test cases asynchronously to give better throughput when the parameterised unit test is itself computationally demanding.
+
+8. Extend merged partial test vectors into full test vectors either some or all of the time to give even more early-access full test vectors.
