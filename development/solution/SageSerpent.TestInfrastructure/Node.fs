@@ -10,7 +10,6 @@ namespace SageSerpent.TestInfrastructure
     open SageSerpent.Infrastructure.ListExtensions
     open SageSerpent.Infrastructure.OptionWorkflow
     open Microsoft.FSharp.Collections
-    open Wintellect.PowerCollections
 
     type NodeVisitOperations<'Result> =
         {
@@ -509,30 +508,37 @@ namespace SageSerpent.TestInfrastructure
                     let indicesInVectorForLeftmostTestVariableInEachSubtree =
                         indicesInVectorForLeftmostTestVariableInEachSubtree subtreeRootNodes
                     fun fullTestVector ->
-                        if uint32 (Array.length fullTestVector) > this.CountTestVariables
+                        let fullTestVectorLength =
+                            Array.length fullTestVector
+                        if uint32 fullTestVectorLength > this.CountTestVariables
                         then
                             raise (PreconditionViolationException "Vector is inconsistent with node rendering it: it has more test variables then expected by the interleaving node.")
-                        match Algorithms.FindFirstIndexWhere (fullTestVector,
-                                                              Predicate notExcluded) with
+                        match fullTestVector
+                              |> Array.findIndex notExcluded with
                             -1 ->
                                 raise (PreconditionViolationException "Vector is inconsistent with node rendering it - an interleaving node expects at least one non-excluded test variable contributing to the interleave.")
                           | indexOfLeftmostNonExcludedTestVariable ->
 
-                                let howManyFound
-                                    , leastUpperBoundOfIndex = Algorithms.BinarySearch (indicesInVectorForLeftmostTestVariableInEachSubtree,
-                                                                                        indexOfLeftmostNonExcludedTestVariable)
+                                let leastUpperBoundOfIndex = Array.BinarySearch (indicesInVectorForLeftmostTestVariableInEachSubtree,
+                                                                                 indexOfLeftmostNonExcludedTestVariable)
                                 let indexOfIncludedSubtree =
-                                    if 0 = howManyFound
+                                    if 0 > leastUpperBoundOfIndex
                                     then
-                                        leastUpperBoundOfIndex - 1
+                                        ~~~leastUpperBoundOfIndex - 1
                                     else
                                         leastUpperBoundOfIndex
                                 if Array.length indicesInVectorForLeftmostTestVariableInEachSubtree = 1 + indexOfIncludedSubtree
                                 then
                                     raise (LogicErrorException "Shouldn't try to index into the final value in 'indicesInVectorForLeftmostTestVariableInEachSubtree': it has no corresponding subtree.")
                                         // NOTE: said final value is however used a bit further down, but in an off-by-one context where it makes sense.
-                                match Algorithms.FindLastIndexWhere (fullTestVector,
-                                                                     Predicate notExcluded) with
+                                let mirrorIndex index =
+                                    fullTestVectorLength - (1 + index)
+                                match List.init fullTestVectorLength BargainBasement.Identity
+                                      |> List.find (mirrorIndex
+                                                    >> (fun index ->
+                                                            fullTestVector.[index])
+                                                    >> notExcluded)
+                                      |> mirrorIndex with
                                     -1 ->
                                         raise (LogicErrorException "This should be already be guarded against by the check on the index of the leftmost non-excluded test variable.")
                                   | indexOfRightmostNonExcludedTestVariable ->

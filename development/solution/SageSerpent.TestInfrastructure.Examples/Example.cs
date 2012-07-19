@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using SageSerpent.Infrastructure;
-using Wintellect.PowerCollections;
 using Key = System.UInt32;
 using Value = System.String;
 using Operation =
@@ -323,8 +322,8 @@ namespace SageSerpent.TestInfrastructure.Examples
              MappingToAvoidPreviouslyChosenIndices mappingToAvoidPreviouslyChosenIndices,
              IList<Operation> operationsPlacedIntoFinalOrder)
         {
-            var placementIndices = Algorithms.ToArray
-                (Algorithms.Convert(indicesToPlaceAt, index => mappingToAvoidPreviouslyChosenIndices(index)));
+            var placementIndices =
+                indicesToPlaceAt.Select(index => mappingToAvoidPreviouslyChosenIndices(index)).ToArray();
 
             for (var operationIndex = 0;
                  operationIndex < operationsPertainingToTheSameKeyToPlaceIntoFinalOrder.Count;
@@ -351,16 +350,16 @@ namespace SageSerpent.TestInfrastructure.Examples
                 (numberOfIndicesToChoose, indicesToChooseFrom, combinationSelector);
         }
 
-        private static readonly IList<Key> Keys = new List<UInt32> {0u, 1u};
+        private static readonly C5.IList<Key> Keys = new C5.ArrayList<UInt32> {0u, 1u};
 
-        private static readonly IEnumerable<OperationKind> OperationKinds = Algorithms.Convert
-            ((IList<Int32>) Enum.GetValues(typeof (OperationKind)), constant => (OperationKind) constant);
+        private static readonly IEnumerable<OperationKind> OperationKinds =
+            ((IList<Int32>) Enum.GetValues(typeof (OperationKind))).Select(constant => (OperationKind) constant);
 
 
         private static TypedTestCaseEnumerableFactory<PlacementOfOperationsIntoFinalOrder> MakeTestCaseEnumerableFactory
             (Random randomBehaviour,
              UInt32 sequenceLength,
-             IList<Key> keys)
+             C5.IList<Key> keys)
         {
             if (0 == keys.Count)
             {
@@ -379,7 +378,7 @@ namespace SageSerpent.TestInfrastructure.Examples
                 MakeTestVariableLevelFactoryForIndexCombinationEnumerable(numberOfCombinations);
 
             var factoryDealingWithRemainingKeys = MakeTestCaseEnumerableFactory
-                (randomBehaviour, sequenceLength, Algorithms.Range(keys, 1, keys.Count - 1));
+                (randomBehaviour, sequenceLength, keys.View(1, keys.Count - 1));
 
             return MakeRecursionInductiveCaseFactory
                 (synthesizingFactoryForOperationSequenceEnumerable,
@@ -505,7 +504,6 @@ namespace SageSerpent.TestInfrastructure.Examples
                                                                                                   operations,
                                                                                                   ref numberOfTestCases),
                                                                                               reproductionString);
-            
         }
 
         private static void ExerciseTestCase(PlacementOfOperationsIntoFinalOrder testCase,

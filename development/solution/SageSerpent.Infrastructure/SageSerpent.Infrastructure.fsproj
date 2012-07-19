@@ -13,6 +13,8 @@
     <FileAlignment>512</FileAlignment>
     <Name>SageSerpent.Infrastructure</Name>
     <TargetFrameworkProfile />
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -37,6 +39,9 @@
     </OtherFlags>
     <DocumentationFile>bin\Release\SageSerpent.Infrastructure.XML</DocumentationFile>
   </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\FSharp\1.0\Microsoft.FSharp.Targets" Condition="!Exists('$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll')" />
+  <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets" Condition="Exists('$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll')" />
+  <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
   <ItemGroup>
     <Compile Include="AssemblyInformation.fs" />
     <Compile Include="Exceptions.fs" />
@@ -50,26 +55,19 @@
     <Compile Include="OptionWorkflow.fs" />
     <Compile Include="OptionExtensions.fs" />
     <Compile Include="ContinuationWorkflow.fs" />
-    <None Include="..\ThirdParty\PowerCollections\Binaries\PowerCollections.dll">
-      <Link>PowerCollections.dll</Link>
-    </None>
-    <None Include="..\ThirdParty\NUnit\bin\net-2.0\lib\nunit-console-runner.dll">
-      <Link>nunit-console-runner.dll</Link>
-    </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FSharp.PowerPack, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809" />
-    <Reference Include="mscorlib" />
-    <Reference Include="nunit-console-runner">
+    <Reference Include="C5">
+      <HintPath>..\packages\C5.2.1.4492.18142\lib\net40\C5.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="PowerCollections">
-      <Private>True</Private>
+    <Reference Include="mscorlib" />
+    <Reference Include="nunit-console-runner">
+      <HintPath>..\packages\NUnit.Runners.2.6.0.12051\tools\lib\nunit-console-runner.dll</HintPath>
     </Reference>
     <Reference Include="System" />
   </ItemGroup>
-  <Import Project="$(MSBuildExtensionsPath32)\FSharp\1.0\Microsoft.FSharp.Targets" Condition="!Exists('$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll')" />
-  <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets" Condition="Exists('$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
          Other similar extension points exist, see Microsoft.Common.targets.
     <Target Name="BeforeBuild">

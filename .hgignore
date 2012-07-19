@@ -12,6 +12,5 @@ bin
 *.vcproj*.user
 *.suo
 *.DS_Store
-
-
-
+.nuget
+packages

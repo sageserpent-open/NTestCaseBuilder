@@ -19,7 +19,6 @@
     open Microsoft.FSharp.Reflection
     open System.Reflection.Emit
     open System.Reflection
-    open Wintellect
 
     type TestVariableLevel =
         UInt32 * Option<UInt32> // Test variable index, optional distinguishing index for value.
@@ -506,13 +505,15 @@
                     let combinationsOfTestVariableIndices =
                         testCases
                         |> Seq.map (List.map fst)
-                    PowerCollections.Bag<_>(combinationsOfTestVariableIndices,
-                                            comparer)
+                    let result =
+                        C5.HashBag<_>(comparer)
+                    result.AddAll combinationsOfTestVariableIndices
+                    result
                 let testCaseSequence (testCaseEnumerableFactory: TestCaseEnumerableFactory) =
                     seq {for testCase in testCaseEnumerableFactory.CreateEnumerable(maximumStrength) do
                             yield unbox<List<TestVariableLevel>> testCase}
                 let shouldBeTrue = (testCaseSequence testCaseEnumerableFactory
-                                    |> bagCombinationsOfTestVariableIndicesDisregardingLevels).IsEqualTo
+                                    |> bagCombinationsOfTestVariableIndicesDisregardingLevels).UnsequencedEquals
                                      (testCaseSequence testCaseEnumerableFactoryBasedOnDuplicateLevels
                                        |> bagCombinationsOfTestVariableIndicesDisregardingLevels)
                 Assert.IsTrue shouldBeTrue

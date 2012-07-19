@@ -1,7 +1,6 @@
 ﻿[<System.Runtime.CompilerServices.Extension>]
 module SageSerpent.Infrastructure.RandomExtensions
     open System
-    open Wintellect.PowerCollections
 
     type Random with
         [<System.Runtime.CompilerServices.Extension>]
@@ -25,11 +24,24 @@ module SageSerpent.Infrastructure.RandomExtensions
         [<System.Runtime.CompilerServices.Extension>]
         [<CompiledName("ChooseSeveralOf")>]
         member this.ChooseSeveralOf ((candidates: #seq<_>), numberToChoose) =
-            if numberToChoose > uint32 (Seq.length candidates)
-            then raise (PreconditionViolationException "Insufficient number of candidates to satisfy number to choose.")
-            else Algorithms.RandomSubset (candidates,
-                                          int32 numberToChoose,
-                                          this)
+            let numberOfCandidates =
+                Seq.length candidates
+            if numberToChoose > uint32 numberOfCandidates
+            then
+                raise (PreconditionViolationException "Insufficient number of candidates to satisfy number to choose.")
+            else
+                let candidateArray =
+                    Array.ofSeq candidates
+                for numberOfCandidatesAlreadyChosen in 0 .. (int32 numberToChoose) - 1 do
+                    let chosenCandidateIndex =
+                        numberOfCandidatesAlreadyChosen + int32 (this.ChooseAnyNumberFromZeroToOneLessThan (uint32 (numberOfCandidates - numberOfCandidatesAlreadyChosen)))
+                    if numberOfCandidatesAlreadyChosen < chosenCandidateIndex
+                    then
+                        let chosenCandidate =
+                            candidateArray.[chosenCandidateIndex]
+                        candidateArray.[chosenCandidateIndex] <- candidateArray.[numberOfCandidatesAlreadyChosen]
+                        candidateArray.[numberOfCandidatesAlreadyChosen] <- chosenCandidate
+                candidateArray.[0 .. (int32 numberToChoose) - 1]
 
         [<System.Runtime.CompilerServices.Extension>]
         [<CompiledName("ChooseOneOf")>]
@@ -39,5 +51,8 @@ module SageSerpent.Infrastructure.RandomExtensions
         [<System.Runtime.CompilerServices.Extension>]
         [<CompiledName("Shuffle")>]
         member this.Shuffle (items: #seq<_>) =
-            Algorithms.RandomShuffle (items,
-                                      this)
+            let result =
+                C5.ArrayList ()
+            result.AddAll items
+            result.Shuffle this
+            result.ToArray ()

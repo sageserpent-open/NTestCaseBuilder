@@ -10,7 +10,6 @@
     open System.Windows.Forms
     open System.Collections.Generic
     open Microsoft.FSharp.Collections
-    open Wintellect.PowerCollections
 
     type DistributionModeWrtInterleavingNode =
             BetweenSiblingSubtrees
@@ -211,8 +210,10 @@
                         tree.AssociationFromStrengthToPartialTestVectorRepresentations numberOfTrackedTestVariables
                      let resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
                         let maximumStrengthFromResults =
-                            (results :> IDictionary<_, _>).Keys
-                            |> Algorithms.Maximum
+                            results
+                            |> Map.toSeq
+                            |> Seq.map fst
+                            |> Seq.max
                         let resultsAtDesiredStrength =
                             if numberOfTrackedTestVariables = maximumStrengthFromResults
                             then
