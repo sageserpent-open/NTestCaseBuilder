@@ -654,9 +654,11 @@ Coming soon...
 
 6. You will probably see yellow warning icons in the solution explorer view for the dependencies managed by NuGet. Don't worry about this.
 
-7. Go ahead and build - NuGet will download and install the various third-party dependencies; next time you open the solution, those yellow icons will have disappeared.
+7. Go ahead and build - NuGet *should* download and install the various third-party dependencies; those yellow icons will eventually disappear.
 
-8. You need to use the assemblies built by the project 'SageSerpent.TestInfrastructure'. *SageSerpent.TestInfrastructure.dll* is the one that your project will directly reference; it has an accompanying XML file for the API documentation.
+8. However, if this doesn't work and you get build failures due to missing dependencies, you can use the right-click context menu for the solution explorer view to open up the NuGet package manager - "Manage NuGet Packages for Solution...". This takes you to a dialog which, in this particular situation, will give you a button command to restore missing packages. Do this and retry step #7.
+
+9. You need to use the assemblies built by the project 'SageSerpent.TestInfrastructure'. *SageSerpent.TestInfrastructure.dll* is the one that your project will directly reference; it has an accompanying XML file for the API documentation.
 
 A Thought-Provoking Article you should read
 -------------------------------------------
