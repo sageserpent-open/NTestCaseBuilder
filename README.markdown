@@ -623,6 +623,28 @@ It's really just there as a 'feel-good-factor' when you've got your system under
 How do I install this thing?
 ----------------------------
 
+### Install assemblies via NuGet.
+
+Coming soon...
+
+### Build from source.
+
+1. I assume you know how to clone a Git repository, as you're looking at this on GitHub: otherwise, if you go to the main webpage for this project, you should see button commands to either clone in Windows via a nice GUI front-end to Git, or to just download a snapshot of the project as a .zip file.
+
+2. Open up Visual Studio 2010. (There is a branch that is a backport to Visual Studio 2008, but this gets very little attention from me at the time of writing. If this is vital, get in touch with me.)
+
+3. Make sure that the NuGet Visual Studio Extension is installed in Visual Studio and is up to date. If this isn't familiar to you, go see: [http://nuget.codeplex.com/wikipage?title=Getting%20Started](http://nuget.codeplex.com/wikipage?title=Getting%20Started).
+
+4. Open up the solution '...\development\solution\everything.sln' from within your cloned Git repository for this project.
+
+5. Make sure that the option to "Enable NuGet Package Restore" is activated - if it isn't, you will see this as a menu option in the right-click context menu for the solution explorer view.
+
+6. You will probably see yellow warning icons in the solution explorer view for the dependencies managed by NuGet. Don't worry about this.
+
+7. Go ahead and build - NuGet will download and install the various third-party dependencies; next time you open the solution, those yellow icons will have disappeared.
+
+8. You need to use the assemblies built by the project 'SageSerpent.TestInfrastructure'. *SageSerpent.TestInfrastructure.dll* is the one that your project will directly reference; it has an accompanying XML file for the API documentation.
+
 A Thought-Provoking Article you should read
 -------------------------------------------
 
