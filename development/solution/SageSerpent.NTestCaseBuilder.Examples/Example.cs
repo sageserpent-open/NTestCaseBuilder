@@ -3,14 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
+using SageSerpent.NTestCaseBuilder;
 using SageSerpent.Infrastructure;
 using Key = System.UInt32;
 using Value = System.String;
 using Operation =
-    System.Action<SageSerpent.TestInfrastructure.Examples.IndexedSortedDictionary<System.UInt32, System.String>>;
+    System.Action<SageSerpent.NTestCaseBuilder.Examples.IndexedSortedDictionary<System.UInt32, System.String>>;
 
 
-namespace SageSerpent.TestInfrastructure.Examples
+namespace SageSerpent.NTestCaseBuilder.Examples
 {
     ///<summary>
     ///</summary>

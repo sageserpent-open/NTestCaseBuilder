@@ -1,9 +1,9 @@
-namespace SageSerpent.TestInfrastructure
+namespace SageSerpent.NTestCaseBuilder
 
     open System.Collections
     open System
     open SageSerpent.Infrastructure
-    
+
     type InterleavedTestCaseEnumerableFactory =
         /// <summary>Constructor function that creates an instance of TestCaseEnumerableFactory.</summary>
         /// <remarks>The resulting factory yields a sequence of test cases contributed by all of the subsequences that would
@@ -34,7 +34,7 @@ namespace SageSerpent.TestInfrastructure
         /// <param name="sequenceOfFactoriesProvidingSubsequencesToInterleave">A sequence of factories whose test cases are interleaved
         /// into the sequence yielded by the constructed factory.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'TestCase&gt;">Type of constructed factory.</seealso>        
+        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'TestCase&gt;">Type of constructed factory.</seealso>
         static member Create (sequenceOfFactoriesProvidingSubsequencesToInterleave: seq<TypedTestCaseEnumerableFactory<'TestCase>>) =
             if Seq.isEmpty sequenceOfFactoriesProvidingSubsequencesToInterleave
             then

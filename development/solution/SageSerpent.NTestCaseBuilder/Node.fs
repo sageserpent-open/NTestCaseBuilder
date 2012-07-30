@@ -1,6 +1,6 @@
 ﻿#nowarn "40"
 
-namespace SageSerpent.TestInfrastructure
+namespace SageSerpent.NTestCaseBuilder
 
     open System.Collections
     open System.Collections.Generic

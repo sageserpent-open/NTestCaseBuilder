@@ -1,4 +1,4 @@
-﻿namespace SageSerpent.TestInfrastructure.Tests
+﻿namespace SageSerpent.NTestCaseBuilder.Tests
 
     open NUnit.Framework
 
@@ -7,7 +7,7 @@
     open SageSerpent.Infrastructure.RandomExtensions
     open SageSerpent.Infrastructure.IEnumerableExtensions
     open SageSerpent.Infrastructure.OptionWorkflow
-    open SageSerpent.TestInfrastructure
+    open SageSerpent.NTestCaseBuilder
     open System
     open System.Windows.Forms
     open System.Collections.Generic

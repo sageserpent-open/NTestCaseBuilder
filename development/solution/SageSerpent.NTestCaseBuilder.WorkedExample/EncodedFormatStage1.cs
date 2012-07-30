@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace SageSerpent.TestInfrastructure.WorkedExample
+namespace SageSerpent.NTestCaseBuilder.WorkedExample
 {
     public class EncodedFormatStage1
     {

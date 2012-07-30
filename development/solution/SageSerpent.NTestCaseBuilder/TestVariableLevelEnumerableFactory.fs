@@ -1,8 +1,8 @@
-namespace SageSerpent.TestInfrastructure
+namespace SageSerpent.NTestCaseBuilder
 
     open System.Collections
     open System
-    
+
     type TestVariableLevelEnumerableFactory =
         /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'TestCase&gt;.</summary>
         /// <remarks>The resulting factory represents a single test variable.</remarks>
@@ -15,5 +15,5 @@ namespace SageSerpent.TestInfrastructure
                 |> Seq.map (fun level -> box level)
                 |> Array.ofSeq
             let node =
-                SageSerpent.TestInfrastructure.TestVariableNode weaklyTypedLevels
+                SageSerpent.NTestCaseBuilder.TestVariableNode weaklyTypedLevels
             TypedTestCaseEnumerableFactory<'TestCase> node

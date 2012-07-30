@@ -25,11 +25,11 @@
         let pig maximumUpperBound =
             let random = Random 678
             let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0u maximumUpperBound
-    
+
             for _ in 1 .. 10 do
                 let chosenItems = random.ChooseSeveralOf(concreteRangeOfIntegers, maximumUpperBound)
                 for chosenItem in chosenItems do
-                    ()  
+                    ()
 
         [<Test>]
         member this.TestCoverageOfIntegersUpToExclusiveUpperBound() =
@@ -84,7 +84,7 @@
                     itemToCountAndSumOfPositionsMap
                     |> Seq.forall (fun (count, sumOfPositions)
                                     -> let difference = (sumOfPositions / (float count) - float (0u + upperBound - 1u) / 2.0)
-                                       difference < toleranceEpsilon)     
+                                       difference < toleranceEpsilon)
 
                 Assert.IsTrue shouldBeTrue
 

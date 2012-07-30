@@ -8,8 +8,8 @@
     <ProjectGuid>{6EFA1F4E-5136-4C54-AA8C-9D268A74E2C8}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SageSerpent.TestInfrastructure.WorkedExample</RootNamespace>
-    <AssemblyName>SageSerpent.TestInfrastructure.WorkedExample</AssemblyName>
+    <RootNamespace>SageSerpent.NTestCaseBuilder.WorkedExample</RootNamespace>
+    <AssemblyName>SageSerpent.NTestCaseBuilder.WorkedExample</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
@@ -23,7 +23,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Debug\SageSerpent.TestInfrastructure.WorkedExample.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\SageSerpent.NTestCaseBuilder.WorkedExample.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -32,7 +32,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Release\SageSerpent.TestInfrastructure.WorkedExample.XML</DocumentationFile>
+    <DocumentationFile>bin\Release\SageSerpent.NTestCaseBuilder.WorkedExample.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="nunit.framework, Version=2.6.0.12051, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
@@ -53,9 +53,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SageSerpent.TestInfrastructure\SageSerpent.TestInfrastructure.fsproj">
+    <ProjectReference Include="..\SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj">
+      <Project>{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}</Project>
+      <Name>SageSerpent.Infrastructure</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SageSerpent.NTestCaseBuilder\SageSerpent.NTestCaseBuilder.fsproj">
       <Project>{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}</Project>
-      <Name>SageSerpent.TestInfrastructure</Name>
+      <Name>SageSerpent.NTestCaseBuilder</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

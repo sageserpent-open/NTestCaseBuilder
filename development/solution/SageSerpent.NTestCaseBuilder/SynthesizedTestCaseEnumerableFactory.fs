@@ -1,4 +1,4 @@
-namespace SageSerpent.TestInfrastructure
+namespace SageSerpent.NTestCaseBuilder
 
     open System.Collections
     open System

@@ -20,24 +20,24 @@ namespace SageSerpent.Infrastructure.Tests
                             then partialResult
                             else List.append (contributionLimitsWithFirstContributionOf (firstContribution - 1u)) partialResult
                           contributionLimitsWithFirstContributionOf limit
-                          
+
         let contributionLimitsEquallingUpToLimitInTotal limit maximumLengthOfContributionLimits =
             [0u .. limit]
             |> Seq.map (function item -> contributionLimitsEquallingLimitInTotal item maximumLengthOfContributionLimits)
             |> List.concat
-             
+
         let sumContributions = List.reduceBack (+)
-        
+
         let sequenceOfOrderedListsOfUniqueItems = List.init 10 (fun item -> item)
                                                   |> (BargainBasement.Flip (List.scanBack (FuncConvert.FuncFromTupled List.Cons))) []
-                                                          
+
         [<Test>]
         member this.TestThatAttemptingToChooseContributionsFromAnEmptyListResultsInAnEmptyResultList () =
             for limit in 0u .. 5u do
                 let results = CombinatoricUtilities.ChooseContributionsToMeetTotal [] limit
                 let shouldBeTrue = results = []
                 Assert.IsTrue shouldBeTrue
-                
+
         [<Test>]
         member this.TestThatSupplyingATotalGreaterThanTheSumOfTheInputContributionsResultsInAnEmptyList () =
             for limit in 0u .. 5u do
@@ -46,7 +46,7 @@ namespace SageSerpent.Infrastructure.Tests
                         let results = CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample (limit + increment)
                         let shouldBeTrue = results = []
                         Assert.IsTrue shouldBeTrue
-                    
+
         [<Test>]
         member this.TestThatSumOfChosenContributionsInEachResultIsTheSameAsTheTotal () =
             for limit in 0u .. 3u do
@@ -58,7 +58,7 @@ namespace SageSerpent.Infrastructure.Tests
                             printf "(TestThatSumOfChosenContributionsInEachResultIsTheSameAsTheLimit) Input Example: %A\n" inputExample; Assert.IsTrue shouldBeTrue
                         let shouldBeTrue = not results.IsEmpty
                         Assert.IsTrue shouldBeTrue
-                        
+
         [<Test>]
         member this.TestThatSumOfChosenContributionsInEachResultCannotExceedSumOfInputContributions () =
             for limit in 0u .. 3u do
@@ -67,7 +67,7 @@ namespace SageSerpent.Infrastructure.Tests
                         let results = CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample (limit + increment)
                         let shouldBeTrue = results.IsEmpty
                         Assert.IsTrue shouldBeTrue
-                        
+
         [<Test>]
         member this.TestThatChosenContributionsInEachResultAreBoundedByInputContributions () =
             for limit in 0u .. 3u do
@@ -78,7 +78,7 @@ namespace SageSerpent.Infrastructure.Tests
                             for chosenAndInputContributionPair in List.zip item inputExample do
                                 let shouldBeTrue = fst chosenAndInputContributionPair <= snd chosenAndInputContributionPair
                                 Assert.IsTrue shouldBeTrue
-                        
+
         [<Test>]
         member this.TestThatEachResultOccursOnlyOnce () =
             for limit in 0u .. 3u do
@@ -87,7 +87,7 @@ namespace SageSerpent.Infrastructure.Tests
                         let results = CombinatoricUtilities.ChooseContributionsToMeetTotal inputExample total
                         let shouldBeTrue = results.Length = (Set.ofList results).Count
                         Assert.IsTrue shouldBeTrue
-               
+
         [<Test>]
         member this.TestThatEachResultHasTheSameLengthAsTheInputContributionList () =
             for limit in 0u .. 3u do
@@ -99,7 +99,7 @@ namespace SageSerpent.Infrastructure.Tests
                             printf "(TestThatEachResultHasTheSameLengthAsTheInputContributionList) Input Example: %A\n" inputExample; Assert.IsTrue shouldBeTrue
                         let shouldBeTrue = not results.IsEmpty
                         Assert.IsTrue shouldBeTrue
-               
+
         [<Test>]
         member this.TestCoverageOfAllPossibleContributionsThatCanMeetTheTotal () =
             for total in 0u .. 5u do
@@ -117,8 +117,8 @@ namespace SageSerpent.Infrastructure.Tests
                 Assert.IsTrue shouldBeTrue
                 if combinedResultsFromAllPossibleInputExamplesSummingToTotal.IsEmpty
                 then raise (InternalAssertionViolationException "Internal failure in test: should have at least one input example.")
-                    
-        
+
+
         [<Test>]
         member this.TestThatContributionsThatMeetUpToATotalProduceTheSameResultsAsContributionsThatEqualATotal () =
             for limit in 0u .. 3u do
@@ -136,7 +136,7 @@ namespace SageSerpent.Infrastructure.Tests
                         let shouldBeTrue = resultsFromIndividualCalculationAsSet = resultsFromEnMasseCalculationForTotalAsSet
                                            && resultsFromEnMasseCalculationForTotal.Length = resultsFromIndividualCalculation.Length
                         Assert.IsTrue shouldBeTrue
-                        
+
         [<Test>]
         member this.TestThatCalculatingContributionsThatMeetUpToATotalNeverProduceEmptyResultsForAGivenTotal () =
             for limit in 0u .. 3u do
@@ -147,10 +147,10 @@ namespace SageSerpent.Infrastructure.Tests
                         let enMasseResults = CombinatoricUtilities.ChooseContributionsToMeetTotalsUpToLimit inputExample unachievableTotal
                         let shouldBeTrue = not (enMasseResults.ContainsKey unachievableTotal)
                         Assert.IsTrue shouldBeTrue
-        
-        
-        
-        
+
+
+
+
         [<Test>]
         member this.TestThatAZeroCombinationOfItemsIsAlwaysASingleEmptyList () =
             for items in sequenceOfOrderedListsOfUniqueItems do
@@ -160,7 +160,7 @@ namespace SageSerpent.Infrastructure.Tests
                 match Seq.head combinations with
                     [] -> ()
                   | _ -> Assert.Fail ()
-                  
+
         [<Test>]
         member this.TestThatAnOversizedCombinationCannotBeRequested () =
             for items in sequenceOfOrderedListsOfUniqueItems do
@@ -173,11 +173,11 @@ namespace SageSerpent.Infrastructure.Tests
                     let shouldBeTrue =
                         Seq.isEmpty combinations
                     Assert.IsTrue shouldBeTrue
-                    
+
         [<Test>]
         member this.TestThatTheExpectedNumberOfCombinationsAreGenerated () =
             for items in sequenceOfOrderedListsOfUniqueItems do
-                let maximumSize = 
+                let maximumSize =
                     List.length items
                     |> uint32
                 for size in 1u .. maximumSize do
@@ -186,11 +186,11 @@ namespace SageSerpent.Infrastructure.Tests
                          = (Seq.length (CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder size items)
                             |> uint32)
                     Assert.IsTrue shouldBeTrue
-                    
+
         [<Test>]
         member this.TestThatCombinationsTakenFromUniqueItemsContainUniqueItems () =
             for items in sequenceOfOrderedListsOfUniqueItems do
-                let maximumSize = 
+                let maximumSize =
                     List.length items
                     |> uint32
                 for size in 1u .. maximumSize do
@@ -203,7 +203,7 @@ namespace SageSerpent.Infrastructure.Tests
         [<Test>]
         member this.TestThatCombinationsTakenFromUniqueItemsAreAllDistinct () =
             for items in sequenceOfOrderedListsOfUniqueItems do
-                let maximumSize = 
+                let maximumSize =
                     List.length items
                     |> uint32
                 for size in 1u .. maximumSize do
@@ -217,11 +217,11 @@ namespace SageSerpent.Infrastructure.Tests
                             |> Set.count)
                     Assert.IsTrue shouldBeTrue
 
-                                
+
         [<Test>]
         member this.TestThatCombinationsTakenTogetherIncludeAllTheItemsTheyWereTakenFrom () =
             for items in sequenceOfOrderedListsOfUniqueItems do
-                let maximumSize = 
+                let maximumSize =
                     List.length items
                     |> uint32
                 for size in 1u .. maximumSize do
@@ -231,23 +231,23 @@ namespace SageSerpent.Infrastructure.Tests
                             |> Seq.map Set.ofList
                             |> Set.unionMany)
                     Assert.IsTrue shouldBeTrue
-                                
+
         [<Test>]
         member this.TestThatCombinationsPreserveTheOriginalOrderOfItems () =
             for items in sequenceOfOrderedListsOfUniqueItems do
-                let maximumSize = 
+                let maximumSize =
                     List.length items
                     |> uint32
                 for size in 1u .. maximumSize do
                     let shouldBeTrue =
                         not (CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder size items
                              |> Seq.exists (not << IEnumerable<_>.IsSorted))
-                    Assert.IsTrue shouldBeTrue    
-                    
+                    Assert.IsTrue shouldBeTrue
+
         [<Test>]
         member this.TestThatChoosingASpecificCombinationYieldsTheRightOne () =
             for items in sequenceOfOrderedListsOfUniqueItems do
-                let maximumSize = 
+                let maximumSize =
                     List.length items
                     |> uint32
                 for size in 0u .. maximumSize do
@@ -263,4 +263,4 @@ namespace SageSerpent.Infrastructure.Tests
                     let shouldBeTrue =
                         combinationsObtainedEnMasse = combinationsPickedOutSpecifically
                     printf "combinationsObtainedEnMasse: %A, combinationsPickedOutSpecifically: %A\n" combinationsObtainedEnMasse combinationsPickedOutSpecifically
-                    Assert.IsTrue shouldBeTrue                                                                      
+                    Assert.IsTrue shouldBeTrue

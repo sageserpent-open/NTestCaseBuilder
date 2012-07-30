@@ -20,7 +20,7 @@
 
         let wrap x =
             Finite x
-            
+
 
         [<Test>]
         member this.TestFinitesAndInfinitesInCombination () =
@@ -59,7 +59,7 @@
             Assert.IsTrue((wrap 45) < PositiveInfinity)
 
             Assert.IsTrue (PositiveInfinity > twentyThree)
-            
+
         [<Test>]
         member this.TestFinites() =
             Assert.IsTrue (negativeInfinity < twentyThree)

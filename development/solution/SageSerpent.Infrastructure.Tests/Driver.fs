@@ -3,4 +3,3 @@ namespace SageSerpent.Infrastructure.Tests
         open SageSerpent.Infrastructure
 
         NUnitTestSuiteDriver.RunAllTests ()
-    

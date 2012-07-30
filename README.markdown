@@ -301,7 +301,7 @@ A factory has two roles:-
 2. It can participate in the composite design pattern, becoming part of a larger tree of factories whose root produces more complex test cases.
 
 
-Moving on, let's look at the test variables that contribute to the making of a 'TestCase' above - we have 4 test variables * 2 levels for the operation slots, plus 1 test variable * 3 levels for the parameterised 'Bar' constructor. Note that the singleton doesn't count - as it always yields a non-varying data value, there is essentially no test variable for it.
+Moving on, let's look at the test variables that contribute to the making of a 'TestCase' above - we have 4 test variables * 2 levels for the operation slots, with an additional 1 test variable * 3 levels for the parameterised 'Bar' constructor. Note that the singleton doesn't count - as it always yields a non-varying data value, there is essentially no test variable for it.
 
 That means there are potentially 4 * 2 * 1 * 3 = 24 different test cases to produce.
 
@@ -348,7 +348,7 @@ The procedure is only systematic about combinations of levels from test variable
 
 Think about that last statement - the guarantee isn't merely that there is *some* choice of test variables whose level combinations are covered - it is saying that *any* choice of test variables you ask for has its level combinations covered; from within the same sequence of test cases.
 
-This is the guarantee provided by any of the factories mentioned above - a factory can if given a *strength* produce a sequence of test cases that provides that guarantee for any number of test variables in combination up to and including the given strength.
+This is the guarantee provided by any of the factories mentioned above - if given a *strength*, a factory will produce a sequence of test cases that provides that guarantee for any number of test variables in combination up to and including the given strength.
 
 As the strength is increased, the factory has to work harder to meet this guarantee - so if we set the strength all the way up to 20 in this example, we are back to generating all 95367431640625 test cases. In practice, strengths of up to 4 are probably good enough.
 
@@ -388,11 +388,6 @@ Oh, one last thing: when a test case is produced that exposes a bug, it is incon
 
 There is a harness utility that will trap any exceptions propagated out of the parameterised unit test run under its control; when it traps the exception, the harness will create a *signature* that can be used to completely synthesize the test case exposing the bug. The signature and the exception are packaged into a special wrapper exception - examining this in the debugger allows special one-off unit tests to be written that instruct the factory to go directly to creating the failing test case; so these one-off tests can be used to perform the actual debugging.
 
-
-Oh, one last thing: when a test case is produced that exposes a bug, it is inconvenient to have to repeatedly re-run the entire unit test when restarting a debugging session; one has to wait patiently while the parameterised unit test is presented all over again with a sequence of successful test cases leading up to the one where the test failure occurs.
-
-There is a harness utility that will trap any exceptions propagated out of the parameterised unit test run under its control; when it traps the exception, the harness will create a *signature* that can be used to completely synthesize the test case exposing the bug. The signature and the exception are packaged into a special wrapper exception - examining this in the debugger allows special one-off unit tests to be written that instruct the factory to go directly to creating the failing test case; so these one-off tests can be used to perform the actual debugging.
-
 Walk me through an example!
 ---------------------------
 
@@ -417,7 +412,7 @@ Where the question mark denotes a placeholder for a missing character.
 
 We'll write the test for this up-front as a parameterised unit test, and design the API at the same time. Then we'll implement it and see how it fares against the unit test, and see how NTestCaseBuilder can help us in the process.
 
-Actually, *we'll* do the first part together on this document, and *I'll* go off and code the second part as a series of commits in this repository; these will go in the directory 'development\solution\SageSerpent.TestInfrastructure.WorkedExample' and will be tagged; with the benefit of hindsight, you can then watch me as I made mistakes and went through the debugging process.
+Actually, *we'll* do the first part together on this document, and *I'll* go off and code the second part as a series of commits in this repository; these will go in the directory 'development\solution\SageSerpent.NTestCaseBuilder.WorkedExample' and will be tagged; with the benefit of hindsight, you can then watch me as I made mistakes and went through the debugging process.
 
 The objective is for you to see some source code that uses NTestCaseBuilder to generate test cases, as well as the use of signatures to create one-off tests for debugging and a special test variable level factory for subsequent higher-level testing.
 
@@ -658,7 +653,7 @@ Coming soon...
 
 8. However, if this doesn't work and you get build failures due to missing dependencies, you can use the right-click context menu for the solution explorer view to open up the NuGet package manager - "Manage NuGet Packages for Solution...". This takes you to a dialog which, in this particular situation, will give you a button command to restore missing packages. Do this and retry step #7.
 
-9. You need to use the assemblies built by the project 'SageSerpent.TestInfrastructure'. *SageSerpent.TestInfrastructure.dll* is the one that your project will directly reference; it has an accompanying XML file for the API documentation.
+9. You need to use the assemblies built by the project 'SageSerpent.NTestCaseBuilder'. *SageSerpent.NTestCaseBuilder.dll* is the one that your project will directly reference; it has an accompanying XML file for the API documentation.
 
 A Thought-Provoking Article you should read
 -------------------------------------------

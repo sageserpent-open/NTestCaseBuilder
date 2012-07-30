@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 
-namespace SageSerpent.TestInfrastructure.WorkedExample
+namespace SageSerpent.NTestCaseBuilder.WorkedExample
 {
     [TestFixture]
     public class TestEncodedFormat
