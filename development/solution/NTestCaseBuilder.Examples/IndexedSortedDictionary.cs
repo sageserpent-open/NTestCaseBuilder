@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace SageSerpent.NTestCaseBuilder.Examples
+namespace NTestCaseBuilder.Examples
 {
     internal class IndexedSortedDictionary<TKey, TValue>: IDictionary<TKey, TValue> where TKey: IComparable<TKey>
     {

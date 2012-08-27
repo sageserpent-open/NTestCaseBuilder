@@ -1,4 +1,4 @@
-﻿module SageSerpent.NTestCaseBuilder.SingletonTestCaseEnumerableFactory
+﻿module NTestCaseBuilder.SingletonTestCaseEnumerableFactory
 
     open System.Collections
     open System
@@ -7,5 +7,5 @@
 
     let Create (singletonTestCase: 'SingletonTestCase) =
         let node =
-            SageSerpent.NTestCaseBuilder.SingletonNode singletonTestCase
+            NTestCaseBuilder.SingletonNode singletonTestCase
         TypedTestCaseEnumerableFactory<'SingletonTestCase> node

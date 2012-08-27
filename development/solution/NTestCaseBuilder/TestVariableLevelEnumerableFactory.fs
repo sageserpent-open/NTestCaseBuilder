@@ -1,4 +1,4 @@
-namespace SageSerpent.NTestCaseBuilder
+namespace NTestCaseBuilder
 
     open System.Collections
     open System
@@ -15,5 +15,5 @@ namespace SageSerpent.NTestCaseBuilder
                 |> Seq.map (fun level -> box level)
                 |> Array.ofSeq
             let node =
-                SageSerpent.NTestCaseBuilder.TestVariableNode weaklyTypedLevels
+                NTestCaseBuilder.TestVariableNode weaklyTypedLevels
             TypedTestCaseEnumerableFactory<'TestCase> node

@@ -8,10 +8,10 @@
     <ProjectGuid>{75f3b456-3bbd-41e9-8ac4-fe6c6ba0d8cf}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>SageSerpent.TestInfrastructure.TestsInFSharp</RootNamespace>
-    <AssemblyName>SageSerpent.NTestCaseBuilder.Tests</AssemblyName>
+    <AssemblyName>NTestCaseBuilder.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <Name>SageSerpent.NTestCaseBuilder.Tests</Name>
+    <Name>NTestCaseBuilder.Tests</Name>
     <TargetFrameworkProfile />
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
@@ -24,7 +24,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Debug\SageSerpent.NTestCaseBuilder.Tests.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\NTestCaseBuilder.Tests.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -33,7 +33,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\SageSerpent.NTestCaseBuilder.Tests.XML</DocumentationFile>
+    <DocumentationFile>bin\Release\NTestCaseBuilder.Tests.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="NodeTests.fs" />
@@ -46,8 +46,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SageSerpent.NTestCaseBuilder\SageSerpent.NTestCaseBuilder.fsproj">
-      <Name>SageSerpent.NTestCaseBuilder</Name>
+    <ProjectReference Include="..\NTestCaseBuilder\NTestCaseBuilder.fsproj">
+      <Name>NTestCaseBuilder</Name>
       <Project>{7a1e6d76-bfb5-459f-a5f8-d6df919b2f74}</Project>
       <Private>True</Private>
     </ProjectReference>

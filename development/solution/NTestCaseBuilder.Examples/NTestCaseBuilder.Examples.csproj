@@ -8,8 +8,8 @@
     <ProjectGuid>{52BC7E44-9F03-4EF9-8E0D-C30B5DA0370B}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SageSerpent.NTestCaseBuilder.Examples</RootNamespace>
-    <AssemblyName>SageSerpent.NTestCaseBuilder.Examples</AssemblyName>
+    <RootNamespace>NTestCaseBuilder.Examples</RootNamespace>
+    <AssemblyName>NTestCaseBuilder.Examples</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <FileUpgradeFlags>
@@ -43,7 +43,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Debug\SageSerpent.NTestCaseBuilder.Examples.xml</DocumentationFile>
+    <DocumentationFile>bin\Debug\NTestCaseBuilder.Examples.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -52,7 +52,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Release\SageSerpent.NTestCaseBuilder.Examples.xml</DocumentationFile>
+    <DocumentationFile>bin\Release\NTestCaseBuilder.Examples.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="C5">
@@ -77,9 +77,9 @@
       <Project>{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}</Project>
       <Name>SageSerpent.Infrastructure</Name>
     </ProjectReference>
-    <ProjectReference Include="..\SageSerpent.NTestCaseBuilder\SageSerpent.NTestCaseBuilder.fsproj">
+    <ProjectReference Include="..\NTestCaseBuilder\NTestCaseBuilder.fsproj">
       <Project>{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}</Project>
-      <Name>SageSerpent.NTestCaseBuilder</Name>
+      <Name>NTestCaseBuilder</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

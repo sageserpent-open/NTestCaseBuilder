@@ -1,4 +1,4 @@
-﻿namespace SageSerpent.NTestCaseBuilder
+﻿namespace NTestCaseBuilder
 
     open System.Collections
     open System.Collections.Generic
