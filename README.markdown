@@ -633,7 +633,11 @@ How do I install this thing?
 
 ### Install assemblies via NuGet.
 
-Coming soon...
+NTestCaseBuilder is available via the public NuGet feed as a package called 'NTestCaseBuilder'. You know the drill.
+
+If not, head over to the NuGet documentation at [http://docs.nuget.org](http://docs.nuget.org) - it will walk through how to use a NuGet package and any setup steps you may need in Visual Studio.
+
+The current package targets the .Net framework v4.0.
 
 ### Build from source.
 
