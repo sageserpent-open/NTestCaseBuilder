@@ -1,12 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SageSerpent.Infrastructure", "SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj", "{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SageSerpent.Infrastructure.Tests", "SageSerpent.Infrastructure.Tests\SageSerpent.Infrastructure.Tests.fsproj", "{7BBB577A-83A1-40C9-8129-D8B1F1A45666}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "NTestCaseBuilder", "NTestCaseBuilder\NTestCaseBuilder.fsproj", "{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}"
-EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "NTestCaseBuilder.Tests", "NTestCaseBuilder.Tests\NTestCaseBuilder.Tests.fsproj", "{75F3B456-3BBD-41E9-8AC4-FE6C6BA0D8CF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NTestCaseBuilder.Examples", "NTestCaseBuilder.Examples\NTestCaseBuilder.Examples.csproj", "{52BC7E44-9F03-4EF9-8E0D-C30B5DA0370B}"
@@ -21,36 +15,58 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{05C566
 		.nuget\packages.config = .nuget\packages.config
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NTestCaseBuilder.MinimalClient", "NTestCaseBuilder.MinimalClient\NTestCaseBuilder.MinimalClient.csproj", "{FF2BD539-F4C8-4E3B-8FD0-895815A4A293}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+
+
 		Release|Any CPU = Release|Any CPU
+
+
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7BBB577A-83A1-40C9-8129-D8B1F1A45666}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7BBB577A-83A1-40C9-8129-D8B1F1A45666}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7BBB577A-83A1-40C9-8129-D8B1F1A45666}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7BBB577A-83A1-40C9-8129-D8B1F1A45666}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7A1E6D76-BFB5-459F-A5F8-D6DF919B2F74}.Release|Any CPU.Build.0 = Release|Any CPU
 		{75F3B456-3BBD-41E9-8AC4-FE6C6BA0D8CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{75F3B456-3BBD-41E9-8AC4-FE6C6BA0D8CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+
+
+
 		{75F3B456-3BBD-41E9-8AC4-FE6C6BA0D8CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75F3B456-3BBD-41E9-8AC4-FE6C6BA0D8CF}.Release|Any CPU.Build.0 = Release|Any CPU
+
+
+
 		{52BC7E44-9F03-4EF9-8E0D-C30B5DA0370B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{52BC7E44-9F03-4EF9-8E0D-C30B5DA0370B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+
+
+
 		{52BC7E44-9F03-4EF9-8E0D-C30B5DA0370B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{52BC7E44-9F03-4EF9-8E0D-C30B5DA0370B}.Release|Any CPU.Build.0 = Release|Any CPU
+
+
+
 		{6EFA1F4E-5136-4C54-AA8C-9D268A74E2C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6EFA1F4E-5136-4C54-AA8C-9D268A74E2C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+
+
+
 		{6EFA1F4E-5136-4C54-AA8C-9D268A74E2C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6EFA1F4E-5136-4C54-AA8C-9D268A74E2C8}.Release|Any CPU.Build.0 = Release|Any CPU
+
+
+
+		{FF2BD539-F4C8-4E3B-8FD0-895815A4A293}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF2BD539-F4C8-4E3B-8FD0-895815A4A293}.Debug|Any CPU.Build.0 = Debug|Any CPU
+
+
+
+		{FF2BD539-F4C8-4E3B-8FD0-895815A4A293}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF2BD539-F4C8-4E3B-8FD0-895815A4A293}.Release|Any CPU.Build.0 = Release|Any CPU
+
+
+
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

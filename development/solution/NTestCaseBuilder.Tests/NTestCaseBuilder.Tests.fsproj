@@ -46,35 +46,30 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NTestCaseBuilder\NTestCaseBuilder.fsproj">
-      <Name>NTestCaseBuilder</Name>
-      <Project>{7a1e6d76-bfb5-459f-a5f8-d6df919b2f74}</Project>
-      <Private>True</Private>
-    </ProjectReference>
     <Reference Include="C5">
       <HintPath>..\packages\C5.2.1.4492.18142\lib\net40\C5.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.PowerPack">
       <HintPath>..\packages\FSPowerPack.Community.2.1.3.1\Lib\Net40\FSharp.PowerPack.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.PowerPack.Linq">
       <HintPath>..\packages\FSPowerPack.Community.2.1.3.1\Lib\Net40\FSharp.PowerPack.Linq.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
+    <Reference Include="NTestCaseBuilder">
+      <HintPath>..\packages\NTestCaseBuilder.1.2.0.0\lib\net40\NTestCaseBuilder.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="nunit.framework">
-      <HintPath>..\packages\NUnit.2.6.0.12054\lib\nunit.framework.dll</HintPath>
+      <HintPath>..\packages\NUnit.2.6.1\lib\nunit.framework.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SageSerpent.Infrastructure">
+      <HintPath>..\packages\NTestCaseBuilder.1.2.0.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Windows.Forms" />
-    <ProjectReference Include="..\SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj">
-      <Name>SageSerpent.Infrastructure</Name>
-      <Project>{35dfa6a2-9439-4e92-8d73-540c36d3beae}</Project>
-      <Private>True</Private>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\FSharp\1.0\Microsoft.FSharp.Targets" Condition="!Exists('$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll')" />
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets" Condition="Exists('$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll')" />
