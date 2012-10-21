@@ -64,7 +64,7 @@
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="nunit-console-runner">
-      <HintPath>..\packages\NUnit.Runners.2.6.0.12051\tools\lib\nunit-console-runner.dll</HintPath>
+      <HintPath>..\packages\NUnit.Runners.2.6.1\tools\lib\nunit-console-runner.dll</HintPath>
     </Reference>
     <Reference Include="System" />
   </ItemGroup>
