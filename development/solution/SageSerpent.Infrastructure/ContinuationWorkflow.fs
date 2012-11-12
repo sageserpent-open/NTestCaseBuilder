@@ -22,6 +22,23 @@
                                             rhs.Execute(successContinuation,
                                                         failureContinuation)))
 
+            static member inline CallCC(body: ('Result -> ContinuationMonad<'Result, 'ExternalFinalResult>) -> ContinuationMonad<'Result, 'ExternalFinalResult>) =
+                Step (fun (successContinuation
+                           , failureContinuation) ->
+                    let ejectionSeat fastReturnResult =
+                        Step (fun (_, _) ->
+                                successContinuation fastReturnResult)
+                    (body ejectionSeat).Execute(successContinuation, failureContinuation))
+
+            static member inline CallCC (exceptionHandler: 'Exception -> ContinuationMonad<'Result, 'ExternalFinalResult>)
+                                        (body: ('Exception -> ContinuationMonad<'Result, 'ExternalFinalResult>) -> ContinuationMonad<'Result, 'ExternalFinalResult>) =
+                Step (fun (successContinuation
+                           , failureContinuation) ->
+                    let ejectionSeat exceptionReturn =
+                        Step (fun (_, _) ->
+                                (exceptionHandler exceptionReturn).Execute(successContinuation, failureContinuation))
+                    (body ejectionSeat).Execute(successContinuation, failureContinuation))
+
     type Builder () =
         member inline this.Bind (lhs: ContinuationMonad<'UnliftedLhsResult, 'ExternalFinalResult>,
                                  rhs: 'UnliftedLhsResult -> ContinuationMonad<'UnliftedRhsResult, 'ExternalFinalResult>): ContinuationMonad<'UnliftedRhsResult, 'ExternalFinalResult> =
