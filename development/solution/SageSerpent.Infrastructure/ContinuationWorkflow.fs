@@ -11,7 +11,7 @@
                                      , failureContinuation)
 
             static member inline Execute(continuationMonad: ContinuationMonad<'FinalResult, 'FinalResult>) =
-                continuationMonad.Execute(BargainBasement.Identity, (failwith "Unhandled failure: use the '+' operator to introduce an alternative computation for failure."))
+                continuationMonad.Execute(BargainBasement.Identity, (fun () -> failwith "Unhandled failure: use the '+' operator to introduce an alternative computation for failure."))
 
             static member inline (+) (lhs: ContinuationMonad<'Input, 'ExternalFinalResult>,
                                       rhs: ContinuationMonad<'Input, 'ExternalFinalResult>) =
