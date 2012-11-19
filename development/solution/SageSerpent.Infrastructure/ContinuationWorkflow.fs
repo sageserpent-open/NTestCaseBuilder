@@ -30,8 +30,8 @@
                                 successContinuation fastReturnResult)
                     (body ejectionSeat).Execute(successContinuation, failureContinuation))
 
-            static member inline CallCC (exceptionHandler: 'Exception -> ContinuationMonad<'Result, 'ExternalFinalResult>)
-                                        (body: ('Exception -> ContinuationMonad<_, 'ExternalFinalResult>) -> ContinuationMonad<'Result, 'ExternalFinalResult>) =
+            static member inline CallCC ((exceptionHandler: 'Exception -> ContinuationMonad<'Result, 'ExternalFinalResult>),
+                                         (body: ('Exception -> ContinuationMonad<_, 'ExternalFinalResult>) -> ContinuationMonad<'Result, 'ExternalFinalResult>)) =
                 Step (fun (successContinuation
                            , failureContinuation) ->
                     let ejectionSeat exceptionReturn =
@@ -62,6 +62,10 @@
 
         member inline this.Delay delayedExpression =
             delayedExpression ()
+
+        member inline this.Combine (lhs: ContinuationMonad<'Input, 'ExternalFinalResult>,
+                                    rhs: ContinuationMonad<'Input, 'ExternalFinalResult>) =
+            lhs + rhs
 
         member inline this.Zero (): ContinuationMonad<_, 'ExternalFinalResult> =
             Step (fun (_
