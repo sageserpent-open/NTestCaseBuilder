@@ -60,8 +60,10 @@
                                 rhs: 'UnliftedLhsResult -> ContinuationMonad<'UnliftedRhsResult, 'ExternalFinalResult>): ContinuationMonad<'UnliftedRhsResult, 'ExternalFinalResult> =
             rhs lhs
 
-        member inline this.Delay delayedExpression =
-            delayedExpression ()
+        member inline this.Delay (delayedExpression: unit -> ContinuationMonad<'Input, 'ExternalFinalResult>) =
+            Step (fun (successContinuation
+                       , failureContinuation) ->
+                       (delayedExpression ()).Execute(successContinuation, failureContinuation))
 
         member inline this.Combine (lhs: ContinuationMonad<'Input, 'ExternalFinalResult>,
                                     rhs: ContinuationMonad<'Input, 'ExternalFinalResult>) =

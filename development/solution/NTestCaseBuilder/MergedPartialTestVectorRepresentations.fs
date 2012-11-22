@@ -1156,6 +1156,34 @@ namespace NTestCaseBuilder
                 let partialTestVectorRepresentation
                     , partialTestVectorRepresentationIsActuallyAlreadyFull =
                     fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentationInExternalForm
+                let detectAndConvertFullTestVector partialTestVectorRepresentation =
+                    let lengthOfPartialTestVectorRepresentation =
+                        List.length partialTestVectorRepresentation
+                        |> uint32
+
+                    if lengthOfPartialTestVectorRepresentation > maximumNumberOfTestVariables
+                    then
+                        raise (InternalAssertionViolationException "The merged removed partial test vector has more entries than the permitted maximum number of test variables.")
+
+                    if lengthOfPartialTestVectorRepresentation
+                        |> uint32 < maximumNumberOfTestVariables
+                        || partialTestVectorRepresentation
+                            |> List.exists Option.isNone
+                    then
+                        None
+                    else
+                        let testVariableIndicesForFullTestVector =
+                            List.init (int32 maximumNumberOfTestVariables)
+                                        uint32
+
+                        let testVariableLevelsForFullTestVector =
+                            partialTestVectorRepresentation
+                            |> List.map Option.get
+
+                        List.zip testVariableIndicesForFullTestVector
+                                    testVariableLevelsForFullTestVector
+                        |> Map.ofList
+                        |> Some
                 let modifiedTernarySearchTree
                     , fullTestVectorBeingOfferedNowForEarlyAccess =
                     ContinuationMonad<_, _>.CallCC ((fun () ->
@@ -1179,34 +1207,7 @@ namespace NTestCaseBuilder
                                     //                                | _ ->
                                     //                                    ()
 
-                                                                let detectAndConvertFullTestVector partialTestVectorRepresentation =
-                                                                    let lengthOfPartialTestVectorRepresentation =
-                                                                        List.length partialTestVectorRepresentation
-                                                                        |> uint32
 
-                                                                    if lengthOfPartialTestVectorRepresentation > maximumNumberOfTestVariables
-                                                                    then
-                                                                        raise (InternalAssertionViolationException "The merged removed partial test vector has more entries than the permitted maximum number of test variables.")
-
-                                                                    if lengthOfPartialTestVectorRepresentation
-                                                                        |> uint32 < maximumNumberOfTestVariables
-                                                                        || partialTestVectorRepresentation
-                                                                            |> List.exists Option.isNone
-                                                                    then
-                                                                        None
-                                                                    else
-                                                                        let testVariableIndicesForFullTestVector =
-                                                                            List.init (int32 maximumNumberOfTestVariables)
-                                                                                        uint32
-
-                                                                        let testVariableLevelsForFullTestVector =
-                                                                            partialTestVectorRepresentation
-                                                                            |> List.map Option.get
-
-                                                                        List.zip testVariableIndicesForFullTestVector
-                                                                                    testVariableLevelsForFullTestVector
-                                                                        |> Map.ofList
-                                                                        |> Some
                                                                 return add ternarySearchTreeWithoutMergeCandidate
                                                                            mergedPartialTestVectorRepresentation
                                                                        , detectAndConvertFullTestVector mergedPartialTestVectorRepresentation
