@@ -22,7 +22,7 @@
                                             rhs.Execute(successContinuation,
                                                         failureContinuation)))
 
-            static member inline CallCC(body: ('Result -> ContinuationMonad<'Result, 'ExternalFinalResult>) -> ContinuationMonad<'Result, 'ExternalFinalResult>) =
+            static member inline CallCC(body: ('Result -> ContinuationMonad<_, 'ExternalFinalResult>) -> ContinuationMonad<'Result, 'ExternalFinalResult>) =
                 Step (fun (successContinuation
                            , failureContinuation) ->
                     let ejectionSeat fastReturnResult =
@@ -31,7 +31,7 @@
                     (body ejectionSeat).Execute(successContinuation, failureContinuation))
 
             static member inline CallCC (exceptionHandler: 'Exception -> ContinuationMonad<'Result, 'ExternalFinalResult>)
-                                        (body: ('Exception -> ContinuationMonad<'Result, 'ExternalFinalResult>) -> ContinuationMonad<'Result, 'ExternalFinalResult>) =
+                                        (body: ('Exception -> ContinuationMonad<_, 'ExternalFinalResult>) -> ContinuationMonad<'Result, 'ExternalFinalResult>) =
                 Step (fun (successContinuation
                            , failureContinuation) ->
                     let ejectionSeat exceptionReturn =
