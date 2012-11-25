@@ -2,25 +2,95 @@
 
     type ContinuationMonad<'Input, 'ExternalFinalResult> =
         Step of (('Input -> 'ExternalFinalResult) * (unit -> 'ExternalFinalResult) -> 'ExternalFinalResult)
+      | Return of 'Input
+      | Zero
+      | Delayed of (unit -> ContinuationMonad<'Input, 'ExternalFinalResult>)
 
-            member inline this.Execute(successContinuation
-                                       , failureContinuation) =
-                match this with
-                    Step computation ->
-                        computation (successContinuation
-                                     , failureContinuation)
+    let rec inline execute continuationMonad
+                           successContinuation
+                           failureContinuation =
+        match continuationMonad with
+            Step computation ->
+                computation (successContinuation
+                             , failureContinuation)
+          | Return toBeLifted ->
+                successContinuation toBeLifted
+          | Zero ->
+                failureContinuation ()
+          | Delayed continuationMonadBuilder ->
+                executeRecursionHack (continuationMonadBuilder ())
+                                     successContinuation
+                                     failureContinuation
+    and executeRecursionHack continuationMonad
+                             successContinuation
+                             failureContinuation =
+        execute continuationMonad
+                successContinuation
+                failureContinuation
+
+    let rec inline plus lhs
+                        rhs =
+        match lhs with
+            Step computation ->
+                Step (fun (successContinuation
+                           , failureContinuation) ->
+                        computation (successContinuation,
+                                     fun () ->
+                                        execute rhs
+                                                successContinuation
+                                                failureContinuation))
+          | Return _ ->
+                lhs
+          | Zero ->
+                rhs
+          | Delayed continuationMonadBuilder ->
+                plusRecursionHack (continuationMonadBuilder ())
+                                  rhs
+    and plusRecursionHack lhs
+                          rhs =
+        plus lhs
+             rhs
+
+    let rec inline bind lhs
+                        rhs =
+        match lhs with
+            Step computation ->
+                Step (fun (successContinuation
+                           , failureContinuation) ->
+                        computation ((fun intermediateResult ->
+                                        execute (rhs intermediateResult)
+                                                successContinuation
+                                                failureContinuation)
+                                        , failureContinuation))
+          | Return toBeLifted ->
+                rhs toBeLifted
+          | Zero ->
+                Zero
+          | Delayed continuationMonadBuilder ->
+                bindRecursionHack (continuationMonadBuilder ())
+                                  rhs
+    and bindRecursionHack lhs
+                          rhs =
+        bind lhs
+             rhs
+
+    type ContinuationMonad<'Input, 'ExternalFinalResult> with
+
+            member inline this.Execute (successContinuation,
+                                        failureContinuation) =
+                execute this
+                        successContinuation
+                        failureContinuation
 
             static member inline Execute(continuationMonad: ContinuationMonad<'FinalResult, 'FinalResult>) =
-                continuationMonad.Execute(BargainBasement.Identity, (fun () -> failwith "Unhandled failure: use the '+' operator to introduce an alternative computation for failure."))
+                execute continuationMonad
+                        BargainBasement.Identity
+                        (fun () -> failwith "Unhandled failure: use the '+' operator to introduce an alternative computation for failure.")
 
             static member inline (+) (lhs: ContinuationMonad<'Input, 'ExternalFinalResult>,
                                       rhs: ContinuationMonad<'Input, 'ExternalFinalResult>) =
-                    Step (fun (successContinuation
-                               , failureContinuation) ->
-                            lhs.Execute(successContinuation,
-                                        fun () ->
-                                            rhs.Execute(successContinuation,
-                                                        failureContinuation)))
+                plus lhs
+                     rhs
 
             static member inline CallCC(body: ('Result -> ContinuationMonad<_, 'ExternalFinalResult>) -> ContinuationMonad<'Result, 'ExternalFinalResult>) =
                 Step (fun (successContinuation
@@ -28,7 +98,9 @@
                     let ejectionSeat fastReturnResult =
                         Step (fun (_, _) ->
                                 successContinuation fastReturnResult)
-                    (body ejectionSeat).Execute(successContinuation, failureContinuation))
+                    execute (body ejectionSeat)
+                            successContinuation
+                            failureContinuation)
 
             static member inline CallCC ((exceptionHandler: 'Exception -> ContinuationMonad<'Result, 'ExternalFinalResult>),
                                          (body: ('Exception -> ContinuationMonad<_, 'ExternalFinalResult>) -> ContinuationMonad<'Result, 'ExternalFinalResult>)) =
@@ -36,22 +108,21 @@
                            , failureContinuation) ->
                     let ejectionSeat exceptionReturn =
                         Step (fun (_, _) ->
-                                (exceptionHandler exceptionReturn).Execute(successContinuation, failureContinuation))
-                    (body ejectionSeat).Execute(successContinuation, failureContinuation))
+                                execute (exceptionHandler exceptionReturn)
+                                        successContinuation
+                                        failureContinuation)
+                    execute (body ejectionSeat)
+                            successContinuation
+                            failureContinuation)
 
     type Builder () =
         member inline this.Bind (lhs: ContinuationMonad<'UnliftedLhsResult, 'ExternalFinalResult>,
                                  rhs: 'UnliftedLhsResult -> ContinuationMonad<'UnliftedRhsResult, 'ExternalFinalResult>): ContinuationMonad<'UnliftedRhsResult, 'ExternalFinalResult> =
-            Step (fun (successContinuation
-                       , failureContinuation) ->
-                    lhs.Execute((fun intermediateResult ->
-                                    (rhs intermediateResult).Execute(successContinuation, failureContinuation)),
-                                failureContinuation))
+            bind lhs
+                 rhs
 
         member inline this.Return (toBeLifted: 'Unlifted): ContinuationMonad<'Unlifted, 'ExternalFinalResult> =
-            Step (fun (successContinuation
-                       , _) ->
-                    successContinuation toBeLifted)
+            Return toBeLifted
 
         member inline this.ReturnFrom (alreadyLifted: ContinuationMonad<'Unlifted, 'ExternalFinalResult>): ContinuationMonad<'Unlifted, 'ExternalFinalResult> =
             alreadyLifted
@@ -61,18 +132,14 @@
             rhs lhs
 
         member inline this.Delay (delayedExpression: unit -> ContinuationMonad<'Input, 'ExternalFinalResult>) =
-            Step (fun (successContinuation
-                       , failureContinuation) ->
-                       (delayedExpression ()).Execute(successContinuation, failureContinuation))
+            Delayed delayedExpression
 
         member inline this.Combine (lhs: ContinuationMonad<'Input, 'ExternalFinalResult>,
                                     rhs: ContinuationMonad<'Input, 'ExternalFinalResult>) =
             lhs + rhs
 
         member inline this.Zero (): ContinuationMonad<_, 'ExternalFinalResult> =
-            Step (fun (_
-                       , failureContinuation) ->
-                    failureContinuation ())
+            Zero
 
     let continuationWorkflow =
         Builder ()
