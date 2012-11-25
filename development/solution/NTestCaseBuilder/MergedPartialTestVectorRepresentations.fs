@@ -910,14 +910,7 @@ namespace NTestCaseBuilder
                                     return modifiedBinaryTree
                                            , removedPartialTestVector
                                 }
-                let adaptResultToRemovalFromTernaryTree resultFromRemovalFromBinaryTree =
-                    continuationWorkflow
-                        {
-                            let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                                 , removedPartialTestVector = resultFromRemovalFromBinaryTree
-                            return BinaryTreeOfLevelsForTestVariable modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                                   , removedPartialTestVector
-                        }
+
                 match ternarySearchTree
                       , queryPartialTestVectorRepresentation with
                     SuccessfulSearchTerminationNode
@@ -930,15 +923,15 @@ namespace NTestCaseBuilder
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
-                        continuationWorkflow
-                            {
-                                if treeSearchContextParameters.IsFullTestVector maximumNumberOfTestVariables
-                                then
-                                    return! existingFullTestVectorBlockedRemovalContinuation ()
-                                else
-                                    return BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
-                                           , queryPartialTestVectorRepresentation
-                            }
+                        if treeSearchContextParameters.IsFullTestVector maximumNumberOfTestVariables
+                        then
+                            existingFullTestVectorBlockedRemovalContinuation ()
+                        else
+                            continuationWorkflow
+                                {
+                                        return BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
+                                               , queryPartialTestVectorRepresentation
+                                }
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
@@ -986,15 +979,27 @@ namespace NTestCaseBuilder
                                                                                                      subtreeForFollowingIndices
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                     , Some levelFromQueryPartialTestVectorRepresentation :: tailFromQueryPartialTestVectorRepresentation ->
-                        removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                                                                         levelFromQueryPartialTestVectorRepresentation
-                                                                         tailFromQueryPartialTestVectorRepresentation
-                       |> adaptResultToRemovalFromTernaryTree
+                        continuationWorkflow
+                            {
+                                let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                     , removedPartialTestVector =
+                                     removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                                                                                      levelFromQueryPartialTestVectorRepresentation
+                                                                                      tailFromQueryPartialTestVectorRepresentation
+                                return BinaryTreeOfLevelsForTestVariable modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                       , removedPartialTestVector
+                            }
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                     , None :: tailFromQueryPartialTestVectorRepresentation ->
-                        removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                                                                                 tailFromQueryPartialTestVectorRepresentation
-                        |> adaptResultToRemovalFromTernaryTree
+                        continuationWorkflow
+                            {
+                                let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                     , removedPartialTestVector =
+                                    removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                                                                                             tailFromQueryPartialTestVectorRepresentation
+                                return BinaryTreeOfLevelsForTestVariable modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                       , removedPartialTestVector
+                            }
                   | _
                     , [] ->
                         // This has the effect of padding out a query partial test vector on the fly, thereby
