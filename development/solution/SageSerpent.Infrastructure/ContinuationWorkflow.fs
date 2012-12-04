@@ -6,6 +6,15 @@
       | Zero
       | Delayed of (unit -> ContinuationMonad<'Input, 'ExternalFinalResult>)
 
+    let rec liftThroughNestedDelays continuationMonadBuilder
+                                    toBeLifted =
+        match continuationMonadBuilder () with
+            Delayed nestedContinuationMonadBuilder ->
+                liftThroughNestedDelays nestedContinuationMonadBuilder
+                                        toBeLifted
+          | _ as undelayedContinuationMonad ->
+                toBeLifted undelayedContinuationMonad
+
     let rec inline execute continuationMonad
                            successContinuation
                            failureContinuation =
@@ -18,15 +27,15 @@
           | Zero ->
                 failureContinuation ()
           | Delayed continuationMonadBuilder ->
-                executeRecursionHack (continuationMonadBuilder ())
-                                     successContinuation
-                                     failureContinuation
-    and executeRecursionHack continuationMonad
-                             successContinuation
-                             failureContinuation =
-        execute continuationMonad
-                successContinuation
-                failureContinuation
+                liftThroughNestedDelays continuationMonadBuilder
+                                        (executeInlinedRecursionHack successContinuation
+                                                                     failureContinuation)
+    and executeInlinedRecursionHack successContinuation
+                                    failureContinuation
+                                    undelayedContinuationMonad =
+            execute undelayedContinuationMonad
+                    successContinuation
+                    failureContinuation
 
     let rec inline plus lhs
                         rhs =
@@ -44,11 +53,11 @@
           | Zero ->
                 rhs
           | Delayed continuationMonadBuilder ->
-                plusRecursionHack (continuationMonadBuilder ())
-                                  rhs
-    and plusRecursionHack lhs
-                          rhs =
-        plus lhs
+                liftThroughNestedDelays continuationMonadBuilder
+                                        (plusInlinedRecursionHack rhs)
+    and plusInlinedRecursionHack rhs
+                                 undelayedLhs =
+        plus undelayedLhs
              rhs
 
     let rec inline bind lhs
@@ -67,11 +76,11 @@
           | Zero ->
                 Zero
           | Delayed continuationMonadBuilder ->
-                bindRecursionHack (continuationMonadBuilder ())
-                                  rhs
-    and bindRecursionHack lhs
-                          rhs =
-        bind lhs
+                liftThroughNestedDelays continuationMonadBuilder
+                                        (bindInlinedRecursionHack rhs)
+    and bindInlinedRecursionHack rhs
+                                 undelayedLhs =
+        bind undelayedLhs
              rhs
 
     type ContinuationMonad<'Input, 'ExternalFinalResult> with
