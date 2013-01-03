@@ -164,56 +164,58 @@
                     1u when combinationStrength = 1u ->
                         let indexForLeftmostTestVariable =
                             uint32 (testVariableIndexToLevelsMapping: Map<_, _>).Count
-                        let levelCountForTestVariableIntroducedHere =
-                            if allowEmptyValueNodes
-                            then    randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (1u + maximumNumberOfTestLevels)
-                            else    randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevels
-                        let testVariableLevels =
-                            let privateRandomBehaviourThatDoesNotPerturbTheMainOne =
-                                Random (randomBehaviour.Next())
-                            if allowDuplicatedLevels
-                            then
-                                    List.init (int32 levelCountForTestVariableIntroducedHere) (fun _ -> 0u)
-                                    |> List.scan (fun previousLevel _ ->
-                                                    if privateRandomBehaviourThatDoesNotPerturbTheMainOne.HeadsItIs ()
-                                                    then previousLevel
-                                                    else 1u + previousLevel)
-                                                0u
-                                    |> List.tail
-                                    |> List.map (fun level -> [(indexForLeftmostTestVariable, Some level)])
+                        if randomBehaviour.HeadsItIs ()
+                        then
+                            let levelCountForTestVariableIntroducedHere =
+                                if allowEmptyValueNodes
+                                then
+                                    randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (1u + maximumNumberOfTestLevels)
+                                else
+                                    randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevels
+                            let testVariableLevels =
+                                let privateRandomBehaviourThatDoesNotPerturbTheMainOne =
+                                    Random (randomBehaviour.Next())
+                                if allowDuplicatedLevels
+                                then
+                                        List.init (int32 levelCountForTestVariableIntroducedHere) (fun _ -> 0u)
+                                        |> List.scan (fun previousLevel _ ->
+                                                        if privateRandomBehaviourThatDoesNotPerturbTheMainOne.HeadsItIs ()
+                                                        then previousLevel
+                                                        else 1u + previousLevel)
+                                                    0u
+                                        |> List.tail
+                                        |> List.map (fun level -> [(indexForLeftmostTestVariable, Some level)])
 
-                            else
-                                    [ for level in 1u .. levelCountForTestVariableIntroducedHere do
-                                        yield [(indexForLeftmostTestVariable, Some level)] ]
-                        TestVariableLevelEnumerableFactory.Create testVariableLevels
-                        :> TestCaseEnumerableFactory
-                        , if testVariableLevels.IsEmpty
-                          then
-                            None
-                          else
-                            Set.singleton indexForLeftmostTestVariable
-                            |> Some
-                        , if testVariableLevels.IsEmpty
-                          then
-                            testVariableIndexToLevelsMapping
-                          else
-                            Map.add indexForLeftmostTestVariable
-                                    testVariableLevels
-                                    testVariableIndexToLevelsMapping
-                  | _ when combinationStrength = 0u ->
-                        let indexForLeftmostTestVariable =
-                            uint32 (testVariableIndexToLevelsMapping: Map<_, _>).Count
-                        let testVariableLevel =
-                            [(indexForLeftmostTestVariable, None)]: List<TestVariableLevel>
-                        let testVariableLevels =
-                            [ testVariableLevel ]
-                        SingletonTestCaseEnumerableFactory.Create testVariableLevel
-                        :> TestCaseEnumerableFactory
-                        , Set.singleton indexForLeftmostTestVariable
-                          |> Some
-                        , Map.add indexForLeftmostTestVariable
-                                  testVariableLevels
-                                  testVariableIndexToLevelsMapping
+                                else
+                                        [ for level in 1u .. levelCountForTestVariableIntroducedHere do
+                                            yield [(indexForLeftmostTestVariable, Some level)] ]
+                            TestVariableLevelEnumerableFactory.Create testVariableLevels
+                            :> TestCaseEnumerableFactory
+                            , if testVariableLevels.IsEmpty
+                              then
+                                None
+                              else
+                                Set.singleton indexForLeftmostTestVariable
+                                |> Some
+                            , if testVariableLevels.IsEmpty
+                              then
+                                testVariableIndexToLevelsMapping
+                              else
+                                Map.add indexForLeftmostTestVariable
+                                        testVariableLevels
+                                        testVariableIndexToLevelsMapping
+                        else
+                            let testVariableLevel =
+                                [(indexForLeftmostTestVariable, None)]: List<TestVariableLevel>
+                            let testVariableLevels =
+                                [ testVariableLevel ]
+                            SingletonTestCaseEnumerableFactory.Create testVariableLevel
+                            :> TestCaseEnumerableFactory
+                            , Set.singleton indexForLeftmostTestVariable
+                              |> Some
+                            , Map.add indexForLeftmostTestVariable
+                                      testVariableLevels
+                                      testVariableIndexToLevelsMapping
                   | _ ->
                     if randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (2u * maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving)
                        < max maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving
@@ -225,14 +227,6 @@
                             BargainBasement.PartitionSizeIntoSectionsOfRandomNonZeroLength combinationStrength
                                                                                            numberOfSubtrees
                                                                                            randomBehaviour
-                        let numberOfZeroCombinationStrengthSubtrees =
-                            randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfZeroCombinationStrengthSubtrees
-
-                        let combinationStrengthsForSubtrees =
-                            Seq.append nonZeroCombinationStrengthsForSubtrees
-                                        (Seq.init (int32 numberOfZeroCombinationStrengthSubtrees) (fun _ -> 0u))
-                            |> randomBehaviour.Shuffle
-                            |> List.ofArray
 
                         let rec createSubtrees combinationStrengthsForSubtrees
                                                testVariableIndexToLevelsMapping =
@@ -260,7 +254,7 @@
                         let subtrees
                             , testVariableCombinationsFromSubtrees
                             , testVariableIndexToLevelsMappingFromSubtrees =
-                            createSubtrees combinationStrengthsForSubtrees
+                            createSubtrees nonZeroCombinationStrengthsForSubtrees
                                            testVariableIndexToLevelsMapping
                         let permutedSubtrees
                             , inversePermutation =
@@ -301,10 +295,10 @@
                         let numberOfSubtrees =
                             randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfNonZeroCombinationStrengthSubtrees
                         let rec chooseCombinationStrengths numberOfSubtrees =
-                            if numberOfSubtrees > combinationStrength + 1u
-                                  then seq { yield! seq { 0u .. combinationStrength }
-                                             yield! chooseCombinationStrengths (numberOfSubtrees - (combinationStrength + 1u)) }
-                                  else seq { yield! randomBehaviour.ChooseSeveralOf (seq { 0u .. combinationStrength - 1u }, numberOfSubtrees - 1u)
+                            if numberOfSubtrees > combinationStrength
+                                  then seq { yield! seq { 1u .. combinationStrength }
+                                             yield! chooseCombinationStrengths (numberOfSubtrees - combinationStrength) }
+                                  else seq { yield! randomBehaviour.ChooseSeveralOf (seq { 1u .. combinationStrength - 1u }, numberOfSubtrees - 1u)
                                              yield combinationStrength }
                         let combinationStrengths =
                             chooseCombinationStrengths numberOfSubtrees
@@ -399,16 +393,11 @@
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour false
                 let maximumStrength =
                     randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
-                let testVariablesWithLevels
-                    , singletonTestVariables =
-                    partitionTestVariablesIntoThoseWithLevelsAndSingletons testVariableCombination
-                                                                           testVariableIndexToLevelsMapping
                 let testVariableCombinationConformingToMaximumStrength =
-                    if uint32 testVariablesWithLevels.Count <= maximumStrength
+                    if uint32 testVariableCombination.Count <= maximumStrength
                     then testVariableCombination
-                    else randomBehaviour.ChooseSeveralOf (testVariablesWithLevels, maximumStrength)
+                    else randomBehaviour.ChooseSeveralOf (testVariableCombination, maximumStrength)
                          |> Set.ofArray
-                         |> Set.union singletonTestVariables
                 let testCaseEnumerable =
                     testCaseEnumerableFactory.CreateEnumerable maximumStrength
                 testHandoff testCaseEnumerable
@@ -536,15 +525,7 @@
                         let testCase =
                             unbox<List<TestVariableLevel>> testCase
                             |> Set.ofList
-                        let testCaseVariables =
-                            testCase
-                            |> Set.map fst
-                        let testVariablesWithLevels
-                            , _ =
-                            partitionTestVariablesIntoThoseWithLevelsAndSingletons testCaseVariables
-                                                                                   testVariableIndexToLevelsMapping
-
-                        if uint32 testVariablesWithLevels.Count = maximumStrength
+                        if uint32 testCase.Count = maximumStrength
                         then yield testCase]
 
                 let omittedTestCase =
@@ -696,3 +677,98 @@
                     Seq.length (interleavingSynthesizer.CreateEnumerable combinationStrength
                                 :?> seq<_>)
                 printfn "Number of cases generated at combination strength %d is: %d" combinationStrength numberOfCases
+
+        [<Test>]
+        member this.MeasureScalingOfSynthesis () =
+            let numberOfLevels =
+                10
+            let testVariableFactory =
+                TestVariableLevelEnumerableFactory.Create (seq {
+                                                                for item in 1 .. numberOfLevels do
+                                                                    yield item
+                                                               })
+            let numberOfVariables =
+                25
+            let testVariableFactories =
+                List.init numberOfVariables
+                          (fun _ ->
+                            testVariableFactory)
+            let factoriesWithIncreasingNumberOfTestVariables =
+                List.scan (fun factoryWithSeveralTestVariables
+                               testVariableFactory ->
+                            SynthesizedTestCaseEnumerableFactory.Create (testVariableFactory,
+                                                                         factoryWithSeveralTestVariables,
+                                                                         (fun head
+                                                                             tail ->
+                                                                             head :: tail)))
+                          (SingletonTestCaseEnumerableFactory.Create [])
+                          testVariableFactories
+            let combinationStrength =
+                2u
+            factoriesWithIncreasingNumberOfTestVariables
+            |> List.iteri (fun numberOfTestVariables
+                               factoryWithSeveralTestVariables ->
+                            let numberOfTestCases =
+                                factoryWithSeveralTestVariables.ExecuteParameterisedUnitTestForAllTypedTestCases(combinationStrength, Action<_>(ignore))
+                            printf "Number of test variables: %A, number of test cases: %A.\n"
+                                   numberOfTestVariables
+                                   ((int32) numberOfTestCases))
+
+
+        [<Test>]
+        member this.MeasureScalingOfSynthesisOfInterleavesOfGroupsOfSynthesis () =
+            let numberOfLevels =
+                1
+            let testVariableFactory =
+                TestVariableLevelEnumerableFactory.Create (seq {
+                                                                for item in 1 .. numberOfLevels do
+                                                                    yield item
+                                                               })
+            let numberOfVariables =
+                5
+            let testVariableFactories =
+                List.init numberOfVariables
+                          (fun _ ->
+                            testVariableFactory)
+            let groupOfTestVariableFactories =
+                List.fold (fun factoryWithSeveralTestVariables
+                               testVariableFactory ->
+                            SynthesizedTestCaseEnumerableFactory.Create (testVariableFactory,
+                                                                         factoryWithSeveralTestVariables,
+                                                                         (fun head
+                                                                             tail ->
+                                                                             head :: tail)))
+                          (SingletonTestCaseEnumerableFactory.Create [])
+                          testVariableFactories
+            let numberOfInterleaves = 10
+            let groupInterleaveFactory =
+                InterleavedTestCaseEnumerableFactory.Create (seq {
+                                                                    for _ in 1 .. numberOfInterleaves do
+                                                                        yield groupOfTestVariableFactories
+                                                                 })
+            let numberOfGroups =
+                5
+            let interleavedFactories =
+                List.init numberOfGroups
+                          (fun _ ->
+                            testVariableFactory)             
+            let factoriesWithIncreasingNumberOfGroupInterleaves =
+                List.scan (fun factoryWithGroupInterleaves
+                               testVariableFactory ->
+                            SynthesizedTestCaseEnumerableFactory.Create (groupInterleaveFactory,
+                                                                         factoryWithGroupInterleaves,
+                                                                         (fun head
+                                                                             tail ->
+                                                                             head :: tail)))
+                          (SingletonTestCaseEnumerableFactory.Create [])
+                          interleavedFactories
+            let combinationStrength =
+                2u
+            factoriesWithIncreasingNumberOfGroupInterleaves
+            |> List.iteri (fun numberOfGroupInterleaves
+                               factoryWithGroupInterleaves ->
+                            let numberOfTestCases =
+                                factoryWithGroupInterleaves.ExecuteParameterisedUnitTestForAllTypedTestCases(combinationStrength, Action<_>(ignore))
+                            printf "Number of test variables: %A, number of test cases: %A.\n"
+                                   (numberOfGroupInterleaves * numberOfVariables)
+                                   ((int32) numberOfTestCases))                           

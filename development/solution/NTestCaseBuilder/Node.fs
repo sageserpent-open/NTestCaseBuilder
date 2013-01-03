@@ -78,7 +78,7 @@ namespace NTestCaseBuilder
         let maximumStrengthOfTestVariableCombination =
             traverseTree    {
                                 TestVariableNodeResult = fun _ -> 1u
-                                SingletonNodeResult = fun () -> 0u
+                                SingletonNodeResult = fun () -> 1u
                                 CombineResultsFromInterleavingNodeSubtrees = Seq.max
                                 CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                             }
@@ -201,7 +201,11 @@ namespace NTestCaseBuilder
                              |> uint32]
 
                   | SingletonNode _ ->
-                        Map.ofList [0u, [[indexForLeftmostTestVariable]]]
+                        if 0u = maximumDesiredStrength
+                        then
+                            Map.empty
+                        else
+                            Map.ofList [1u, [[indexForLeftmostTestVariable]]]
                         , indexForLeftmostTestVariable + 1u
                         , []
 
