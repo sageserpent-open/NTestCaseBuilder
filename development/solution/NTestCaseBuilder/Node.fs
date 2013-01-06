@@ -213,7 +213,7 @@ namespace NTestCaseBuilder
                         let mergeTestVariableCombinationsFromSubtree (previousAssociationFromStrengthToTestVariableCombinations
                                                                       , indexForLeftmostTestVariable
                                                                       , previousAssociationFromTestVariableIndexToNumberOfItsLevels)
-                                                                    subtreeRootNode =
+                                                                     subtreeRootNode =
                             let associationFromStrengthToTestVariableCombinationsFromSubtree
                                 , maximumTestVariableIndexFromSubtree
                                 , associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree =
@@ -223,7 +223,8 @@ namespace NTestCaseBuilder
                                                                   previousAssociationFromStrengthToTestVariableCombinations
                                                                   associationFromStrengthToTestVariableCombinationsFromSubtree
                             let associationFromTestVariableIndexToNumberOfItsLevels =
-                                List.append associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree previousAssociationFromTestVariableIndexToNumberOfItsLevels
+                                List.append associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree
+                                            previousAssociationFromTestVariableIndexToNumberOfItsLevels
                             mergedAssociationFromStrengthToTestVariableCombinations
                             , maximumTestVariableIndexFromSubtree
                            , associationFromTestVariableIndexToNumberOfItsLevels
@@ -242,7 +243,8 @@ namespace NTestCaseBuilder
                             let perSubtreeAssociationsFromStrengthToTestVariableCombinations =
                                 associationFromStrengthToTestVariableCombinationsFromSubtree :: previousPerSubtreeAssociationsFromStrengthToTestVariableCombinations
                             let associationFromTestVariableIndexToNumberOfItsLevels =
-                                List.append associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree previousAssociationFromTestVariableIndexToNumberOfItsLevels
+                                List.append associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree
+                                            previousAssociationFromTestVariableIndexToNumberOfItsLevels
                             perSubtreeAssociationsFromStrengthToTestVariableCombinations
                             , maximumTestVariableIndexFromSubtree
                             , associationFromTestVariableIndexToNumberOfItsLevels
@@ -268,15 +270,22 @@ namespace NTestCaseBuilder
                                                |> Seq.map fst
                                                |> Seq.max)
                         // We have to cope with individual subtrees being requested to yield zero strength combinations: what we
-                        // mean is that either the subtree doesn't have to provide any test variables for a given distribution,
-                        // in which case we yield a sentinel value of [[]] (which is an identity under the cross product), or that we
-                        // can get by with providing a combination of singleton test variables which don't count towards the overall
-                        // desired total strength.
+                        // mean is that the subtree doesn't have to provide any test variables for a given distribution,
+                        // in which case we yield a sentinel value of [[]] (which is an identity under the cross product).
                         // Contrast this with the case where a subtree is asked for combinations of a positive strength that it
                         // doesn't have: in this case we yield [], which is a zero under the cross product, reflecting the fact
                         // that we can't achieve the distribution in question.
+                        // However, there is another subtlety: we must exclude the case where the total strength is zero: *all* test
+                        // variables, ordinary *and* singleton count towards the strength, so there should not be any test variable
+                        // combinations of zero strength resulting from combinations across subtrees. That way, we know that any request
+                        // for zero strength combinations from a particular subtree will never result in a zero-strength combination
+                        // being created for the parent synthesizing node. If we don't do this, this leads to situations where synthesizing
+                        // nodes higher up the tree will build alternate combinations of the same combination with lots of trivial
+                        // empty combinations of zero strength - this won't cause any logic failures due to subsequent test vector
+                        // merging, but does lead to a combinatoric explosion of memory usage and time.
                         let distributionsOfStrengthsOverSubtreesAtEachTotalStrength =
                             CombinatoricUtilities.ChooseContributionsToMeetTotalsUpToLimit maximumStrengthsFromSubtrees maximumDesiredStrength
+                            |> Map.remove 0u
                         let addInTestVariableCombinationsForGivenTotalStrength totalStrength
                                                                                distributionsOfStrengthsOverSubtrees
                                                                                partialAssociationFromStrengthToTestVariableCombinations =
@@ -286,8 +295,10 @@ namespace NTestCaseBuilder
                                     |> List.map (function strength
                                                          , associationFromStrengthToTestVariableCombinationsForOneSubtree ->
                                                                 match Map.tryFind strength associationFromStrengthToTestVariableCombinationsForOneSubtree with
-                                                                    Some testVariableCombinations ->
+                                                                    Some testVariableCombinations when strength > 0u ->
                                                                         testVariableCombinations
+                                                                  | Some _ ->
+                                                                        raise (InternalAssertionViolationException "Non-zero strength combinations are not permitted as results from any node.")
                                                                   | None ->
                                                                         if strength = 0u
                                                                         then
