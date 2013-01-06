@@ -740,7 +740,7 @@
                                                                              head :: tail)))
                           (SingletonTestCaseEnumerableFactory.Create [])
                           testVariableFactories
-            let numberOfInterleaves = 10
+            let numberOfInterleaves = 4
             let groupInterleaveFactory =
                 InterleavedTestCaseEnumerableFactory.Create (seq {
                                                                     for _ in 1 .. numberOfInterleaves do
