@@ -50,7 +50,7 @@
       <HintPath>..\packages\C5.2.1.4492.18142\lib\net40\C5.dll</HintPath>
     </Reference>
     <Reference Include="C5.Mono">
-      <HintPath>..\packages\NTestCaseBuilder.1.2.1.0\lib\net40\C5.Mono.dll</HintPath>
+      <HintPath>..\packages\NTestCaseBuilder.1.2.2.0\lib\net40\C5.Mono.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.PowerPack">
@@ -71,14 +71,14 @@
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="NTestCaseBuilder">
-      <HintPath>..\packages\NTestCaseBuilder.1.2.1.0\lib\net40\NTestCaseBuilder.dll</HintPath>
+      <HintPath>..\packages\NTestCaseBuilder.1.2.2.0\lib\net40\NTestCaseBuilder.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.2.6.2\lib\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="SageSerpent.Infrastructure">
-      <HintPath>..\packages\NTestCaseBuilder.1.2.1.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
+      <HintPath>..\packages\NTestCaseBuilder.1.2.2.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
