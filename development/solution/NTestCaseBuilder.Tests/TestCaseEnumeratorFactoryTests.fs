@@ -751,7 +751,7 @@
             let interleavedFactories =
                 List.init numberOfGroups
                           (fun _ ->
-                            testVariableFactory)             
+                            testVariableFactory)
             let factoriesWithIncreasingNumberOfGroupInterleaves =
                 List.scan (fun factoryWithGroupInterleaves
                                testVariableFactory ->
@@ -771,4 +771,4 @@
                                 factoryWithGroupInterleaves.ExecuteParameterisedUnitTestForAllTypedTestCases(combinationStrength, Action<_>(ignore))
                             printf "Number of test variables: %A, number of test cases: %A.\n"
                                    (numberOfGroupInterleaves * numberOfVariables)
-                                   ((int32) numberOfTestCases))                           
+                                   ((int32) numberOfTestCases))
