@@ -688,7 +688,7 @@
                                                                     yield item
                                                                })
             let numberOfVariables =
-                25
+                35
             let testVariableFactories =
                 List.init numberOfVariables
                           (fun _ ->
