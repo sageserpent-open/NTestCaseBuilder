@@ -455,6 +455,29 @@
                             randomBehaviour
 
         [<Test>]
+        member this.TestThatZeroStrengthResultsInAnEmptyTestCaseSequence () =
+            let randomBehaviour = Random randomBehaviourSeed
+            for _ in 1u .. overallTestRepeats do
+                printf "\n\n\n******************************\n\n\n"
+                let sharedSeed =
+                    randomBehaviour.Next()
+                let testCaseEnumerableFactory
+                    , _
+                    , _ =
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                                                                                               randomBehaviour
+                                                                                               false
+
+                let shouldBeTrue =
+                    seq
+                        {
+                            for testCase in testCaseEnumerableFactory.CreateEnumerable 0u do
+                                yield testCase :?> IComparable
+                        }
+                    |> Seq.length = 0
+                Assert.IsTrue shouldBeTrue
+
+        [<Test>]
         member this.TestCorrectOrderingOfLevelsFromDistinctTestVariablesInEachOutputTestCase () =
             let testHandoff (testCaseEnumerable: System.Collections.IEnumerable)
                             _
@@ -730,8 +753,7 @@
                 let delegateTypeBuilder =
                     BargainBasement.Memoize (CodeGeneration.NAryDelegateTypeBuilder<'HasAddition>)
                 let inline condensation items =
-                    List.reduce (fun left right ->
-                                        left + right)
+                    List.reduce (+)
                                 items
                 let nAryCondensationDelegate =
                         CodeGeneration.NAryCondensationDelegateBuilder (Seq.length levelGroupsForEachOfTheTestVariables
