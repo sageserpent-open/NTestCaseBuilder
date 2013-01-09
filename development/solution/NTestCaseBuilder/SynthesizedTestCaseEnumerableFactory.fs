@@ -138,6 +138,9 @@ namespace NTestCaseBuilder
     type QuintenaryDelegate<'ArgumentOne, 'ArgumentTwo, 'ArgumentThree, 'ArgumentFour, 'ArgumentFive, 'Result> =
         delegate of 'ArgumentOne * 'ArgumentTwo * 'ArgumentThree * 'ArgumentFour * 'ArgumentFive -> 'Result
 
+    type SequenceCondensation<'Item, 'Result> =
+        delegate of seq<'Item> -> 'Result
+
     type SynthesizedTestCaseEnumerableFactory =
         /// <summary>Constructor function that creates an instance of TestCaseEnumerableFactory.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -153,7 +156,7 @@ namespace NTestCaseBuilder
         /// <param name="synthesisDelegate">Delegate in weakly-typed form used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="TestCaseEnumerableFactory">Type of constructed factory.</seealso>
-        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: seq<TestCaseEnumerableFactory>,
+        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TestCaseEnumerableFactory>,
                               synthesisDelegate: Delegate) =
             if Seq.isEmpty sequenceOfFactoriesProvidingInputsToSynthesis
             then
@@ -309,3 +312,23 @@ namespace NTestCaseBuilder
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, _, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
             SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfFactoriesForSynthesis
+
+        /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
+        /// out of a combination of input test cases taken from across the sequences yielded by the the child
+        /// factories used to construct the factory. The input test cases are combined by means of a delegate
+        /// that takes them a sequence and synthesises an output test case.</remarks>
+        /// <remarks>This is strongly typed - and as the condensation delegate takes a single sequence that bundles up the
+        /// input test cases, it also imposes homogenity of the nominal type across the input test cases used in the
+        /// synthesis; this approach avoids worrying about consistency of the arity of the actual delegate implementation,
+        /// trading off some flexibility of the input test case types.</remarks>
+        /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases form inputs
+        /// for synthesis.</param>
+        /// <param name="condensation">Delegate in strongly-typed form used to synthesize the output test cases from the input
+        /// test cases passed together to it as a list.</param>
+        /// <returns>The constructed factory.</returns>
+        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
+        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TypedTestCaseEnumerableFactory<'TestCaseListElement>>,
+                              condensation: SequenceCondensation<'TestCaseListElement, 'SynthesizedTestCase>) =
+            Unchecked.defaultof<TypedTestCaseEnumerableFactory<'SynthesizedTestCase>>
+

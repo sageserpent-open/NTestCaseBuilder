@@ -141,6 +141,15 @@
                                                                     // actually *creates* a delegate: remember, functional languages *evaluate*
                                                                     // function definitions.
 
+    type FactoryConstructors<'Factory, 'TestCase> =
+        {
+            TestVariableLevelEnumerableFactoryFrom: List<'TestCase> -> 'Factory
+            SingletonTestCaseEnumerableFactoryFrom: 'TestCase -> 'Factory
+            SynthesizedTestCaseEnumerableFactoryFrom: 'Factory [] -> (List<'TestCase> -> 'TestCase) -> 'Factory
+            InterleavedTestCaseEnumerableFactoryFrom: List<'Factory> -> 'Factory
+        }
+            
+
     [<TestFixture>]
     type TestCaseEnumerableFactoryTestFixture () =
         let maximumCombinationStrength = 6u
@@ -152,7 +161,51 @@
         let delegateTypeBuilder =
             BargainBasement.Memoize (CodeGeneration.NAryDelegateTypeBuilder<List<TestVariableLevel>>)
 
-        let constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour
+        let weaklyTypedFactoryConstructors =
+            {
+                TestVariableLevelEnumerableFactoryFrom =
+                    (fun testVariableLevels ->
+                        TestVariableLevelEnumerableFactory.Create testVariableLevels
+                        :> TestCaseEnumerableFactory)
+                SingletonTestCaseEnumerableFactoryFrom =
+                    (fun testVariableLevel ->
+                        SingletonTestCaseEnumerableFactory.Create testVariableLevel
+                            :> TestCaseEnumerableFactory)
+                SynthesizedTestCaseEnumerableFactoryFrom =
+                    (fun permutedSubtrees
+                         undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels ->
+                        let nAryCondensationDelegate =
+                            CodeGeneration.NAryCondensationDelegateBuilder (uint32 permutedSubtrees.Length)
+                                                                           delegateTypeBuilder
+                                                                           (undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels: List<List<TestVariableLevel>> -> List<TestVariableLevel>)
+
+                        SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees,
+                                                                     nAryCondensationDelegate)) 
+                InterleavedTestCaseEnumerableFactoryFrom =
+                    (fun subtrees ->
+                        InterleavedTestCaseEnumerableFactory.Create subtrees)
+            }
+
+        let stronglyTypedFactoryConstructors =
+            {
+                TestVariableLevelEnumerableFactoryFrom =
+                    (fun testVariableLevels ->
+                        TestVariableLevelEnumerableFactory.Create testVariableLevels)
+                SingletonTestCaseEnumerableFactoryFrom =
+                    (fun testVariableLevel ->
+                        SingletonTestCaseEnumerableFactory.Create testVariableLevel)
+                SynthesizedTestCaseEnumerableFactoryFrom =
+                    (fun permutedSubtrees
+                         undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels ->
+                        SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees,
+                                                                     SequenceCondensation(List.ofSeq >> undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels))) 
+                InterleavedTestCaseEnumerableFactoryFrom =
+                    (fun subtrees ->
+                        InterleavedTestCaseEnumerableFactory.Create subtrees)
+            }
+
+        let constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations factoryConstructors
+                                                                                       randomBehaviour
                                                                                        allowDuplicatedLevels =
             let combinationStrength =
                 (randomBehaviour: Random).ChooseAnyNumberFromOneTo maximumCombinationStrength
@@ -189,8 +242,7 @@
                                 else
                                         [ for level in 1u .. levelCountForTestVariableIntroducedHere do
                                             yield [(indexForLeftmostTestVariable, Some level)] ]
-                            TestVariableLevelEnumerableFactory.Create testVariableLevels
-                            :> TestCaseEnumerableFactory
+                            factoryConstructors.TestVariableLevelEnumerableFactoryFrom testVariableLevels
                             , if testVariableLevels.IsEmpty
                               then
                                 None
@@ -209,8 +261,7 @@
                                 [(indexForLeftmostTestVariable, None)]: List<TestVariableLevel>
                             let testVariableLevels =
                                 [ testVariableLevel ]
-                            SingletonTestCaseEnumerableFactory.Create testVariableLevel
-                            :> TestCaseEnumerableFactory
+                            factoryConstructors.SingletonTestCaseEnumerableFactoryFrom testVariableLevel
                             , Set.singleton indexForLeftmostTestVariable
                               |> Some
                             , Map.add indexForLeftmostTestVariable
@@ -282,13 +333,8 @@
                                                     })
                                          (Some Set.empty)
 
-                        let nAryCondensationDelegate =
-                            CodeGeneration.NAryCondensationDelegateBuilder (uint32 permutedSubtrees.Length)
-                                                                           delegateTypeBuilder
-                                                                           (undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels: List<List<TestVariableLevel>> -> List<TestVariableLevel>)
-
-                        SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees,
-                                                                     nAryCondensationDelegate)
+                        factoryConstructors.SynthesizedTestCaseEnumerableFactoryFrom permutedSubtrees
+                                                                                     undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels
                         , testVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
                     else
@@ -351,7 +397,7 @@
                             else
                                 randomBehaviour.ChooseOneOf achievableTestVariableCombinationsFromSubtrees
 
-                        InterleavedTestCaseEnumerableFactory.Create subtrees
+                        factoryConstructors.InterleavedTestCaseEnumerableFactoryFrom subtrees
                         , chosenTestVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
 
@@ -390,7 +436,9 @@
                 let testCaseEnumerableFactory
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour false
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                                                                                               randomBehaviour
+                                                                                               false
                 let maximumStrength =
                     randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
                 let testVariableCombinationConformingToMaximumStrength =
@@ -479,11 +527,15 @@
                 let testCaseEnumerableFactory
                     , _
                     , _
-                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations copiedRandomBehaviourOne false
+                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                                                                                                 copiedRandomBehaviourOne
+                                                                                                 false
                 let testCaseEnumerableFactoryBasedOnDuplicateLevels
                     , _
                     , _
-                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations copiedRandomBehaviourTwo true
+                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                                                                                                 copiedRandomBehaviourTwo
+                                                                                                 true
                 let maximumStrength =
                     testCaseEnumerableFactory.MaximumStrength
                 let shouldBeTrue =
@@ -515,7 +567,9 @@
                 let testCaseEnumerableFactory
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour false
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                                                                                               randomBehaviour
+                                                                                               false
                 let maximumStrength =
                     testCaseEnumerableFactory.MaximumStrength
                 let testCaseEnumerable =
@@ -571,7 +625,9 @@
                 let testCaseEnumerableFactory
                     , _
                     , _ =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations randomBehaviour false
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                                                                                               randomBehaviour
+                                                                                               false
                 let randomStrength =
                     randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
                 let randomTestCase =
@@ -626,6 +682,47 @@
                         Assert.Fail "Should not be throwing this specific kind of exception if the unit test succeeded."
                   | _ ->
                         Assert.Fail "No other exception should have been thrown."
+
+        [<Test>]
+        member this.TestConsistencyOfWeaklyAndStronglyTypedApis () =
+            let randomBehaviour = Random randomBehaviourSeed
+            for _ in 1u .. overallTestRepeats do
+                printf "\n\n\n******************************\n\n\n"
+                let sharedSeed =
+                    randomBehaviour.Next()
+                let copiedRandomBehaviourOne =
+                    Random sharedSeed
+                let copiedRandomBehaviourTwo =
+                    Random sharedSeed
+                let weaklyTypedTestCaseEnumerableFactory
+                    , _
+                    , _ =
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                                                                                               copiedRandomBehaviourOne
+                                                                                               false
+                let stronglyTypedTestCaseEnumerableFactory
+                    , _
+                    , _ =
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
+                                                                                               copiedRandomBehaviourTwo
+                                                                                               false
+                let shouldBeTrue =
+                    weaklyTypedTestCaseEnumerableFactory.MaximumStrength = stronglyTypedTestCaseEnumerableFactory.MaximumStrength
+                for strength in 0u .. weaklyTypedTestCaseEnumerableFactory.MaximumStrength do
+                    let testCasesFromWeaklyTypedFactory =
+                        [for testCase in weaklyTypedTestCaseEnumerableFactory.CreateEnumerable strength do
+                            yield testCase]
+                    let testCasesFromStronglyTypedFactory =
+                        stronglyTypedTestCaseEnumerableFactory.CreateTypedEnumerable strength
+                        |> List.ofSeq
+                    let shouldBeTrue =
+                        List.zip testCasesFromWeaklyTypedFactory
+                                 testCasesFromStronglyTypedFactory
+                        |> List.forall (fun (weaklyTypedTestCase
+                                             , stronglyTypedTestCase) ->
+                                            unbox weaklyTypedTestCase = stronglyTypedTestCase)
+                        // NOTE: 'List.zip' also checks equality of list lengths as a precondition.
+                    Assert.IsTrue shouldBeTrue
 
         [<Test>]
         member this.SmokeTestForProfiling () =
