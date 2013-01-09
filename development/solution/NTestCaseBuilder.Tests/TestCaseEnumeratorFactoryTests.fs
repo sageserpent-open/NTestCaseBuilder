@@ -197,8 +197,20 @@
                 SynthesizedTestCaseEnumerableFactoryFrom =
                     (fun permutedSubtrees
                          undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels ->
-                        SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees,
-                                                                     SequenceCondensation(List.ofSeq >> undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels))) 
+                        match Array.length permutedSubtrees with
+                            1 ->
+                                SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees.[0],
+                                                                             UnaryDelegate(fun inputTestCase ->
+                                                                                            undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels [inputTestCase]))
+                          | 2 ->
+                                SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees.[0],
+                                                                             permutedSubtrees.[1],
+                                                                             BinaryDelegate(fun firstInputTestCase
+                                                                                                secondInputTestCase ->
+                                                                                                undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels [firstInputTestCase; secondInputTestCase]))
+                          | _ ->
+                                SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees,
+                                                                             SequenceCondensation(List.ofSeq >> undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels))) 
                 InterleavedTestCaseEnumerableFactoryFrom =
                     (fun subtrees ->
                         InterleavedTestCaseEnumerableFactory.Create subtrees)
