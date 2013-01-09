@@ -593,27 +593,32 @@ namespace NTestCaseBuilder
                                             fullTestVector.[indexForLeftmostTestVariable .. onePastIndexForRightmostTestVariable - 1])
                         finalValueCreator slicesOfFullTestVectorCorrespondingToSubtrees
 
+        static member PruneAndCombine subtreeRootNodes
+                                      combinePrunedSubtrees =
+            let prunedSubtreeRootNodes =
+                subtreeRootNodes
+                |> List.map (fun (node: Node) ->
+                                node.PruneTree)
+                |> List.filter Option.isSome
+                |> List.map Option.get
+            if not (Seq.isEmpty prunedSubtreeRootNodes)
+                && Seq.length prunedSubtreeRootNodes
+                    = Seq.length subtreeRootNodes
+            then
+                prunedSubtreeRootNodes
+                |> combinePrunedSubtrees
+                |> Some
+            else
+                None
+
         static member CreateSynthesizingNode subtreeRootNodes
                                              synthesisDelegate =
             let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
                 {
                     new IFixedCombinationOfSubtreeNodesForSynthesis with
                         member this.Prune =
-                            let prunedSubtreeRootNodes =
-                                subtreeRootNodes
-                                |> List.map (fun (node: Node) ->
-                                                node.PruneTree)
-                                |> List.filter Option.isSome
-                                |> List.map Option.get
-                            if not (Seq.isEmpty prunedSubtreeRootNodes)
-                               && Seq.length prunedSubtreeRootNodes
-                                  = Seq.length subtreeRootNodes
-                            then
-                                prunedSubtreeRootNodes
-                                |> fixedCombinationOfSubtreeNodesForSynthesis
-                                |> Some
-                            else
-                                None
+                            Node.PruneAndCombine subtreeRootNodes
+                                                 fixedCombinationOfSubtreeNodesForSynthesis
 
                         member this.Nodes =
                             subtreeRootNodes
@@ -621,14 +626,14 @@ namespace NTestCaseBuilder
                         member this.FinalValueCreator () =
                             fun slicesOfFullTestVector ->
                                 let resultsFromSubtrees =
-                                    Seq.zip subtreeRootNodes
-                                            slicesOfFullTestVector
-                                    |> Seq.map (fun (subtreeRootNode
-                                                     , sliceOfFullTestVectorCorrespondingToSubtree) ->
+                                    List.zip subtreeRootNodes
+                                             slicesOfFullTestVector
+                                    |> List.map (fun (subtreeRootNode
+                                                      , sliceOfFullTestVectorCorrespondingToSubtree) ->
                                                     subtreeRootNode.FinalValueCreator () sliceOfFullTestVectorCorrespondingToSubtree)
                                 let invocationArguments =
                                     resultsFromSubtrees
-                                    |> Seq.toArray
+                                    |> List.toArray
                                 (synthesisDelegate: Delegate).DynamicInvoke invocationArguments
                                 |> unbox
                 }

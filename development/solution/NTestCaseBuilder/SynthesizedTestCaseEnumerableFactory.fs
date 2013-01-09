@@ -7,6 +7,28 @@ namespace NTestCaseBuilder
     open SageSerpent.Infrastructure.OptionWorkflow
     open BargainBasement
 
+    module SynthesizedTestCaseEnumerableFactoryDetail =
+        let mediateFinalValueCreatorType (createFinalValueFrom: List<FullTestVector> -> 'CreatorViewOfSynthesizedTestCase) =
+            match createFinalValueFrom
+                    |> box with
+                :? (List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase) as finalValueCreatorWithAgreedTypeSignature ->
+                    finalValueCreatorWithAgreedTypeSignature
+                    // We have to mediate between the expected precise type of the result and the actual type
+                    // that is hidden by the abstracting interface 'IFixedCombinationOfSubtreeNodesForSynthesis'
+                    // - client code must ensure that the types are the same. By doing this to a function value
+                    // rather than to individual test cases produced by applying the function, we can take an
+                    // up-front one-off performance hit and then get a precisely-typed function that doesn't
+                    // have any internal (un)boxing in its own implementation: so the same function value can
+                    // then be repeatedly applied to lots of full test variable vectors by the caller.
+                | _ ->
+                    createFinalValueFrom >> box >> unbox
+                        // Plan B: if the caller wants the synthesized test case typed other than
+                        // 'CreatorViewOfSynthesizedTestCase' then let's do a conversion via
+                        // 'Object'. In practice the desired type will turn out to be 'Object' anyway,
+                        // so the unbox operation will be trivial.
+
+    open SynthesizedTestCaseEnumerableFactoryDetail
+
     /// <summary>Low-level F#-specific API for collecting together child factories to construct a synthesized TestCaseEnumerableFactory.</summary>
     /// <seealso cref="SynthesizedTestCaseEnumerableFactory">Higher-level facade API that encapsulates usage of this class: try this first.</seealso>
     /// <seealso cref="FixedCombinationOfFactoriesForSynthesis">Cooperating class from low-level F#-specific API</seealso>
@@ -106,22 +128,7 @@ namespace NTestCaseBuilder
                 nodes
 
             member this.FinalValueCreator (): List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase =
-                match createFinalValueFrom
-                      |> box with
-                    :? (List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase) as finalValueCreatorWithAgreedTypeSignature ->
-                        finalValueCreatorWithAgreedTypeSignature
-                        // We have to mediate between the expected precise type of the result and the actual type
-                        // that is hidden by the abstracting interface 'IFixedCombinationOfSubtreeNodesForSynthesis'
-                        // - client code must ensure that the types are the same. By doing this to a function value
-                        // rather than to individual test cases produced by applying the function, we can take an
-                        // up-front one-off performance hit and then get a precisely-typed function that doesn't
-                        // have any internal (un)boxing in its own implementation: so the same function value can
-                        // then be repeatedly applied to lots of full test variable vectors by the caller.
-                  | _ ->
-                        createFinalValueFrom >> box >> unbox
-                            // Plan B: if the caller wants the synthesized test case typed other than 'SynthesizedTestCase'
-                            // then let's do a conversion via 'Object'. In practice the desired type will be 'Object' and
-                            // the unbox operation will be trivial.
+                mediateFinalValueCreatorType createFinalValueFrom
 
     type UnaryDelegate<'Argument, 'Result> =
         delegate of 'Argument -> 'Result
@@ -330,5 +337,34 @@ namespace NTestCaseBuilder
         /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
         static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TypedTestCaseEnumerableFactory<'TestCaseListElement>>,
                               condensation: SequenceCondensation<'TestCaseListElement, 'SynthesizedTestCase>) =
-            Unchecked.defaultof<TypedTestCaseEnumerableFactory<'SynthesizedTestCase>>
+            let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
+                {
+                    new IFixedCombinationOfSubtreeNodesForSynthesis with
+                        member this.Prune =
+                            Node.PruneAndCombine subtreeRootNodes
+                                                 fixedCombinationOfSubtreeNodesForSynthesis
+
+                        member this.Nodes =
+                            subtreeRootNodes
+
+                        member this.FinalValueCreator () =
+                            fun slicesOfFullTestVector ->
+                                let resultsFromSubtrees =
+                                    List.zip subtreeRootNodes
+                                             slicesOfFullTestVector
+                                    |> List.map (fun (subtreeRootNode
+                                                      , sliceOfFullTestVectorCorrespondingToSubtree) ->
+                                                    subtreeRootNode.FinalValueCreator () sliceOfFullTestVectorCorrespondingToSubtree)
+                                condensation.Invoke resultsFromSubtrees
+                            |> mediateFinalValueCreatorType    
+                }
+            let subtreeRootNodes =
+                sequenceOfFactoriesProvidingInputsToSynthesis
+                |> List.ofSeq
+                |> List.map (fun factory
+                                -> factory.Node)
+            let node =
+                fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes
+                |> SynthesizingNode
+            TypedTestCaseEnumerableFactory<'SynthesizedTestCase> node
 
