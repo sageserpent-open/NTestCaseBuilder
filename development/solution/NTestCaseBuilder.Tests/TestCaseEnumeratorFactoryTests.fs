@@ -655,7 +655,7 @@
                                 Map.empty
 
                 let numberOfPermutationsExpected =
-                    snd permutationExtent
+                    numberOfTestVariablesInSliceThatPermutationCoverageIsGuaranteedFor
                     |> BargainBasement.Factorial
 
                 for _
