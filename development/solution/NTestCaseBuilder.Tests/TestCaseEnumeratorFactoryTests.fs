@@ -385,30 +385,37 @@
                                                     })
                                          (Some Set.empty)
 
-                        let permutationExtent =
+                        let permutationExample =
                             if permuteInputs
                             then
-                                let indexForLeftmostTestVariableOfExtent =
-                                    uint32 (testVariableIndexToLevelsMapping: Map<_, _>).Count
-                                let onePastIndexForRightmostTestVariableOfExtent =
-                                    uint32 (testVariableIndexToLevelsMappingFromSubtrees: Map<_, _>).Count
-                                Some ((indexForLeftmostTestVariableOfExtent
-                                       , onePastIndexForRightmostTestVariableOfExtent)
-                                      , (Array.length shuffledSubtrees
-                                         |> uint32))
+                                testVariableCombinationsFromSubtrees
+                                |> List.fold (fun permutationExample
+                                                  testVariableCombinationFromSubtree ->
+                                                    optionWorkflow
+                                                        {
+                                                            let! permutationExample =
+                                                                permutationExample
+                                                            let! testVariableCombinationFromSubtree =
+                                                                testVariableCombinationFromSubtree
+                                                            let chosenTestVariable =
+                                                                randomBehaviour.ChooseOneOf testVariableCombinationFromSubtree
+                                                            return Set.add chosenTestVariable
+                                                                           permutationExample
+                                                        })
+                                             (Some Set.empty)
                             else
                                 None
 
-                        let permutationExtentsChoices =
-                            permutationExtent :: permutationExtentsForSubtrees
+                        let permutationExampleChoices =
+                            permutationExample :: permutationExtentsForSubtrees
                             |> Option<_>.GetFromMany
 
-                        let chosenPermutationExtent =
-                            if permutationExtentsChoices.IsEmpty
+                        let chosenPermutationExample =
+                            if permutationExampleChoices.IsEmpty
                             then
                                 None
                             else
-                                randomBehaviour.ChooseOneOf permutationExtentsChoices
+                                randomBehaviour.ChooseOneOf permutationExampleChoices
                                 |> Some
 
                         factoryConstructors.SynthesizedTestCaseEnumerableFactoryFrom shuffledSubtrees
@@ -416,7 +423,7 @@
                                                                                      permuteInputs
                         , testVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
-                        , chosenPermutationExtent
+                        , chosenPermutationExample
                     else
                         let numberOfSubtrees =
                             randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfNonZeroCombinationStrengthSubtrees
@@ -488,27 +495,27 @@
                                 randomBehaviour.ChooseOneOf achievableTestVariableCombinationsFromSubtrees
                                 |> Some
 
-                        let permutationExtentsChoices =
+                        let permutationExampleChoices =
                             permutationExtentsForSubtrees
                             |> Option<_>.GetFromMany
 
-                        let chosenPermutationExtent =
-                            if permutationExtentsChoices.IsEmpty
+                        let chosenPermutationExample =
+                            if permutationExampleChoices.IsEmpty
                             then
                                 None
                             else
-                                randomBehaviour.ChooseOneOf permutationExtentsChoices
+                                randomBehaviour.ChooseOneOf permutationExampleChoices
                                 |> Some
 
                         factoryConstructors.InterleavedTestCaseEnumerableFactoryFrom subtrees
                         , chosenTestVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
-                        , chosenPermutationExtent
+                        , chosenPermutationExample
 
             let testCaseEnumerableFactory
                 , testVariableCombination
                 , testVariableIndexToLevelsMapping
-                , permutationExtent =
+                , permutationExample =
                 constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                                            Map.empty
                                                                                            0u
@@ -518,7 +525,7 @@
             testCaseEnumerableFactory
             , testVariableCombination.Value
             , testVariableIndexToLevelsMapping
-            , permutationExtent
+            , permutationExample
 
         let randomBehaviourSeed = 23
 
@@ -544,7 +551,7 @@
                 let testCaseEnumerableFactory
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping
-                    , permutationExtent =
+                    , permutationExample =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                randomBehaviour
                                                                                                false
@@ -572,7 +579,7 @@
                 let testCaseEnumerableFactory
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping
-                    , Some permutationExtent =
+                    , Some permutationExample =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
                                                                                                randomBehaviour
                                                                                                false
@@ -586,18 +593,11 @@
                 let testCases =
                     testCaseEnumerableFactory.CreateTypedEnumerable maximumStrength
 
-                let lhsTestVariableFromPermutationExtent =
-                    (fst >> fst) permutationExtent
-
-                let onePastRhsTestVariableFromPermutationExtent =
-                    (fst >> snd) permutationExtent
-
                 let slicedTestCases =
                     testCases
                     |> Seq.map (List.filter (fun (testVariableIndex
                                                   , _) ->
-                                                lhsTestVariableFromPermutationExtent <= testVariableIndex
-                                                && testVariableIndex < onePastRhsTestVariableFromPermutationExtent))
+                                                permutationExample.Contains testVariableIndex))
                     |> Set.ofSeq   // Eliminate duplicates caused by slicing throwing away distinguishing state.
                     |> Set.remove List.empty
 
@@ -605,12 +605,14 @@
                     randomBehaviour.ChooseOneOf slicedTestCases
 
                 let numberOfTestVariablesInSliceThatPermutationCoverageIsGuaranteedFor =
-                    let numberOfTestVariablesCoveredByPermutationExtent =
-                        onePastRhsTestVariableFromPermutationExtent - lhsTestVariableFromPermutationExtent
+                    let numberOfTestVariablesInPermutationExample =
+                        permutationExample
+                        |> Set.count
+                        |> uint32
                     (maximumStrength
                      |> max 1u) - 1u    // Subtract one to make room for the implicit permutation
                                         // test variable - this is what this test is checking.
-                    |> min numberOfTestVariablesCoveredByPermutationExtent
+                    |> min numberOfTestVariablesInPermutationExample
 
                 let chosenTestVariablesToCheckPermutationCoverageFor =
                     let testVariablesToChooseFrom =
@@ -665,11 +667,7 @@
                         Set.count group
                         |> uint32
                     let shouldBeTrue =
-                        numberOfPermutationsOfFineSlice >= numberOfPermutationsExpected // NOTE: this is possible, because we may be permuting
-                                                                                        // subtrees that themselves contain finer-grained permutations.
-                    Assert.IsTrue shouldBeTrue
-                    let shouldBeTrue =
-                        0u = numberOfPermutationsOfFineSlice % numberOfPermutationsExpected
+                        numberOfPermutationsOfFineSlice = numberOfPermutationsExpected
                     Assert.IsTrue shouldBeTrue
 
         [<Test>]
