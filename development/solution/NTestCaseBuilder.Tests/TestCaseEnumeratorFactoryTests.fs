@@ -661,9 +661,15 @@
                 for _
                     , group in finelySlicedTestCasesGroupedByTestLevelCombinations
                                |> Map.toSeq do
-                    let shouldBeTrue =
+                    let numberOfPermutationsOfFineSlice =
                         Set.count group
-                        |> uint32 = numberOfPermutationsExpected
+                        |> uint32
+                    let shouldBeTrue =
+                        numberOfPermutationsOfFineSlice >= numberOfPermutationsExpected // NOTE: this is possible, because we may be permuting
+                                                                                        // subtrees that themselves contain finer-grained permutations.
+                    Assert.IsTrue shouldBeTrue
+                    let shouldBeTrue =
+                        0u = numberOfPermutationsOfFineSlice % numberOfPermutationsExpected
                     Assert.IsTrue shouldBeTrue
 
         [<Test>]
