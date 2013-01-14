@@ -5,6 +5,7 @@ namespace NTestCaseBuilder
     open Microsoft.FSharp.Core
     open SageSerpent.Infrastructure
     open SageSerpent.Infrastructure.OptionWorkflow
+    open SageSerpent.Infrastructure.CombinatoricUtilities
     open BargainBasement
 
     module SynthesizedTestCaseEnumerableFactoryDetail =
@@ -367,33 +368,85 @@ namespace NTestCaseBuilder
         static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TypedTestCaseEnumerableFactory<'TestCaseListElement>>,
                               condensation: SequenceCondensation<'TestCaseListElement, 'SynthesizedTestCase>,
                               permuteInputs: Boolean) =
-            let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
-                {
-                    new IFixedCombinationOfSubtreeNodesForSynthesis with
-                        member this.Prune =
-                            Node.PruneAndCombine subtreeRootNodes
-                                                 fixedCombinationOfSubtreeNodesForSynthesis
-
-                        member this.Nodes =
-                            subtreeRootNodes
-
-                        member this.FinalValueCreator () =
-                            fun slicesOfFullTestVector ->
-                                let resultsFromSubtrees =
-                                    List.zip subtreeRootNodes
-                                             slicesOfFullTestVector
-                                    |> List.map (fun (subtreeRootNode
-                                                      , sliceOfFullTestVectorCorrespondingToSubtree) ->
-                                                    subtreeRootNode.FinalValueCreator () sliceOfFullTestVectorCorrespondingToSubtree)
-                                condensation.Invoke resultsFromSubtrees
-                            |> mediateFinalValueCreatorType
-                }
-            let subtreeRootNodes =
+            let subtreeRootNodesFromExplicitFactories =
                 sequenceOfFactoriesProvidingInputsToSynthesis
                 |> List.ofSeq
                 |> List.map (fun factory
                                 -> factory.Node)
+            let fixedCombinationOfSubtreeNodesForSynthesis =
+                if permuteInputs
+                then
+                    let subtreeRootNodesIncludingImplicitFactoryForPermutation =
+                        let numberOfExplicitlySuppliedFactories =
+                            Seq.length sequenceOfFactoriesProvidingInputsToSynthesis
+                            |> uint32
+                        let numberOfPermutations =
+                            BargainBasement.Factorial numberOfExplicitlySuppliedFactories
+                        let additionalFactoryForPermutations =
+                            TestVariableLevelEnumerableFactory.Create [0u .. numberOfPermutations - 1u |> uint32]
+                        [
+                            yield additionalFactoryForPermutations.Node
+                            yield! subtreeRootNodesFromExplicitFactories
+                        ]
+                    let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
+                        {
+                            new IFixedCombinationOfSubtreeNodesForSynthesis with
+                                member this.Prune =
+                                    Node.PruneAndCombine subtreeRootNodes
+                                                         fixedCombinationOfSubtreeNodesForSynthesis
+
+                                member this.Nodes =
+                                    subtreeRootNodes
+
+                                member this.FinalValueCreator () =
+                                    fun slicesOfFullTestVector ->
+                                        let implicitSubtreeRootNodeForPermutation
+                                            :: explicitSubtreeRootNodes =
+                                            subtreeRootNodes
+                                        let sliceOfFullTestVectorForPermutation
+                                            :: slicesOfFullTestVectorForExplicitSubtrees =
+                                            slicesOfFullTestVector
+                                        let permutationIndex =
+                                            implicitSubtreeRootNodeForPermutation.FinalValueCreator () sliceOfFullTestVectorForPermutation
+                                            |> unbox
+                                        let unshuffledResultsFromSubtrees =
+                                            List.zip explicitSubtreeRootNodes
+                                                     slicesOfFullTestVectorForExplicitSubtrees
+                                            |> List.map (fun (subtreeRootNode
+                                                              , sliceOfFullTestVectorCorrespondingToSubtree) ->
+                                                            subtreeRootNode.FinalValueCreator () sliceOfFullTestVectorCorrespondingToSubtree)
+                                        let shuffledResultsFromSubtrees =
+                                            GeneratePermutation unshuffledResultsFromSubtrees
+                                                                permutationIndex
+                                        shuffledResultsFromSubtrees
+                                        |> condensation.Invoke
+                                    |> mediateFinalValueCreatorType
+                        }
+                    fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesIncludingImplicitFactoryForPermutation
+                else
+                    let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
+                        {
+                            new IFixedCombinationOfSubtreeNodesForSynthesis with
+                                member this.Prune =
+                                    Node.PruneAndCombine subtreeRootNodes
+                                                         fixedCombinationOfSubtreeNodesForSynthesis
+
+                                member this.Nodes =
+                                    subtreeRootNodes
+
+                                member this.FinalValueCreator () =
+                                    fun slicesOfFullTestVector ->
+                                        let resultsFromSubtrees =
+                                            List.zip subtreeRootNodes
+                                                     slicesOfFullTestVector
+                                            |> List.map (fun (subtreeRootNode
+                                                              , sliceOfFullTestVectorCorrespondingToSubtree) ->
+                                                            subtreeRootNode.FinalValueCreator () sliceOfFullTestVectorCorrespondingToSubtree)
+                                        condensation.Invoke resultsFromSubtrees
+                                    |> mediateFinalValueCreatorType
+                        }
+                    fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesFromExplicitFactories
             let node =
-                fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes
+                fixedCombinationOfSubtreeNodesForSynthesis
                 |> SynthesizingNode
             TypedTestCaseEnumerableFactory<'SynthesizedTestCase> node

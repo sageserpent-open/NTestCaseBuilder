@@ -47,8 +47,8 @@
     <Compile Include="MergedPartialTestVectorRepresentations.fs" />
     <Compile Include="TestCaseEnumerableFactory.fs" />
     <Compile Include="InterleavedTestCaseEnumerableFactory.fs" />
-    <Compile Include="SynthesizedTestCaseEnumerableFactory.fs" />
     <Compile Include="TestVariableLevelEnumerableFactory.fs" />
+    <Compile Include="SynthesizedTestCaseEnumerableFactory.fs" />
     <Compile Include="SingletonTestCaseEnumerableFactory.fs" />
     <None Include="packages.config" />
   </ItemGroup>

@@ -1,6 +1,7 @@
 module SageSerpent.Infrastructure.CombinatoricUtilities
 
     open Microsoft.FSharp.Core.Operators.Checked
+    open ListExtensions
 
     open System
 
@@ -102,6 +103,53 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
                                                                    indexOfCombination
         [for indexToPickItemAt in combinationOfIndicesToPickOutAt do
          yield items.[int32 indexToPickItemAt]]
+
+    /// <summary>Creates a specific permutation containing all the items presented to it.</summary>
+    /// <param name="items" Items to permute - all of them will be placed into the resulting permutation./>
+    /// <param name="indexOfPermutation" Zero-relative index of permutation - must not be equal or exceed the
+    /// number of possible permutations./>
+    let rec GeneratePermutation items indexOfPermutation =
+        let numberOfItems =
+            List.length items
+            |> uint32
+        let numberOfPermutations =
+            BargainBasement.Factorial numberOfItems
+        if numberOfPermutations <= indexOfPermutation
+        then
+            raise (PreconditionViolationException "'indexOfPermutation' is too large: there are not enough permutations to support this choice.")
+        match items with
+            [] ->
+                List.empty
+          | head :: tail ->
+                let indexOfTailPermutation =
+                    indexOfPermutation / numberOfItems
+                let tailPermutation =
+                    GeneratePermutation tail
+                                        indexOfTailPermutation
+                let insertionIndexForHead =
+                    indexOfPermutation % numberOfItems
+                let lhsPiece
+                    , rhsPiece =
+                    tailPermutation.BreakOff insertionIndexForHead
+                [
+                    yield! lhsPiece
+                    yield head
+                    yield! rhsPiece
+                ]
+
+    /// <summary>Creates a specific permutation containing some or all of the items presented to it.</summary>
+    /// <param name="size" Number of items picked out in the resulting permutation./>
+    /// <param name="items" Items to permute - all of them will be placed into the resulting permutation./>
+    /// <param name="indexOfPermutation" Zero-relative index of permutation - must not be equal or exceed the
+    /// number of possible permutations./>
+    let GeneratePermutationOfGivenSize size items indexOfPermutation =
+        let numberOfPermutationsOfACombinationOfTheRequestedSize =
+            BargainBasement.Factorial size
+        let indexOfCombination =
+            indexOfPermutation / numberOfPermutationsOfACombinationOfTheRequestedSize
+        let combination =
+            GenerateCombinationOfGivenSizePreservingOrder size items indexOfCombination
+        GeneratePermutation combination (indexOfPermutation % numberOfPermutationsOfACombinationOfTheRequestedSize)
 
 
 
