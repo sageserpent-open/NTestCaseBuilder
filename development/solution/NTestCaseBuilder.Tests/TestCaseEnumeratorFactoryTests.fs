@@ -7,6 +7,7 @@
     open SageSerpent.Infrastructure.RandomExtensions
     open SageSerpent.Infrastructure.IEnumerableExtensions
     open SageSerpent.Infrastructure.OptionWorkflow
+    open SageSerpent.Infrastructure.OptionExtensions
     open NTestCaseBuilder
     open System
     open System.Windows.Forms
@@ -145,10 +146,10 @@
         {
             TestVariableLevelEnumerableFactoryFrom: List<'TestCase> -> 'Factory
             SingletonTestCaseEnumerableFactoryFrom: 'TestCase -> 'Factory
-            SynthesizedTestCaseEnumerableFactoryFrom: 'Factory [] -> (List<'TestCase> -> 'TestCase) -> 'Factory
+            SynthesizedTestCaseEnumerableFactoryFrom: 'Factory [] -> (List<'TestCase> -> 'TestCase) -> Boolean -> 'Factory
             InterleavedTestCaseEnumerableFactoryFrom: List<'Factory> -> 'Factory
         }
-            
+
 
     [<TestFixture>]
     type TestCaseEnumerableFactoryTestFixture () =
@@ -173,14 +174,18 @@
                             :> TestCaseEnumerableFactory)
                 SynthesizedTestCaseEnumerableFactoryFrom =
                     (fun permutedSubtrees
-                         undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels ->
+                         undoShuffleAndConcatenateContributedLevels
+                         permuteInputs ->
+                        if permuteInputs
+                        then
+                            raise (LogicErrorException "Can't permute inputs with the weakly-typed API - this indicates a bug in the test's logic.")
                         let nAryCondensationDelegate =
                             CodeGeneration.NAryCondensationDelegateBuilder (uint32 permutedSubtrees.Length)
                                                                            delegateTypeBuilder
-                                                                           (undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels: List<List<TestVariableLevel>> -> List<TestVariableLevel>)
+                                                                           (undoShuffleAndConcatenateContributedLevels: List<List<TestVariableLevel>> -> List<TestVariableLevel>)
 
                         SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees,
-                                                                     nAryCondensationDelegate)) 
+                                                                     nAryCondensationDelegate))
                 InterleavedTestCaseEnumerableFactoryFrom =
                     (fun subtrees ->
                         InterleavedTestCaseEnumerableFactory.Create subtrees)
@@ -196,21 +201,23 @@
                         SingletonTestCaseEnumerableFactory.Create testVariableLevel)
                 SynthesizedTestCaseEnumerableFactoryFrom =
                     (fun permutedSubtrees
-                         undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels ->
+                         undoShuffleAndConcatenateContributedLevels
+                         permuteInputs ->
                         match Array.length permutedSubtrees with
-                            1 ->
+                            1 when not permuteInputs ->
                                 SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees.[0],
                                                                              UnaryDelegate(fun inputTestCase ->
-                                                                                            undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels [inputTestCase]))
-                          | 2 ->
+                                                                                            undoShuffleAndConcatenateContributedLevels [inputTestCase]))
+                          | 2 when not permuteInputs ->
                                 SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees.[0],
                                                                              permutedSubtrees.[1],
                                                                              BinaryDelegate(fun firstInputTestCase
                                                                                                 secondInputTestCase ->
-                                                                                                undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels [firstInputTestCase; secondInputTestCase]))
+                                                                                                undoShuffleAndConcatenateContributedLevels [firstInputTestCase; secondInputTestCase]))
                           | _ ->
                                 SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees,
-                                                                             SequenceCondensation(List.ofSeq >> undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels))) 
+                                                                             SequenceCondensation(List.ofSeq >> undoShuffleAndConcatenateContributedLevels),
+                                                                             permuteInputs))
                 InterleavedTestCaseEnumerableFactoryFrom =
                     (fun subtrees ->
                         InterleavedTestCaseEnumerableFactory.Create subtrees)
@@ -218,21 +225,26 @@
 
         let constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations factoryConstructors
                                                                                        randomBehaviour
-                                                                                       allowDuplicatedLevels =
+                                                                                       allowDuplicatedLevels
+                                                                                       allowSynthesisToPermuteInputs =
             let combinationStrength =
                 (randomBehaviour: Random).ChooseAnyNumberFromOneTo maximumCombinationStrength
             let rec constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                                                testVariableIndexToLevelsMapping
                                                                                                numberOfAncestorFactories
-                                                                                               allowEmptyValueNodes =
+                                                                                               allowEmptyValueNodes
+                                                                                               mustHavePermutingSynthesisInTree
+                                                                                               isChildOfAPermutation =
                 match randomBehaviour.ChooseAnyNumberFromOneTo 3u with
-                    1u when combinationStrength = 1u ->
+                    1u when combinationStrength = 1u
+                            && not mustHavePermutingSynthesisInTree ->
                         let indexForLeftmostTestVariable =
                             uint32 (testVariableIndexToLevelsMapping: Map<_, _>).Count
                         if randomBehaviour.HeadsItIs ()
                         then
                             let levelCountForTestVariableIntroducedHere =
                                 if allowEmptyValueNodes
+                                   && not isChildOfAPermutation
                                 then
                                     randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (1u + maximumNumberOfTestLevels)
                                 else
@@ -268,6 +280,7 @@
                                 Map.add indexForLeftmostTestVariable
                                         testVariableLevels
                                         testVariableIndexToLevelsMapping
+                            , None
                         else
                             let testVariableLevel =
                                 [(indexForLeftmostTestVariable, None)]: List<TestVariableLevel>
@@ -279,6 +292,7 @@
                             , Map.add indexForLeftmostTestVariable
                                       testVariableLevels
                                       testVariableIndexToLevelsMapping
+                            , None
                   | _ ->
                     if randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (2u * maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving)
                        < max maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving
@@ -290,45 +304,71 @@
                             BargainBasement.PartitionSizeIntoSectionsOfRandomNonZeroLength combinationStrength
                                                                                            numberOfSubtrees
                                                                                            randomBehaviour
+                        let permuteInputs =
+                            allowSynthesisToPermuteInputs
+                            && randomBehaviour.HeadsItIs ()
+
 
                         let rec createSubtrees combinationStrengthsForSubtrees
-                                               testVariableIndexToLevelsMapping =
+                                               testVariableIndexToLevelsMapping
+                                               permutationExtentsForSubtrees =
                             match combinationStrengthsForSubtrees with
                                 [] ->
                                     []
                                     , []
                                     , testVariableIndexToLevelsMapping
+                                    , permutationExtentsForSubtrees
                               | headCombinationStrength :: tail ->
                                     let subtree
                                         , testVariableCombinationFromSubtree
-                                        , testVariableIndexToLevelsMappingFromSubtree =
+                                        , testVariableIndexToLevelsMappingFromSubtree
+                                        , permutationExtentFromSubtree =
                                         constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations headCombinationStrength
                                                                                                                    testVariableIndexToLevelsMapping
                                                                                                                    (numberOfAncestorFactories + 1u)
                                                                                                                    allowEmptyValueNodes
+                                                                                                                   (mustHavePermutingSynthesisInTree
+                                                                                                                    && (not permuteInputs))
+                                                                                                                   (isChildOfAPermutation
+                                                                                                                    || permuteInputs)
                                     let remainingSubtrees
                                         , testVariableCombinationsFromRemainingSubtrees
-                                        , testVariableIndexToLevelsMappingFromRemainingSubtrees =
+                                        , testVariableIndexToLevelsMappingFromRemainingSubtrees
+                                        , permutationExtentsFromRemainingSubtrees =
                                         createSubtrees tail
                                                        testVariableIndexToLevelsMappingFromSubtree
+                                                       permutationExtentsForSubtrees
                                     subtree :: remainingSubtrees
                                     , testVariableCombinationFromSubtree :: testVariableCombinationsFromRemainingSubtrees
                                     , testVariableIndexToLevelsMappingFromRemainingSubtrees
+                                    , permutationExtentFromSubtree :: permutationExtentsFromRemainingSubtrees
                         let subtrees
                             , testVariableCombinationsFromSubtrees
-                            , testVariableIndexToLevelsMappingFromSubtrees =
+                            , testVariableIndexToLevelsMappingFromSubtrees
+                            , permutationExtentsForSubtrees =
                             createSubtrees nonZeroCombinationStrengthsForSubtrees
                                            testVariableIndexToLevelsMapping
-                        let permutedSubtrees
-                            , inversePermutation =
+                                           []
+                        let shuffledSubtrees    // NOTE: to make it clear, this has *nothing* to do with 'allowSynthesisToPermuteInputs';
+                                                // rather this is the setup for a separate, explicit *inverse* permutation that is always
+                                                // part of the synthesis function and which is therefore always applied. The idea is to
+                                                // apply a non-trivial computation for synthesis that would nevertheless boil down to doing
+                                                // a concatenation of the inputs (thus making the rest of the test logic simpler)
+                                                // - it turns out that way because the subtrees are also permuted with the corresponding
+                                                // forward permutation prior to being used for synthesis, so the result is just a plain
+                                                // concatenation.
+                                                // This came first, the support for testing implicit permutations came much later. What's
+                                                // more, when implicit permutations are enabled, the additional permuting activity really
+                                                // will reorder the contributions from the inputs.
+                            , permutationInvertingShuffle =
                             randomBehaviour.Shuffle (List.zip subtrees [0 .. subtrees.Length - 1])
                             |> Array.unzip
 
-                        let undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels listOfLevels =
-                            let inversePermutedListsOfLevels =
+                        let undoShuffleAndConcatenateContributedLevels listOfLevels =
+                            let inverseShuffledListsOfLevels =
                                 listOfLevels
-                                |> List.permute (fun inputIndex -> inversePermutation.[inputIndex])
-                            List.concat inversePermutedListsOfLevels
+                                |> List.permute (fun inputIndex -> permutationInvertingShuffle.[inputIndex])
+                            List.concat inverseShuffledListsOfLevels
 
                         let testVariableCombination =
                             testVariableCombinationsFromSubtrees
@@ -345,10 +385,38 @@
                                                     })
                                          (Some Set.empty)
 
-                        factoryConstructors.SynthesizedTestCaseEnumerableFactoryFrom permutedSubtrees
-                                                                                     undoEffectsOfPermutationOnOrderOfAndConcatenateContributedLevels
+                        let permutationExtent =
+                            if permuteInputs
+                            then
+                                let indexForLeftmostTestVariableOfExtent =
+                                    uint32 (testVariableIndexToLevelsMapping: Map<_, _>).Count
+                                let onePastIndexForRightmostTestVariableOfExtent =
+                                    uint32 (testVariableIndexToLevelsMappingFromSubtrees: Map<_, _>).Count
+                                Some ((indexForLeftmostTestVariableOfExtent
+                                       , onePastIndexForRightmostTestVariableOfExtent)
+                                      , (Array.length shuffledSubtrees
+                                         |> uint32))
+                            else
+                                None
+
+                        let permutationExtentsChoices =
+                            permutationExtent :: permutationExtentsForSubtrees
+                            |> Option<_>.GetFromMany
+
+                        let chosenPermutationExtent =
+                            if permutationExtentsChoices.IsEmpty
+                            then
+                                None
+                            else
+                                randomBehaviour.ChooseOneOf permutationExtentsChoices
+                                |> Some
+
+                        factoryConstructors.SynthesizedTestCaseEnumerableFactoryFrom shuffledSubtrees
+                                                                                     undoShuffleAndConcatenateContributedLevels
+                                                                                     permuteInputs
                         , testVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
+                        , chosenPermutationExtent
                     else
                         let numberOfSubtrees =
                             randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfNonZeroCombinationStrengthSubtrees
@@ -372,57 +440,85 @@
                             |> List.ofArray
 
                         let rec createSubtrees pairsOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice
-                                               testVariableIndexToLevelsMapping =
+                                               testVariableIndexToLevelsMapping
+                                               permutationExtentsForSubtrees =
                             match pairsOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice with
                                 [] ->
                                     []
                                     , []
                                     , testVariableIndexToLevelsMapping
+                                    , permutationExtentsForSubtrees
                               | headPairOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice :: tailPairsOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice ->
                                     let subtree
                                         , testVariableCombinationFromSubtree
-                                        , testVariableIndexToLevelsMappingFromSubtree =
+                                        , testVariableIndexToLevelsMappingFromSubtree
+                                        , permutationExtentFromSubtree =
                                         constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations (fst headPairOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice)
                                                                                                                    testVariableIndexToLevelsMapping
                                                                                                                    (numberOfAncestorFactories + 1u)
                                                                                                                    (snd headPairOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice)
+                                                                                                                   mustHavePermutingSynthesisInTree
+                                                                                                                   isChildOfAPermutation
                                     let remainingSubtrees
                                         , testVariableCombinationsFromRemainingSubtrees
-                                        , testVariableIndexToLevelsMappingFromRemainingSubtrees =
+                                        , testVariableIndexToLevelsMappingFromRemainingSubtrees
+                                        , permutationExtentsFromRemainingSubtrees =
                                         createSubtrees tailPairsOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice
                                                        testVariableIndexToLevelsMappingFromSubtree
+                                                       permutationExtentsForSubtrees
                                     subtree :: remainingSubtrees
                                     , testVariableCombinationFromSubtree :: testVariableCombinationsFromRemainingSubtrees
                                     , testVariableIndexToLevelsMappingFromRemainingSubtrees
+                                    , permutationExtentFromSubtree :: permutationExtentsFromRemainingSubtrees
                         let subtrees
                             , testVariableCombinationsFromSubtrees
-                            , testVariableIndexToLevelsMappingFromSubtrees =
+                            , testVariableIndexToLevelsMappingFromSubtrees
+                            , permutationExtentsForSubtrees =
                             createSubtrees (List.zip combinationStrengths whetherToAllowEmptyValueNodeChoices)
                                            testVariableIndexToLevelsMapping
+                                           []
                         let achievableTestVariableCombinationsFromSubtrees =
                             testVariableCombinationsFromSubtrees
-                            |> List.filter Option.isSome
+                            |> Option<_>.GetFromMany
                         let chosenTestVariableCombination =
                             if List.isEmpty achievableTestVariableCombinationsFromSubtrees
                             then
                                 None
                             else
                                 randomBehaviour.ChooseOneOf achievableTestVariableCombinationsFromSubtrees
+                                |> Some
+
+                        let permutationExtentsChoices =
+                            permutationExtentsForSubtrees
+                            |> Option<_>.GetFromMany
+
+                        let chosenPermutationExtent =
+                            if permutationExtentsChoices.IsEmpty
+                            then
+                                None
+                            else
+                                randomBehaviour.ChooseOneOf permutationExtentsChoices
+                                |> Some
 
                         factoryConstructors.InterleavedTestCaseEnumerableFactoryFrom subtrees
                         , chosenTestVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
+                        , chosenPermutationExtent
 
             let testCaseEnumerableFactory
                 , testVariableCombination
-                , testVariableIndexToLevelsMapping =
+                , testVariableIndexToLevelsMapping
+                , permutationExtent =
                 constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                                            Map.empty
                                                                                            0u
                                                                                            false
+                                                                                           allowSynthesisToPermuteInputs
+                                                                                           false
             testCaseEnumerableFactory
             , testVariableCombination.Value
             , testVariableIndexToLevelsMapping
+            , permutationExtent
 
         let randomBehaviourSeed = 23
 
@@ -447,9 +543,11 @@
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumerableFactory
                     , testVariableCombination
-                    , testVariableIndexToLevelsMapping =
+                    , testVariableIndexToLevelsMapping
+                    , permutationExtent =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                randomBehaviour
+                                                                                               false
                                                                                                false
                 let maximumStrength =
                     randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
@@ -467,6 +565,108 @@
                             randomBehaviour
 
         [<Test>]
+        member this.TestCoverageOfImplicitPermutationsIsComplete () =
+            let randomBehaviour = Random randomBehaviourSeed
+            for _ in 1u .. overallTestRepeats do
+                printf "\n\n\n******************************\n\n\n"
+                let testCaseEnumerableFactory
+                    , testVariableCombination
+                    , testVariableIndexToLevelsMapping
+                    , Some permutationExtent =
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
+                                                                                               randomBehaviour
+                                                                                               false
+                                                                                               true
+                let maximumStrength =
+                    randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
+                let testCaseEnumerable =
+                    testCaseEnumerableFactory.CreateEnumerable maximumStrength
+
+
+                let testCases =
+                    testCaseEnumerableFactory.CreateTypedEnumerable maximumStrength
+
+                let lhsTestVariableFromPermutationExtent =
+                    (fst >> fst) permutationExtent
+
+                let onePastRhsTestVariableFromPermutationExtent =
+                    (fst >> snd) permutationExtent
+
+                let slicedTestCases =
+                    testCases
+                    |> Seq.map (List.filter (fun (testVariableIndex
+                                                  , _) ->
+                                                lhsTestVariableFromPermutationExtent <= testVariableIndex
+                                                && testVariableIndex < onePastRhsTestVariableFromPermutationExtent))
+                    |> Set.ofSeq   // Eliminate duplicates caused by slicing throwing away distinguishing state.
+                    |> Set.remove List.empty
+
+                let chosenSlicedTestCaseToSelectTestVariables =
+                    randomBehaviour.ChooseOneOf slicedTestCases
+
+                let numberOfTestVariablesInSliceThatPermutationCoverageIsGuaranteedFor =
+                    let numberOfTestVariablesCoveredByPermutationExtent =
+                        onePastRhsTestVariableFromPermutationExtent - lhsTestVariableFromPermutationExtent
+                    (maximumStrength
+                     |> max 1u) - 1u    // Subtract one to make room for the implicit permutation
+                                        // test variable - this is what this test is checking.
+                    |> min numberOfTestVariablesCoveredByPermutationExtent
+
+                let chosenTestVariablesToCheckPermutationCoverageFor =
+                    let testVariablesToChooseFrom =
+                        chosenSlicedTestCaseToSelectTestVariables
+                        |> List.map fst
+                    if numberOfTestVariablesInSliceThatPermutationCoverageIsGuaranteedFor
+                       < (List.length chosenSlicedTestCaseToSelectTestVariables
+                          |> uint32)
+                    then
+                        randomBehaviour.ChooseSeveralOf (testVariablesToChooseFrom,
+                                                         numberOfTestVariablesInSliceThatPermutationCoverageIsGuaranteedFor)
+                        :> seq<_>
+                    else
+                        testVariablesToChooseFrom
+                        :> seq<_>
+                    |> Set.ofSeq
+
+                let finelySlicedTestCases =
+                    slicedTestCases
+                    |> Set.map (List.filter (fun (testVariableIndex
+                                                  , _) ->
+                                                chosenTestVariablesToCheckPermutationCoverageFor.Contains testVariableIndex))
+                    |> Set.remove List.empty
+                    // Again, more elimination of duplicates caused by throwing away distinguishing state.
+
+                let finelySlicedTestCasesGroupedByTestLevelCombinations =
+                    finelySlicedTestCases
+                    |> Set.fold (fun finelySlicedTestCasesGroupedByTestLevelCombinations
+                                     finelySlicedTestCase ->
+                                        let groupKey =
+                                            finelySlicedTestCase
+                                            |> Set.ofList
+                                        let groupWithFinelySlicedTestCaseAdded =
+                                            defaultArg (finelySlicedTestCasesGroupedByTestLevelCombinations
+                                                        |> Map.tryFind groupKey
+                                                        |> Option.bind (Set.add finelySlicedTestCase
+                                                                        >> Some))
+                                                       (Set.singleton finelySlicedTestCase)
+                                        finelySlicedTestCasesGroupedByTestLevelCombinations
+                                        |> Map.add groupKey
+                                                   groupWithFinelySlicedTestCaseAdded)
+                                Map.empty
+
+                let numberOfPermutationsExpected =
+                    snd permutationExtent
+                    |> BargainBasement.Factorial
+
+                for _
+                    , group in finelySlicedTestCasesGroupedByTestLevelCombinations
+                               |> Map.toSeq do
+                    let shouldBeTrue =
+                        Set.count group
+                        |> uint32 = numberOfPermutationsExpected
+                    Assert.IsTrue shouldBeTrue
+
+        [<Test>]
         member this.TestThatZeroStrengthResultsInAnEmptyTestCaseSequence () =
             let randomBehaviour = Random randomBehaviourSeed
             for _ in 1u .. overallTestRepeats do
@@ -475,10 +675,12 @@
                     randomBehaviour.Next()
                 let testCaseEnumerableFactory
                     , _
+                    , _
                     , _ =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
                                                                                                randomBehaviour
                                                                                                false
+                                                                                               true
 
                 let shouldBeTrue =
                     seq
@@ -562,15 +764,19 @@
                 let testCaseEnumerableFactory
                     , _
                     , _
+                    , _
                     = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                  copiedRandomBehaviourOne
                                                                                                  false
+                                                                                                 false
                 let testCaseEnumerableFactoryBasedOnDuplicateLevels
+                    , _
                     , _
                     , _
                     = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                  copiedRandomBehaviourTwo
                                                                                                  true
+                                                                                                 false
                 let maximumStrength =
                     testCaseEnumerableFactory.MaximumStrength
                 let shouldBeTrue =
@@ -601,9 +807,11 @@
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumerableFactory
                     , testVariableCombination
-                    , testVariableIndexToLevelsMapping =
+                    , testVariableIndexToLevelsMapping
+                    , _ =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                randomBehaviour
+                                                                                               false
                                                                                                false
                 let maximumStrength =
                     testCaseEnumerableFactory.MaximumStrength
@@ -659,10 +867,12 @@
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumerableFactory
                     , _
+                    , _
                     , _ =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
                                                                                                randomBehaviour
                                                                                                false
+                                                                                               true
                 let randomStrength =
                     randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
                 let randomTestCase =
@@ -731,15 +941,19 @@
                     Random sharedSeed
                 let weaklyTypedTestCaseEnumerableFactory
                     , _
+                    , _
                     , _ =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                copiedRandomBehaviourOne
                                                                                                false
+                                                                                               false
                 let stronglyTypedTestCaseEnumerableFactory
+                    , _
                     , _
                     , _ =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
                                                                                                copiedRandomBehaviourTwo
+                                                                                               false
                                                                                                false
                 let shouldBeTrue =
                     weaklyTypedTestCaseEnumerableFactory.MaximumStrength = stronglyTypedTestCaseEnumerableFactory.MaximumStrength

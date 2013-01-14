@@ -5,6 +5,7 @@
     open SageSerpent.Infrastructure
     open SageSerpent.Infrastructure.ListExtensions
     open SageSerpent.Infrastructure.RandomExtensions
+    open SageSerpent.Infrastructure.OptionExtensions
     open System
 
     [<TestFixture>]
@@ -113,9 +114,9 @@
                             _ =
                 for crossProductList in List.CrossProduct inputList do
                     crossProductList
-                    |> List.filter Option.isSome
+                    |> Option<_>.GetFromMany
                     |> List.iteri (fun index
-                                       (Some item) ->
+                                       item ->
                                         let shouldBeTrue =
                                             item >= 2 * index
                                             && item <= 2 * index + 1
@@ -135,9 +136,9 @@
                 let itemToCountAssociation =
                     [for crossProductList in crossProduct do
                         yield! crossProductList]
-                    |> List.filter Option.isSome
+                    |> Option<_>.GetFromMany
                     |> List.fold (fun itemToCountAssociation
-                                      (Some item) ->
+                                      item ->
                                         match itemToCountAssociation
                                               |> Map.tryFind item with
                                             Some count ->

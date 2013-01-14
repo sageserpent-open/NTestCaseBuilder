@@ -329,6 +329,11 @@ namespace NTestCaseBuilder
         /// input test cases, it also imposes homogenity of the nominal type across the input test cases used in the
         /// synthesis; this approach avoids worrying about consistency of the arity of the actual delegate implementation,
         /// trading off some flexibility of the input test case types.</remarks>
+        /// <remarks>There is another overload that does almost exactly the same thing; that overload
+        /// adds the choice of whether to apply permutations across the inputs. This overload is provided as an
+        /// alternative to implementing an optional parameter whose default switches the permutation
+        /// behaviour off; doing it this way means that C# clients don't require a reference to 'FSharp.Core.dll'
+        /// that would have been caused if we used the "?parameter" form.</remarks>
         /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases form inputs
         /// for synthesis.</param>
         /// <param name="condensation">Delegate in strongly-typed form used to synthesize the output test cases from the input
@@ -337,6 +342,31 @@ namespace NTestCaseBuilder
         /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
         static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TypedTestCaseEnumerableFactory<'TestCaseListElement>>,
                               condensation: SequenceCondensation<'TestCaseListElement, 'SynthesizedTestCase>) =
+            SynthesizedTestCaseEnumerableFactory.Create (sequenceOfFactoriesProvidingInputsToSynthesis,
+                                                         condensation,
+                                                         false)
+
+        /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
+        /// out of a combination of input test cases taken from across the sequences yielded by the the child
+        /// factories used to construct the factory. The input test cases are combined by means of a delegate
+        /// that takes them a sequence and synthesises an output test case.</remarks>
+        /// <remarks>This is strongly typed - and as the condensation delegate takes a single sequence that bundles up the
+        /// input test cases, it also imposes homogenity of the nominal type across the input test cases used in the
+        /// synthesis; this approach avoids worrying about consistency of the arity of the actual delegate implementation,
+        /// trading off some flexibility of the input test case types.</remarks>
+        /// <remarks>There is another overload that does almost exactly the same thing; that overload does
+        /// not permit the option of applying permutations across the inputs.</remarks>
+        /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases form inputs
+        /// for synthesis.</param>
+        /// <param name="condensation">Delegate in strongly-typed form used to synthesize the output test cases from the input
+        /// test cases passed together to it as a list.</param>
+        /// <param name="permuteInputs">If </param>
+        /// <returns>The constructed factory.</returns>
+        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
+        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TypedTestCaseEnumerableFactory<'TestCaseListElement>>,
+                              condensation: SequenceCondensation<'TestCaseListElement, 'SynthesizedTestCase>,
+                              permuteInputs: Boolean) =
             let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
                 {
                     new IFixedCombinationOfSubtreeNodesForSynthesis with
@@ -356,7 +386,7 @@ namespace NTestCaseBuilder
                                                       , sliceOfFullTestVectorCorrespondingToSubtree) ->
                                                     subtreeRootNode.FinalValueCreator () sliceOfFullTestVectorCorrespondingToSubtree)
                                 condensation.Invoke resultsFromSubtrees
-                            |> mediateFinalValueCreatorType    
+                            |> mediateFinalValueCreatorType
                 }
             let subtreeRootNodes =
                 sequenceOfFactoriesProvidingInputsToSynthesis
@@ -367,4 +397,3 @@ namespace NTestCaseBuilder
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes
                 |> SynthesizingNode
             TypedTestCaseEnumerableFactory<'SynthesizedTestCase> node
-

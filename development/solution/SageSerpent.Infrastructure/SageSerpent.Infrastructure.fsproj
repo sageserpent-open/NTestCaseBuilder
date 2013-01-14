@@ -52,8 +52,8 @@
     <Compile Include="BargainBasement.fs" />
     <Compile Include="CombinatoricUtilities.fs" />
     <Compile Include="NUnitTestSuiteDriver.fs" />
-    <Compile Include="OptionWorkflow.fs" />
     <Compile Include="OptionExtensions.fs" />
+    <Compile Include="OptionWorkflow.fs" />
     <Compile Include="ContinuationWorkflow.fs" />
     <None Include="packages.config" />
   </ItemGroup>

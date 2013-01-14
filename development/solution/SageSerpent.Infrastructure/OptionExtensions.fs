@@ -1,15 +1,15 @@
 ﻿module SageSerpent.Infrastructure.OptionExtensions
 
     type Microsoft.FSharp.Core.Option<'X> with
-        static member MPlus lhs rhs =
-            match lhs with
+        member inline this.OrElse rhs =
+            match this with
                 Some _ ->
-                    lhs
+                    this
               | None ->
                     rhs
-        static member LazyMPlus lhs (rhs: Lazy<Option<'X>>) =
-            match lhs with
-                Some _ ->
-                    lhs
-              | None ->
-                    rhs.Value
+
+        static member GetFromMany many =
+            many
+            |> List.filter Option.isSome
+            |> List.map Option.get
+

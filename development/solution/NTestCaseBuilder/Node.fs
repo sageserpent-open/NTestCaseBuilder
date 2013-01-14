@@ -9,6 +9,7 @@ namespace NTestCaseBuilder
     open SageSerpent.Infrastructure.RandomExtensions
     open SageSerpent.Infrastructure.ListExtensions
     open SageSerpent.Infrastructure.OptionWorkflow
+    open SageSerpent.Infrastructure.OptionExtensions
     open Microsoft.FSharp.Collections
 
     type NodeVisitOperations<'Result> =
@@ -110,8 +111,7 @@ namespace NTestCaseBuilder
                         let prunedSubtreeRootNodes =
                             subtreeRootNodes
                             |> List.map walkTree
-                            |> List.filter Option.isSome
-                            |> List.map Option.get
+                            |> Option<_>.GetFromMany
                         if Seq.isEmpty prunedSubtreeRootNodes
                         then
                             None
@@ -599,8 +599,7 @@ namespace NTestCaseBuilder
                 subtreeRootNodes
                 |> List.map (fun (node: Node) ->
                                 node.PruneTree)
-                |> List.filter Option.isSome
-                |> List.map Option.get
+                |> Option<_>.GetFromMany
             if not (Seq.isEmpty prunedSubtreeRootNodes)
                 && Seq.length prunedSubtreeRootNodes
                     = Seq.length subtreeRootNodes

@@ -1,5 +1,7 @@
 ﻿module SageSerpent.Infrastructure.OptionWorkflow
 
+    open OptionExtensions
+
     type Builder () =
         member inline this.Bind (lhs: Option<'UnliftedLhsResult>,
                                  rhs: 'UnliftedLhsResult -> Option<'UnliftedRhsResult>): Option<'UnliftedRhsResult> =
@@ -18,6 +20,10 @@
 
         member inline this.Delay (delayedExpression: (Unit -> Option<'Unlifted>)) =
             delayedExpression ()
+
+        member inline this.Combine (lhs: Option<'Unlifted>,
+                                    rhs: Option<'Unlifted>) =
+            lhs.OrElse rhs
 
         member inline this.Zero () =
             None
