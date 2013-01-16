@@ -306,8 +306,11 @@
                                                                                            randomBehaviour
                         let permuteInputs =
                             allowSynthesisToPermuteInputs
-                            && randomBehaviour.HeadsItIs ()
-
+                            && match randomBehaviour.ChooseAnyNumberFromOneTo 3u with
+                                1u ->
+                                    true
+                              | _ ->
+                                    false
 
                         let rec createSubtrees combinationStrengthsForSubtrees
                                                testVariableIndexToLevelsMapping
