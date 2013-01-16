@@ -449,31 +449,43 @@
                             |> randomBehaviour.Shuffle
                             |> List.ofArray
 
-                        let rec createSubtrees pairsOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice
+                        let mustHavePermutingSynthesisInTreeChoices =
+                            let choices =
+                                mustHavePermutingSynthesisInTree
+                                :: [
+                                    for _ in [2u .. numberOfSubtrees] do
+                                        yield false
+                                   ]
+                            randomBehaviour.Shuffle choices
+                            |> List.ofArray
+
+                        let rec createSubtrees triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                testVariableIndexToLevelsMapping
                                                permutationExtentsForSubtrees =
-                            match pairsOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice with
+                            match triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice with
                                 [] ->
                                     []
                                     , []
                                     , testVariableIndexToLevelsMapping
                                     , permutationExtentsForSubtrees
-                              | headPairOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice :: tailPairsOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice ->
+                              | (subtreeCombinationStrength
+                                 , whetherToAllowEmptyValueNodeChoiceInSubtree
+                                 , mustHavePermutingSynthesisInTreeChoiceInSubtree) :: tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice ->
                                     let subtree
                                         , testVariableCombinationFromSubtree
                                         , testVariableIndexToLevelsMappingFromSubtree
                                         , permutationExtentFromSubtree =
-                                        constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations (fst headPairOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice)
+                                        constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations subtreeCombinationStrength
                                                                                                                    testVariableIndexToLevelsMapping
                                                                                                                    (numberOfAncestorFactories + 1u)
-                                                                                                                   (snd headPairOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice)
-                                                                                                                   mustHavePermutingSynthesisInTree
+                                                                                                                   whetherToAllowEmptyValueNodeChoiceInSubtree
+                                                                                                                   mustHavePermutingSynthesisInTreeChoiceInSubtree
                                                                                                                    isChildOfAPermutation
                                     let remainingSubtrees
                                         , testVariableCombinationsFromRemainingSubtrees
                                         , testVariableIndexToLevelsMappingFromRemainingSubtrees
                                         , permutationExtentsFromRemainingSubtrees =
-                                        createSubtrees tailPairsOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoice
+                                        createSubtrees tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                        testVariableIndexToLevelsMappingFromSubtree
                                                        permutationExtentsForSubtrees
                                     subtree :: remainingSubtrees
@@ -484,7 +496,9 @@
                             , testVariableCombinationsFromSubtrees
                             , testVariableIndexToLevelsMappingFromSubtrees
                             , permutationExtentsForSubtrees =
-                            createSubtrees (List.zip combinationStrengths whetherToAllowEmptyValueNodeChoices)
+                            createSubtrees (List.zip3 combinationStrengths
+                                                      whetherToAllowEmptyValueNodeChoices
+                                                      mustHavePermutingSynthesisInTreeChoices)
                                            testVariableIndexToLevelsMapping
                                            []
                         let achievableTestVariableCombinationsFromSubtrees =
