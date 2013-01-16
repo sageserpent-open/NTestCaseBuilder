@@ -153,9 +153,8 @@
 
     [<TestFixture>]
     type TestCaseEnumerableFactoryTestFixture () =
-        let maximumCombinationStrength = 6u
+        let maximumCombinationStrength = 5u
         let maximumNumberOfNonZeroCombinationStrengthSubtrees = 4u
-        let maximumNumberOfZeroCombinationStrengthSubtrees = 2u
         let maximumNumberOfTestLevels = 3u
         let maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving = 2u;
 
@@ -233,8 +232,7 @@
                                                                                                testVariableIndexToLevelsMapping
                                                                                                numberOfAncestorFactories
                                                                                                allowEmptyValueNodes
-                                                                                               mustHavePermutingSynthesisInTree
-                                                                                               isChildOfAPermutation =
+                                                                                               mustHavePermutingSynthesisInTree =
                 match randomBehaviour.ChooseAnyNumberFromOneTo 3u with
                     1u when combinationStrength = 1u
                             && not mustHavePermutingSynthesisInTree ->
@@ -244,7 +242,11 @@
                         then
                             let levelCountForTestVariableIntroducedHere =
                                 if allowEmptyValueNodes
-                                   && not isChildOfAPermutation
+                                   && not mustHavePermutingSynthesisInTree
+                                   // NOTE: the second part of the conjunction serves two purposes - it stops siblings of
+                                   // potential permutation examples from being prunable (and thus preventing the permutation
+                                   // example from being generated), and it ensures that if a permutation example is needed,
+                                   // then recursion will eventually make one.
                                 then
                                     randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (1u + maximumNumberOfTestLevels)
                                 else
@@ -304,41 +306,87 @@
                             BargainBasement.PartitionSizeIntoSectionsOfRandomNonZeroLength combinationStrength
                                                                                            numberOfSubtrees
                                                                                            randomBehaviour
-                        let permuteInputs =
-                            allowSynthesisToPermuteInputs
-                            && match randomBehaviour.ChooseAnyNumberFromOneTo 3u with
+
+                        let permuteInputsAndForbidPruning =
+                            let oddsAgainstPermuting =
+                                5u
+                                / numberOfSubtrees
+                            mustHavePermutingSynthesisInTree
+                            && match randomBehaviour.ChooseAnyNumberFromOneTo (1u + oddsAgainstPermuting) with
                                 1u ->
                                     true
                               | _ ->
                                     false
 
-                        let rec createSubtrees combinationStrengthsForSubtrees
+                        let permuteInputs =
+                            permuteInputsAndForbidPruning
+                            || allowSynthesisToPermuteInputs
+                               && match randomBehaviour.ChooseAnyNumberFromOneTo 5u with
+                                    1u ->
+                                        true
+                                    | _ ->
+                                        false
+
+                        let pairsOfWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice =
+                            let choices =
+                                if mustHavePermutingSynthesisInTree
+                                then
+                                    [
+                                        yield allowEmptyValueNodes
+                                              , true
+                                        for _ in [2u .. numberOfSubtrees] do
+                                            yield false // The siblings of a subtree containing the permutation example musn't be
+                                                        // prunable, as that might make this subtree (and thus the permutation example)
+                                                        // prunable too.
+                                                  , false
+                                    ]
+                                else
+                                    [
+                                        for _ in [1u .. numberOfSubtrees] do
+                                            yield allowEmptyValueNodes
+                                                  , false
+                                    ]
+                            randomBehaviour.Shuffle choices
+                            |> List.ofArray
+
+                        let triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice =
+                            List.zip nonZeroCombinationStrengthsForSubtrees
+                                     pairsOfWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
+                            |> List.map (fun (strength
+                                              , (whetherToAllowEmptyValueNode
+                                                 , mustHavePermutingSynthesisInTree)) ->
+                                              strength
+                                              , whetherToAllowEmptyValueNode
+                                              , mustHavePermutingSynthesisInTree)
+
+                        let rec createSubtrees triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                testVariableIndexToLevelsMapping
                                                permutationExtentsForSubtrees =
-                            match combinationStrengthsForSubtrees with
+                            match triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice with
                                 [] ->
                                     []
                                     , []
                                     , testVariableIndexToLevelsMapping
                                     , permutationExtentsForSubtrees
-                              | headCombinationStrength :: tail ->
+                              | (subtreeCombinationStrength
+                                 , allowEmptyValueNodeInSubtree
+                                 , mustHavePermutingSynthesisInTreeInSubtree) :: tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice ->
                                     let subtree
                                         , testVariableCombinationFromSubtree
                                         , testVariableIndexToLevelsMappingFromSubtree
                                         , permutationExtentFromSubtree =
-                                        constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations headCombinationStrength
+                                        constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations subtreeCombinationStrength
                                                                                                                    testVariableIndexToLevelsMapping
                                                                                                                    (numberOfAncestorFactories + 1u)
-                                                                                                                   allowEmptyValueNodes
-                                                                                                                   (mustHavePermutingSynthesisInTree
-                                                                                                                    && (not permuteInputs))
-                                                                                                                   (isChildOfAPermutation
-                                                                                                                    || permuteInputs)
+                                                                                                                   (allowEmptyValueNodeInSubtree
+                                                                                                                    && not permuteInputsAndForbidPruning)
+                                                                                                                   (mustHavePermutingSynthesisInTreeInSubtree
+                                                                                                                    && not permuteInputsAndForbidPruning)
                                     let remainingSubtrees
                                         , testVariableCombinationsFromRemainingSubtrees
                                         , testVariableIndexToLevelsMappingFromRemainingSubtrees
                                         , permutationExtentsFromRemainingSubtrees =
-                                        createSubtrees tail
+                                        createSubtrees tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                        testVariableIndexToLevelsMappingFromSubtree
                                                        permutationExtentsForSubtrees
                                     subtree :: remainingSubtrees
@@ -349,7 +397,7 @@
                             , testVariableCombinationsFromSubtrees
                             , testVariableIndexToLevelsMappingFromSubtrees
                             , permutationExtentsForSubtrees =
-                            createSubtrees nonZeroCombinationStrengthsForSubtrees
+                            createSubtrees triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                            testVariableIndexToLevelsMapping
                                            []
                         let shuffledSubtrees    // NOTE: to make it clear, this has *nothing* to do with 'allowSynthesisToPermuteInputs';
@@ -389,7 +437,7 @@
                                          (Some Set.empty)
 
                         let permutationExample =
-                            if permuteInputs
+                            if permuteInputsAndForbidPruning
                             then
                                 testVariableCombinationsFromSubtrees
                                 |> List.fold (fun permutationExample
@@ -444,6 +492,9 @@
                         let whetherToAllowEmptyValueNodeChoices =
                             let halfNumberOfSubtreesRoundedDown =
                                 numberOfSubtrees / 2u
+                                // Rounding down causes the next binding to favour the cause of *not* flipping 'allowEmptyValueNodes'
+                                // - that way, if we have a trivial interleave with just a single subtree, 'allowEmptyValueNodes' will
+                                // not be flipped.
                             Seq.append (Seq.init (int32 halfNumberOfSubtreesRoundedDown) (fun _ -> not allowEmptyValueNodes))
                                        (Seq.init (int32 (numberOfSubtrees - halfNumberOfSubtreesRoundedDown)) (fun _ -> allowEmptyValueNodes))
                             |> randomBehaviour.Shuffle
@@ -451,11 +502,11 @@
 
                         let mustHavePermutingSynthesisInTreeChoices =
                             let choices =
-                                mustHavePermutingSynthesisInTree
-                                :: [
+                                [
+                                    yield mustHavePermutingSynthesisInTree
                                     for _ in [2u .. numberOfSubtrees] do
                                         yield false
-                                   ]
+                                ]
                             randomBehaviour.Shuffle choices
                             |> List.ofArray
 
@@ -469,8 +520,8 @@
                                     , testVariableIndexToLevelsMapping
                                     , permutationExtentsForSubtrees
                               | (subtreeCombinationStrength
-                                 , whetherToAllowEmptyValueNodeChoiceInSubtree
-                                 , mustHavePermutingSynthesisInTreeChoiceInSubtree) :: tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice ->
+                                 , allowEmptyValueNodeInSubtree
+                                 , mustHavePermutingSynthesisInTreeInSubtree) :: tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice ->
                                     let subtree
                                         , testVariableCombinationFromSubtree
                                         , testVariableIndexToLevelsMappingFromSubtree
@@ -478,9 +529,8 @@
                                         constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations subtreeCombinationStrength
                                                                                                                    testVariableIndexToLevelsMapping
                                                                                                                    (numberOfAncestorFactories + 1u)
-                                                                                                                   whetherToAllowEmptyValueNodeChoiceInSubtree
-                                                                                                                   mustHavePermutingSynthesisInTreeChoiceInSubtree
-                                                                                                                   isChildOfAPermutation
+                                                                                                                   allowEmptyValueNodeInSubtree
+                                                                                                                   mustHavePermutingSynthesisInTreeInSubtree
                                     let remainingSubtrees
                                         , testVariableCombinationsFromRemainingSubtrees
                                         , testVariableIndexToLevelsMappingFromRemainingSubtrees
@@ -538,7 +588,6 @@
                                                                                            0u
                                                                                            false
                                                                                            allowSynthesisToPermuteInputs
-                                                                                           false
             testCaseEnumerableFactory
             , testVariableCombination.Value
             , testVariableIndexToLevelsMapping
@@ -601,6 +650,9 @@
                                                                                                randomBehaviour
                                                                                                false
                                                                                                true
+
+                printf "Permutation example: %A\n" permutationExample
+
                 let maximumStrength =
                     randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
                 let testCaseEnumerable =
@@ -653,7 +705,15 @@
                                                   , _) ->
                                                 chosenTestVariablesToCheckPermutationCoverageFor.Contains testVariableIndex))
                     |> Set.remove List.empty
+                    |> Set.filter (fun testCase ->
+                                    List.length testCase
+                                    |> uint32
+                                     = numberOfTestVariablesInSliceThatPermutationCoverageIsGuaranteedFor)
                     // Again, more elimination of duplicates caused by throwing away distinguishing state.
+                    // Furthermore, eliminate any test cases whose finely sliced test variables form proper
+                    // subsets of the fine slice - this can happen when some of the test variables in the
+                    // permutation example are individually bracketed by interleaves - so they can drop out
+                    // of a test case.
 
                 let finelySlicedTestCasesGroupedByTestLevelCombinations =
                     finelySlicedTestCases
