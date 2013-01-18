@@ -5,6 +5,7 @@
     open SageSerpent.Infrastructure
     open SageSerpent.Infrastructure.ListExtensions
     open SageSerpent.Infrastructure.RandomExtensions
+    open SageSerpent.Infrastructure.OptionExtensions
     open NTestCaseBuilder
     open System
     open System.Windows.Forms
@@ -328,8 +329,7 @@
                             let chosenPairsOfInterleavedTestVariableIndices =
                                 (List.zip groupsForSubtreeRoots whetherInterleavedNodeChoices)
                                 |> List.map chooseAPairOfInterleavedTestVariableIndices
-                                |> List.filter Option.isSome
-                                |> List.map Option.get
+                                |> Option<_>.GetFromMany
                             let subtreeRootFromSpannedNodes (nodeAndItsSpannedTestVariableIndicesPairs
                                                              , whetherInterleavedNodeChoice) =
                                 if List.length nodeAndItsSpannedTestVariableIndicesPairs = 1
