@@ -243,10 +243,8 @@
                             let levelCountForTestVariableIntroducedHere =
                                 if allowEmptyValueNodes
                                    && not mustHavePermutingSynthesisInTree
-                                   // NOTE: the second part of the conjunction serves two purposes - it stops siblings of
-                                   // potential permutation examples from being prunable (and thus preventing the permutation
-                                   // example from being generated), and it ensures that if a permutation example is needed,
-                                   // then recursion will eventually make one.
+                                   // NOTE: the second part of the conjunction ensures that if a permutation
+                                   // example is needed, then recursion will eventually make one.
                                 then
                                     randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (1u + maximumNumberOfTestLevels)
                                 else
