@@ -149,6 +149,9 @@ namespace NTestCaseBuilder
     type SequenceCondensation<'Item, 'Result> =
         delegate of seq<'Item> -> 'Result
 
+    type Permutation<'Item> =
+        delegate of seq<'Item> -> List<'Item>
+
     type SynthesizedTestCaseEnumerableFactory =
         /// <summary>Constructor function that creates an instance of TestCaseEnumerableFactory.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -343,9 +346,38 @@ namespace NTestCaseBuilder
         /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
         static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TypedTestCaseEnumerableFactory<'TestCaseListElement>>,
                               condensation: SequenceCondensation<'TestCaseListElement, 'SynthesizedTestCase>) =
-            SynthesizedTestCaseEnumerableFactory.Create (sequenceOfFactoriesProvidingInputsToSynthesis,
-                                                         condensation,
-                                                         false)
+            let subtreeRootNodesFromExplicitFactories =
+                sequenceOfFactoriesProvidingInputsToSynthesis
+                |> List.ofSeq
+                |> List.map (fun factory
+                                -> factory.Node)
+            let fixedCombinationOfSubtreeNodesForSynthesis =
+                let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
+                    {
+                        new IFixedCombinationOfSubtreeNodesForSynthesis with
+                            member this.Prune =
+                                Node.PruneAndCombine subtreeRootNodes
+                                                        fixedCombinationOfSubtreeNodesForSynthesis
+
+                            member this.Nodes =
+                                subtreeRootNodes
+
+                            member this.FinalValueCreator () =
+                                fun slicesOfFullTestVector ->
+                                    let resultsFromSubtrees =
+                                        List.zip subtreeRootNodes
+                                                 slicesOfFullTestVector
+                                        |> List.map (fun (subtreeRootNode
+                                                          , sliceOfFullTestVectorCorrespondingToSubtree) ->
+                                                        subtreeRootNode.FinalValueCreator () sliceOfFullTestVectorCorrespondingToSubtree)
+                                    condensation.Invoke resultsFromSubtrees
+                                |> mediateFinalValueCreatorType
+                    }
+                fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesFromExplicitFactories
+            let node =
+                fixedCombinationOfSubtreeNodesForSynthesis
+                |> SynthesizingNode
+            TypedTestCaseEnumerableFactory<'SynthesizedTestCase> node
 
         /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -356,97 +388,107 @@ namespace NTestCaseBuilder
         /// input test cases, it also imposes homogenity of the nominal type across the input test cases used in the
         /// synthesis; this approach avoids worrying about consistency of the arity of the actual delegate implementation,
         /// trading off some flexibility of the input test case types.</remarks>
+        /// <remarks>There is an option to apply a permutation to the input test cases before they are submitted to
+        /// the condensation delegate, in other words, the input tests cases are reordered before being processed. The
+        /// choice of permutation that is used to generate each output test case is systematically varied as another
+        /// implicit test variable that contributes to the synthesis; it is therefore subject to the strength guarantees
+        /// documented for TestCaseEnumerableFactory.</remarks>
         /// <remarks>There is another overload that does almost exactly the same thing; that overload does
         /// not permit the option of applying permutations across the inputs.</remarks>
         /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases form inputs
         /// for synthesis.</param>
         /// <param name="condensation">Delegate in strongly-typed form used to synthesize the output test cases from the input
         /// test cases passed together to it as a list.</param>
-        /// <param name="permuteInputs">If </param>
+        /// <param name="permuteInputs">Whether to permute the input test cases prior to submitting them to the condensation delegate.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
         static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TypedTestCaseEnumerableFactory<'TestCaseListElement>>,
                               condensation: SequenceCondensation<'TestCaseListElement, 'SynthesizedTestCase>,
                               permuteInputs: Boolean) =
+            if permuteInputs
+            then
+                let intermediateFactory =
+                    SynthesizedTestCaseEnumerableFactory.CreateWithPermutation sequenceOfFactoriesProvidingInputsToSynthesis
+                let permuteAndCondense (unshuffledResultsFromSubtrees
+                                        , shuffle: Permutation<'TestCaseListElement>) =
+                    shuffle.Invoke unshuffledResultsFromSubtrees
+                    |> condensation.Invoke
+
+                SynthesizedTestCaseEnumerableFactory.Create (intermediateFactory,
+                                                             UnaryDelegate(permuteAndCondense))
+            else
+                SynthesizedTestCaseEnumerableFactory.Create (sequenceOfFactoriesProvidingInputsToSynthesis,
+                                                             condensation)
+
+        /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;List&lt;'TestCaseListElement&gt; * Permutation&lt;'TestCaseListElement&gt;&gt;.</summary>
+        /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
+        /// out of a combination of input test cases taken from across the sequences yielded by the the child
+        /// factories used to construct the factory. The input test cases are combined into a sequence that forms
+        /// an output test case. At the same time, a permutation function is created can shuffle the output test case
+        /// (or any other sequence of the same size). The idea is to allow subsequent transformation of the output test cases
+        /// item-by-item followed by applying the permutatiosn to shuffle the transformed test cases.</remarks>
+        /// <remarks>The choice of permutation that is used to generate each output test case is systematically varied
+        /// as another implicit test variable that contributes to the synthesis; it is therefore subject to the strength
+        /// guarantees documented for TestCaseEnumerableFactory.</remarks>
+        /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases form inputs
+        /// for synthesis.</param>
+        /// <returns>The constructed factory.</returns>
+        static member CreateWithPermutation (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TypedTestCaseEnumerableFactory<'TestCaseListElement>>) =
             let subtreeRootNodesFromExplicitFactories =
                 sequenceOfFactoriesProvidingInputsToSynthesis
                 |> List.ofSeq
                 |> List.map (fun factory
                                 -> factory.Node)
             let fixedCombinationOfSubtreeNodesForSynthesis =
-                if permuteInputs
-                then
-                    let subtreeRootNodesIncludingImplicitFactoryForPermutation =
-                        let numberOfExplicitlySuppliedFactories =
-                            Seq.length sequenceOfFactoriesProvidingInputsToSynthesis
-                            |> uint32
-                        let numberOfPermutations =
-                            BargainBasement.Factorial numberOfExplicitlySuppliedFactories
-                        let additionalFactoryForPermutations =
-                            TestVariableLevelEnumerableFactory.Create [0u .. numberOfPermutations - 1u |> uint32]
-                        [
-                            yield additionalFactoryForPermutations.Node
-                            yield! subtreeRootNodesFromExplicitFactories
-                        ]
-                    let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
-                        {
-                            new IFixedCombinationOfSubtreeNodesForSynthesis with
-                                member this.Prune =
-                                    Node.PruneAndCombine subtreeRootNodes
-                                                         fixedCombinationOfSubtreeNodesForSynthesis
+                let subtreeRootNodesIncludingImplicitFactoryForPermutation =
+                    let numberOfExplicitlySuppliedFactories =
+                        Seq.length sequenceOfFactoriesProvidingInputsToSynthesis
+                        |> uint32
+                    let numberOfPermutations =
+                        BargainBasement.Factorial numberOfExplicitlySuppliedFactories
+                    let additionalFactoryForPermutations =
+                        TestVariableLevelEnumerableFactory.Create [0u .. numberOfPermutations - 1u |> uint32]
+                    [
+                        yield additionalFactoryForPermutations.Node
+                        yield! subtreeRootNodesFromExplicitFactories
+                    ]
+                let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
+                    {
+                        new IFixedCombinationOfSubtreeNodesForSynthesis with
+                            member this.Prune =
+                                Node.PruneAndCombine subtreeRootNodes
+                                                        fixedCombinationOfSubtreeNodesForSynthesis
 
-                                member this.Nodes =
-                                    subtreeRootNodes
+                            member this.Nodes =
+                                subtreeRootNodes
 
-                                member this.FinalValueCreator () =
-                                    fun slicesOfFullTestVector ->
-                                        let implicitSubtreeRootNodeForPermutation
-                                            :: explicitSubtreeRootNodes =
-                                            subtreeRootNodes
-                                        let sliceOfFullTestVectorForPermutation
-                                            :: slicesOfFullTestVectorForExplicitSubtrees =
-                                            slicesOfFullTestVector
-                                        let permutationIndex =
-                                            implicitSubtreeRootNodeForPermutation.FinalValueCreator () sliceOfFullTestVectorForPermutation
-                                            |> unbox
-                                        let unshuffledResultsFromSubtrees =
-                                            List.zip explicitSubtreeRootNodes
-                                                     slicesOfFullTestVectorForExplicitSubtrees
-                                            |> List.map (fun (subtreeRootNode
-                                                              , sliceOfFullTestVectorCorrespondingToSubtree) ->
-                                                            subtreeRootNode.FinalValueCreator () sliceOfFullTestVectorCorrespondingToSubtree)
-                                        let shuffledResultsFromSubtrees =
-                                            GeneratePermutation unshuffledResultsFromSubtrees
-                                                                permutationIndex
-                                        shuffledResultsFromSubtrees
-                                        |> condensation.Invoke
-                                    |> mediateFinalValueCreatorType
-                        }
-                    fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesIncludingImplicitFactoryForPermutation
-                else
-                    let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
-                        {
-                            new IFixedCombinationOfSubtreeNodesForSynthesis with
-                                member this.Prune =
-                                    Node.PruneAndCombine subtreeRootNodes
-                                                         fixedCombinationOfSubtreeNodesForSynthesis
+                            member this.FinalValueCreator () =
+                                fun slicesOfFullTestVector ->
+                                    let implicitSubtreeRootNodeForPermutation
+                                        :: explicitSubtreeRootNodes =
+                                        subtreeRootNodes
+                                    let sliceOfFullTestVectorForPermutation
+                                        :: slicesOfFullTestVectorForExplicitSubtrees =
+                                        slicesOfFullTestVector
+                                    let permutationIndex =
+                                        implicitSubtreeRootNodeForPermutation.FinalValueCreator () sliceOfFullTestVectorForPermutation
+                                        |> unbox
+                                    let unshuffledResultsFromSubtrees: List<'TestCaseListElement> =
+                                        List.zip explicitSubtreeRootNodes
+                                                 slicesOfFullTestVectorForExplicitSubtrees
+                                        |> List.map (fun (subtreeRootNode
+                                                          , sliceOfFullTestVectorCorrespondingToSubtree) ->
+                                                        subtreeRootNode.FinalValueCreator () sliceOfFullTestVectorCorrespondingToSubtree)
+                                    let shuffle itemsToPermute =
+                                        GeneratePermutation itemsToPermute
+                                                            permutationIndex
+                                    unshuffledResultsFromSubtrees
+                                    , Permutation<'TestCaseListElement>(List.ofSeq >> shuffle)
+                                |> mediateFinalValueCreatorType
+                    }
+                fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesIncludingImplicitFactoryForPermutation
 
-                                member this.Nodes =
-                                    subtreeRootNodes
-
-                                member this.FinalValueCreator () =
-                                    fun slicesOfFullTestVector ->
-                                        let resultsFromSubtrees =
-                                            List.zip subtreeRootNodes
-                                                     slicesOfFullTestVector
-                                            |> List.map (fun (subtreeRootNode
-                                                              , sliceOfFullTestVectorCorrespondingToSubtree) ->
-                                                            subtreeRootNode.FinalValueCreator () sliceOfFullTestVectorCorrespondingToSubtree)
-                                        condensation.Invoke resultsFromSubtrees
-                                    |> mediateFinalValueCreatorType
-                        }
-                    fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesFromExplicitFactories
             let node =
                 fixedCombinationOfSubtreeNodesForSynthesis
                 |> SynthesizingNode
-            TypedTestCaseEnumerableFactory<'SynthesizedTestCase> node
+            TypedTestCaseEnumerableFactory<List<'TestCaseListElement> * Permutation<'TestCaseListElement>> node
