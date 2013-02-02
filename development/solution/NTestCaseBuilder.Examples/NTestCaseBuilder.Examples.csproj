@@ -71,6 +71,8 @@
     <Compile Include="Example.cs" />
     <Compile Include="IndexedSortedDictionary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SortingAlgorithm.cs" />
+    <Compile Include="TestSortingAlgorithm.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj">
