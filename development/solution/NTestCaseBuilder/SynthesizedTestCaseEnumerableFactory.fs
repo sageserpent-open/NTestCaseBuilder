@@ -426,13 +426,14 @@ namespace NTestCaseBuilder
         /// factories used to construct the factory. The input test cases are combined into a sequence that forms
         /// an output test case. At the same time, a permutation function is created can shuffle the output test case
         /// (or any other sequence of the same size). The idea is to allow subsequent transformation of the output test cases
-        /// item-by-item followed by applying the permutatiosn to shuffle the transformed test cases.</remarks>
+        /// item-by-item followed by applying the permutations to shuffle the transformed test cases.</remarks>
         /// <remarks>The choice of permutation that is used to generate each output test case is systematically varied
         /// as another implicit test variable that contributes to the synthesis; it is therefore subject to the strength
         /// guarantees documented for TestCaseEnumerableFactory.</remarks>
         /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases form inputs
         /// for synthesis.</param>
         /// <returns>The constructed factory.</returns>
+        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;Tuple&lt;List&lt;'TestCaseListElement&gt;, Permutation&lt;'Something&gt;&gt;&gt;">Type of constructed factory.</seealso>
         static member CreateWithPermutation<'TestCaseListElement, 'Something> (sequenceOfFactoriesProvidingInputsToSynthesis: seq<TypedTestCaseEnumerableFactory<'TestCaseListElement>>): TypedTestCaseEnumerableFactory<List<'TestCaseListElement> * Permutation<'Something>> =
             let subtreeRootNodesFromExplicitFactories =
                 sequenceOfFactoriesProvidingInputsToSynthesis
