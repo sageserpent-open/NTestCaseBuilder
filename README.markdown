@@ -975,7 +975,11 @@ The idea here is that the test variable levels correspond to distinct branches i
 Can this possibly be improved?
 ------------------------------
 
-Yes:
+Yes indeed...
+
+NTestCaseBuilder needs *you*: it would be great for others to fork this repository and take a task from below, or add some bells and whistles of their own.
+
+Tasks:
 
 1. Publish this via NuGet for immediate consumption of binaries in Visual Studio.	*** DONE ***
 
@@ -983,14 +987,22 @@ Yes:
 
 4. In a similar vein, consider a progressive approach where the strength is increased and again, the sequence is produced via lazy-evaluation; the test can keep going until a time limit is reached.
 
-3. Allow local caps on the strengh for subtrees within the tree of factories. This is because we may know that some test variables will have largely independent behaviour, so we can trade off a lower strength of combination for just these variables against having a higher overall strength of combination.
+3. Allow local caps on the strength for subtrees within the tree of factories. This is because we may know that some test variables will have largely independent behaviour, so we can trade off a lower strength of combination for just these variables against having a higher overall strength of combination.
 
 4. Integrate with Pex - smooth the path for importing Pex-generated test cases as test-levels for higher-level tests, also for integrating with Pex's notion of a parameterised test.
 
-5. Add support for automated permuting of 'operation'-style test cases. Also take into account a variable number of operations.	*** PARTIALLY DONE ***
+5. Add support for automated permuting of 'operation'-style test cases. Also take into account a variable number of operations; this is currently worked-around using interleaving. *** PARTIALLY DONE ***
 
 6. Carry on with the Scala port of this code at *sageserpent-open/fsharp-to-scala-port-case-study*. **Maybe...**
 
 7. Return an enumerable that computes test cases asynchronously to give better throughput when the parameterised unit test is itself computationally demanding.
 
 8. Extend merged partial test vectors into full test vectors either some or all of the time to give even more early-access full test vectors.
+
+9. Implement exclusions for combinations of specific test levels from across several test variables - sometimes one wants to test combinations of test variables, but there are some levels from separate variables that shouldn't go together, although one would still want to see the other combinations involving these levels. This can be done by filtering, but it would be better to avoid generating the forbidden combinations in the first place - this would open up other possibilities for packing combinations together. This is good for weeding out test cases that are infeasible because of precondition failures.
+
+10. Extend #9 so that once a reproducible failing test case is obtained, its signature can be used to set the exclusion - so one can see if that test case is the only one that causes the failure. Doing this iteratively can isolate the specific test levels that are interacting to create the failure.
+
+11. Extend the functionality in #5 to allow splicing of an ordered sequence of operations into varying points within a larger sequence, while preserving the order of the spliced sub-sequence. This is motivated by the example shown in the repository - look for test 'ComplexExample' in project 'NTestCaseBuilder.Examples'.
+
+12. Produce an examples NuGet feed based on the examples in the NTestCaseBuilder repository. *** COMING SOON ***
