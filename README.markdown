@@ -1,8 +1,6 @@
 NTestCaseBuilder, for .NET Testing
 ==================================
 
-**WARNING: LIVING DOCUMENT - WORK VERY MUCH IN PROGRESS**
-
 This is a .NET library that generates sets of test cases, for use by parameterised tests.
 
 Each test case is built up progressively from smaller pieces of data that are combined together.
@@ -19,6 +17,19 @@ The sources are written in F#, but the API can be used just as comfortably from 
 
 
 Some background and a full worked example are given below after the following sample. A note on a related .NET utility, Pex, is also provided at the towards the end along with a link to a thought-provoking article relevant to this library.
+
+Use It
+------
+
+NTestCaseBuilder is available as NuGet binary package over at:  [NTestCaseBuilder](http://www.nuget.org/packages/NTestCaseBuilder/ "NTestCaseBuilder")
+
+Install it at project level - it will add references to the NTestCaseBuilder assembly and its dependencies.
+
+NTestCaseBuilder.Samples is a standard NuGet source samples package at: [NTestCaseBuilder.Samples](http://www.nuget.org/packages/NTestCaseBuilder.Samples/ "NTestCaseBuilder.Samples")
+
+Install it at project level - it will create (if necessary) a Samples\NTestCaseBuilder directory and solution folder for some snippets of source code that can be built and run.
+
+**NOTE:** for both NuGet packages, C5 is installed as a dependency of NTestCaseBuilder; you will need to remove either the C5.Mono.dll or the C5.dll assembly before you can build your project, as the C5 NuGet package installs both by default.
 
 Sample
 ------
