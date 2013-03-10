@@ -1196,3 +1196,134 @@
                             printf "Number of test variables: %A, number of test cases: %A.\n"
                                    (numberOfGroupInterleaves * numberOfVariables)
                                    ((int32) numberOfTestCases))
+
+        [<Test>]
+        member this.StressCopiousUseOfInterleavesMotivatedByBuildingLogicalExpressionTestCases () =
+            let maximumNumberOfOperands =
+                3u
+
+            let rec expressionFactory maximumSubexpressionNesting
+                                      expectSuccess =
+                let trivialCaseFactory =
+//                    expectSuccess.ToString ()
+//                    |> SingletonTestCaseEnumerableFactory.Create
+                    TestVariableLevelEnumerableFactory.Create [expectSuccess.ToString ()]
+
+                if 1u = maximumSubexpressionNesting
+                then
+                    trivialCaseFactory
+                else
+                    let irrefutableSubexpressionFactory =
+                        expressionFactory (maximumSubexpressionNesting - 1u)
+
+                    let alwaysSucceedsFactory =
+                        irrefutableSubexpressionFactory true
+
+                    let alwaysFailsFactory =
+                        irrefutableSubexpressionFactory false
+
+                    let refutableSubexpressionFactory =
+                        InterleavedTestCaseEnumerableFactory.Create [alwaysSucceedsFactory; alwaysFailsFactory]
+
+                    let rec conjunctionOperandsFactory maximumNumberOfOperands =
+                        let reduction leadingOperand
+                                      remainingOperands =
+                            leadingOperand + " AND " + remainingOperands
+                        let remainingOperandsFactory =
+                            if 2u < maximumNumberOfOperands
+                            then
+                                InterleavedTestCaseEnumerableFactory.Create [irrefutableSubexpressionFactory expectSuccess
+                                                                             ; conjunctionOperandsFactory (maximumNumberOfOperands - 1u)]
+                            else
+                                irrefutableSubexpressionFactory expectSuccess
+                        if expectSuccess
+                        then
+                            SynthesizedTestCaseEnumerableFactory.Create (alwaysSucceedsFactory,
+                                                                         remainingOperandsFactory,
+                                                                         reduction)
+                        else
+                            SynthesizedTestCaseEnumerableFactory.Create (refutableSubexpressionFactory,
+                                                                         remainingOperandsFactory,
+                                                                         reduction)
+
+                    let rec disjunctionOperandsFactory maximumNumberOfOperands =
+                        let reduction leadingOperand
+                                      remainingOperands =
+                            leadingOperand + " OR " + remainingOperands
+                        let remainingOperandsFactory =
+                            if 2u < maximumNumberOfOperands
+                            then
+                                InterleavedTestCaseEnumerableFactory.Create [irrefutableSubexpressionFactory expectSuccess
+                                                                             ; disjunctionOperandsFactory (maximumNumberOfOperands - 1u)]
+                            else
+                                irrefutableSubexpressionFactory expectSuccess
+                        if expectSuccess
+                        then
+                            SynthesizedTestCaseEnumerableFactory.Create (refutableSubexpressionFactory,
+                                                                         remainingOperandsFactory,
+                                                                         reduction)
+                        else
+                            SynthesizedTestCaseEnumerableFactory.Create (alwaysFailsFactory,
+                                                                         remainingOperandsFactory,
+                                                                         reduction)
+
+                    let negationOperandFactory =
+                        SynthesizedTestCaseEnumerableFactory.Create (irrefutableSubexpressionFactory (not expectSuccess),
+                                                                     fun negativeExpression ->
+                                                                       "NOT " + negativeExpression)
+
+                    let bracket subexpressionsFactory =
+                        SynthesizedTestCaseEnumerableFactory.Create (subexpressionsFactory,
+                                                                     fun logicalOperatorWithPluralOperands ->
+                                                                        "(" + logicalOperatorWithPluralOperands + ")")
+
+                    let conjunctionFactory =
+                        conjunctionOperandsFactory maximumNumberOfOperands
+                        |> bracket
+
+                    let disjunctionFactory =
+                        disjunctionOperandsFactory maximumNumberOfOperands
+                        |> bracket
+
+                    let negationFactory =
+                        bracket negationOperandFactory
+
+                    let singularSubexpressionCases =
+                        [trivialCaseFactory; negationFactory]
+                    let pluralSubexpressionCases =
+                        [conjunctionFactory; disjunctionFactory]
+
+                    (if 1u < maximumNumberOfOperands
+                     then
+                        List.append singularSubexpressionCases
+                                    pluralSubexpressionCases
+                     else
+                        singularSubexpressionCases)
+                    |> InterleavedTestCaseEnumerableFactory.Create
+
+            let maximumSubexpressionNesting =
+                3u
+
+            let expressionFactory =
+                [true; false]
+                |> List.map (fun expectSuccess ->
+                                let expressionFactory =
+                                    expressionFactory maximumSubexpressionNesting
+                                                      expectSuccess
+                                SynthesizedTestCaseEnumerableFactory.Create (expressionFactory,
+                                                                             (fun expression ->
+                                                                                (if expectSuccess
+                                                                                 then
+                                                                                    "Expect success: "
+                                                                                 else
+                                                                                    "Expect failure: ") + expression)))
+                |> InterleavedTestCaseEnumerableFactory.Create
+
+            let combinationStrength =
+                2u
+
+            let numberOfTestCases =
+                expressionFactory.ExecuteParameterisedUnitTestForAllTypedTestCases (combinationStrength,
+                                                                                    Action<string>(printf "%A\n"))
+
+            printf "Number of test cases: %A\n" numberOfTestCases
