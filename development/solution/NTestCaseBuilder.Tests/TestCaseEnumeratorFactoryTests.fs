@@ -1229,43 +1229,69 @@
                         let reduction leadingOperand
                                       remainingOperands =
                             leadingOperand + " AND " + remainingOperands
-                        let remainingOperandsFactory =
-                            if 2u < maximumNumberOfOperands
-                            then
-                                InterleavedTestCaseEnumerableFactory.Create [irrefutableSubexpressionFactory expectSuccess
-                                                                             ; conjunctionOperandsFactory (maximumNumberOfOperands - 1u)]
-                            else
-                                irrefutableSubexpressionFactory expectSuccess
-                        if expectSuccess
+                        let lastOperandPairFactory =
+                            (if expectSuccess
+                             then
+                                [(alwaysSucceedsFactory, alwaysSucceedsFactory)]
+                             else
+                                [(alwaysFailsFactory, alwaysFailsFactory); (alwaysFailsFactory, alwaysSucceedsFactory); (alwaysSucceedsFactory, alwaysFailsFactory)])
+                            |> List.map (fun (lhsOperandFactory
+                                              , rhsOperandFactory) ->
+                                              SynthesizedTestCaseEnumerableFactory.Create(lhsOperandFactory,
+                                                                                          rhsOperandFactory,
+                                                                                          reduction))
+                            |> InterleavedTestCaseEnumerableFactory.Create
+                        if 2u < maximumNumberOfOperands
                         then
-                            SynthesizedTestCaseEnumerableFactory.Create (alwaysSucceedsFactory,
-                                                                         remainingOperandsFactory,
-                                                                         reduction)
+                            let remainingOperandsFactory =
+                                conjunctionOperandsFactory (maximumNumberOfOperands - 1u)
+                            let moreThanTwoOperandsFactory =
+                                if expectSuccess
+                                then
+                                    SynthesizedTestCaseEnumerableFactory.Create (alwaysSucceedsFactory,
+                                                                                 remainingOperandsFactory,
+                                                                                 reduction)
+                                else
+                                    SynthesizedTestCaseEnumerableFactory.Create (refutableSubexpressionFactory,
+                                                                                 remainingOperandsFactory,
+                                                                                 reduction)
+                            InterleavedTestCaseEnumerableFactory.Create [lastOperandPairFactory; moreThanTwoOperandsFactory]
                         else
-                            SynthesizedTestCaseEnumerableFactory.Create (refutableSubexpressionFactory,
-                                                                         remainingOperandsFactory,
-                                                                         reduction)
+                            lastOperandPairFactory
 
                     let rec disjunctionOperandsFactory maximumNumberOfOperands =
                         let reduction leadingOperand
                                       remainingOperands =
                             leadingOperand + " OR " + remainingOperands
-                        let remainingOperandsFactory =
-                            if 2u < maximumNumberOfOperands
-                            then
-                                InterleavedTestCaseEnumerableFactory.Create [irrefutableSubexpressionFactory expectSuccess
-                                                                             ; disjunctionOperandsFactory (maximumNumberOfOperands - 1u)]
-                            else
-                                irrefutableSubexpressionFactory expectSuccess
-                        if expectSuccess
+                        let lastOperandPairFactory =
+                            (if expectSuccess
+                             then
+                                [(alwaysSucceedsFactory, alwaysSucceedsFactory); (alwaysFailsFactory, alwaysSucceedsFactory); (alwaysSucceedsFactory, alwaysFailsFactory)]
+                             else
+                                [(alwaysFailsFactory, alwaysFailsFactory)])
+                            |> List.map (fun (lhsOperandFactory
+                                              , rhsOperandFactory) ->
+                                              SynthesizedTestCaseEnumerableFactory.Create(lhsOperandFactory,
+                                                                                          rhsOperandFactory,
+                                                                                          reduction))
+                            |> InterleavedTestCaseEnumerableFactory.Create
+                        if 2u < maximumNumberOfOperands
                         then
-                            SynthesizedTestCaseEnumerableFactory.Create (refutableSubexpressionFactory,
-                                                                         remainingOperandsFactory,
-                                                                         reduction)
+                            let remainingOperandsFactory =
+                                disjunctionOperandsFactory (maximumNumberOfOperands - 1u)
+                            let moreThanTwoOperandsFactory =
+                                if expectSuccess
+                                then
+                                    SynthesizedTestCaseEnumerableFactory.Create (refutableSubexpressionFactory,
+                                                                                 remainingOperandsFactory,
+                                                                                 reduction)
+                                else
+                                    SynthesizedTestCaseEnumerableFactory.Create (alwaysFailsFactory,
+                                                                                 remainingOperandsFactory,
+                                                                                 reduction)
+                            InterleavedTestCaseEnumerableFactory.Create [lastOperandPairFactory; moreThanTwoOperandsFactory]
                         else
-                            SynthesizedTestCaseEnumerableFactory.Create (alwaysFailsFactory,
-                                                                         remainingOperandsFactory,
-                                                                         reduction)
+                            lastOperandPairFactory
 
                     let negationOperandFactory =
                         SynthesizedTestCaseEnumerableFactory.Create (irrefutableSubexpressionFactory (not expectSuccess),
