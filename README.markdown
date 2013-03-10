@@ -1016,4 +1016,6 @@ Tasks:
 
 11. Extend the functionality in #5 to allow splicing of an ordered sequence of operations into varying points within a larger sequence, while preserving the order of the spliced sub-sequence. This is motivated by the example shown in the repository - look for test 'ComplexExample' in project 'NTestCaseBuilder.Examples'.
 
-12. Produce an examples NuGet feed based on the examples in the NTestCaseBuilder repository. *** COMING SOON ***
+12. Produce an examples NuGet feed based on the examples in the NTestCaseBuilder repository. *** DONE ***
+
+13. Produce either an applicative functor or a monad to make test case building more declarative and concise.

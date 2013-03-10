@@ -325,7 +325,7 @@ namespace NTestCaseBuilder
             SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfFactoriesForSynthesis
 
         /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
-        /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
+        /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined by means of a delegate
         /// that takes them a sequence and synthesises an output test case.</remarks>
@@ -380,7 +380,7 @@ namespace NTestCaseBuilder
             TypedTestCaseEnumerableFactory<'SynthesizedTestCase> node
 
         /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
-        /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
+        /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined by means of a delegate
         /// that takes them a sequence and synthesises an output test case.</remarks>
@@ -421,10 +421,10 @@ namespace NTestCaseBuilder
                                                              condensation)
 
         /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;List&lt;'TestCaseListElement&gt; * Permutation&lt;'Something&gt;&gt;.</summary>
-        /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
+        /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined into a sequence that forms
-        /// an output test case. At the same time, a permutation function is created can shuffle the output test case
+        /// an output test case. At the same time, a permutation function is created that can shuffle the output test case
         /// (or any other sequence of the same size). The idea is to allow subsequent transformation of the output test cases
         /// item-by-item followed by applying the permutations to shuffle the transformed test cases.</remarks>
         /// <remarks>The choice of permutation that is used to generate each output test case is systematically varied
