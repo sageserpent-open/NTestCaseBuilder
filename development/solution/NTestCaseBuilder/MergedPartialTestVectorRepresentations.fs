@@ -31,64 +31,11 @@ namespace NTestCaseBuilder
                         + subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
                         + subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
 
-            let multiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero =
-                match internalNode with
-                    {
-                        SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
-                        SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
-                        SubtreeForFollowingIndices = subtreeForFollowingIndices
-                    } ->
-                        let candidates =
-                            [ subtreeWithLesserLevelsForSameTestVariableIndex.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero;
-                              subtreeWithGreaterLevelsForSameTestVariableIndex.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero;
-                              optionWorkflow
-                                {
-                                    let! multiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero =
-                                        subtreeForFollowingIndices.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero
-                                    return match multiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero with
-                                            multiplicity
-                                            , length -> multiplicity
-                                                        , 1u + length
-                                }]
-                            |> Seq.filter Option.isSome
-                            |> Seq.map Option.get
-                        if Seq.isEmpty candidates
-                        then
-                            None
-                        else
-                            let longestLength =
-                                candidates
-                                |> Seq.map snd
-                                |> Seq.max
-                            let multiplicitySummedOverTheCandidatesSharingTheLongestLength =
-                                candidates
-                                |> Seq.filter (snd >> (fun length -> longestLength = length))
-                                |> Seq.map fst
-                                |> Seq.reduce (+)
-                            Some (multiplicitySummedOverTheCandidatesSharingTheLongestLength, longestLength)
-
-            let allSuccessfulPathsCorrespondToSufficesOfFullTestVectors =
-                match internalNode with
-                    {
-                        SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
-                        SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
-                        SubtreeForFollowingIndices = subtreeForFollowingIndices
-                    } ->
-                        subtreeForFollowingIndices.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors
-                        && subtreeWithLesserLevelsForSameTestVariableIndex.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors
-                        && subtreeWithGreaterLevelsForSameTestVariableIndex.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors
-
             member this.InternalNode =
                 internalNode
 
             member this.NumberOfLevelsForLeadingTestVariable =
                 numberOfLevelsForLeadingTestVariable
-
-            member this.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero =
-                multiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero
-
-            member this.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors =
-                allSuccessfulPathsCorrespondToSufficesOfFullTestVectors
 
         and InternalNode<'Level when 'Level: comparison> =
             {
@@ -108,22 +55,6 @@ namespace NTestCaseBuilder
                   | UnsuccessfulSearchTerminationNode ->
                         0u
 
-            member this.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors =
-                match this with
-                    AugmentedInternalNode augmentedInternalNode ->
-                        augmentedInternalNode.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors
-                  | UnsuccessfulSearchTerminationNode ->
-                        true    // Yes, 'true' - because there are no successful paths. Remember that the result will
-                                // be combined with those of sibling subtrees in a parent node, so we don't want an
-                                // unnecessary 'false' in the combination if all the other siblings report 'true'.
-
-            member this.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero =
-                match this with
-                    AugmentedInternalNode augmentedInternalNode ->
-                        augmentedInternalNode.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero
-                  | _ ->
-                        None
-
         and WildcardNode<'Level when 'Level: comparison> =
             {
                 SubtreeWithAllLevelsForSameTestVariableIndex: BinaryTreeOfLevelsForTestVariable<'Level>
@@ -133,25 +64,6 @@ namespace NTestCaseBuilder
             SuccessfulSearchTerminationNode
           | WildcardNode of WildcardNode<'Level>
           | BinaryTreeOfLevelsForTestVariable of BinaryTreeOfLevelsForTestVariable<'Level>
-
-            member this.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors =
-                match this with
-                    SuccessfulSearchTerminationNode ->
-                        true
-                  | WildcardNode _ ->
-                        false
-                  | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable ->
-                        binaryTreeOfLevelsForTestVariable.AllSuccessfulPathsCorrespondToSufficesOfFullTestVectors
-
-            member this.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero =
-                match this with
-                    SuccessfulSearchTerminationNode -> Some (1u, 0u)
-                  | WildcardNode
-                    {
-                        SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
-                    } -> subtreeWithAllLevelsForSameTestVariableIndex.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero
-                  | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable ->
-                        binaryTreeOfLevelsForTestVariable.MultiplicityAndLengthOfLongestContiguousRunOfTestVariableIndicesFromZero
 
         type TreeSearchContextParameters =
             {
