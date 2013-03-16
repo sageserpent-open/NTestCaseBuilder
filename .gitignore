@@ -1,0 +1,19 @@
+--- .gitignore
++++ .gitignore
+@@ -0,0 +1,16 @@
++*~
++Debug
++Release
++obj
++bin
++*.ncb
++*.dat
++*[Rr]eSharper*
++*.pdb
++*DXCore.Solution
++*.vcproj*.user
++*.suo
++*.DS_Store
++.nuget
++packages
++*.user
