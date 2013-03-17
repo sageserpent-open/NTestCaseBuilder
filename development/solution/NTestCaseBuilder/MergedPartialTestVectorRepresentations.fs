@@ -21,7 +21,9 @@ namespace NTestCaseBuilder
                         SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
                         UniquePathForFollowingIndices
                             =   {
-                                    Steps = _
+                                    Steps = _   // This is slightly defensive - the invariant is stronger in practice; it states
+                                                // that any subtree that is just an unsuccessful unique path should be pruned back
+                                                // so that its unique prefix is empty.
                                     SubtreeForFollowingIndices = BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
                                 }
                     } ->
@@ -1002,18 +1004,26 @@ namespace NTestCaseBuilder
                                  queryPartialTestVectorRepresentation
                                  TreeSearchContextParameters.StartOfSearch
 
-        let checkInvariant ternarySearchTree =
+        let checkInvariant uniquePath =
             let rec checkInvariantOfUniquePath {
-                                                    Steps = _
+                                                    Steps = steps
                                                     SubtreeForFollowingIndices = subtreeForFollowingIndices
                                                }
                                                lowerBound
                                                upperBound
                                                testVariableIndex =
-                checkInvariantOfTernarySearchTree subtreeForFollowingIndices
-                                                  lowerBound
-                                                  upperBound
-                                                  testVariableIndex
+                let numberOfSuccessfulPathsFromSubtreeForFollowingIndices =
+                    checkInvariantOfTernarySearchTree subtreeForFollowingIndices
+                                                      lowerBound
+                                                      upperBound
+                                                      testVariableIndex
+                match numberOfSuccessfulPathsFromSubtreeForFollowingIndices
+                      , steps with
+                    0u
+                    , _ :: _ ->
+                        raise (InvariantViolationException "Redundant non-empty unique prefix with no successful search paths leading through it.")
+                  | _ ->
+                    numberOfSuccessfulPathsFromSubtreeForFollowingIndices
             and checkInvariantOfTernarySearchTree ternarySearchTree
                                                   lowerBound
                                                   upperBound
@@ -1052,14 +1062,14 @@ namespace NTestCaseBuilder
                                 checkInvariantOfBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                   liftedLevel
                                                                                   upperBound
-                            let numberOfSuccessfulPathsFromSubtreeForFollowingIndices =
+                            let numberOfSuccessfulPathsFromUniquePathForFollowingIndices =
                                 checkInvariantOfUniquePath uniquePathForFollowingIndices
                                                            NegativeInfinity
                                                            PositiveInfinity
                                                            (testVariableIndex + 1u)
                             match numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
                                   , numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                  , numberOfSuccessfulPathsFromSubtreeForFollowingIndices with
+                                  , numberOfSuccessfulPathsFromUniquePathForFollowingIndices with
                                 0u
                                 , 0u
                                 , 0u ->
@@ -1095,7 +1105,7 @@ namespace NTestCaseBuilder
                               | _ ->
                                     numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
                                     + numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                    + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
+                                    + numberOfSuccessfulPathsFromUniquePathForFollowingIndices
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
                         if maximumNumberOfTestVariables < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
@@ -1119,13 +1129,13 @@ namespace NTestCaseBuilder
                             checkInvariantOfBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
                                                                               lowerBound
                                                                               upperBound
-                        let numberOfSuccessfulPathsFromSubtreeForFollowingIndices =
+                        let numberOfSuccessfulPathsFromUniquePathForFollowingIndices =
                             checkInvariantOfUniquePath uniquePathForFollowingIndices
                                                        NegativeInfinity
                                                        PositiveInfinity
                                                        (testVariableIndex + 1u)
                         match numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex
-                              , numberOfSuccessfulPathsFromSubtreeForFollowingIndices with
+                              , numberOfSuccessfulPathsFromUniquePathForFollowingIndices with
                             0u
                             , 0u ->
                                 raise (LogicErrorException "Redundant wildcard node with no successful search paths leading through it.")
@@ -1135,12 +1145,12 @@ namespace NTestCaseBuilder
                           | _
                             , _ ->
                                 numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex
-                                + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
+                                + numberOfSuccessfulPathsFromUniquePathForFollowingIndices
 
-            if 0u = checkInvariantOfTernarySearchTree ternarySearchTree
-                                                      NegativeInfinity
-                                                      PositiveInfinity
-                                                      0u
+            if 0u = checkInvariantOfUniquePath uniquePath
+                                               NegativeInfinity
+                                               PositiveInfinity
+                                               0u
             then
                 raise (LogicErrorException "No successful search paths but tree should be non-empty.")
 
@@ -1210,13 +1220,19 @@ namespace NTestCaseBuilder
                                                                     remove uniquePath
                                                                            partialTestVectorRepresentation
                                                                            existingFullTestVectorBlockedRemovalContinuation
-                                    //                            match remove ternarySearchTreeWithoutMergeCandidate
-                                    //                                            mergedPartialTestVectorRepresentation with
-                                    //                                Some _ ->
-                                    //                                    raise (InternalAssertionViolationException "The merged removed partial test vector still matches with something left behind!")
-                                    //                                | _ ->
-                                    //                                    ()
 
+//                                                                do! continuationWorkflow
+//                                                                        {
+//                                                                            let! _ =
+//                                                                                remove uniquePathWithoutMergeCandidate
+//                                                                                       mergedPartialTestVectorRepresentation
+//                                                                                       (fun _ -> raise (InternalAssertionViolationException "This should not be called."))
+//                                                                            do raise (InternalAssertionViolationException "The merged removed partial test vector still matches with something left behind!")
+//                                                                        }
+//                                                                    + continuationWorkflow
+//                                                                        {
+//                                                                            return ()
+//                                                                        }
 
                                                                 return add uniquePathWithoutMergeCandidate
                                                                            mergedPartialTestVectorRepresentation
@@ -1236,7 +1252,7 @@ namespace NTestCaseBuilder
 //                if 7 = (hash this) % 100
 //                then
 //                    // Invariant check...
-//                    checkInvariant modifiedTernarySearchTree
+//                    checkInvariant modifiedUniquePath
 //                    // ... end of invariant check.
 
                 MergedPartialTestVectorRepresentations (modifiedUniquePath,
