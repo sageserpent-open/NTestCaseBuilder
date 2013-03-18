@@ -305,21 +305,36 @@ namespace NTestCaseBuilder
                                                                                 maximumNumberOfTestVariables: UInt32) =
         let createPartialTestVectorSequence revealFullTestVectorsAgain =
             let rec traverseTestVectorPaths {
-                                                SharedPathPrefix = _
+                                                SharedPathPrefix = sharedPathPrefix
                                                 BranchingRoot = branchingRoot
                                             }
-                                            (traversalContextParameters: TreeSearchContextParameters)
+                                            (treeSearchContextParameters: TreeSearchContextParameters)
                                             partialTestVectorBeingBuilt =
+                let treeSearchContextParameters
+                    , partialTestVectorBeingBuilt =
+                    sharedPathPrefix
+                    |> List.fold (fun ((treeSearchContextParameters: TreeSearchContextParameters)
+                                       , partialTestVectorBeingBuilt)
+                                      sharedPathPrefixStep ->
+                                      match sharedPathPrefixStep with
+                                        Some levelForTestVariableIndex ->
+                                            treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
+                                            , ((treeSearchContextParameters.TestVariableIndex, levelForTestVariableIndex) :: partialTestVectorBeingBuilt)
+                                      | None ->
+                                            treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
+                                            , partialTestVectorBeingBuilt)
+                                 (treeSearchContextParameters
+                                 , partialTestVectorBeingBuilt) 
                 traverseTernarySearchTree branchingRoot
-                                          traversalContextParameters
+                                          treeSearchContextParameters
                                           partialTestVectorBeingBuilt
             and traverseTernarySearchTree ternarySearchTree
-                                          (traversalContextParameters: TreeSearchContextParameters)
+                                          (treeSearchContextParameters: TreeSearchContextParameters)
                                           partialTestVectorBeingBuilt =
                 let rec traverseBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfTestVariables <= traversalContextParameters.TestVariableIndex
+                            if maximumNumberOfTestVariables <= treeSearchContextParameters.TestVariableIndex
                             then
                                 raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
@@ -337,13 +352,13 @@ namespace NTestCaseBuilder
                                             {
                                                 yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithLesserLevelsForSameTestVariableIndex
                                                 yield! traverseTestVectorPaths testVectorPathsForFollowingIndices
-                                                                               traversalContextParameters.PropagateFromDefinedLevelToNextTestVariable
-                                                                               ((traversalContextParameters.TestVariableIndex, levelForTestVariableIndex) :: partialTestVectorBeingBuilt)
+                                                                               treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
+                                                                               ((treeSearchContextParameters.TestVariableIndex, levelForTestVariableIndex) :: partialTestVectorBeingBuilt)
                                                 yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
                                             })
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
-                        if maximumNumberOfTestVariables < traversalContextParameters.TestVariableIndex
+                        if maximumNumberOfTestVariables < treeSearchContextParameters.TestVariableIndex
                             // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
                             // for a full (and possibly removed) test vector, because successful searches go through at least one
                             // node corresponding to each test variable index, *then* land on a node indicating whether the search
@@ -352,8 +367,8 @@ namespace NTestCaseBuilder
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
                         if not revealFullTestVectorsAgain
-                           && traversalContextParameters.IsFullTestVector maximumNumberOfTestVariables
-                           || traversalContextParameters.IsSpecialCaseDenotingInitialState
+                           && treeSearchContextParameters.IsFullTestVector maximumNumberOfTestVariables
+                           || treeSearchContextParameters.IsSpecialCaseDenotingInitialState
                         then
                             Seq.empty
                         else
@@ -379,7 +394,7 @@ namespace NTestCaseBuilder
                                         {
                                             yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
                                             yield! traverseTestVectorPaths testVectorPathsForFollowingIndices
-                                                                           traversalContextParameters.PropagateFromWildcardLevelToNextTestVariable
+                                                                           treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
                                                                            partialTestVectorBeingBuilt
                                         })
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable ->
