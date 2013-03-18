@@ -17,3 +17,10 @@
 +.nuget
 +packages
 +*.user
+/development/solution/.nuget/NuGet.exe
+bin
+obj
+/development/solution/packages
+/development/solution/everything.sln.DotSettings.user
+/development/solution/_ReSharper.everything
+/development/solution/everything.suo
