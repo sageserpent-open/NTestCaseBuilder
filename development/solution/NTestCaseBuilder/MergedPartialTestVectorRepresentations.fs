@@ -310,8 +310,8 @@ namespace NTestCaseBuilder
                     None
                     , Some (rhsReversedPrefix
                             , rhs)  // NOTE: if array is merely a prefix of the list, this is still counted as a *match*
-                                    // (and is the expected typical case; an exact match is also OK in this local context
-                                    // but will cause a detected internal assertion failure in the caller).
+                                    // (and is the expected typical case; an exact match is also OK from the point of
+                                    // view of this local context).
                 else
                     match rhs with
                         rhsHead :: rhsTail ->
@@ -506,12 +506,24 @@ namespace NTestCaseBuilder
                         None
                         , Some (_
                                 , remainderOfNewPartialTestVectorRepresentation) ->
-                            {
-                                testVectorPaths with
-                                    BranchingRoot =
-                                        addToTernarySearchTree branchingRoot
-                                                               remainderOfNewPartialTestVectorRepresentation
-                            }
+                            match branchingRoot with
+                                BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode ->
+                                    {
+                                        SharedPathPrefix =
+                                            newPartialTestVectorRepresentation
+                                            |> Array.ofList // This is slightly defensive - the invariant is stronger in practice; it states
+                                                            // that any subtree that is just an unsuccessful unique path should be pruned back
+                                                            // so that its unique prefix is empty.
+                                        BranchingRoot =
+                                            SuccessfulSearchTerminationNode
+                                    }
+                              | _ ->
+                                    {
+                                        testVectorPaths with
+                                            BranchingRoot =
+                                                addToTernarySearchTree branchingRoot
+                                                                       remainderOfNewPartialTestVectorRepresentation
+                                    }
                       | Some indexOfMismatchOnSharedPathStep
                         , Some (reversedCommonPrefixFromNewPartialTestVectorRepresentation
                                 , mismatchingSuffixOfNewPartialTestVectorRepresentation) ->
@@ -542,7 +554,8 @@ namespace NTestCaseBuilder
                                         }
                                         |> WildcardNode
                             {
-                                SharedPathPrefix = commonPrefixFromNewPartialTestVectorRepresentation
+                                SharedPathPrefix =
+                                    commonPrefixFromNewPartialTestVectorRepresentation
                                 BranchingRoot =
                                     addToTernarySearchTree sharedPathPrefixSplit
                                                            mismatchingSuffixOfNewPartialTestVectorRepresentation
@@ -554,36 +567,36 @@ namespace NTestCaseBuilder
                             raise (InternalAssertionViolationException "Postcondition failure of 'mismatch'.")
             and addToTernarySearchTree ternarySearchTree
                                        newPartialTestVectorRepresentation =
-                let buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation newPartialTestVectorRepresentation =
-                    // TODO: revisit this - capitalise on the unique path steps.
-                        List.foldBack (fun optionalLevel
-                                           degenerateLinearSubtree ->
-                                                match optionalLevel with
-                                                    Some level ->
-                                                        {
-                                                            LevelForTestVariableIndex = level
-                                                            SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                                            SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                                            TestVectorPathsForFollowingIndices =
-                                                                {
-                                                                    SharedPathPrefix = Array.empty
-                                                                    BranchingRoot = degenerateLinearSubtree
-                                                                }
-                                                        }
-                                                        |> InternalNode
-                                                        |> AugmentedInternalNode
-                                                        |> BinaryTreeOfLevelsForTestVariable
-                                                    | None ->
-                                                        {
-                                                            SubtreeWithAllLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                                            TestVectorPathsForFollowingIndices =
-                                                                {
-                                                                    SharedPathPrefix = Array.empty
-                                                                    BranchingRoot = degenerateLinearSubtree
-                                                                }
-                                                        }
-                                                        |> WildcardNode)
-                                      newPartialTestVectorRepresentation SuccessfulSearchTerminationNode
+//                let buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation newPartialTestVectorRepresentation =
+//                    // TODO: revisit this - capitalise on the unique path steps.
+//                        List.foldBack (fun optionalLevel
+//                                           degenerateLinearSubtree ->
+//                                                match optionalLevel with
+//                                                    Some level ->
+//                                                        {
+//                                                            LevelForTestVariableIndex = level
+//                                                            SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+//                                                            SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+//                                                            TestVectorPathsForFollowingIndices =
+//                                                                {
+//                                                                    SharedPathPrefix = Array.empty
+//                                                                    BranchingRoot = degenerateLinearSubtree
+//                                                                }
+//                                                        }
+//                                                        |> InternalNode
+//                                                        |> AugmentedInternalNode
+//                                                        |> BinaryTreeOfLevelsForTestVariable
+//                                                    | None ->
+//                                                        {
+//                                                            SubtreeWithAllLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+//                                                            TestVectorPathsForFollowingIndices =
+//                                                                {
+//                                                                    SharedPathPrefix = Array.empty
+//                                                                    BranchingRoot = degenerateLinearSubtree
+//                                                                }
+//                                                        }
+//                                                        |> WildcardNode)
+//                                      newPartialTestVectorRepresentation SuccessfulSearchTerminationNode
                 let rec addLevelToBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                     levelFromNewPartialTestVectorRepresentation
                                                                     tailFromNewPartialTestVectorRepresentation =
@@ -595,9 +608,11 @@ namespace NTestCaseBuilder
                                 SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                                 TestVectorPathsForFollowingIndices =
                                     {
-                                        SharedPathPrefix = Array.empty
+                                        SharedPathPrefix =
+                                            tailFromNewPartialTestVectorRepresentation
+                                            |> Array.ofList
                                         BranchingRoot =
-                                            buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation tailFromNewPartialTestVectorRepresentation
+                                            SuccessfulSearchTerminationNode
                                     }
                             }
                             |> InternalNode
@@ -629,9 +644,11 @@ namespace NTestCaseBuilder
                                         SubtreeWithGreaterLevelsForSameTestVariableIndex = flankingSubtreeWithGreaterLevels
                                         TestVectorPathsForFollowingIndices =
                                             {
-                                                SharedPathPrefix = Array.empty
+                                                SharedPathPrefix =
+                                                    tailFromNewPartialTestVectorRepresentation
+                                                    |> Array.ofList
                                                 BranchingRoot =
-                                                    buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation tailFromNewPartialTestVectorRepresentation
+                                                    SuccessfulSearchTerminationNode
                                             }
                                     }
                                     |> InternalNode
@@ -650,9 +667,11 @@ namespace NTestCaseBuilder
                                         SubtreeWithGreaterLevelsForSameTestVariableIndex = flankingSubtreeWithGreaterLevels
                                         TestVectorPathsForFollowingIndices =
                                             {
-                                                SharedPathPrefix = Array.empty
+                                                SharedPathPrefix =
+                                                    tailFromNewPartialTestVectorRepresentation
+                                                    |> Array.ofList
                                                 BranchingRoot =
-                                                    buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation tailFromNewPartialTestVectorRepresentation
+                                                    SuccessfulSearchTerminationNode
                                             }
                                     }
                                     |> InternalNode
@@ -673,7 +692,9 @@ namespace NTestCaseBuilder
                       , newPartialTestVectorRepresentation with
                   | SuccessfulSearchTerminationNode
                     , _ :: _ ->
-                        buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation newPartialTestVectorRepresentation
+//                      TODO: sack the line of code below or be quite sure it's needed. I'm sure that the process of merge-via-removal should make this impossible.
+//                        buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation newPartialTestVectorRepresentation
+                        raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that has a previous one as a prefix.")
                   | WildcardNode
                     ({
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
@@ -712,9 +733,11 @@ namespace NTestCaseBuilder
                             SubtreeWithAllLevelsForSameTestVariableIndex = binaryTreeOfLevelsForTestVariable
                             TestVectorPathsForFollowingIndices =
                                 {
-                                    SharedPathPrefix = Array.empty
+                                    SharedPathPrefix =
+                                        tailFromNewPartialTestVectorRepresentation
+                                        |> Array.ofList
                                     BranchingRoot =
-                                        buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation tailFromNewPartialTestVectorRepresentation
+                                        SuccessfulSearchTerminationNode
                                 }
                         }
                         |> WildcardNode
