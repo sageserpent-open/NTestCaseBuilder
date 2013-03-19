@@ -557,7 +557,7 @@ namespace NTestCaseBuilder
                                 BranchingRoot =
                                     addToTernarySearchTree sharedPathPrefixSplit
                                                            mismatchingSuffixOfNewPartialTestVectorRepresentation
-                            }                                                                                                                 
+                            }
                       | Some _
                         , None ->
                             raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that is a prefix of a previous one.")
@@ -894,7 +894,37 @@ namespace NTestCaseBuilder
                                                     BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
                                            }
                                            , removedPartialTestVector
-                                | _ ->
+                              | BinaryTreeOfLevelsForTestVariable
+                                (AugmentedInternalNode
+                                (InternalNode
+                                {
+                                    LevelForTestVariableIndex = levelForTestVariableIndex
+                                    SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                    SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                    TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
+                                })) ->
+                                    return {
+                                                testVectorPathsForFollowingIndices with
+                                                    SharedPathPrefix =
+                                                        [| yield! sharedPathPrefix
+                                                           yield Some levelForTestVariableIndex
+                                                           yield! testVectorPathsForFollowingIndices.SharedPathPrefix |]
+                                           }
+                                           , removedPartialTestVector
+                              | WildcardNode
+                                {
+                                    SubtreeWithAllLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                    TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
+                                } ->
+                                    return {
+                                                testVectorPathsForFollowingIndices with
+                                                    SharedPathPrefix =
+                                                        [| yield! sharedPathPrefix
+                                                           yield None
+                                                           yield! testVectorPathsForFollowingIndices.SharedPathPrefix |]
+                                           }
+                                           , removedPartialTestVector
+                              | _ ->
                                     return {
                                                 SharedPathPrefix = sharedPathPrefix
                                                 BranchingRoot = modifiedBranchingRoot
