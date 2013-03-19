@@ -356,7 +356,7 @@ namespace NTestCaseBuilder
                                         treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
                                         , partialTestVectorBeingBuilt)
                                  (treeSearchContextParameters
-                                 , partialTestVectorBeingBuilt) 
+                                 , partialTestVectorBeingBuilt)
                 traverseTernarySearchTree branchingRoot
                                           treeSearchContextParameters
                                           partialTestVectorBeingBuilt
@@ -876,11 +876,21 @@ namespace NTestCaseBuilder
                         }
                         |> WildcardNode
             let rec removeFromTestVectorPaths {
-                                                SharedPathPrefix = _
+                                                SharedPathPrefix = sharedPathPrefix
                                                 BranchingRoot = branchingRoot
                                               }
                                               queryPartialTestVectorRepresentation
                                               treeSearchContextParameters =
+                let treeSearchContextParameters =
+                    sharedPathPrefix
+                    |> Array.fold (fun (treeSearchContextParameters: TreeSearchContextParameters)
+                                        sharedPathPrefixStep ->
+                                    match sharedPathPrefixStep with
+                                    Some levelForTestVariableIndex ->
+                                        treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
+                                    | None ->
+                                        treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable)
+                                    treeSearchContextParameters
                 continuationWorkflow
                     {
                         let! modifiedBranchingRoot
