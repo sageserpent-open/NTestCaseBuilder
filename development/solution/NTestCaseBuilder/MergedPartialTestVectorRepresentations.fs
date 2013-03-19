@@ -691,10 +691,9 @@ namespace NTestCaseBuilder
                 match ternarySearchTree
                       , newPartialTestVectorRepresentation with
                   | SuccessfulSearchTerminationNode
-                    , _ :: _ ->
-//                      TODO: sack the line of code below or be quite sure it's needed. I'm sure that the process of merge-via-removal should make this impossible.
-//                        buildDegenerateLinearSubtreeForDanglingSuffixOfNewPartialTestVectorRepresentation newPartialTestVectorRepresentation
-                        raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that has a previous one as a prefix.")
+                    , _ ->
+                        raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that has a previous one as a prefix or is the same as it.")
+                        // The above is really a precondition violation, but the precondition should have been enforced at a higher level within the implementation and not by the client.
                   | WildcardNode
                     ({
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
@@ -707,7 +706,8 @@ namespace NTestCaseBuilder
                         {
                             wildcardNodeRepresentation with
                                 SubtreeWithAllLevelsForSameTestVariableIndex = modifiedSubtreeWithAllLevelsForSameTestVariableIndex
-                        } |> WildcardNode
+                        }
+                        |> WildcardNode
                   | WildcardNode
                     ({
                         TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
@@ -743,7 +743,7 @@ namespace NTestCaseBuilder
                         |> WildcardNode
                   | _
                     , [] ->
-                        raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that is already mergeable with or equivalent to a previous one.")
+                        raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that is already mergeable with a previous one.")
                         // The above is really a precondition violation, but the precondition should have been enforced at a higher level within the implementation and not by the client.
             addToTestVectorPaths testVectorPaths
                                  newPartialTestVectorRepresentation
