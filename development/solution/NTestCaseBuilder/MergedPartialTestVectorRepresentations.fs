@@ -881,7 +881,7 @@ namespace NTestCaseBuilder
                                               }
                                               queryPartialTestVectorRepresentation
                                               treeSearchContextParameters =
-                let treeSearchContextParameters =
+                let treeSearchContextParameters sharedPathPrefix =
                     sharedPathPrefix
                     |> Array.fold (fun (treeSearchContextParameters: TreeSearchContextParameters)
                                         sharedPathPrefixStep ->
@@ -891,18 +891,95 @@ namespace NTestCaseBuilder
                                     | None ->
                                         treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable)
                                     treeSearchContextParameters
+                let removeWithoutAlteringSharedPathPrefix remainderOfQueryPartialTestVectorRepresentation =
+                    continuationWorkflow
+                        {
+                            let! modifiedBranchingRoot
+                                 , removedPartialTestVectorFromBranchingRoot =
+                                removeFromTernarySearchTree branchingRoot
+                                                            remainderOfQueryPartialTestVectorRepresentation
+                                                            (treeSearchContextParameters sharedPathPrefix)
+                            let removedPartialTestVector =
+                                List.append (sharedPathPrefix
+                                             |> List.ofArray)
+                                            removedPartialTestVectorFromBranchingRoot
+                            match modifiedBranchingRoot with
+                                BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode ->
+                                    return {
+                                                SharedPathPrefix =
+                                                    Array.empty
+                                                BranchingRoot =
+                                                    BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
+                                            }
+                                            , removedPartialTestVector
+                                | _ ->
+                                    return {
+                                                SharedPathPrefix = sharedPathPrefix
+                                                BranchingRoot = modifiedBranchingRoot
+                                            }
+                                            , removedPartialTestVector
+                        }
                 continuationWorkflow
                     {
-                        let! modifiedBranchingRoot
-                             , removedPartialTestVector =
-                            removeFromTernarySearchTree branchingRoot
-                                                        queryPartialTestVectorRepresentation
-                                                        treeSearchContextParameters
-                        return {
-                                    SharedPathPrefix = Array.empty
-                                    BranchingRoot = modifiedBranchingRoot
-                               }
-                               , removedPartialTestVector
+                        match mismatch sharedPathPrefix
+                                       queryPartialTestVectorRepresentation with
+                            None
+                            , Some (_
+                                    , remainderOfQueryPartialTestVectorRepresentation) ->
+                                return! removeWithoutAlteringSharedPathPrefix remainderOfQueryPartialTestVectorRepresentation
+                          | Some indexOfMismatchOnSharedPathStep
+                            , Some (reversedCommonPrefixFromQueryPartialTestVectorRepresentation
+                                    , mismatchingSuffixOfQueryPartialTestVectorRepresentation) ->
+                                let testVectorPathsAfterMismatch =
+                                    {
+                                        testVectorPaths with
+                                            SharedPathPrefix = sharedPathPrefix.[1 + indexOfMismatchOnSharedPathStep ..]
+                                    }
+                                let commonPrefixFromQueryPartialTestVectorRepresentation =
+                                    List.rev reversedCommonPrefixFromQueryPartialTestVectorRepresentation
+                                let commonPrefixFromQueryPartialTestVectorRepresentationAsArray =
+                                    commonPrefixFromQueryPartialTestVectorRepresentation
+                                    |> Array.ofList
+                                let sharedPathPrefixSplit =
+                                    match sharedPathPrefix.[indexOfMismatchOnSharedPathStep] with
+                                        Some levelFromMismatchingSharedPathStep ->
+                                            {
+                                                LevelForTestVariableIndex = levelFromMismatchingSharedPathStep
+                                                SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                                SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                                TestVectorPathsForFollowingIndices = testVectorPathsAfterMismatch
+                                            }
+                                            |> InternalNode
+                                            |> AugmentedInternalNode
+                                            |> BinaryTreeOfLevelsForTestVariable
+                                      | None ->
+                                            {
+                                                SubtreeWithAllLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                                TestVectorPathsForFollowingIndices = testVectorPathsAfterMismatch
+                                            }
+                                            |> WildcardNode
+                                let! modifiedPathPrefixSplit
+                                     , removedPartialTestVectorPathFromPrefixSplit =
+                                    removeFromTernarySearchTree sharedPathPrefixSplit
+                                                                mismatchingSuffixOfQueryPartialTestVectorRepresentation
+                                                                (treeSearchContextParameters commonPrefixFromQueryPartialTestVectorRepresentationAsArray)
+                                let removedPartialTestVector =
+                                    List.append commonPrefixFromQueryPartialTestVectorRepresentation
+                                                removedPartialTestVectorPathFromPrefixSplit
+                                return {
+                                            SharedPathPrefix =
+                                                commonPrefixFromQueryPartialTestVectorRepresentationAsArray
+                                            BranchingRoot =
+                                                modifiedPathPrefixSplit
+                                       }
+                                       ,  removedPartialTestVector
+                          | Some sharedPathStepIndex
+                            , None ->
+                                // This has the effect of padding out a query partial test vector on the fly, thereby
+                                // allowing a match as a prefix of some suitable stored vector, should one already be present.
+                                return! removeWithoutAlteringSharedPathPrefix [None]
+                          | _ ->
+                                raise (InternalAssertionViolationException "Postcondition failure of 'mismatch'.")
                     }
             and removeFromTernarySearchTree ternarySearchTree
                                             queryPartialTestVectorRepresentation
