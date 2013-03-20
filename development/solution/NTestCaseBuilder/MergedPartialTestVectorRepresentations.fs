@@ -14,6 +14,7 @@ namespace NTestCaseBuilder
 
     module MergedPartialTestVectorRepresentationsDetail =
         type AugmentedInternalNode<'Level when 'Level: comparison> (internalNode: InternalNode<'Level>) =
+            // TODO - fuse with 'InternalNode' and cut over the pattern matching below.
             let numberOfLevelsForLeadingTestVariable =
                 match internalNode with
                     {
@@ -75,37 +76,33 @@ namespace NTestCaseBuilder
           | WildcardNode of WildcardNode<'Level>
           | BinaryTreeOfLevelsForTestVariable of BinaryTreeOfLevelsForTestVariable<'Level>
 
-        type TreeSearchContextParameters =
+        let inline (|EmptyTernarySearchTree|_|) ternarySearchTree =
+            match ternarySearchTree with
+                BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode ->
+                    Some ()
+              | _ ->
+                    None
+
+        let EmptyTernarySearchTree =
+            BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
+
+        let inline (|NoTestVectorPaths|_|) testVectorPaths =
+            match testVectorPaths with
+                {
+                    SharedPathPrefix = _    // This is slightly defensive - the invariant is stronger in practice; it states
+                                            // that any subtree that is just an unsuccessful unique path should be pruned back
+                                            // so that its unique prefix is empty.
+                    BranchingRoot = EmptyTernarySearchTree
+                } ->
+                    Some ()
+              | _ ->
+                    None
+
+        let NoTestVectorPaths =
             {
-                TestVariableIndex: UInt32
-                HasSuffixContextOfPossibleFullTestVector: Boolean
+                SharedPathPrefix = Array.empty
+                BranchingRoot = EmptyTernarySearchTree
             }
-
-            static member StartOfSearch =
-                {
-                    TestVariableIndex = 0u
-                    HasSuffixContextOfPossibleFullTestVector = true
-                }
-
-            member this.IsSpecialCaseDenotingInitialState =   // The tests define this special state as not possessing any test vectors, not even the trivial empty one.
-                0u = this.TestVariableIndex
-
-            member this.IsFullTestVector maximumNumberOfTestVariables =
-                this.HasSuffixContextOfPossibleFullTestVector
-                && maximumNumberOfTestVariables = this.TestVariableIndex
-
-            member this.PropagateFromDefinedLevelToNextTestVariable =
-                {
-                    this with
-                        TestVariableIndex = this.TestVariableIndex + 1u
-                }
-
-            member this.PropagateFromWildcardLevelToNextTestVariable =
-                {
-                    this with
-                        TestVariableIndex = this.TestVariableIndex + 1u
-                        HasSuffixContextOfPossibleFullTestVector = false
-                }
 
         let inline (|InternalNode|) (augmentedInternalNode: AugmentedInternalNode<'Level>) =
             augmentedInternalNode.InternalNode
@@ -137,6 +134,38 @@ namespace NTestCaseBuilder
         let inline MirroredInternalNode mirroring =
             mirrorInternalNode mirroring
             >> InternalNode
+
+        type TreeSearchContextParameters =
+            {
+                TestVariableIndex: UInt32
+                HasSuffixContextOfPossibleFullTestVector: Boolean
+            }
+
+            static member StartOfSearch =
+                {
+                    TestVariableIndex = 0u
+                    HasSuffixContextOfPossibleFullTestVector = true
+                }
+
+            member this.IsSpecialCaseDenotingInitialState =   // The tests define this special state as not possessing any test vectors, not even the trivial empty one.
+                0u = this.TestVariableIndex
+
+            member this.IsFullTestVector maximumNumberOfTestVariables =
+                this.HasSuffixContextOfPossibleFullTestVector
+                && maximumNumberOfTestVariables = this.TestVariableIndex
+
+            member this.PropagateFromDefinedLevelToNextTestVariable =
+                {
+                    this with
+                        TestVariableIndex = this.TestVariableIndex + 1u
+                }
+
+            member this.PropagateFromWildcardLevelToNextTestVariable =
+                {
+                    this with
+                        TestVariableIndex = this.TestVariableIndex + 1u
+                        HasSuffixContextOfPossibleFullTestVector = false
+                }
 
         let splayInternalNodeWithMatchingOrNeighbouringLevel internalNodeRepresentation
                                                              comparisonWrtImplicitLevel =
@@ -496,6 +525,14 @@ namespace NTestCaseBuilder
 
         let add testVectorPaths
                 newPartialTestVectorRepresentation =
+            let justOnePathFrom partialTestVectorRepresentation =
+                {
+                    SharedPathPrefix =
+                        newPartialTestVectorRepresentation
+                        |> Array.ofList
+                    BranchingRoot =
+                        SuccessfulSearchTerminationNode
+                }                
             let rec addToTestVectorPaths ({
                                             SharedPathPrefix = sharedPathPrefix
                                             BranchingRoot = branchingRoot
@@ -507,14 +544,8 @@ namespace NTestCaseBuilder
                         , Some (_
                                 , remainderOfNewPartialTestVectorRepresentation) ->
                             match branchingRoot with
-                                BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode ->
-                                    {
-                                        SharedPathPrefix =
-                                            newPartialTestVectorRepresentation
-                                            |> Array.ofList
-                                        BranchingRoot =
-                                            SuccessfulSearchTerminationNode
-                                    }
+                                EmptyTernarySearchTree ->
+                                    justOnePathFrom newPartialTestVectorRepresentation
                               | _ ->
                                     {
                                         testVectorPaths with
@@ -532,7 +563,6 @@ namespace NTestCaseBuilder
                                 }
                             let commonPrefixFromNewPartialTestVectorRepresentation =
                                 List.rev reversedCommonPrefixFromNewPartialTestVectorRepresentation
-                                |> Array.ofList
                             let sharedPathPrefixSplit =
                                 match sharedPathPrefix.[indexOfMismatchOnSharedPathStep] with
                                     Some levelFromMismatchingSharedPathStep ->
@@ -554,6 +584,7 @@ namespace NTestCaseBuilder
                             {
                                 SharedPathPrefix =
                                     commonPrefixFromNewPartialTestVectorRepresentation
+                                    |> Array.ofList
                                 BranchingRoot =
                                     addToTernarySearchTree sharedPathPrefixSplit
                                                            mismatchingSuffixOfNewPartialTestVectorRepresentation
@@ -575,13 +606,7 @@ namespace NTestCaseBuilder
                                 SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                                 SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                                 TestVectorPathsForFollowingIndices =
-                                    {
-                                        SharedPathPrefix =
-                                            tailFromNewPartialTestVectorRepresentation
-                                            |> Array.ofList
-                                        BranchingRoot =
-                                            SuccessfulSearchTerminationNode
-                                    }
+                                    justOnePathFrom tailFromNewPartialTestVectorRepresentation
                             }
                             |> InternalNode
                             |> AugmentedInternalNode
@@ -611,13 +636,7 @@ namespace NTestCaseBuilder
                                         SubtreeWithLesserLevelsForSameTestVariableIndex = flankingSubtreeWithLesserLevels
                                         SubtreeWithGreaterLevelsForSameTestVariableIndex = flankingSubtreeWithGreaterLevels
                                         TestVectorPathsForFollowingIndices =
-                                            {
-                                                SharedPathPrefix =
-                                                    tailFromNewPartialTestVectorRepresentation
-                                                    |> Array.ofList
-                                                BranchingRoot =
-                                                    SuccessfulSearchTerminationNode
-                                            }
+                                            justOnePathFrom tailFromNewPartialTestVectorRepresentation
                                     }
                                     |> InternalNode
                                     |> AugmentedInternalNode
@@ -634,13 +653,7 @@ namespace NTestCaseBuilder
                                         SubtreeWithLesserLevelsForSameTestVariableIndex = flankingSubtreeWithLesserLevels
                                         SubtreeWithGreaterLevelsForSameTestVariableIndex = flankingSubtreeWithGreaterLevels
                                         TestVectorPathsForFollowingIndices =
-                                            {
-                                                SharedPathPrefix =
-                                                    tailFromNewPartialTestVectorRepresentation
-                                                    |> Array.ofList
-                                                BranchingRoot =
-                                                    SuccessfulSearchTerminationNode
-                                            }
+                                            justOnePathFrom tailFromNewPartialTestVectorRepresentation
                                     }
                                     |> InternalNode
                                     |> AugmentedInternalNode
@@ -700,13 +713,7 @@ namespace NTestCaseBuilder
                         {
                             SubtreeWithAllLevelsForSameTestVariableIndex = binaryTreeOfLevelsForTestVariable
                             TestVectorPathsForFollowingIndices =
-                                {
-                                    SharedPathPrefix =
-                                        tailFromNewPartialTestVectorRepresentation
-                                        |> Array.ofList
-                                    BranchingRoot =
-                                        SuccessfulSearchTerminationNode
-                                }
+                                justOnePathFrom tailFromNewPartialTestVectorRepresentation
                         }
                         |> WildcardNode
                   | _
@@ -751,39 +758,24 @@ namespace NTestCaseBuilder
                                                                                         subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                         subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                         testVectorPathsForFollowingIndices =
-                // The treatment of SharedPathPrefix below is slightly defensive - the invariant
-                // is stronger in practice; it states that any subtree that is just an unsuccessful
-                // unique path should be pruned back so that its unique prefix is empty.
                 match subtreeWithLesserLevelsForSameTestVariableIndex
                       , subtreeWithGreaterLevelsForSameTestVariableIndex
                       , testVectorPathsForFollowingIndices with
                   | UnsuccessfulSearchTerminationNode
                     , UnsuccessfulSearchTerminationNode
-                    , {
-                            SharedPathPrefix = _
-                            BranchingRoot = BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
-                      } ->
+                    , NoTestVectorPaths ->
                         UnsuccessfulSearchTerminationNode
                   | UnsuccessfulSearchTerminationNode
                     , _
-                    , {
-                            SharedPathPrefix = _
-                            BranchingRoot = BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
-                      } ->
+                    , NoTestVectorPaths ->
                         subtreeWithGreaterLevelsForSameTestVariableIndex
                   | _
                     , UnsuccessfulSearchTerminationNode
-                    , {
-                            SharedPathPrefix = _
-                            BranchingRoot = BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
-                      } ->
+                    , NoTestVectorPaths ->
                         subtreeWithLesserLevelsForSameTestVariableIndex
                   | AugmentedInternalNode (InternalNode subtreeWithLesserLevelsForSameTestVariableIndexInternalNodeRepresentation)
                     , AugmentedInternalNode (InternalNode subtreeWithGreaterLevelsForSameTestVariableIndexInternalNodeRepresentation)
-                    , {
-                            SharedPathPrefix = _
-                            BranchingRoot = BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
-                      } ->
+                    , NoTestVectorPaths ->
                         if subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
                            > subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
                         then
@@ -838,16 +830,10 @@ namespace NTestCaseBuilder
                 match subtreeWithAllLevelsForSameTestVariableIndex
                       , testVectorPathsForFollowingIndices with
                     UnsuccessfulSearchTerminationNode
-                    , {
-                            SharedPathPrefix = _
-                            BranchingRoot = BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
-                      } ->
-                        BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
+                    , NoTestVectorPaths ->
+                        EmptyTernarySearchTree
                   | _
-                    , {
-                            SharedPathPrefix = _
-                            BranchingRoot = BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
-                      } ->
+                    , NoTestVectorPaths ->
                         BinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
                   | _ ->
                         {
@@ -886,13 +872,8 @@ namespace NTestCaseBuilder
                                              |> List.ofArray)
                                             removedPartialTestVectorFromBranchingRoot
                             match modifiedBranchingRoot with
-                                BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode ->
-                                    return {
-                                                SharedPathPrefix =
-                                                    Array.empty
-                                                BranchingRoot =
-                                                    BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
-                                           }
+                                EmptyTernarySearchTree ->
+                                    return NoTestVectorPaths
                                            , removedPartialTestVector
                               | BinaryTreeOfLevelsForTestVariable
                                 (AugmentedInternalNode
@@ -1136,8 +1117,8 @@ namespace NTestCaseBuilder
                         else
                             continuationWorkflow
                                 {
-                                        return BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
-                                               , queryPartialTestVectorRepresentation
+                                    return EmptyTernarySearchTree
+                                            , queryPartialTestVectorRepresentation
                                 }
                   | WildcardNode
                     {
