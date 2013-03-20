@@ -525,7 +525,7 @@ namespace NTestCaseBuilder
             let justOnePathFrom partialTestVectorRepresentation =
                 {
                     SharedPathPrefix =
-                        newPartialTestVectorRepresentation
+                        partialTestVectorRepresentation
                         |> Array.ofList
                     BranchingRoot =
                         SuccessfulSearchTerminationNode
@@ -952,9 +952,7 @@ namespace NTestCaseBuilder
                                        ,  removedPartialTestVector
                           | Some _
                             , None ->
-                                // This has the effect of padding out a query partial test vector on the fly, thereby
-                                // allowing a match as a prefix of some suitable stored vector, should one already be present.
-                                return! removeWithoutAlteringSharedPathPrefix [None]
+                                return! removeWithoutAlteringSharedPathPrefix []
                           | _ ->
                                 raise (InternalAssertionViolationException "Postcondition failure of 'mismatch'.")
                     }
@@ -1192,7 +1190,7 @@ namespace NTestCaseBuilder
                                                       (testVariableIndex + uint32 sharedPathPrefix.Length)
                 match numberOfSuccessfulPathsFromSubtreeForFollowingIndices with
                     0u when 0 < Array.length sharedPathPrefix ->
-                        raise (InvariantViolationException "Redundant non-empty unique prefix with no successful search paths leading through it.")
+                        raise (InvariantViolationException "Redundant non-empty shared path prefix with no successful search paths leading through it.")
                   | _ ->
                         numberOfSuccessfulPathsFromSubtreeForFollowingIndices
             and checkInvariantOfTernarySearchTree ternarySearchTree
