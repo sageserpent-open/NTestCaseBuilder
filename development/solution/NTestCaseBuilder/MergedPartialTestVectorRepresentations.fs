@@ -13,38 +13,7 @@ namespace NTestCaseBuilder
     open Microsoft.FSharp.Collections
 
     module MergedPartialTestVectorRepresentationsDetail =
-        type AugmentedInternalNode<'Level when 'Level: comparison> (internalNode: InternalNode<'Level>) =
-            // TODO - fuse with 'InternalNode' and cut over the pattern matching below.
-            let numberOfLevelsForLeadingTestVariable =
-                match internalNode with
-                    {
-                        SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
-                        SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
-                        TestVectorPathsForFollowingIndices
-                            =   {
-                                    SharedPathPrefix = _    // This is slightly defensive - the invariant is stronger in practice; it states
-                                                            // that any subtree that is just an unsuccessful unique path should be pruned back
-                                                            // so that its unique prefix is empty.
-                                    BranchingRoot = BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
-                                }
-                    } ->
-                        subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
-                        + subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
-                  | {
-                        SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
-                        SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
-                    } ->
-                        1u
-                        + subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
-                        + subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
-
-            member this.InternalNode =
-                internalNode
-
-            member this.NumberOfLevelsForLeadingTestVariable =
-                numberOfLevelsForLeadingTestVariable
-
-        and InternalNode<'Level when 'Level: comparison> =
+        type InternalNode<'Level when 'Level: comparison> =
             {
                 LevelForTestVariableIndex: 'Level
                 SubtreeWithLesserLevelsForSameTestVariableIndex: BinaryTreeOfLevelsForTestVariable<'Level>
@@ -53,14 +22,7 @@ namespace NTestCaseBuilder
             }
         and BinaryTreeOfLevelsForTestVariable<'Level when 'Level: comparison> =
             UnsuccessfulSearchTerminationNode
-          | AugmentedInternalNode of AugmentedInternalNode<'Level>
-
-            member this.NumberOfLevelsForLeadingTestVariable =
-                match this with
-                    AugmentedInternalNode augmentedInternalNode ->
-                        augmentedInternalNode.NumberOfLevelsForLeadingTestVariable
-                  | UnsuccessfulSearchTerminationNode ->
-                        0u
+          | InternalNode of InternalNode<'Level>
         and WildcardNode<'Level when 'Level: comparison> =
             {
                 SubtreeWithAllLevelsForSameTestVariableIndex: BinaryTreeOfLevelsForTestVariable<'Level>
@@ -104,12 +66,6 @@ namespace NTestCaseBuilder
                 BranchingRoot = EmptyTernarySearchTree
             }
 
-        let inline (|InternalNode|) (augmentedInternalNode: AugmentedInternalNode<'Level>) =
-            augmentedInternalNode.InternalNode
-
-        let inline InternalNode (internalNode: InternalNode<'Level>) =
-            new AugmentedInternalNode<'Level> (internalNode)
-
         let inline mirrorInternalNode mirroring
                                       internalNodeRepresentation =
             if mirroring
@@ -127,13 +83,60 @@ namespace NTestCaseBuilder
             else
                 internalNodeRepresentation
 
-        let inline (|MirroredInternalNode|) mirroring =
-            (|InternalNode|)
-            >> mirrorInternalNode mirroring
+        let inline (|MirroredInternalNode|_|) mirroring
+                                              internalNode =
+            match internalNode with
+                InternalNode internalNodeRepresentation ->
+                    internalNodeRepresentation
+                    |> mirrorInternalNode mirroring
+                    |> Some
+              | _ ->
+                    None
 
-        let inline MirroredInternalNode mirroring =
+        let inline MirroredInternalNode mirroring
+                                        internalNodeRepresentation =
             mirrorInternalNode mirroring
-            >> InternalNode
+                               internalNodeRepresentation
+            |> InternalNode
+
+        type InternalNode<'Level when 'Level: comparison> with
+            member this.NumberOfLevelsForLeadingTestVariable =
+                match !this.CacheOfNumberOfLevelsForLeadingTestVariable with
+                    None ->
+                        let numberOfLevelsForLeadingTestVariable =
+                            match this with
+                                {
+                                    SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
+                                    SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                                    TestVectorPathsForFollowingIndices
+                                        = NoTestVectorPaths
+                                } ->
+                                    subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
+                                    + subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
+                              | {
+                                    SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
+                                    SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                                } ->
+                                    1u
+                                    + subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
+                                    + subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
+                        this.CacheOfNumberOfLevelsForLeadingTestVariable :=
+                            Some numberOfLevelsForLeadingTestVariable
+                        numberOfLevelsForLeadingTestVariable
+                  | Some numberOfLevelsForLeadingTestVariable ->
+                        numberOfLevelsForLeadingTestVariable 
+
+            // TODO: this is horrible - is this really giving any appreciable performance benefit?
+            member private this.CacheOfNumberOfLevelsForLeadingTestVariable =
+                ref None
+
+        and BinaryTreeOfLevelsForTestVariable<'Level when 'Level: comparison> with
+            member this.NumberOfLevelsForLeadingTestVariable =
+                match this with
+                    InternalNode internalNode ->
+                        internalNode.NumberOfLevelsForLeadingTestVariable
+                  | UnsuccessfulSearchTerminationNode ->
+                        0u
 
         type TreeSearchContextParameters =
             {
@@ -230,18 +233,17 @@ namespace NTestCaseBuilder
                                 , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
                                 , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
                         match rootSubtreeWithLesserLevelsForSameTestVariableIndex with
-                            AugmentedInternalNode
-                            (MirroredInternalNode localMirroring
+                            MirroredInternalNode localMirroring
                             ({
                                 LevelForTestVariableIndex = zigLevelForTestVariableIndex
                                 SubtreeWithLesserLevelsForSameTestVariableIndex = zigSubtreeWithLesserLevelsForSameTestVariableIndex
                                 SubtreeWithGreaterLevelsForSameTestVariableIndex = zigSubtreeWithGreaterLevelsForSameTestVariableIndex
-                            } as internalNodeRepresentationForZig)) ->
+                            } as internalNodeRepresentationForZig) ->
                                 match comparisonWrtImplicitLevel zigLevelForTestVariableIndex
                                       , zigSubtreeWithLesserLevelsForSameTestVariableIndex
                                       , zigSubtreeWithGreaterLevelsForSameTestVariableIndex with
                                     zigResult
-                                    , AugmentedInternalNode (InternalNode internalNodeRepresentationforZigZig)
+                                    , InternalNode internalNodeRepresentationforZigZig
                                     , _ when zigResult < 0 ->
                                         // Zig-zig case...
                                         let addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels =
@@ -256,10 +258,9 @@ namespace NTestCaseBuilder
                                                                         SubtreeWithLesserLevelsForSameTestVariableIndex = zigSubtreeWithGreaterLevelsForSameTestVariableIndex
                                                                 }
                                                                 |> MirroredInternalNode localMirroring
-                                                                |> AugmentedInternalNode
+
                                                     }
-                                                    |> MirroredInternalNode localMirroring
-                                                    |> AugmentedInternalNode))
+                                                    |> MirroredInternalNode localMirroring))
                                         accumulateFlankingSubtrees
                                             internalNodeRepresentationforZigZig
                                             addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
@@ -267,7 +268,7 @@ namespace NTestCaseBuilder
                                             localMirroring
                                   | zigResult
                                     , _
-                                    , AugmentedInternalNode (InternalNode internalNodeRepresentationforZigZag) when zigResult > 0 ->
+                                    , InternalNode internalNodeRepresentationforZigZag when zigResult > 0 ->
                                         // Zig-zag case...
                                         let addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels =
                                             (fun nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels ->
@@ -276,8 +277,7 @@ namespace NTestCaseBuilder
                                                         internalNodeRepresentationForRoot with
                                                             SubtreeWithLesserLevelsForSameTestVariableIndex = nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels
                                                     }
-                                                    |> MirroredInternalNode localMirroring
-                                                    |> AugmentedInternalNode))
+                                                    |> MirroredInternalNode localMirroring))
                                         let addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels =
                                             (fun nodeWithGreatestLevelToBeAddedToFlankingSubtreeWithLesserLevels ->
                                                 addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
@@ -285,8 +285,7 @@ namespace NTestCaseBuilder
                                                         internalNodeRepresentationForZig with
                                                             SubtreeWithGreaterLevelsForSameTestVariableIndex = nodeWithGreatestLevelToBeAddedToFlankingSubtreeWithLesserLevels
                                                     }
-                                                    |> MirroredInternalNode localMirroring
-                                                    |> AugmentedInternalNode))
+                                                    |> MirroredInternalNode localMirroring))
                                         accumulateFlankingSubtrees
                                             internalNodeRepresentationforZigZag
                                             addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
@@ -309,8 +308,7 @@ namespace NTestCaseBuilder
                                                     internalNodeRepresentationForRoot with
                                                         SubtreeWithLesserLevelsForSameTestVariableIndex = zigSubtreeWithGreaterLevelsForSameTestVariableIndex
                                                  }
-                                                |> MirroredInternalNode localMirroring
-                                                |> AugmentedInternalNode)
+                                                |> MirroredInternalNode localMirroring)
                                         if localMirroring
                                         then
                                             internalNodeRepresentationForSplayedZig
@@ -400,8 +398,7 @@ namespace NTestCaseBuilder
                                 raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
                             Seq.empty
-                      | AugmentedInternalNode
-                        (InternalNode
+                      | (InternalNode
                         {
                             LevelForTestVariableIndex = levelForTestVariableIndex
                             SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
@@ -573,7 +570,6 @@ namespace NTestCaseBuilder
                                             TestVectorPathsForFollowingIndices = testVectorPathsAfterMismatch
                                         }
                                         |> InternalNode
-                                        |> AugmentedInternalNode
                                         |> BinaryTreeOfLevelsForTestVariable
                                   | None ->
                                         {
@@ -609,9 +605,7 @@ namespace NTestCaseBuilder
                                     justOnePathFrom tailFromNewPartialTestVectorRepresentation
                             }
                             |> InternalNode
-                            |> AugmentedInternalNode
-                      | AugmentedInternalNode
-                        (InternalNode internalNodeRepresentation) ->
+                      | (InternalNode internalNodeRepresentation) ->
                             let comparisonWrtImplicitLevel =
                                 compare levelFromNewPartialTestVectorRepresentation
                             let ({
@@ -630,7 +624,6 @@ namespace NTestCaseBuilder
                                                 SubtreeWithGreaterLevelsForSameTestVariableIndex = flankingSubtreeWithGreaterLevels
                                         }
                                         |> InternalNode
-                                        |> AugmentedInternalNode
                                     {
                                         LevelForTestVariableIndex = levelFromNewPartialTestVectorRepresentation
                                         SubtreeWithLesserLevelsForSameTestVariableIndex = flankingSubtreeWithLesserLevels
@@ -639,7 +632,6 @@ namespace NTestCaseBuilder
                                             justOnePathFrom tailFromNewPartialTestVectorRepresentation
                                     }
                                     |> InternalNode
-                                    |> AugmentedInternalNode
                               | result when result > 0 ->
                                     let flankingSubtreeWithLesserLevels =
                                         {
@@ -647,7 +639,6 @@ namespace NTestCaseBuilder
                                                 SubtreeWithLesserLevelsForSameTestVariableIndex = flankingSubtreeWithLesserLevels
                                         }
                                         |> InternalNode
-                                        |> AugmentedInternalNode
                                     {
                                         LevelForTestVariableIndex = levelFromNewPartialTestVectorRepresentation
                                         SubtreeWithLesserLevelsForSameTestVariableIndex = flankingSubtreeWithLesserLevels
@@ -656,7 +647,6 @@ namespace NTestCaseBuilder
                                             justOnePathFrom tailFromNewPartialTestVectorRepresentation
                                     }
                                     |> InternalNode
-                                    |> AugmentedInternalNode
                               | _ ->
                                     let modifiedTestVectorPathsForFollowingIndices =
                                         addToTestVectorPaths splayedTestVectorPathsForFollowingIndices
@@ -668,7 +658,6 @@ namespace NTestCaseBuilder
                                             TestVectorPathsForFollowingIndices = modifiedTestVectorPathsForFollowingIndices
                                     }
                                     |> InternalNode
-                                    |> AugmentedInternalNode
                 match ternarySearchTree
                       , newPartialTestVectorRepresentation with
                   | SuccessfulSearchTerminationNode
@@ -773,8 +762,8 @@ namespace NTestCaseBuilder
                     , UnsuccessfulSearchTerminationNode
                     , NoTestVectorPaths ->
                         subtreeWithLesserLevelsForSameTestVariableIndex
-                  | AugmentedInternalNode (InternalNode subtreeWithLesserLevelsForSameTestVariableIndexInternalNodeRepresentation)
-                    , AugmentedInternalNode (InternalNode subtreeWithGreaterLevelsForSameTestVariableIndexInternalNodeRepresentation)
+                  | InternalNode subtreeWithLesserLevelsForSameTestVariableIndexInternalNodeRepresentation
+                    , InternalNode subtreeWithGreaterLevelsForSameTestVariableIndexInternalNodeRepresentation
                     , NoTestVectorPaths ->
                         if subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
                            > subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
@@ -793,8 +782,7 @@ namespace NTestCaseBuilder
                                 TestVectorPathsForFollowingIndices =
                                     testVectorPathsForFollowingIndicesFromRemovedNode
                             }
-                            |> InternalNode
-                            |> AugmentedInternalNode)
+                            |> InternalNode)
                         else
                             let levelForTestVariableIndexFromRemovedNode
                                 , testVectorPathsForFollowingIndicesFromRemovedNode
@@ -810,8 +798,7 @@ namespace NTestCaseBuilder
                                 TestVectorPathsForFollowingIndices =
                                     testVectorPathsForFollowingIndicesFromRemovedNode
                             }
-                            |> InternalNode
-                            |> AugmentedInternalNode)
+                            |> InternalNode)
                   | _ ->
                         ({
                             LevelForTestVariableIndex =
@@ -823,8 +810,7 @@ namespace NTestCaseBuilder
                             TestVectorPathsForFollowingIndices =
                                 testVectorPathsForFollowingIndices
                         }
-                        |> InternalNode
-                        |> AugmentedInternalNode)
+                        |> InternalNode)
             let buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
                                                                                         testVectorPathsForFollowingIndices =
                 match subtreeWithAllLevelsForSameTestVariableIndex
@@ -876,14 +862,13 @@ namespace NTestCaseBuilder
                                     return NoTestVectorPaths
                                            , removedPartialTestVector
                               | BinaryTreeOfLevelsForTestVariable
-                                (AugmentedInternalNode
                                 (InternalNode
                                 {
                                     LevelForTestVariableIndex = levelForTestVariableIndex
                                     SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                                     SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                                     TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
-                                })) ->
+                                }) ->
                                     return {
                                                 testVectorPathsForFollowingIndices with
                                                     SharedPathPrefix =
@@ -943,7 +928,6 @@ namespace NTestCaseBuilder
                                                 TestVectorPathsForFollowingIndices = testVectorPathsAfterMismatch
                                             }
                                             |> InternalNode
-                                            |> AugmentedInternalNode
                                             |> BinaryTreeOfLevelsForTestVariable
                                       | None ->
                                             {
@@ -1026,8 +1010,7 @@ namespace NTestCaseBuilder
                                 raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
                             continuationWorkflow.Zero ()
-                      | AugmentedInternalNode
-                        (InternalNode internalNodeRepresentation) ->
+                      | InternalNode internalNodeRepresentation ->
                             let comparisonWrtImplicitLevel =
                                 compare levelFromQueryPartialTestVectorRepresentation
                             let {
@@ -1057,14 +1040,13 @@ namespace NTestCaseBuilder
 
                             continuationWorkflow.Zero ()
 
-                      | AugmentedInternalNode
-                        (InternalNode
+                      | InternalNode
                         {
                             LevelForTestVariableIndex = levelForTestVariableIndex
                             SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
                             SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
                             TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
-                        }) ->
+                        } ->
                             buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices tailFromQueryPartialTestVectorRepresentation
                                                                                                        levelForTestVariableIndex
                                                                                                        subtreeWithLesserLevelsForSameTestVariableIndex
@@ -1225,14 +1207,13 @@ namespace NTestCaseBuilder
                                 raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
                             0u
-                      | AugmentedInternalNode
-                        (InternalNode
+                      | InternalNode
                         {
                             LevelForTestVariableIndex = levelForTestVariableIndex
                             SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
                             SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
                             TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
-                        }) ->
+                        } ->
                             let liftedLevel =
                                 Finite levelForTestVariableIndex
                             if liftedLevel >= upperBound
