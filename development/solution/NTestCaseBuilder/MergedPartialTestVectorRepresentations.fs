@@ -51,9 +51,7 @@ namespace NTestCaseBuilder
         let inline (|NoTestVectorPaths|_|) testVectorPaths =
             match testVectorPaths with
                 {
-                    SharedPathPrefix = _    // This is slightly defensive - the invariant is stronger in practice; it states
-                                            // that any subtree that is just an unsuccessful unique path should be pruned back
-                                            // so that its unique prefix is empty.
+                    SharedPathPrefix = [||]
                     BranchingRoot = EmptyTernarySearchTree
                 } ->
                     Some ()
@@ -65,6 +63,43 @@ namespace NTestCaseBuilder
                 SharedPathPrefix = Array.empty
                 BranchingRoot = EmptyTernarySearchTree
             }
+
+        let inline (|BranchingWithSingleLevelForLeadingTestVariable|_|) ternarySearchTree =
+            match ternarySearchTree with
+                BinaryTreeOfLevelsForTestVariable
+                (InternalNode
+                {
+                    LevelForTestVariableIndex = levelForTestVariableIndex
+                    SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                    SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                    TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
+                }) ->
+                    {
+                        testVectorPathsForFollowingIndices with
+                            SharedPathPrefix =
+                                [| yield Some levelForTestVariableIndex
+                                   yield! testVectorPathsForFollowingIndices.SharedPathPrefix |]
+                    }
+                    |> Some
+              | _ ->
+                    None
+
+        let inline (|BranchingWithJustWildcardForLeadingTestVariable|_|) ternarySearchTree =
+            match ternarySearchTree with
+                WildcardNode
+                {
+                    SubtreeWithAllLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                    TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
+                } ->
+                    {
+                        testVectorPathsForFollowingIndices with
+                            SharedPathPrefix =
+                                [| yield None
+                                   yield! testVectorPathsForFollowingIndices.SharedPathPrefix |]
+                    }
+                    |> Some
+              | _ ->
+                    None
 
         let inline mirrorInternalNode mirroring
                                       internalNodeRepresentation =
@@ -529,7 +564,7 @@ namespace NTestCaseBuilder
                         |> Array.ofList
                     BranchingRoot =
                         SuccessfulSearchTerminationNode
-                }                
+                }
             let rec addToTestVectorPaths ({
                                             SharedPathPrefix = sharedPathPrefix
                                             BranchingRoot = branchingRoot
@@ -845,7 +880,7 @@ namespace NTestCaseBuilder
                                       | None ->
                                             treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable)
                                   treeSearchContextParameters
-                let removeWithoutAlteringSharedPathPrefix remainderOfQueryPartialTestVectorRepresentation =
+                let removeWhenSharedPathPrefixAgreesWithQuery remainderOfQueryPartialTestVectorRepresentation =
                     continuationWorkflow
                         {
                             let! modifiedBranchingRoot
@@ -861,33 +896,20 @@ namespace NTestCaseBuilder
                                 EmptyTernarySearchTree ->
                                     return NoTestVectorPaths
                                            , removedPartialTestVector
-                              | BinaryTreeOfLevelsForTestVariable
-                                (InternalNode
-                                {
-                                    LevelForTestVariableIndex = levelForTestVariableIndex
-                                    SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                    SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                    TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
-                                }) ->
+                              | BranchingWithSingleLevelForLeadingTestVariable modifiedTestVectorPathsEquivalentToBranchingRoot ->
                                     return {
-                                                testVectorPathsForFollowingIndices with
+                                                modifiedTestVectorPathsEquivalentToBranchingRoot with
                                                     SharedPathPrefix =
-                                                        [| yield! sharedPathPrefix
-                                                           yield Some levelForTestVariableIndex
-                                                           yield! testVectorPathsForFollowingIndices.SharedPathPrefix |]
+                                                        Array.append sharedPathPrefix
+                                                                     modifiedTestVectorPathsEquivalentToBranchingRoot.SharedPathPrefix
                                            }
                                            , removedPartialTestVector
-                              | WildcardNode
-                                {
-                                    SubtreeWithAllLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                    TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
-                                } ->
+                              | BranchingWithJustWildcardForLeadingTestVariable modifiedTestVectorPathsEquivalentToBranchingRoot ->
                                     return {
-                                                testVectorPathsForFollowingIndices with
+                                                modifiedTestVectorPathsEquivalentToBranchingRoot with
                                                     SharedPathPrefix =
-                                                        [| yield! sharedPathPrefix
-                                                           yield None
-                                                           yield! testVectorPathsForFollowingIndices.SharedPathPrefix |]
+                                                        Array.append sharedPathPrefix
+                                                                     modifiedTestVectorPathsEquivalentToBranchingRoot.SharedPathPrefix
                                            }
                                            , removedPartialTestVector
                               | _ ->
@@ -904,7 +926,14 @@ namespace NTestCaseBuilder
                             None
                             , Some (_
                                     , remainderOfQueryPartialTestVectorRepresentation) ->
-                                return! removeWithoutAlteringSharedPathPrefix remainderOfQueryPartialTestVectorRepresentation
+                                return! removeWhenSharedPathPrefixAgreesWithQuery remainderOfQueryPartialTestVectorRepresentation
+                          | Some indexOfRemainderOfSharedPathPrefix
+                            , None ->
+                                let paddingForRemainderOfQueryPartialTestVectorRepresentation =
+                                    List.init (sharedPathPrefix.Length - indexOfRemainderOfSharedPathPrefix)
+                                              (fun _ ->
+                                                None)
+                                return! removeWhenSharedPathPrefixAgreesWithQuery paddingForRemainderOfQueryPartialTestVectorRepresentation
                           | Some indexOfMismatchOnSharedPathStep
                             , Some (reversedCommonPrefixFromQueryPartialTestVectorRepresentation
                                     , mismatchingSuffixOfQueryPartialTestVectorRepresentation) ->
@@ -931,10 +960,16 @@ namespace NTestCaseBuilder
                                                                       tailOfMismatchingSuffixOfQueryPartialTestVectorRepresentation
                                                                       (treeSearchContextParametersAfter commonPrefixFromQueryPartialTestVectorRepresentationAsArray)
                                                                         .PropagateFromDefinedLevelToNextTestVariable
-                                        return {
-                                                    modifiedTestVectorPathsAfterMismatch with
-                                                        SharedPathPrefix = sharedPathPrefix
-                                               }
+                                        return match modifiedTestVectorPathsAfterMismatch with
+                                                    {
+                                                        BranchingRoot = EmptyTernarySearchTree  
+                                                    } ->
+                                                        NoTestVectorPaths
+                                                  | _ ->
+                                                    {
+                                                        modifiedTestVectorPathsAfterMismatch with
+                                                            SharedPathPrefix = sharedPathPrefix
+                                                    }
                                                , [yield! commonPrefixFromQueryPartialTestVectorRepresentation
                                                   yield Some levelFromMismatchingSharedPathStep
                                                   yield! removedPartialTestVectorFromTailOfSuffix]
@@ -946,19 +981,22 @@ namespace NTestCaseBuilder
                                                                       tailOfMismatchingSuffixOfQueryPartialTestVectorRepresentation
                                                                       (treeSearchContextParametersAfter commonPrefixFromQueryPartialTestVectorRepresentationAsArray)
                                                                         .PropagateFromWildcardLevelToNextTestVariable
-                                        return {
-                                                    modifiedTestVectorPathsAfterMismatch with
-                                                        SharedPathPrefix = sharedPathPrefix
-                                               }
+                                        return match modifiedTestVectorPathsAfterMismatch with
+                                                    {
+                                                        BranchingRoot = EmptyTernarySearchTree  
+                                                    } ->
+                                                        NoTestVectorPaths
+                                                  | _ ->
+                                                    {
+                                                        modifiedTestVectorPathsAfterMismatch with
+                                                            SharedPathPrefix = sharedPathPrefix
+                                                    }
                                                , [yield! commonPrefixFromQueryPartialTestVectorRepresentation
                                                   yield mismatchingSharedPathStep
                                                   yield! removedPartialTestVectorFromTailOfSuffix]
                                   | _
                                     , [] ->
                                         raise (InternalAssertionViolationException "The postcondition of 'mismatch' should have prevented this case.")
-                          | Some _
-                            , None ->
-                                return! removeWithoutAlteringSharedPathPrefix []
                           | _ ->
                                 raise (InternalAssertionViolationException "Postcondition failure of 'mismatch'.")
                     }
