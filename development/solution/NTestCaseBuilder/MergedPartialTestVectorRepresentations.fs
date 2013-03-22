@@ -205,6 +205,16 @@ namespace NTestCaseBuilder
                         HasSuffixContextOfPossibleFullTestVector = false
                 }
 
+        type SharedPathPrefixMatchResult<'Level> =
+            AgreesWithPrefixOfPartialTestVector of List<Option<'Level>> * List<Option<'Level>>  // The prefix of partial test vector representation that agrees
+                                                                                                // and the remainder of the partial test vector representation.
+          | ShortenedPrefixAgreesWithEntirePartialTestVector of Int32 * List<Option<'Level>>    // Length of partial test vector representation and
+                                                                                                // the partial test vector representation itself.
+          | CompleteMismatch of Int32 * List<Option<'Level>> * List<Option<'Level>> // Index of mismatch in the shared path prefix,
+                                                                                    // the prefix of partial test vector representation that agrees
+                                                                                    // and the remainder of the partial test vector representation
+                                                                                    // including the mismatching level at the head.
+
         let splayInternalNodeWithMatchingOrNeighbouringLevel internalNodeRepresentation
                                                              comparisonWrtImplicitLevel =
             let mirroredComparisonWrtImplicitLevel =
@@ -369,29 +379,44 @@ namespace NTestCaseBuilder
                              rhsReversedPrefix =
                 if lhsLength = lhsIndex
                 then
-                    None
-                    , Some (rhsReversedPrefix
-                            , rhs)  // NOTE: if array is merely a prefix of the list, this is still counted as a *match*
-                                    // (and is the expected typical case; an exact match is also OK from the point of
-                                    // view of this local context).
+                    AgreesWithPrefixOfPartialTestVector (rhsReversedPrefix
+                                                         |> List.rev
+                                                         , rhs)
                 else
                     match rhs with
                         rhsHead :: rhsTail ->
-                             if lhs.[lhsIndex] = rhsHead
+                             if match lhs.[lhsIndex]
+                                      , rhsHead with
+                                    Some lhsLevel
+                                    , Some rhsLevel ->
+                                        lhsLevel = rhsLevel
+                                  | _ ->
+                                        true
                                 then
                                     mismatch (lhsIndex + 1)
                                              rhsTail
                                              (rhsHead :: rhsReversedPrefix)
                                 else
-                                    Some lhsIndex
-                                    , Some (rhsReversedPrefix
-                                            , rhs)  // This is an out-an-out mismatch on contained elements.
+                                    CompleteMismatch (lhsIndex
+                                                      , rhsReversedPrefix
+                                                        |> List.rev
+                                                      , rhs)
                       | [] ->
-                            Some lhsIndex
-                            , None  // NOTE: if the list is a prefix of the array, this is counted as a *mismatch*.
+                            ShortenedPrefixAgreesWithEntirePartialTestVector (lhsIndex
+                                                                              , rhsReversedPrefix
+                                                                                |> List.rev)
             mismatch 0
                      rhs
                      []
+
+        let merge agreeingPrefixOfQueryPartialTestVectorRepresentation
+                  sharedPathPrefix =
+            Array.zip (agreeingPrefixOfQueryPartialTestVectorRepresentation
+                       |> Array.ofList)
+                       sharedPathPrefix
+            |> Array.map (fun (fromQuery: Option<_>
+                               , fromSharedPath) ->
+                            fromQuery.OrElse fromSharedPath)
 
     open MergedPartialTestVectorRepresentationsDetail
 
@@ -572,29 +597,28 @@ namespace NTestCaseBuilder
                                          newPartialTestVectorRepresentation =
                     match mismatch sharedPathPrefix
                                    newPartialTestVectorRepresentation with
-                        None
-                        , Some (_
-                                , remainderOfNewPartialTestVectorRepresentation) ->
+                        AgreesWithPrefixOfPartialTestVector (agreeingPrefixOfNewPartialTestVectorRepresentation
+                                                             , remainderOfNewPartialTestVectorRepresentation) ->
                             match branchingRoot with
                                 EmptyTernarySearchTree ->
                                     justOnePathFrom newPartialTestVectorRepresentation
                               | _ ->
                                     {
-                                        testVectorPaths with
-                                            BranchingRoot =
-                                                addToTernarySearchTree branchingRoot
-                                                                       remainderOfNewPartialTestVectorRepresentation
+                                        SharedPathPrefix =
+                                            merge agreeingPrefixOfNewPartialTestVectorRepresentation
+                                                  sharedPathPrefix
+                                        BranchingRoot =
+                                            addToTernarySearchTree branchingRoot
+                                                                   remainderOfNewPartialTestVectorRepresentation
                                     }
-                      | Some indexOfMismatchOnSharedPathStep
-                        , Some (reversedCommonPrefixFromNewPartialTestVectorRepresentation
-                                , mismatchingSuffixOfNewPartialTestVectorRepresentation) ->
+                      | CompleteMismatch (indexOfMismatchOnSharedPathStep
+                                          , agreeingPrefixOfNewPartialTestVectorRepresentation
+                                          , mismatchingSuffixOfNewPartialTestVectorRepresentation) ->
                             let testVectorPathsAfterMismatch =
                                 {
                                     testVectorPaths with
                                         SharedPathPrefix = sharedPathPrefix.[1 + indexOfMismatchOnSharedPathStep ..]
                                 }
-                            let commonPrefixFromNewPartialTestVectorRepresentation =
-                                List.rev reversedCommonPrefixFromNewPartialTestVectorRepresentation
                             let sharedPathPrefixSplit =
                                 match sharedPathPrefix.[indexOfMismatchOnSharedPathStep] with
                                     Some levelFromMismatchingSharedPathStep ->
@@ -614,17 +638,14 @@ namespace NTestCaseBuilder
                                         |> WildcardNode
                             {
                                 SharedPathPrefix =
-                                    commonPrefixFromNewPartialTestVectorRepresentation
-                                    |> Array.ofList
+                                    merge agreeingPrefixOfNewPartialTestVectorRepresentation
+                                          sharedPathPrefix.[.. indexOfMismatchOnSharedPathStep - 1]
                                 BranchingRoot =
                                     addToTernarySearchTree sharedPathPrefixSplit
                                                            mismatchingSuffixOfNewPartialTestVectorRepresentation
                             }
-                      | Some _
-                        , None ->
+                      | ShortenedPrefixAgreesWithEntirePartialTestVector _ ->
                             raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that is a prefix of a previous one.")
-                      | _ ->
-                            raise (InternalAssertionViolationException "Postcondition failure of 'mismatch'.")
             and addToTernarySearchTree ternarySearchTree
                                        newPartialTestVectorRepresentation =
                 let rec addLevelToBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
@@ -880,7 +901,8 @@ namespace NTestCaseBuilder
                                       | None ->
                                             treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable)
                                   treeSearchContextParameters
-                let removeWhenSharedPathPrefixAgreesWithQuery remainderOfQueryPartialTestVectorRepresentation =
+                let removeWhenSharedPathPrefixAgreesWithQuery agreeingPrefixOfQueryPartialTestVectorRepresentation
+                                                              remainderOfQueryPartialTestVectorRepresentation =
                     continuationWorkflow
                         {
                             let! modifiedBranchingRoot
@@ -888,9 +910,12 @@ namespace NTestCaseBuilder
                                 removeFromTernarySearchTree branchingRoot
                                                             remainderOfQueryPartialTestVectorRepresentation
                                                             (treeSearchContextParametersAfter sharedPathPrefix)
+                            let mergedSharedPathPrefix =
+                                merge agreeingPrefixOfQueryPartialTestVectorRepresentation
+                                      sharedPathPrefix
+                                |> List.ofArray
                             let removedPartialTestVector =
-                                List.append (sharedPathPrefix
-                                             |> List.ofArray)
+                                List.append mergedSharedPathPrefix
                                             removedPartialTestVectorFromBranchingRoot
                             match modifiedBranchingRoot with
                                 EmptyTernarySearchTree ->
@@ -923,82 +948,21 @@ namespace NTestCaseBuilder
                     {
                         match mismatch sharedPathPrefix
                                        queryPartialTestVectorRepresentation with
-                            None
-                            , Some (_
-                                    , remainderOfQueryPartialTestVectorRepresentation) ->
-                                return! removeWhenSharedPathPrefixAgreesWithQuery remainderOfQueryPartialTestVectorRepresentation
-                          | Some indexOfRemainderOfSharedPathPrefix
-                            , None ->
+                            AgreesWithPrefixOfPartialTestVector (agreeingPrefixOfQueryPartialTestVectorRepresentation
+                                                                 , remainderOfQueryPartialTestVectorRepresentation) ->
+                                return! removeWhenSharedPathPrefixAgreesWithQuery agreeingPrefixOfQueryPartialTestVectorRepresentation
+                                                                                  remainderOfQueryPartialTestVectorRepresentation
+                          | ShortenedPrefixAgreesWithEntirePartialTestVector (lengthOfQueryPartialTestVectorRepresentation
+                                                                              , agreeingPrefixOfQueryPartialTestVectorRepresentation) ->
                                 let paddingForRemainderOfQueryPartialTestVectorRepresentation =
-                                    List.init (sharedPathPrefix.Length - indexOfRemainderOfSharedPathPrefix)
+                                    List.init (sharedPathPrefix.Length - lengthOfQueryPartialTestVectorRepresentation)
                                               (fun _ ->
                                                 None)
-                                return! removeWhenSharedPathPrefixAgreesWithQuery paddingForRemainderOfQueryPartialTestVectorRepresentation
-                          | Some indexOfMismatchOnSharedPathStep
-                            , Some (reversedCommonPrefixFromQueryPartialTestVectorRepresentation
-                                    , mismatchingSuffixOfQueryPartialTestVectorRepresentation) ->
-                                let testVectorPathsAfterMismatch =
-                                    {
-                                        testVectorPaths with
-                                            SharedPathPrefix = sharedPathPrefix.[1 + indexOfMismatchOnSharedPathStep ..]
-                                    }
-                                let commonPrefixFromQueryPartialTestVectorRepresentation =
-                                    List.rev reversedCommonPrefixFromQueryPartialTestVectorRepresentation
-                                let commonPrefixFromQueryPartialTestVectorRepresentationAsArray =
-                                    commonPrefixFromQueryPartialTestVectorRepresentation
-                                    |> Array.ofList
-                                match sharedPathPrefix.[indexOfMismatchOnSharedPathStep]
-                                        , mismatchingSuffixOfQueryPartialTestVectorRepresentation with
-                                    Some levelFromMismatchingSharedPathStep
-                                    , Some mismatchingLevelFromQueryPartialTestVectorRepresentation :: tailOfMismatchingSuffixOfQueryPartialTestVectorRepresentation ->
-                                        return! continuationWorkflow.Zero ()
-                                  | Some levelFromMismatchingSharedPathStep
-                                    , None :: tailOfMismatchingSuffixOfQueryPartialTestVectorRepresentation ->
-                                        let! modifiedTestVectorPathsAfterMismatch
-                                             , removedPartialTestVectorFromTailOfSuffix =
-                                            removeFromTestVectorPaths testVectorPathsAfterMismatch
-                                                                      tailOfMismatchingSuffixOfQueryPartialTestVectorRepresentation
-                                                                      (treeSearchContextParametersAfter commonPrefixFromQueryPartialTestVectorRepresentationAsArray)
-                                                                        .PropagateFromDefinedLevelToNextTestVariable
-                                        return match modifiedTestVectorPathsAfterMismatch with
-                                                    {
-                                                        BranchingRoot = EmptyTernarySearchTree  
-                                                    } ->
-                                                        NoTestVectorPaths
-                                                  | _ ->
-                                                    {
-                                                        modifiedTestVectorPathsAfterMismatch with
-                                                            SharedPathPrefix = sharedPathPrefix
-                                                    }
-                                               , [yield! commonPrefixFromQueryPartialTestVectorRepresentation
-                                                  yield Some levelFromMismatchingSharedPathStep
-                                                  yield! removedPartialTestVectorFromTailOfSuffix]
-                                  | None
-                                    , mismatchingSharedPathStep :: tailOfMismatchingSuffixOfQueryPartialTestVectorRepresentation ->
-                                        let! modifiedTestVectorPathsAfterMismatch
-                                             , removedPartialTestVectorFromTailOfSuffix =
-                                            removeFromTestVectorPaths testVectorPathsAfterMismatch
-                                                                      tailOfMismatchingSuffixOfQueryPartialTestVectorRepresentation
-                                                                      (treeSearchContextParametersAfter commonPrefixFromQueryPartialTestVectorRepresentationAsArray)
-                                                                        .PropagateFromWildcardLevelToNextTestVariable
-                                        return match modifiedTestVectorPathsAfterMismatch with
-                                                    {
-                                                        BranchingRoot = EmptyTernarySearchTree  
-                                                    } ->
-                                                        NoTestVectorPaths
-                                                  | _ ->
-                                                    {
-                                                        modifiedTestVectorPathsAfterMismatch with
-                                                            SharedPathPrefix = sharedPathPrefix
-                                                    }
-                                               , [yield! commonPrefixFromQueryPartialTestVectorRepresentation
-                                                  yield mismatchingSharedPathStep
-                                                  yield! removedPartialTestVectorFromTailOfSuffix]
-                                  | _
-                                    , [] ->
-                                        raise (InternalAssertionViolationException "The postcondition of 'mismatch' should have prevented this case.")
-                          | _ ->
-                                raise (InternalAssertionViolationException "Postcondition failure of 'mismatch'.")
+                                return! removeWhenSharedPathPrefixAgreesWithQuery (List.append agreeingPrefixOfQueryPartialTestVectorRepresentation
+                                                                                               paddingForRemainderOfQueryPartialTestVectorRepresentation)
+                                                                                  []
+                          | CompleteMismatch _ ->
+                                return! continuationWorkflow.Zero ()
                     }
             and removeFromTernarySearchTree ternarySearchTree
                                             queryPartialTestVectorRepresentation
