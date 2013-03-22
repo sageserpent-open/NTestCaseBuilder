@@ -9,6 +9,7 @@ namespace NTestCaseBuilder
     open SageSerpent.Infrastructure.OptionWorkflow
     open SageSerpent.Infrastructure.OptionExtensions
     open SageSerpent.Infrastructure.RandomExtensions
+    open SageSerpent.Infrastructure.ListExtensions
     open SageSerpent.Infrastructure.ContinuationWorkflow
     open Microsoft.FSharp.Collections
 
@@ -409,14 +410,14 @@ namespace NTestCaseBuilder
                      rhs
                      []
 
-        let merge agreeingPrefixOfQueryPartialTestVectorRepresentation
+        let merge agreeingPrefixOfPartialTestVectorRepresentation
                   sharedPathPrefix =
-            Array.zip (agreeingPrefixOfQueryPartialTestVectorRepresentation
+            Array.zip (agreeingPrefixOfPartialTestVectorRepresentation
                        |> Array.ofList)
                        sharedPathPrefix
-            |> Array.map (fun (fromQuery: Option<_>
-                               , fromSharedPath) ->
-                            fromQuery.OrElse fromSharedPath)
+            |> Array.map (fun (fromPartialTestVectorRepresentation: Option<_>
+                               , fromSharedPathPrefix) ->
+                            fromPartialTestVectorRepresentation.OrElse fromSharedPathPrefix)
 
     open MergedPartialTestVectorRepresentationsDetail
 
@@ -1391,6 +1392,36 @@ namespace NTestCaseBuilder
 
                                                                 do! continuationWorkflow
                                                                         {
+                                                                            let lengthOfPartialTestVectorRepresentation =
+                                                                                partialTestVectorRepresentation
+                                                                                |> List.length
+                                                                            let lengthOfMergedPartialTestVectorRepresentation =
+                                                                                mergedPartialTestVectorRepresentation
+                                                                                |> List.length
+                                                                            if lengthOfMergedPartialTestVectorRepresentation < lengthOfPartialTestVectorRepresentation
+                                                                            then
+                                                                                raise (InternalAssertionViolationException "The merged removed partial test vector should be as least as long as the original.")
+                                                                            let truncatedMergedPartialTestVectorRepresentation
+                                                                                , _ =
+                                                                                mergedPartialTestVectorRepresentation.BreakOff (uint32 lengthOfPartialTestVectorRepresentation)
+                                                                            List.zip partialTestVectorRepresentation
+                                                                                     truncatedMergedPartialTestVectorRepresentation
+                                                                            |> List.iter (fun (original
+                                                                                               , merged) ->
+                                                                                            let consistent =
+                                                                                                match original
+                                                                                                      , merged with
+                                                                                                    Some fromOriginal
+                                                                                                    , Some fromMerged ->
+                                                                                                        fromOriginal = fromMerged
+                                                                                                  | Some _
+                                                                                                    , None ->
+                                                                                                        false
+                                                                                                  | _ ->
+                                                                                                        true
+                                                                                            if not consistent
+                                                                                            then
+                                                                                                raise (InternalAssertionViolationException "The merged removed partial test vector has a value that is inconsistent with the original."))
                                                                             let! _ =
                                                                                 remove testVectorPathsWithoutMergeCandidate
                                                                                        mergedPartialTestVectorRepresentation
