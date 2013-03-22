@@ -1439,13 +1439,28 @@ namespace NTestCaseBuilder
                                                             }))
                     + continuationWorkflow
                         {
-                            return add testVectorPaths
-                                       partialTestVectorRepresentation
+                            let modifiedTestVectorPaths =
+                                add testVectorPaths
+                                    partialTestVectorRepresentation
+
+                            if not partialTestVectorRepresentationIsActuallyAlreadyFull
+                            then
+                                let! _
+                                     , shouldBeIdenticalToWhatWasAdded =
+                                        remove modifiedTestVectorPaths
+                                               partialTestVectorRepresentation
+                                               (fun _ -> raise (InternalAssertionViolationException "This should not be called."))
+
+                                if shouldBeIdenticalToWhatWasAdded <> partialTestVectorRepresentation
+                                then
+                                    raise (InternalAssertionViolationException "Adding an unmergeable partial test vector has caused it to change state from the original.")
+
+                            return modifiedTestVectorPaths
                                    , if partialTestVectorRepresentationIsActuallyAlreadyFull
-                                        then
-                                            Some partialTestVectorRepresentationInExternalForm
-                                        else
-                                            None
+                                     then
+                                        Some partialTestVectorRepresentationInExternalForm
+                                     else
+                                        None
                         }
                     |> ContinuationMonad<_, _>.Execute
                 if 7 = (hash this) % 100
