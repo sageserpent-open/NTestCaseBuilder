@@ -160,7 +160,7 @@ namespace NTestCaseBuilder
                             Some numberOfLevelsForLeadingTestVariable
                         numberOfLevelsForLeadingTestVariable
                   | Some numberOfLevelsForLeadingTestVariable ->
-                        numberOfLevelsForLeadingTestVariable 
+                        numberOfLevelsForLeadingTestVariable
 
             // TODO: this is horrible - is this really giving any appreciable performance benefit?
             member private this.CacheOfNumberOfLevelsForLeadingTestVariable =
@@ -1107,7 +1107,7 @@ namespace NTestCaseBuilder
                             continuationWorkflow
                                 {
                                     return EmptyTernarySearchTree
-                                            , queryPartialTestVectorRepresentation
+                                           , queryPartialTestVectorRepresentation
                                 }
                   | WildcardNode
                     {
