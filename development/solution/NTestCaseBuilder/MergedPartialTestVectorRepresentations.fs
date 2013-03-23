@@ -372,7 +372,8 @@ namespace NTestCaseBuilder
                                        BargainBasement.Identity
                                        false
         let mismatch lhs
-                     rhs =
+                     rhs
+                     equals =
             let lhsLength =
                 Array.length lhs
             let rec mismatch lhsIndex
@@ -386,22 +387,17 @@ namespace NTestCaseBuilder
                 else
                     match rhs with
                         rhsHead :: rhsTail ->
-                             if match lhs.[lhsIndex]
-                                      , rhsHead with
-                                    Some lhsLevel
-                                    , Some rhsLevel ->
-                                        lhsLevel = rhsLevel
-                                  | _ ->
-                                        true
-                                then
-                                    mismatch (lhsIndex + 1)
-                                             rhsTail
-                                             (rhsHead :: rhsReversedPrefix)
-                                else
-                                    CompleteMismatch (lhsIndex
-                                                      , rhsReversedPrefix
-                                                        |> List.rev
-                                                      , rhs)
+                            if equals lhs.[lhsIndex]
+                                      rhsHead
+                            then
+                                mismatch (lhsIndex + 1)
+                                            rhsTail
+                                            (rhsHead :: rhsReversedPrefix)
+                            else
+                                CompleteMismatch (lhsIndex
+                                                    , rhsReversedPrefix
+                                                    |> List.rev
+                                                    , rhs)
                       | [] ->
                             ShortenedPrefixAgreesWithEntirePartialTestVector (lhsIndex
                                                                               , rhsReversedPrefix
@@ -597,7 +593,8 @@ namespace NTestCaseBuilder
                                          } as testVectorPaths)
                                          newPartialTestVectorRepresentation =
                     match mismatch sharedPathPrefix
-                                   newPartialTestVectorRepresentation with
+                                   newPartialTestVectorRepresentation
+                                   (=) with
                         AgreesWithPrefixOfPartialTestVector (agreeingPrefixOfNewPartialTestVectorRepresentation
                                                              , remainderOfNewPartialTestVectorRepresentation) ->
                             match branchingRoot with
@@ -606,8 +603,7 @@ namespace NTestCaseBuilder
                               | _ ->
                                     {
                                         SharedPathPrefix =
-                                            merge agreeingPrefixOfNewPartialTestVectorRepresentation
-                                                  sharedPathPrefix
+                                            sharedPathPrefix
                                         BranchingRoot =
                                             addToTernarySearchTree branchingRoot
                                                                    remainderOfNewPartialTestVectorRepresentation
@@ -639,8 +635,7 @@ namespace NTestCaseBuilder
                                         |> WildcardNode
                             {
                                 SharedPathPrefix =
-                                    merge agreeingPrefixOfNewPartialTestVectorRepresentation
-                                          sharedPathPrefix.[.. indexOfMismatchOnSharedPathStep - 1]
+                                    sharedPathPrefix.[.. indexOfMismatchOnSharedPathStep - 1]
                                 BranchingRoot =
                                     addToTernarySearchTree sharedPathPrefixSplit
                                                            mismatchingSuffixOfNewPartialTestVectorRepresentation
@@ -948,7 +943,16 @@ namespace NTestCaseBuilder
                 continuationWorkflow
                     {
                         match mismatch sharedPathPrefix
-                                       queryPartialTestVectorRepresentation with
+                                       queryPartialTestVectorRepresentation
+                                       (fun lhs
+                                            rhs ->
+                                                match lhs
+                                                      , rhs with
+                                                    Some lhsLevel
+                                                    , Some rhsLevel ->
+                                                        lhsLevel = rhsLevel
+                                                  | _ ->
+                                                        true) with
                             AgreesWithPrefixOfPartialTestVector (agreeingPrefixOfQueryPartialTestVectorRepresentation
                                                                  , remainderOfQueryPartialTestVectorRepresentation) ->
                                 return! removeWhenSharedPathPrefixAgreesWithQuery agreeingPrefixOfQueryPartialTestVectorRepresentation
