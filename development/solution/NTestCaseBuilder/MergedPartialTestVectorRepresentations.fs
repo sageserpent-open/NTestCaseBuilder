@@ -391,13 +391,13 @@ namespace NTestCaseBuilder
                                       rhsHead
                             then
                                 mismatch (lhsIndex + 1)
-                                            rhsTail
-                                            (rhsHead :: rhsReversedPrefix)
+                                         rhsTail
+                                         (rhsHead :: rhsReversedPrefix)
                             else
                                 CompleteMismatch (lhsIndex
-                                                    , rhsReversedPrefix
+                                                  , rhsReversedPrefix
                                                     |> List.rev
-                                                    , rhs)
+                                                  , rhs)
                       | [] ->
                             ShortenedPrefixAgreesWithEntirePartialTestVector (lhsIndex
                                                                               , rhsReversedPrefix

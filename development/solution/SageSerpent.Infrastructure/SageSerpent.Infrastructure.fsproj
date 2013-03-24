@@ -59,7 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="C5">
-      <HintPath>..\packages\C5.2.1.4492.18142\lib\net40\C5.dll</HintPath>
+      <HintPath>..\packages\C5.2.2.4822.42600\lib\portable-win+net40+sl40+wp+Xbox40\C5.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
