@@ -11,6 +11,7 @@ namespace NTestCaseBuilder
     open SageSerpent.Infrastructure.RandomExtensions
     open SageSerpent.Infrastructure.ListExtensions
     open SageSerpent.Infrastructure.ContinuationWorkflow
+    open SageSerpent.Infrastructure.ChunkedListExtensions
     open Microsoft.FSharp.Collections
 
     module MergedPartialTestVectorRepresentationsDetail =
@@ -31,7 +32,7 @@ namespace NTestCaseBuilder
             }
         and TestVectorPaths<'Level when 'Level: comparison> =
             {
-                SharedPathPrefix: array<Option<'Level>>
+                SharedPathPrefix: ChunkedList<Option<'Level>>
                 BranchingRoot: TernarySearchTree<'Level>
             }
         and TernarySearchTree<'Level when 'Level: comparison> =
@@ -52,7 +53,7 @@ namespace NTestCaseBuilder
         let inline (|NoTestVectorPaths|_|) testVectorPaths =
             match testVectorPaths with
                 {
-                    SharedPathPrefix = [||]
+                    SharedPathPrefix = Nil
                     BranchingRoot = EmptyTernarySearchTree
                 } ->
                     Some ()
@@ -61,7 +62,7 @@ namespace NTestCaseBuilder
 
         let NoTestVectorPaths =
             {
-                SharedPathPrefix = Array.empty
+                SharedPathPrefix = Nil
                 BranchingRoot = EmptyTernarySearchTree
             }
 
@@ -78,8 +79,8 @@ namespace NTestCaseBuilder
                     {
                         testVectorPathsForFollowingIndices with
                             SharedPathPrefix =
-                                [| yield Some levelForTestVariableIndex
-                                   yield! testVectorPathsForFollowingIndices.SharedPathPrefix |]
+                                Cons (Some levelForTestVariableIndex
+                                      , testVectorPathsForFollowingIndices.SharedPathPrefix)
                     }
                     |> Some
               | _ ->
@@ -95,8 +96,8 @@ namespace NTestCaseBuilder
                     {
                         testVectorPathsForFollowingIndices with
                             SharedPathPrefix =
-                                [| yield None
-                                   yield! testVectorPathsForFollowingIndices.SharedPathPrefix |]
+                                Cons (None
+                                      , testVectorPathsForFollowingIndices.SharedPathPrefix)
                     }
                     |> Some
               | _ ->
@@ -375,7 +376,7 @@ namespace NTestCaseBuilder
                      rhs
                      equals =
             let lhsLength =
-                Array.length lhs
+                ChunkedList.length lhs
             let rec mismatch lhsIndex
                              rhs
                              rhsReversedPrefix =
@@ -408,12 +409,12 @@ namespace NTestCaseBuilder
 
         let merge agreeingPrefixOfPartialTestVectorRepresentation
                   sharedPathPrefix =
-            Array.zip (agreeingPrefixOfPartialTestVectorRepresentation
-                       |> Array.ofList)
+            ChunkedList.zip (agreeingPrefixOfPartialTestVectorRepresentation
+                             |> ChunkedList.ofList)
                        sharedPathPrefix
-            |> Array.map (fun (fromPartialTestVectorRepresentation: Option<_>
-                               , fromSharedPathPrefix) ->
-                            fromPartialTestVectorRepresentation.OrElse fromSharedPathPrefix)
+            |> ChunkedList.map (fun (fromPartialTestVectorRepresentation: Option<_>
+                                     , fromSharedPathPrefix) ->
+                               fromPartialTestVectorRepresentation.OrElse fromSharedPathPrefix)
 
     open MergedPartialTestVectorRepresentationsDetail
 
@@ -429,18 +430,18 @@ namespace NTestCaseBuilder
                 let treeSearchContextParameters
                     , partialTestVectorBeingBuilt =
                     sharedPathPrefix
-                    |> Array.fold (fun ((treeSearchContextParameters: TreeSearchContextParameters)
-                                        , partialTestVectorBeingBuilt)
-                                       sharedPathPrefixStep ->
-                                    match sharedPathPrefixStep with
-                                        Some levelForTestVariableIndex ->
-                                            treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
-                                            , ((treeSearchContextParameters.TestVariableIndex, levelForTestVariableIndex) :: partialTestVectorBeingBuilt)
-                                      | None ->
-                                            treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
-                                            , partialTestVectorBeingBuilt)
-                                  (treeSearchContextParameters
-                                  , partialTestVectorBeingBuilt)
+                    |> ChunkedList.fold (fun ((treeSearchContextParameters: TreeSearchContextParameters)
+                                              , partialTestVectorBeingBuilt)
+                                            sharedPathPrefixStep ->
+                                                match sharedPathPrefixStep with
+                                                    Some levelForTestVariableIndex ->
+                                                        treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
+                                                        , ((treeSearchContextParameters.TestVariableIndex, levelForTestVariableIndex) :: partialTestVectorBeingBuilt)
+                                                  | None ->
+                                                        treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
+                                                        , partialTestVectorBeingBuilt)
+                                        (treeSearchContextParameters
+                                         , partialTestVectorBeingBuilt)
                 traverseTernarySearchTree branchingRoot
                                           treeSearchContextParameters
                                           partialTestVectorBeingBuilt
@@ -583,7 +584,7 @@ namespace NTestCaseBuilder
                 {
                     SharedPathPrefix =
                         partialTestVectorRepresentation
-                        |> Array.ofList
+                        |> ChunkedList.ofList
                     BranchingRoot =
                         SuccessfulSearchTerminationNode
                 }
@@ -889,14 +890,14 @@ namespace NTestCaseBuilder
                                               treeSearchContextParameters =
                 let treeSearchContextParametersAfter sharedPathPrefix =
                     sharedPathPrefix
-                    |> Array.fold (fun (treeSearchContextParameters: TreeSearchContextParameters)
-                                        sharedPathPrefixStep ->
-                                    match sharedPathPrefixStep with
-                                        Some levelForTestVariableIndex ->
-                                            treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
-                                      | None ->
-                                            treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable)
-                                  treeSearchContextParameters
+                    |> ChunkedList.fold (fun (treeSearchContextParameters: TreeSearchContextParameters)
+                                             sharedPathPrefixStep ->
+                                            match sharedPathPrefixStep with
+                                                Some levelForTestVariableIndex ->
+                                                    treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
+                                              | None ->
+                                                    treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable)
+                                        treeSearchContextParameters
                 let removeWhenSharedPathPrefixAgreesWithQuery agreeingPrefixOfQueryPartialTestVectorRepresentation
                                                               remainderOfQueryPartialTestVectorRepresentation =
                     continuationWorkflow
@@ -909,7 +910,7 @@ namespace NTestCaseBuilder
                             let mergedSharedPathPrefix =
                                 merge agreeingPrefixOfQueryPartialTestVectorRepresentation
                                       sharedPathPrefix
-                                |> List.ofArray
+                                |> ChunkedList.toList
                             let removedPartialTestVector =
                                 List.append mergedSharedPathPrefix
                                             removedPartialTestVectorFromBranchingRoot
@@ -921,16 +922,16 @@ namespace NTestCaseBuilder
                                     return {
                                                 modifiedTestVectorPathsEquivalentToBranchingRoot with
                                                     SharedPathPrefix =
-                                                        Array.append sharedPathPrefix
-                                                                     modifiedTestVectorPathsEquivalentToBranchingRoot.SharedPathPrefix
+                                                        ChunkedList.append sharedPathPrefix
+                                                                           modifiedTestVectorPathsEquivalentToBranchingRoot.SharedPathPrefix
                                            }
                                            , removedPartialTestVector
                               | BranchingWithJustWildcardForLeadingTestVariable modifiedTestVectorPathsEquivalentToBranchingRoot ->
                                     return {
                                                 modifiedTestVectorPathsEquivalentToBranchingRoot with
                                                     SharedPathPrefix =
-                                                        Array.append sharedPathPrefix
-                                                                     modifiedTestVectorPathsEquivalentToBranchingRoot.SharedPathPrefix
+                                                        ChunkedList.append sharedPathPrefix
+                                                                           modifiedTestVectorPathsEquivalentToBranchingRoot.SharedPathPrefix
                                            }
                                            , removedPartialTestVector
                               | _ ->
@@ -1202,7 +1203,7 @@ namespace NTestCaseBuilder
                     checkInvariantOfTernarySearchTree branchingRoot
                                                       (testVariableIndex + uint32 sharedPathPrefix.Length)
                 match numberOfSuccessfulPathsFromSubtreeForFollowingIndices with
-                    0u when 0 < Array.length sharedPathPrefix ->
+                    0u when 0 < ChunkedList.length sharedPathPrefix ->
                         raise (InvariantViolationException "Redundant non-empty shared path prefix with no successful search paths leading through it.")
                   | _ ->
                         numberOfSuccessfulPathsFromSubtreeForFollowingIndices
@@ -1335,7 +1336,7 @@ namespace NTestCaseBuilder
 
         static member Initial maximumNumberOfTestVariablesOverall =
             MergedPartialTestVectorRepresentations<'Level> ({
-                                                                SharedPathPrefix = Array.empty
+                                                                SharedPathPrefix = Nil
                                                                 BranchingRoot = SuccessfulSearchTerminationNode
                                                             },
                                                             maximumNumberOfTestVariablesOverall)

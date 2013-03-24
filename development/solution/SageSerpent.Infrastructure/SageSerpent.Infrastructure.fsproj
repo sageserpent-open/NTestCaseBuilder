@@ -55,6 +55,7 @@
     <Compile Include="OptionExtensions.fs" />
     <Compile Include="OptionWorkflow.fs" />
     <Compile Include="ContinuationWorkflow.fs" />
+    <Compile Include="ChunkedList.fs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
