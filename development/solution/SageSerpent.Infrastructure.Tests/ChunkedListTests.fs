@@ -74,18 +74,15 @@
                 if 0 < sharedLength
                 then
                     let shouldBeTrue =
-                        1 = chunkedList.[0 .. 0].Length
-                        && 1 = array.[0 .. 0].Length
-                        && chunkedList.[0 .. 0].[0] = array.[0 .. 0].[0]
-                        && chunkedList.[0] = array.[0]
-                        && chunkedList.[0 .. 0].[0] = array.[0]
-                        && array.[0 .. 0].[0] = chunkedList.[0]
-                        && 1 = chunkedList.[sharedLength - 1 .. sharedLength - 1].Length
-                        && 1 = array.[sharedLength - 1 .. sharedLength - 1].Length
-                        && chunkedList.[sharedLength - 1 .. sharedLength - 1].[0] = array.[sharedLength - 1 .. sharedLength - 1].[0]
-                        && chunkedList.[sharedLength - 1] = array.[sharedLength - 1]
-                        && chunkedList.[sharedLength - 1 .. sharedLength - 1].[0] = array.[sharedLength - 1]
-                        && array.[sharedLength - 1 .. sharedLength - 1].[0] = chunkedList.[sharedLength - 1]
+                        let oneElementSliceIsOk index =
+                            1 = chunkedList.[index .. index].Length
+                            && 1 = array.[index .. index].Length
+                            && chunkedList.[index .. index].[0] = array.[index .. index].[0]
+                            && chunkedList.[index] = array.[index]
+                            && chunkedList.[index .. index].[0] = array.[index]
+                            && array.[index .. index].[0] = chunkedList.[index]
+                        oneElementSliceIsOk 0
+                        && oneElementSliceIsOk (sharedLength - 1)
                         && (chunkedList.[0 .. sharedLength - 1]
                             |> ChunkedList.fold (+)
                                                 1)
@@ -137,6 +134,8 @@
                     mapAndfoldResultsTriple
                     |> tripleResultsAgree
                 Assert.IsTrue shouldBeTrue
+                // This next line simultaneously checks the 'map' for 'ChunkedList' - the transforming the fold result should
+                // be the same as folding the transformed results as well 'fold' - distribution of multiplication over addition.
                 let shouldBeTrue =
                     transform foldResult
                      = mapAndFoldResult
