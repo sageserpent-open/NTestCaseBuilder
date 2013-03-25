@@ -33,6 +33,9 @@
             length representation
                    0
 
+        member this.IsEmpty: Boolean =
+            true
+
         member this.Item
             with get (index: Int32): 'Element =
                 match representation with
@@ -79,6 +82,9 @@
     module ChunkedList =
         let inline length (listOfElements: ChunkedList<'Element>) =
             listOfElements.Length
+
+        let inline isEmpty (listOfElements: ChunkedList<'Element>) =
+            listOfElements.IsEmpty
 
         let inline ofList (listOfElements: List<'Element>) =
             ChunkedList listOfElements

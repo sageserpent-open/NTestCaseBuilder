@@ -14,9 +14,6 @@
             Array: array<Int32>
         }
 
-    type CompetitionState =
-        List<ContenderTriumvirate> * Int32
-
     type Decision =
         Cons
       | Append
@@ -49,26 +46,66 @@
                     first = second
                     && second = third
                 let shouldBeTrue =
+                    (ChunkedList.length chunkedList
+                    , List.length list
+                    , Array.length array)
+                    |> tripleResultsAgree
+                Assert.IsTrue shouldBeTrue
+                let shouldBeTrue =
+                    (ChunkedList.isEmpty chunkedList
+                    , List.isEmpty list
+                    , Array.isEmpty array)
+                    |> tripleResultsAgree
+                Assert.IsTrue shouldBeTrue
+                let shouldBeTrue =
                     (ChunkedList.toList chunkedList
                     , list
                     , Array.toList array)
                     |> tripleResultsAgree
                 Assert.IsTrue shouldBeTrue
+                let sharedLength =
+                    ChunkedList.length chunkedList
+                let shouldBeTrue =
+                    Nil = chunkedList.[.. -1]
+                    && Array.empty = array.[.. -1]
+                    && Nil = chunkedList.[sharedLength ..]
+                    && Array.empty = array.[sharedLength ..]
+                Assert.IsTrue shouldBeTrue
+                if 0 < sharedLength
+                then
+                    let shouldBeTrue =
+                        1 = chunkedList.[0 .. 0].Length
+                        && 1 = array.[0 .. 0].Length
+                        && chunkedList.[0 .. 0].[0] = array.[0 .. 0].[0]
+                        && chunkedList.[0] = array.[0]
+                        && chunkedList.[0 .. 0].[0] = array.[0]
+                        && array.[0 .. 0].[0] = chunkedList.[0]
+                        && 1 = chunkedList.[sharedLength - 1 .. sharedLength - 1].Length
+                        && 1 = array.[sharedLength - 1 .. sharedLength - 1].Length
+                        && chunkedList.[sharedLength - 1 .. sharedLength - 1].[0] = array.[sharedLength - 1 .. sharedLength - 1].[0]
+                        && chunkedList.[sharedLength - 1] = array.[sharedLength - 1]
+                        && chunkedList.[sharedLength - 1 .. sharedLength - 1].[0] = array.[sharedLength - 1]
+                        && array.[sharedLength - 1 .. sharedLength - 1].[0] = chunkedList.[sharedLength - 1]
+                        && (chunkedList.[0 .. sharedLength - 1]
+                            |> ChunkedList.fold (+)
+                                                1)
+                            = (array.[0 .. sharedLength - 1]
+                               |> Array.fold (+)
+                                             1)
+                    Assert.IsTrue shouldBeTrue
+                Assert.IsTrue shouldBeTrue
                 let transform x =
                     2 * x
-                let binaryOperation lhs
-                                    rhs =
-                    lhs +  rhs
                 let (foldResult
                      , _
                      , _) as foldResultsTriple =
-                    ChunkedList.fold binaryOperation
+                    ChunkedList.fold (+)
                                      1
                                      chunkedList
-                    , List.fold binaryOperation
+                    , List.fold (+)
                                 1
                                 list
-                    , Array.fold binaryOperation
+                    , Array.fold (+)
                                  1
                                  array
                 let shouldBeTrue =
@@ -87,21 +124,43 @@
                 let (mapAndFoldResult
                      , _
                      , _) as mapAndfoldResultsTriple =
-                    ChunkedList.fold binaryOperation
+                    ChunkedList.fold (+)
                                      1
                                      mappedChunkedList
-                    , List.fold binaryOperation
+                    , List.fold (+)
                                 1
                                 mappedList
-                    , Array.fold binaryOperation
+                    , Array.fold (+)
                                  1
                                  mappedArray
                 let shouldBeTrue =
                     mapAndfoldResultsTriple
                     |> tripleResultsAgree
+                Assert.IsTrue shouldBeTrue
                 let shouldBeTrue =
-                    2 * foldResult
+                    transform foldResult
                      = mapAndFoldResult
+                Assert.IsTrue shouldBeTrue
+                let zipAndFoldResultsTriple =
+                    let binaryOperation lhs
+                                        (x
+                                         , y) =
+                        lhs + x * y
+                    ChunkedList.zip chunkedList
+                                    mappedChunkedList
+                    |> ChunkedList.fold binaryOperation
+                                        1
+                    , List.zip list
+                               mappedList
+                    |> List.fold binaryOperation
+                                 1
+                    , Array.zip array
+                                mappedArray
+                    |> Array.fold binaryOperation
+                                  1
+                let shouldBeTrue =
+                    zipAndFoldResultsTriple
+                    |> tripleResultsAgree
                 Assert.IsTrue shouldBeTrue
             let carryOutDecision (contenderTriumvirates
                                   , nextUniqueElement)
@@ -118,7 +177,7 @@
                         {
                             ChunkedList =
                                 ChunkedListExtensions.Cons (nextUniqueElement
-                                      , headTriumvirate.ChunkedList)
+                                                            , headTriumvirate.ChunkedList)
                             List =
                                 nextUniqueElement
                                 :: headTriumvirate.List
