@@ -40,6 +40,15 @@
                                                 List = list
                                                 Array = array
                                              } =
+                printf "Checking: %A\n" [ yield! chunkedList ]
+                let shouldBeTrue =
+                    chunkedList
+                    |> ChunkedList.toArray
+                    |> Array.rev
+                    |> BargainBasement.IsSorted // This is by construction of each new triumvirate - what
+                                                // we are really checking is that the order of elements is
+                                                // preserved via 'Cons' and 'append'.
+                Assert.IsTrue shouldBeTrue
                 let tripleResultsAgree (first
                                         , second
                                         , third) =
@@ -97,13 +106,13 @@
                      , _
                      , _) as foldResultsTriple =
                     ChunkedList.fold (+)
-                                     1
+                                     0
                                      chunkedList
                     , List.fold (+)
-                                1
+                                0
                                 list
                     , Array.fold (+)
-                                 1
+                                 0
                                  array
                 let shouldBeTrue =
                     foldResultsTriple
@@ -122,13 +131,13 @@
                      , _
                      , _) as mapAndfoldResultsTriple =
                     ChunkedList.fold (+)
-                                     1
+                                     0
                                      mappedChunkedList
                     , List.fold (+)
-                                1
+                                0
                                 mappedList
                     , Array.fold (+)
-                                 1
+                                 0
                                  mappedArray
                 let shouldBeTrue =
                     mapAndfoldResultsTriple
@@ -202,7 +211,7 @@
                   | triumvirates
                     , StartANewDoubleton ->
                         let newItems =
-                            [nextUniqueElement; (1 + nextUniqueElement)]
+                            [(1 + nextUniqueElement); nextUniqueElement]
                         {
                             ChunkedList =
                                 newItems
