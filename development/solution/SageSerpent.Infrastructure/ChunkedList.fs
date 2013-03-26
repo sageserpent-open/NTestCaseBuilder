@@ -1,8 +1,9 @@
 ﻿namespace SageSerpent.Infrastructure
 
     open System
+    open OptionWorkflow
 
-    type ChunkedList<[<EqualityConditionalOn>]'Element> (representation: ChunkedListRepresentation<'Element>) =
+    type ChunkedList<'Element when 'Element: equality> (representation: ChunkedListRepresentation<'Element>) =
         interface System.Collections.Generic.IEnumerable<'Element> with
             member this.GetEnumerator (): System.Collections.Generic.IEnumerator<'Element> =
                 let sequence representation =
@@ -25,6 +26,8 @@
                                     yield! listPrefix
                                     yield! suffix
                                 }
+                      | Empty ->
+                            Seq.empty
                 (sequence representation).GetEnumerator ()
 
         interface System.Collections.IEnumerable with
@@ -33,10 +36,6 @@
 
         new () =
             ChunkedList (Array.empty)
-
-        new (listOfElements: List<'Element>) =
-            ChunkedList (listOfElements
-                         |> Array.ofList)
 
         new (arrayOfElements: array<'Element>) =
             ChunkedList (arrayOfElements
@@ -63,15 +62,15 @@
                 :? ChunkedList<'Element> as another ->
                     Seq.forall2 (fun lhsElement
                                      rhsElement ->
-                                    Unchecked.equals lhsElement
-                                                        rhsElement)
+                                    lhsElement
+                                     = rhsElement)
                                 this
                                 another
               | _ ->
                     false
 
         override this.GetHashCode () =
-            (~-) (Unchecked.hash this.ToArray)
+            (~-) (hash this.ToArray)
 
         member this.Length: Int32 =
             let rec length representation
@@ -88,6 +87,8 @@
                         length suffix.Representation
                                (prefixLength
                                 + listPrefix.Length)
+                  | Empty ->
+                        prefixLength
             length representation
                    0
 
@@ -103,6 +104,8 @@
                                , suffix) ->
                     listPrefix.IsEmpty
                     && suffix.IsEmpty
+              | Empty ->
+                    true
 
         member this.Item
             with get (index: Int32): 'Element =
@@ -128,6 +131,8 @@
                                      index
                         else
                             suffix.[index - prefixLength]
+                  | Empty ->
+                        raise (PreconditionViolationException "Cannot index into an empty list.")
 
         member this.GetSlice (startIndex: Option<Int32>,
                               endIndex: Option<Int32>): ChunkedList<'Element> =
@@ -178,6 +183,10 @@
                         let flattenedBackingArray =
                             this.ToArray
                         ChunkedList(flattenedBackingArray: 'Element[]).[startIndex .. endIndex]
+              | Empty ->
+                    ChunkedList Empty   // This is to handle trivial empty slices; any other case
+                                        // is a precondition failure and should have been dealt
+                                        // with by the preceeding guard code.
 
         member this.DecomposeToHeadAndTail: 'Element * ChunkedList<'Element> =
             if this.IsEmpty
@@ -238,13 +247,60 @@
                           0
             flattenedBackingArray
 
-    and ChunkedListRepresentation<'Element> =
+    and ChunkedListRepresentation<'Element when 'Element: equality> =
         Contiguous of array<'Element>
       | Slice of array<'Element> * Int32 * Int32
       | ListEmulation of List<'Element> * ChunkedList<'Element> // NOTE: this case is not meant to be efficient - the idea is to use it
                                                                 // to represent the result of a *couple* of 'Cons' operations - using it
                                                                 // many times to build a cons-cascade is technically correct but is not the
                                                                 // right style - use 'List' for that and convert later to a 'ChunkedList'.
+      | RunLength of 'Element * Int32 * ChunkedList<'Element>
+      | Empty
+
+    module ChunkedListDetail =
+        let rec runLengthEncode listOfElements =
+            match listOfElements with
+                [] ->
+                    Empty
+                | exemplar :: remainingElements ->
+                    let rec pastRunLength listOfElements
+                                            count =
+                        match listOfElements with
+                            head :: tail when exemplar = head ->
+                                pastRunLength tail
+                                                (1 + count)
+                            | _ ->
+                                if 0 = count
+                                then
+                                    None
+                                else
+                                    Some (exemplar
+                                            , 1 + count   // Don't forget to count 'exemplar' itself as well as its duplicates.
+                                            , listOfElements)
+                    let runLengthEncoded =
+                            optionWorkflow
+                                {
+                                    let! exemplar
+                                            , multiplicity
+                                            , remainderStartingWithDissimilarElementOrEmpty =
+                                        pastRunLength remainingElements
+                                                        0
+                                    return (exemplar
+                                            , multiplicity
+                                            , ChunkedList (runLengthEncode remainderStartingWithDissimilarElementOrEmpty))
+                                            |> RunLength
+                                }
+                    defaultArg runLengthEncoded
+                                (([exemplar]
+                                    , ChunkedList (runLengthEncode remainingElements))
+                                |> ListEmulation)
+
+    open ChunkedListDetail
+
+    type ChunkedList<'Element when 'Element: equality> with
+        new (listOfElements: List<'Element>) =
+            ChunkedList (listOfElements
+                         |> runLengthEncode)
 
     module ChunkedListExtensions =
         let (|Cons|Nil|) (chunkedList: ChunkedList<'Element>) =
@@ -260,7 +316,7 @@
                         tail)
 
         [<GeneralizableValue>]
-        let Nil<'Element> =
+        let Nil<'Element when 'Element: equality> =
             ChunkedList<'Element> ()
 
     open ChunkedListExtensions
