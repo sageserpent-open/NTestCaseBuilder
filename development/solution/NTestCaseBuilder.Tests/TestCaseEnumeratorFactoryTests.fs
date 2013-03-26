@@ -1200,14 +1200,13 @@
         [<Test>]
         member this.StressCopiousUseOfInterleavesMotivatedByBuildingLogicalExpressionTestCases () =
             let maximumNumberOfOperands =
-                2u
+                3u
 
             let rec expressionFactory maximumSubexpressionNesting
                                       expectSuccess =
                 let trivialCaseFactory =
-//                    expectSuccess.ToString ()
-//                    |> SingletonTestCaseEnumerableFactory.Create
-                    TestVariableLevelEnumerableFactory.Create [expectSuccess.ToString ()]
+                    expectSuccess.ToString ()
+                    |> SingletonTestCaseEnumerableFactory.Create
 
                 if 1u = maximumSubexpressionNesting
                 then
@@ -1328,7 +1327,7 @@
                     |> InterleavedTestCaseEnumerableFactory.Create
 
             let maximumSubexpressionNesting =
-                5u
+                3u
 
             let expressionFactory =
                 [true; false]
@@ -1349,7 +1348,8 @@
                 2u
 
             let numberOfTestCases =
-                expressionFactory.ExecuteParameterisedUnitTestForAllTypedTestCases (combinationStrength,
-                                                                                    Action<string>(printf "%A\n"))
+                100
 
-            printf "Number of test cases: %A\n" numberOfTestCases
+            for testCase in expressionFactory.CreateTypedEnumerable combinationStrength
+                            |> Seq.take numberOfTestCases do
+                printf "%A\n" testCase
