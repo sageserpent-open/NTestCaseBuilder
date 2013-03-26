@@ -19,11 +19,14 @@
                                         yield backingArray.[index]
                                 }   // I'm assuming that the alternative of an array slice would eagerly
                                     // allocate new storage for the slice, which isn't desirable.
-                      | ListEmulation (listPrefix
-                                       , suffix) ->
+                      | RunLength (duplicatedItem
+                                   , numberOfRepeats    
+                                   , suffix) ->
                             seq
                                 {
-                                    yield! listPrefix
+                                    yield! Seq.init numberOfRepeats
+                                                    (fun _ ->
+                                                        duplicatedItem)
                                     yield! suffix
                                 }
                       | Empty ->
@@ -44,15 +47,18 @@
         new ((head: 'Element),
              (tail: ChunkedList<'Element>)) =
             match tail.Representation with
-                ListEmulation (listPrefix
-                               , suffix) ->
-                    ChunkedList((head :: listPrefix
+                RunLength (duplicatedItem
+                           , numberOfRepeats    
+                           , suffix) when head = duplicatedItem ->
+                    ChunkedList((duplicatedItem
+                                 , 1 + numberOfRepeats
                                  , suffix)
-                                |> ListEmulation)
+                                |> RunLength)
               | _ ->
-                    ChunkedList(([head]
+                   ChunkedList((head
+                                 , 1
                                  , tail)
-                                |> ListEmulation)
+                                |> RunLength) 
 
         member private this.Representation =
             representation
@@ -82,11 +88,12 @@
                            , startIndex
                            , endIndex) ->
                         prefixLength + 1 + endIndex - startIndex
-                  | ListEmulation (listPrefix
-                                   , suffix) ->
+                  | RunLength (duplicatedItem
+                               , numberOfRepeats    
+                               , suffix) ->
                         length suffix.Representation
                                (prefixLength
-                                + listPrefix.Length)
+                                + numberOfRepeats)
                   | Empty ->
                         prefixLength
             length representation
@@ -100,10 +107,10 @@
                        , startIndex
                        , endIndex) ->
                     startIndex = 1 + endIndex
-              | ListEmulation (listPrefix
-                               , suffix) ->
-                    listPrefix.IsEmpty
-                    && suffix.IsEmpty
+              | RunLength (duplicatedItem
+                           , numberOfRepeats    
+                           , suffix) ->
+                    false
               | Empty ->
                     true
 
@@ -121,16 +128,14 @@
                         then
                             raise (PreconditionViolationException "The zero-relative index is greater than or equal to the length.")
                         backingArray.[offsetIndex]
-                  | ListEmulation (listPrefix
-                                   , suffix) ->
-                        let prefixLength =
-                            listPrefix.Length
-                        if prefixLength > index
+                  | RunLength (duplicatedItem
+                               , numberOfRepeats    
+                               , suffix) ->
+                        if numberOfRepeats > index
                         then
-                            List.nth listPrefix
-                                     index
+                            duplicatedItem
                         else
-                            suffix.[index - prefixLength]
+                            suffix.[index - numberOfRepeats]
                   | Empty ->
                         raise (PreconditionViolationException "Cannot index into an empty list.")
 
@@ -159,34 +164,46 @@
             if startIndex > 1 + endIndex
             then
                 raise (PreconditionViolationException "'endIndex' may only lag by at most one position behind 'startIndex'.")
-            match representation with
-                Contiguous backingArray ->
-                    ChunkedList((backingArray
-                                 , startIndex
-                                 , endIndex)
-                                |> Slice)
-              | Slice (backingArray
-                       , startIndexInExistingSlice
-                       , _) ->
-                    ChunkedList((backingArray
-                                 , startIndex + startIndexInExistingSlice
-                                 , endIndex + startIndexInExistingSlice)
-                                |> Slice)
-              | ListEmulation (listPrefix
+            let sliceLength =
+                endIndex - startIndex + 1
+            if 0 = sliceLength
+            then
+                ChunkedList Empty
+            else
+                match representation with
+                    Contiguous backingArray ->
+                        ChunkedList((backingArray
+                                     , startIndex
+                                     , endIndex)
+                                    |> Slice)
+                  | Slice (backingArray
+                           , startIndexInExistingSlice
+                           , _) ->
+                        ChunkedList((backingArray
+                                     , startIndex + startIndexInExistingSlice
+                                     , endIndex + startIndexInExistingSlice)
+                                    |> Slice)
+                  | RunLength (duplicatedItem
+                               , numberOfRepeats    
                                , suffix) ->
-                    let listPrefixLength =
-                        listPrefix.Length
-                    if startIndex >= listPrefixLength
-                    then
-                        suffix.[startIndex - listPrefixLength .. endIndex - listPrefixLength]
-                    else
-                        let flattenedBackingArray =
-                            this.ToArray
-                        ChunkedList(flattenedBackingArray: 'Element[]).[startIndex .. endIndex]
-              | Empty ->
-                    ChunkedList Empty   // This is to handle trivial empty slices; any other case
-                                        // is a precondition failure and should have been dealt
-                                        // with by the preceeding guard code.
+                        // TODO: consider *all* cases.
+                        if startIndex >= numberOfRepeats
+                        then
+                            suffix.[startIndex - numberOfRepeats .. endIndex - numberOfRepeats]
+                        else if endIndex < numberOfRepeats
+                             then
+                                ChunkedList ((duplicatedItem
+                                              , sliceLength    
+                                              , ChunkedList())
+                                             |> RunLength)
+                             else
+                                let flattenedBackingArray =
+                                    this.ToArray
+                                ChunkedList(flattenedBackingArray: 'Element[]).[startIndex .. endIndex]
+                  | Empty ->
+                        raise (LogicErrorException "This case is guarded against by the catch-all for empty lists above.")
+                           // Note that a non-trivial slice is a precondition failure and
+                           // should have been dealt with by the preceeding guard code.
 
         member this.DecomposeToHeadAndTail: 'Element * ChunkedList<'Element> =
             if this.IsEmpty
@@ -207,30 +224,52 @@
                                    , 1 + startIndex
                                    , endIndex)
                                   |> Slice)
-              | ListEmulation (listPrefix
-                               , suffix) ->
-                    match listPrefix with
-                        prefixHead :: [] ->
-                            prefixHead
-                            , suffix
-                      | prefixHead :: nonEmptyPrefixTail     ->
-                            prefixHead
-                            , ChunkedList ((nonEmptyPrefixTail
-                                            , suffix)
-                                           |> ListEmulation)
-                      | [] ->
-                            suffix.DecomposeToHeadAndTail
+              | RunLength (duplicatedItem
+                           , numberOfRepeats    
+                           , suffix) ->
+                    if 1 = numberOfRepeats
+                    then
+                        duplicatedItem
+                        , suffix
+                    else
+                        duplicatedItem
+                        , ChunkedList ((duplicatedItem
+                                        , numberOfRepeats - 1
+                                        , suffix)
+                                       |> RunLength)
+              | Empty ->
+                    raise (LogicErrorException "This case is guarded against by the catch-all for empty lists above.")
 
-        member this.ConcatenateWith (suffix: ChunkedList<'Element>): ChunkedList<'Element> =
-            let thisLength =
-                this.Length
-            let flattenedBackingArray =
-                Array.zeroCreate (thisLength + suffix.Length)
-            this.BlitInto flattenedBackingArray
-                          0
-            suffix.BlitInto flattenedBackingArray
-                          thisLength
-            ChunkedList(flattenedBackingArray)
+        member this.ConcatenateWith (rhs: ChunkedList<'Element>): ChunkedList<'Element> =
+            match representation
+                  , rhs.Representation with
+                Empty
+                , _ ->
+                    rhs
+              | _
+                , Empty ->
+                    this
+              | RunLength (duplicatedItem
+                           , numberOfRepeats    
+                           , suffix)
+                , RunLength (duplicatedItemFromRhs
+                             , numberOfRepeatsFromRhs    
+                             , suffixFromRhs) when suffix.IsEmpty
+                                                   && duplicatedItem = duplicatedItemFromRhs ->
+                    ChunkedList((duplicatedItem
+                                 , numberOfRepeats + numberOfRepeatsFromRhs
+                                 , suffixFromRhs)
+                                |> RunLength)                    
+              | _ ->
+                    let thisLength =
+                        this.Length
+                    let flattenedBackingArray =
+                        Array.zeroCreate (thisLength + rhs.Length)
+                    this.BlitInto flattenedBackingArray
+                                  0
+                    rhs.BlitInto flattenedBackingArray
+                                 thisLength
+                    ChunkedList(flattenedBackingArray)
 
         member private this.BlitInto (destination: array<'Element>)
                                      (destinationOffset: Int32): unit =
@@ -250,11 +289,11 @@
     and ChunkedListRepresentation<'Element when 'Element: equality> =
         Contiguous of array<'Element>
       | Slice of array<'Element> * Int32 * Int32
-      | ListEmulation of List<'Element> * ChunkedList<'Element> // NOTE: this case is not meant to be efficient - the idea is to use it
-                                                                // to represent the result of a *couple* of 'Cons' operations - using it
-                                                                // many times to build a cons-cascade is technically correct but is not the
-                                                                // right style - use 'List' for that and convert later to a 'ChunkedList'.
-      | RunLength of 'Element * Int32 * ChunkedList<'Element>
+      | RunLength of 'Element * Int32 * ChunkedList<'Element>   // NOTE: this case is not meant to be efficient for single-character runs
+                                                                // - single character runs should only be used to represent the result of a
+                                                                // *couple* of 'Cons' operations - using it many times to build a cons-cascade
+                                                                // is technically correct but is not the right style - use 'List' for that
+                                                                // and convert later to a 'ChunkedList'.
       | Empty
 
     module ChunkedListDetail =
@@ -268,32 +307,33 @@
                         match listOfElements with
                             head :: tail when exemplar = head ->
                                 pastRunLength tail
-                                                (1 + count)
+                                              (1 + count)
                             | _ ->
                                 if 0 = count
                                 then
                                     None
                                 else
                                     Some (exemplar
-                                            , 1 + count   // Don't forget to count 'exemplar' itself as well as its duplicates.
-                                            , listOfElements)
+                                          , 1 + count   // Don't forget to count 'exemplar' itself as well as its duplicates.
+                                          , listOfElements)
                     let runLengthEncoded =
                             optionWorkflow
                                 {
                                     let! exemplar
-                                            , multiplicity
-                                            , remainderStartingWithDissimilarElementOrEmpty =
+                                         , multiplicity
+                                         , remainderStartingWithDissimilarElementOrEmpty =
                                         pastRunLength remainingElements
-                                                        0
+                                                      0
                                     return (exemplar
                                             , multiplicity
                                             , ChunkedList (runLengthEncode remainderStartingWithDissimilarElementOrEmpty))
                                             |> RunLength
                                 }
                     defaultArg runLengthEncoded
-                                (([exemplar]
-                                    , ChunkedList (runLengthEncode remainingElements))
-                                |> ListEmulation)
+                                ((exemplar
+                                  , 1
+                                  , ChunkedList (runLengthEncode remainingElements))
+                                 |> RunLength)
 
     open ChunkedListDetail
 

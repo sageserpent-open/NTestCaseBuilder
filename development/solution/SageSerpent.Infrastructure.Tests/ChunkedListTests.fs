@@ -19,7 +19,10 @@
       | ConsWithPotentialDuplicate
       | Append
       | StartANewDoubleton
+      | StartABigChunk
       | StartANewDuplicateDoubleton
+      | Halve
+      | SliceOneOff
 
     [<TestFixture>]
     type ChunkedListTestFixture () =
@@ -32,7 +35,7 @@
             let random =
                 Random seed
             let choices =
-                [| Cons; ConsWithPotentialDuplicate; Append; StartANewDoubleton; StartANewDuplicateDoubleton |]
+                [| Cons; ConsWithPotentialDuplicate; Append; StartANewDoubleton; StartABigChunk; StartANewDuplicateDoubleton; Halve; SliceOneOff |]
             let decisions =
                 List.init numberOfTrials
                           (fun _ ->
@@ -240,6 +243,26 @@
                         } :: triumvirates
                         , 2 + nextUniqueElement
                   | triumvirates
+                    , StartABigChunk ->
+                        let chunkSize =
+                            38
+                        let newItems =
+                            List.init chunkSize
+                                      (fun index ->
+                                        nextUniqueElement + index)
+                            |> List.rev
+                        {
+                            ChunkedList =
+                                newItems
+                                |> ChunkedList.ofList
+                            List =
+                                newItems
+                            Array =
+                                newItems
+                                |> Array.ofList
+                        } :: triumvirates
+                        , chunkSize + nextUniqueElement
+                  | triumvirates
                     , StartANewDuplicateDoubleton ->
                         let newItems =
                             [nextUniqueElement; nextUniqueElement]
@@ -254,6 +277,34 @@
                                 |> Array.ofList
                         } :: triumvirates
                         , 1 + nextUniqueElement
+                  | headTriumvirate :: tail
+                    , Halve ->
+                        let endIndex =
+                            headTriumvirate.ChunkedList.Length / 2
+                        {
+                            ChunkedList =
+                                headTriumvirate.ChunkedList.[0 .. endIndex - 1]
+                            List =
+                                (headTriumvirate.List
+                                 |> Array.ofList).[0 .. endIndex - 1]
+                                |> List.ofArray
+                            Array =
+                                headTriumvirate.Array.[0 .. endIndex - 1]
+                        } :: tail
+                        , nextUniqueElement
+                  | headTriumvirate :: tail
+                    , SliceOneOff when not headTriumvirate.ChunkedList.IsEmpty ->
+                        {
+                            ChunkedList =
+                                headTriumvirate.ChunkedList.[1 .. ]
+                            List =
+                                (headTriumvirate.List
+                                 |> Array.ofList).[1 ..]
+                                |> List.ofArray
+                            Array =
+                                headTriumvirate.Array.[1 ..]
+                        } :: tail
+                        , nextUniqueElement
                   | triumvirates
                     , _ ->
                         {
