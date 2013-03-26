@@ -16,8 +16,10 @@
 
     type Decision =
         Cons
+      | ConsWithPotentialDuplicate
       | Append
       | StartANewDoubleton
+      | StartANewDuplicateDoubleton
 
     [<TestFixture>]
     type ChunkedListTestFixture () =
@@ -30,7 +32,7 @@
             let random =
                 Random seed
             let choices =
-                [| Cons; Append; StartANewDoubleton |]
+                [| Cons; ConsWithPotentialDuplicate; Append; StartANewDoubleton; StartANewDuplicateDoubleton |]
             let decisions =
                 List.init numberOfTrials
                           (fun _ ->
@@ -194,6 +196,20 @@
                                    yield! headTriumvirate.Array |]
                         } :: tail
                         , 1 + nextUniqueElement
+                  | headTriumvirate :: tail
+                    , ConsWithPotentialDuplicate ->
+                        {
+                            ChunkedList =
+                                ChunkedListExtensions.Cons (nextUniqueElement
+                                                            , headTriumvirate.ChunkedList)
+                            List =
+                                nextUniqueElement
+                                :: headTriumvirate.List
+                            Array =
+                                [| yield nextUniqueElement
+                                   yield! headTriumvirate.Array |]
+                        } :: tail
+                        , nextUniqueElement
                   | headTriumvirate :: nextTriumvirate :: tail
                     , Append ->
                         {
@@ -223,6 +239,21 @@
                                 |> Array.ofList
                         } :: triumvirates
                         , 2 + nextUniqueElement
+                  | triumvirates
+                    , StartANewDuplicateDoubleton ->
+                        let newItems =
+                            [nextUniqueElement; nextUniqueElement]
+                        {
+                            ChunkedList =
+                                newItems
+                                |> ChunkedList.ofList
+                            List =
+                                newItems
+                            Array =
+                                newItems
+                                |> Array.ofList
+                        } :: triumvirates
+                        , 1 + nextUniqueElement
                   | triumvirates
                     , _ ->
                         {
