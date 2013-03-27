@@ -20,7 +20,7 @@
                                 }   // I'm assuming that the alternative of an array slice would eagerly
                                     // allocate new storage for the slice, which isn't desirable.
                       | RunLength (duplicatedItem
-                                   , numberOfRepeats    
+                                   , numberOfRepeats
                                    , suffix) ->
                             seq
                                 {
@@ -48,7 +48,7 @@
              (tail: ChunkedList<'Element>)) =
             match tail.Representation with
                 RunLength (duplicatedItem
-                           , numberOfRepeats    
+                           , numberOfRepeats
                            , suffix) when head = duplicatedItem ->
                     ChunkedList((duplicatedItem
                                  , 1 + numberOfRepeats
@@ -58,7 +58,7 @@
                    ChunkedList((head
                                  , 1
                                  , tail)
-                                |> RunLength) 
+                                |> RunLength)
 
         member private this.Representation =
             representation
@@ -89,7 +89,7 @@
                            , endIndex) ->
                         prefixLength + 1 + endIndex - startIndex
                   | RunLength (duplicatedItem
-                               , numberOfRepeats    
+                               , numberOfRepeats
                                , suffix) ->
                         length suffix.Representation
                                (prefixLength
@@ -108,7 +108,7 @@
                        , endIndex) ->
                     startIndex = 1 + endIndex
               | RunLength (duplicatedItem
-                           , numberOfRepeats    
+                           , numberOfRepeats
                            , suffix) ->
                     false
               | Empty ->
@@ -129,7 +129,7 @@
                             raise (PreconditionViolationException "The zero-relative index is greater than or equal to the length.")
                         backingArray.[offsetIndex]
                   | RunLength (duplicatedItem
-                               , numberOfRepeats    
+                               , numberOfRepeats
                                , suffix) ->
                         if numberOfRepeats > index
                         then
@@ -184,7 +184,7 @@
                                      , endIndex + startIndexInExistingSlice)
                                     |> Slice)
                   | RunLength (duplicatedItem
-                               , numberOfRepeats    
+                               , numberOfRepeats
                                , suffix) ->
                         // TODO: consider *all* cases.
                         if startIndex >= numberOfRepeats
@@ -193,7 +193,7 @@
                         else if endIndex < numberOfRepeats
                              then
                                 ChunkedList ((duplicatedItem
-                                              , sliceLength    
+                                              , sliceLength
                                               , ChunkedList())
                                              |> RunLength)
                              else
@@ -225,7 +225,7 @@
                                    , endIndex)
                                   |> Slice)
               | RunLength (duplicatedItem
-                           , numberOfRepeats    
+                           , numberOfRepeats
                            , suffix) ->
                     if 1 = numberOfRepeats
                     then
@@ -250,16 +250,16 @@
                 , Empty ->
                     this
               | RunLength (duplicatedItem
-                           , numberOfRepeats    
+                           , numberOfRepeats
                            , suffix)
                 , RunLength (duplicatedItemFromRhs
-                             , numberOfRepeatsFromRhs    
+                             , numberOfRepeatsFromRhs
                              , suffixFromRhs) when suffix.IsEmpty
                                                    && duplicatedItem = duplicatedItemFromRhs ->
                     ChunkedList((duplicatedItem
                                  , numberOfRepeats + numberOfRepeatsFromRhs
                                  , suffixFromRhs)
-                                |> RunLength)                    
+                                |> RunLength)
               | _ ->
                     let thisLength =
                         this.Length
