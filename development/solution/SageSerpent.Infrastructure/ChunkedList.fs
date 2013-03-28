@@ -237,7 +237,7 @@
                                                                    , _) ->
                                                                 Slice (backingArray
                                                                        , startIndexForSlice
-                                                                       , startIndexForSlice + intraChunkEndIndex - 1)
+                                                                       , startIndexForSlice + intraChunkEndIndex)
                                                 let sliceRepresentation =
                                                     (endOfSlice :: chunksForSliceInReverseOrder)
                                                     |> List.rev
