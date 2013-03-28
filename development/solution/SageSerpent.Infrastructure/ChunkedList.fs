@@ -377,7 +377,7 @@
             ChunkedList.Fuse inefficientRepresentation
 
         static member private ListFrom representation =
-                let sequenceFrom chunk =
+                let listFrom chunk =
                     match chunk with
                         Contiguous backingArray ->
                             backingArray :> seq<'Element>
@@ -400,7 +400,7 @@
                                     // allocate new storage for the slice, which isn't desirable.
                 [
                     for chunk in representation do
-                        yield! sequenceFrom chunk
+                        yield! listFrom chunk
                 ]
 
 
@@ -446,9 +446,9 @@
 
         let zip (lhs: ChunkedList<'LhsElement>)
                 (rhs: ChunkedList<'RhsElement>): ChunkedList<'LhsElement * 'RhsElement> =
-            ChunkedList (Seq.zip lhs
-                                 rhs
-                         |> Array.ofSeq)
+            List.zip lhs.ToList
+                     rhs.ToList
+            |> ChunkedList.FromList
 
         let map (transform: 'InputElement -> 'OutputElement)
                 (chunkedList: ChunkedList<'InputElement>): ChunkedList<'OutputElement> =
