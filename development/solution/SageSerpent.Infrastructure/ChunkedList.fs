@@ -34,15 +34,30 @@
     and ChunkedList<'Element when 'Element: equality> (representation: List<Chunk<'Element>>) =
         do
             if representation
-                |> List.forall (fun (chunk: Chunk<'Element>) ->
-                                        not chunk.IsEmpty)
-                |> not
+                |> List.exists (fun (chunk: Chunk<'Element>) ->
+                                    chunk.IsEmpty)
             then
                 raise (InvariantViolationException "All chunks must be non-empty.")
+            if representation
+               |> Seq.pairwise
+               |> Seq.exists (fun leaderAndFollower ->
+                                match leaderAndFollower with
+                                    RunLength (leaderDuplicatedItem
+                                               , numberOfRepeatsInLeader)
+                                    , RunLength (followerDuplicatedItem
+                                                 , numberOfRepeatsInFollower) when leaderDuplicatedItem = followerDuplicatedItem ->
+                                        true
+                                  | Contiguous _
+                                    , Contiguous _ ->
+                                        true
+                                  | _ ->
+                                        false)
+            then
+                raise (InvariantViolationException "Fusible adjacent chunks found.")
 
         interface System.Collections.Generic.IEnumerable<'Element> with
             member this.GetEnumerator (): System.Collections.Generic.IEnumerator<'Element> =
-                (ChunkedList.ListFrom representation :> seq<'Element>).GetEnumerator ()
+                (ChunkedList.RepresentationToList representation :> seq<'Element>).GetEnumerator ()
 
         interface System.Collections.IEnumerable with
             member this.GetEnumerator () =
@@ -295,60 +310,54 @@
             ChunkedList<'Element>.Fuse concatenatedRepresentation
 
         static member private Fuse representation =
-            let rec fuseRunLengths representation
-                                   reversedPrefixOfResult =
+            let rec group representation
+                          groupsAlreadyFormedInReverse =
                 match representation with
                     [] ->
-                        reversedPrefixOfResult
-                  | RunLength (duplicatedItemFromFirst
-                               , numberOfRepeatsFromFirst)
-                    :: RunLength (duplicatedItemFromSecond
-                                  , numberOfRepeatsFromSecond)
-                    :: tail when duplicatedItemFromFirst = duplicatedItemFromSecond ->
-                        fuseRunLengths (RunLength (duplicatedItemFromFirst
-                                                   , numberOfRepeatsFromFirst + numberOfRepeatsFromSecond) :: tail)
-                                       reversedPrefixOfResult
-                  | head :: tail ->
-                        fuseRunLengths tail
-                                       (head :: reversedPrefixOfResult)
-            let fuseOddPieces representation =
-                let rec group representation
-                              groupsAlreadyFormedInReverse =
-                    match representation with
-                        [] ->
-                            groupsAlreadyFormedInReverse
-                      | headChunk :: tail ->
-                            match groupsAlreadyFormedInReverse with
-                                [] ->
-                                    group tail
-                                          [[headChunk]]
-                              | groupInForce :: otherGroups ->
-                                    match headChunk with
-                                        RunLength (_
-                                                   , numberOfRepeats) when 1 < numberOfRepeats ->
-                                            group tail
-                                                  ([headChunk] :: groupsAlreadyFormedInReverse)
-                                      | _ ->
-                                            group tail
-                                                  ((headChunk :: groupInForce) :: otherGroups)
-                let groups =
-                    group representation
-                          List.empty
+                        groupsAlreadyFormedInReverse
+                  | headChunk :: tail ->
+                        match groupsAlreadyFormedInReverse with
+                            [] ->
+                                group tail
+                                      [[headChunk]]
+                          | groupInForce :: otherGroups ->
+                                match headChunk
+                                      , groupInForce with
+                                    RunLength (duplicatedItemFromHeadChunk
+                                               , numberOfRepeatsFromHeadChunk)
+                                    , [RunLength (duplicatedItemFromGroupInForce
+                                                  , numberOfRepeatsFromGroupInForce)] when duplicatedItemFromHeadChunk = duplicatedItemFromGroupInForce ->
+                                        group tail
+                                              ([RunLength (duplicatedItemFromGroupInForce
+                                                           , numberOfRepeatsFromHeadChunk + numberOfRepeatsFromGroupInForce)] :: otherGroups)
+                                  | RunLength _
+                                    , _ ->
+                                        group tail
+                                              ([headChunk] :: groupsAlreadyFormedInReverse)
+                                  | _
+                                    , [RunLength _] ->
+                                        group tail
+                                              ([headChunk] :: groupsAlreadyFormedInReverse)
+                                  | _ ->
+                                        group tail
+                                              ((headChunk :: groupInForce) :: otherGroups)
+            let groups =
+                group (representation
+                        |> List.rev)
+                        List.empty
+            let fusedRepresentation =
                 groups
                 |> List.map (fun group ->
                                 match group with
-                                    [nonTrivialRunLength] ->
-                                        nonTrivialRunLength
+                                    [singletonToPreserve] ->
+                                        singletonToPreserve
                                   | _ ->    // NOTE: 'group' must never be empty - otherwise
                                             // it would cause an invariant violation in the
                                             // chunk being created.
-                                        ChunkedList<'Element>.ListFrom group
+                                        ChunkedList<'Element>.RepresentationToList group
                                         |> Array.ofList
                                         |> Contiguous)
-            ChunkedList (fuseRunLengths representation
-                                        List.empty
-                         |> fuseOddPieces)  // NOTE: the innate reversals from both 'fuseRunLengths' and 'fuseOddPieces' cancel
-                                            // each other out, even though the latter reverses at both group and intra-group level.
+            ChunkedList fusedRepresentation
 
         member private this.BlitInto (destination: array<'Element>)
                                      (destinationOffset: Int32): unit =
@@ -366,9 +375,9 @@
             flattenedBackingArray
 
         member this.ToList =
-            ChunkedList.ListFrom representation
+            ChunkedList<'Element>.RepresentationToList representation
 
-        static member FromList(listOfElements: List<'Element>) =
+        static member OfList(listOfElements: List<'Element>) =
             let inefficientRepresentation =
                 listOfElements
                 |> List.map (fun item ->
@@ -376,7 +385,7 @@
                                  , 1) |> RunLength)
             ChunkedList.Fuse inefficientRepresentation
 
-        static member private ListFrom representation =
+        static member private RepresentationToList representation =
                 let listFrom chunk =
                     match chunk with
                         Contiguous backingArray ->
@@ -431,7 +440,7 @@
             listOfElements.IsEmpty
 
         let inline ofList (listOfElements: List<'Element>) =
-            ChunkedList.FromList listOfElements
+            ChunkedList.OfList listOfElements
 
         let append (lhs: ChunkedList<_>)
                    rhs =
@@ -440,28 +449,23 @@
         let fold (binaryOperation: 'State -> 'Element -> 'State)
                  (initialState: 'State)
                  (chunkedList: ChunkedList<'Element>): 'State =
-                 Seq.fold binaryOperation
-                          initialState
-                          chunkedList
+                 List.fold binaryOperation
+                           initialState
+                           chunkedList.ToList
 
         let zip (lhs: ChunkedList<'LhsElement>)
                 (rhs: ChunkedList<'RhsElement>): ChunkedList<'LhsElement * 'RhsElement> =
             List.zip lhs.ToList
                      rhs.ToList
-            |> ChunkedList.FromList
+            |> ChunkedList.OfList
 
         let map (transform: 'InputElement -> 'OutputElement)
                 (chunkedList: ChunkedList<'InputElement>): ChunkedList<'OutputElement> =
-            ChunkedList.FromList (chunkedList.ToList
-                                  |> List.map transform)
+            ChunkedList.OfList (chunkedList.ToList
+                                |> List.map transform)
 
         let rec toList (chunkedList: ChunkedList<'Element>): List<'Element> =
-            match chunkedList with
-                Cons (head
-                      , tail) ->
-                    head :: toList tail
-              | Nil ->
-                    List.Empty
+            chunkedList.ToList
 
         let toArray (chunkedList: ChunkedList<'Element>): array<'Element> =
             chunkedList.ToArray
