@@ -20,6 +20,7 @@
       | Append
       | StartANewDoubleton
       | StartABigChunk
+      | StartABigArrayChunk
       | StartANewDuplicateDoubleton
       | Halve
       | SliceOneOff
@@ -35,7 +36,7 @@
             let random =
                 Random seed
             let choices =
-                [| Cons; ConsWithPotentialDuplicate; Append; StartANewDoubleton; StartABigChunk; StartANewDuplicateDoubleton; Halve; SliceOneOff |]
+                [| Cons; ConsWithPotentialDuplicate; Append; StartANewDoubleton; StartABigChunk; StartABigArrayChunk; StartANewDuplicateDoubleton; Halve; SliceOneOff |]
             let decisions =
                 List.init numberOfTrials
                           (fun _ ->
@@ -175,6 +176,16 @@
                     zipAndFoldResultsTriple
                     |> tripleResultsAgree
                 Assert.IsTrue shouldBeTrue
+                let reverseResultsTriple =
+                    ChunkedList.rev chunkedList
+                    |> ChunkedList.toArray
+                    , List.rev list
+                      |> List.toArray
+                    , Array.rev array
+                let shouldBeTrue =
+                    reverseResultsTriple
+                    |> tripleResultsAgree
+                Assert.IsTrue shouldBeTrue
             let carryOutDecision (contenderTriumvirates
                                   , nextUniqueElement)
                                  decision =
@@ -260,6 +271,26 @@
                             Array =
                                 newItems
                                 |> Array.ofList
+                        } :: triumvirates
+                        , chunkSize + nextUniqueElement
+                  | triumvirates
+                    , StartABigArrayChunk ->
+                        let chunkSize =
+                            38
+                        let newItems =
+                            Array.init chunkSize
+                                      (fun index ->
+                                        nextUniqueElement + index)
+                            |> Array.rev
+                        {
+                            ChunkedList =
+                                newItems
+                                |> ChunkedList.ofArray
+                            List =
+                                newItems
+                                |> List.ofArray
+                            Array =
+                                newItems
                         } :: triumvirates
                         , chunkSize + nextUniqueElement
                   | triumvirates

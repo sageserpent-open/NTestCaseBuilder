@@ -31,6 +31,23 @@
                        , endIndex) ->
                     1 + endIndex = startIndex
 
+        member this.Reversed =
+            match this with
+                Contiguous backingArray ->
+                    backingArray
+                    |> Array.rev
+                    |> Contiguous
+              | RunLength _ ->
+                    this
+              | Slice(backingArray
+                      , startIndex
+                      , endIndex) ->
+                    [|
+                        for index in endIndex .. -1 .. startIndex do
+                            yield backingArray.[index]
+                    |]
+                    |> Contiguous
+
     and ChunkedList<'Element when 'Element: equality> (representation: List<Chunk<'Element>>) =
         do
             if representation
@@ -412,17 +429,24 @@
                         yield! listFrom chunk
                 ]
 
+        member this.Reversed =
+            let reversedRepresentation =
+                representation
+                |> List.rev
+                |> List.map (fun chunk ->
+                                chunk.Reversed)
+            ChunkedList reversedRepresentation
 
     module ChunkedListExtensions =
-        let (|Cons|Nil|) (chunkedList: ChunkedList<'Element>) =
+        let inline (|Cons|Nil|) (chunkedList: ChunkedList<'Element>) =
             if chunkedList.IsEmpty
             then
                 Nil
             else
                 Cons chunkedList.DecomposeToHeadAndTail
 
-        let Cons ((head: 'Element)
-                  , (tail: ChunkedList<'Element>)): ChunkedList<'Element> =
+        let inline Cons ((head: 'Element)
+                         , (tail: ChunkedList<'Element>)): ChunkedList<'Element> =
             ChunkedList(head,
                         tail)
 
@@ -442,30 +466,36 @@
         let inline ofList (listOfElements: List<'Element>) =
             ChunkedList.OfList listOfElements
 
-        let append (lhs: ChunkedList<_>)
-                   rhs =
+        let inline ofArray (arrayOfElement: array<'Element>) =
+            ChunkedList arrayOfElement
+
+        let inline append (lhs: ChunkedList<_>)
+                           rhs =
             lhs.ConcatenateWith rhs
 
-        let fold (binaryOperation: 'State -> 'Element -> 'State)
-                 (initialState: 'State)
-                 (chunkedList: ChunkedList<'Element>): 'State =
+        let inline fold (binaryOperation: 'State -> 'Element -> 'State)
+                        (initialState: 'State)
+                        (chunkedList: ChunkedList<'Element>): 'State =
                  List.fold binaryOperation
                            initialState
                            chunkedList.ToList
 
-        let zip (lhs: ChunkedList<'LhsElement>)
-                (rhs: ChunkedList<'RhsElement>): ChunkedList<'LhsElement * 'RhsElement> =
+        let inline zip (lhs: ChunkedList<'LhsElement>)
+                       (rhs: ChunkedList<'RhsElement>): ChunkedList<'LhsElement * 'RhsElement> =
             List.zip lhs.ToList
                      rhs.ToList
             |> ChunkedList.OfList
 
-        let map (transform: 'InputElement -> 'OutputElement)
-                (chunkedList: ChunkedList<'InputElement>): ChunkedList<'OutputElement> =
+        let inline map (transform: 'InputElement -> 'OutputElement)
+                       (chunkedList: ChunkedList<'InputElement>): ChunkedList<'OutputElement> =
             ChunkedList.OfList (chunkedList.ToList
                                 |> List.map transform)
 
-        let rec toList (chunkedList: ChunkedList<'Element>): List<'Element> =
+        let inline toList (chunkedList: ChunkedList<'Element>): List<'Element> =
             chunkedList.ToList
 
-        let toArray (chunkedList: ChunkedList<'Element>): array<'Element> =
+        let inline toArray (chunkedList: ChunkedList<'Element>): array<'Element> =
             chunkedList.ToArray
+
+        let inline rev (chunkedList: ChunkedList<'Element>): ChunkedList<'Element> =
+            chunkedList.Reversed
