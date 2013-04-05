@@ -327,42 +327,52 @@
             ChunkedList<'Element>.Fuse concatenatedRepresentation
 
         static member private Fuse representation =
-            let rec group representation
-                          groupsAlreadyFormedInReverse =
+            let rec fuseRunLengths representation
+                                   reversedPrefixOfResult =
                 match representation with
                     [] ->
-                        groupsAlreadyFormedInReverse
-                  | headChunk :: tail ->
-                        match groupsAlreadyFormedInReverse with
-                            [] ->
-                                group tail
-                                      [[headChunk]]
-                          | groupInForce :: otherGroups ->
-                                match headChunk
-                                      , groupInForce with
-                                    RunLength (duplicatedItemFromHeadChunk
-                                               , numberOfRepeatsFromHeadChunk)
-                                    , [RunLength (duplicatedItemFromGroupInForce
-                                                  , numberOfRepeatsFromGroupInForce)] when duplicatedItemFromHeadChunk = duplicatedItemFromGroupInForce ->
-                                        group tail
-                                              ([RunLength (duplicatedItemFromGroupInForce
-                                                           , numberOfRepeatsFromHeadChunk + numberOfRepeatsFromGroupInForce)] :: otherGroups)
-                                  | RunLength _
-                                    , _ ->
-                                        group tail
-                                              ([headChunk] :: groupsAlreadyFormedInReverse)
-                                  | _
-                                    , [RunLength _] ->
-                                        group tail
-                                              ([headChunk] :: groupsAlreadyFormedInReverse)
-                                  | _ ->
-                                        group tail
-                                              ((headChunk :: groupInForce) :: otherGroups)
-            let groups =
-                group (representation
-                        |> List.rev)
-                        List.empty
-            let fusedRepresentation =
+                        reversedPrefixOfResult
+                  | RunLength (duplicatedItemFromFirst
+                               , numberOfRepeatsFromFirst)
+                    :: RunLength (duplicatedItemFromSecond
+                                  , numberOfRepeatsFromSecond)
+                    :: tail when duplicatedItemFromFirst = duplicatedItemFromSecond ->
+                        fuseRunLengths (RunLength (duplicatedItemFromFirst
+                                                   , numberOfRepeatsFromFirst + numberOfRepeatsFromSecond) :: tail)
+                                       reversedPrefixOfResult
+                  | head :: tail ->
+                        fuseRunLengths tail
+                                       (head :: reversedPrefixOfResult)
+            let fuseOddPieces representation =
+                let rec group representation
+                              groupsAlreadyFormedInReverse =
+                    match representation with
+                        [] ->
+                            groupsAlreadyFormedInReverse
+                      | headChunk :: tail ->
+                            match groupsAlreadyFormedInReverse with
+                                [] ->
+                                    group tail
+                                          [[headChunk]]
+                              | groupInForce :: otherGroups ->
+                                    match headChunk
+                                          , groupInForce with
+                                        RunLength (_
+                                                   , numberOfRepeatsFromHeadChunk)
+                                        , _ when 1 < numberOfRepeatsFromHeadChunk ->
+                                            group tail
+                                                  ([headChunk] :: groupsAlreadyFormedInReverse)
+                                      | _
+                                        , [RunLength (_
+                                                      , numberOfRepeatsFromSingletonGroupInForce)] when 1 < numberOfRepeatsFromSingletonGroupInForce ->
+                                            group tail
+                                                  ([headChunk] :: groupsAlreadyFormedInReverse)
+                                      | _ ->
+                                            group tail
+                                                  ((headChunk :: groupInForce) :: otherGroups)
+                let groups =
+                    group representation
+                          List.empty
                 groups
                 |> List.map (fun group ->
                                 match group with
@@ -374,7 +384,10 @@
                                         ChunkedList<'Element>.RepresentationToList group
                                         |> Array.ofList
                                         |> Contiguous)
-            ChunkedList fusedRepresentation
+            ChunkedList (fuseRunLengths representation
+                                        List.empty
+                         |> fuseOddPieces)  // NOTE: the innate reversals from both 'fuseRunLengths' and 'fuseOddPieces' cancel
+                                            // each other out, even though the latter reverses at both group and intra-group level.
 
         member private this.BlitInto (destination: array<'Element>)
                                      (destinationOffset: Int32): unit =
