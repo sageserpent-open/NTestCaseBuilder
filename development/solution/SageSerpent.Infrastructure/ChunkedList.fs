@@ -294,20 +294,25 @@
               | headChunk :: tail ->
                     match headChunk with
                         Contiguous backingArray ->
+                            let length =
+                                backingArray.Length
                             backingArray.[0]
-                            , ChunkedList (Slice (backingArray
-                                                  , 1
-                                                  , backingArray.Length - 1) :: tail)
+                            , if 1 = length
+                              then
+                                ChunkedList tail
+                              else
+                                ChunkedList (Slice (backingArray
+                                                    , 1
+                                                    , length - 1) :: tail)
                       | RunLength (duplicatedItem
                                    , numberOfRepeats) ->
-                            if 1 = numberOfRepeats
-                            then
-                                duplicatedItem
-                                , ChunkedList tail
-                            else
-                                duplicatedItem
-                                , ChunkedList (RunLength (duplicatedItem
-                                                          , numberOfRepeats - 1) :: tail)
+                            duplicatedItem
+                            , if 1 = numberOfRepeats
+                              then
+                                ChunkedList tail
+                              else
+                                ChunkedList (RunLength (duplicatedItem
+                                                        , numberOfRepeats - 1) :: tail)
                       | Slice (backingArray
                                , startIndex
                                , endIndex) ->
