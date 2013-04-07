@@ -21,6 +21,8 @@
       | StartANewDoubleton
       | StartABigChunk
       | StartABigArrayChunk
+      | StartASingletonArrayChunk
+      | StartAnEmptyArrayChunk
       | StartANewDuplicateDoubleton
       | Halve
       | SliceOneOff
@@ -36,7 +38,7 @@
             let random =
                 Random seed
             let choices =
-                [| Cons; ConsWithPotentialDuplicate; Append; StartANewDoubleton; StartABigChunk; StartABigArrayChunk; StartANewDuplicateDoubleton; Halve; SliceOneOff |]
+                [| Cons; ConsWithPotentialDuplicate; Append; StartANewDoubleton; StartABigChunk; StartABigArrayChunk; StartASingletonArrayChunk; StartAnEmptyArrayChunk; StartANewDuplicateDoubleton; Halve; SliceOneOff |]
             let decisions =
                 List.init numberOfTrials
                           (fun _ ->
@@ -72,6 +74,24 @@
                     , Array.isEmpty array)
                     |> tripleResultsAgree
                 Assert.IsTrue shouldBeTrue
+                match chunkedList
+                      , list with
+                    Nil
+                    , [] ->
+                        ()
+                  | ChunkedListExtensions.Cons(headFromChunkedList
+                                               , tailFromChunkedList)
+                    , headFromList :: tailFromList ->
+                        let shouldBeTrue =
+                            headFromChunkedList = headFromList
+                        Assert.IsTrue shouldBeTrue
+                        let shouldBeTrue =
+                            tailFromChunkedList
+                             = (tailFromList
+                                |> ChunkedList.ofList)
+                        Assert.IsTrue shouldBeTrue
+                  | _ ->
+                        Assert.Fail "Mismatch between 'ChunkedList' and 'List' decompositions."
                 let shouldBeTrue =
                     (ChunkedList.toList chunkedList
                     , list
@@ -293,6 +313,36 @@
                                 newItems
                         } :: triumvirates
                         , chunkSize + nextUniqueElement
+                  | triumvirates
+                    , StartASingletonArrayChunk ->
+                        let singleton =
+                            [|nextUniqueElement|]
+                        {
+                            ChunkedList =
+                                singleton
+                                |> ChunkedList.ofArray
+                            List =
+                                singleton
+                                |> List.ofArray
+                            Array =
+                                singleton
+                        } :: triumvirates
+                        , 1 + nextUniqueElement
+                  | triumvirates
+                    , StartASingletonArrayChunk ->
+                        let empty =
+                            [||]
+                        {
+                            ChunkedList =
+                                empty
+                                |> ChunkedList.ofArray
+                            List =
+                                empty
+                                |> List.ofArray
+                            Array =
+                                empty
+                        } :: triumvirates
+                        , nextUniqueElement
                   | triumvirates
                     , StartANewDuplicateDoubleton ->
                         let newItems =
