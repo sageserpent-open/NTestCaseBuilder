@@ -369,7 +369,7 @@ namespace NTestCaseBuilder
                 |> List.CrossProductWithCommonSuffix sentinelEntriesForInterleavedTestVariableIndices
                 |> LazyList.ofSeq
                 |> LazyList.map (fun testVectorRepresentationAsList ->
-                                    Map.ofList testVectorRepresentationAsList)
+                                    MapWithRunLengths.ofList testVectorRepresentationAsList)
             associationFromStrengthToTestVariableCombinations
             |> Map.map (fun strength testVariableCombinations ->
                             let testVariableCombinations =
@@ -420,12 +420,12 @@ namespace NTestCaseBuilder
             , associationFromTestVariableIndexToNumberOfItsLevels
 
         member this.FillOutPartialTestVectorRepresentation associationFromTestVariableIndexToNumberOfItsLevels
-                                                           partialTestVectorRepresentation
+                                                           (partialTestVectorRepresentation: MapWithRunLengths<_, _>)
                                                            randomBehaviour =
             let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
             let testVariableIndices =
-                ((partialTestVectorRepresentation: Map<_, _>):> IDictionary<_, _>).Keys
+                (partialTestVectorRepresentation: MapWithRunLengths<_, _>).Keys
                 |> Set.ofSeq
             let missingTestVariableIndices =
                 (List.init (int32 this.CountTestVariables)
@@ -471,15 +471,11 @@ namespace NTestCaseBuilder
                                  :: entriesForExcludedTestVariableIndices)
                                 resultFromRecursiveCase
             let filledAndExcludedTestVariables = fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
-            List.append filledAndExcludedTestVariables
-                        (partialTestVectorRepresentation
-                         |> Map.toList)
-                   |> Map.ofList
-                   |> Map.toList   // This ensures the entries are sorted in ascending test variable index order.
-                   |> List.map snd // This is more roundabout than using the 'Values' property, but the latter
-                                   // makes no guarantee about the ordering - we want to preserve the order we
-                                   // just established above.
-                   |> List.toArray
+            BargainBasement.MergeDisjointSortedAssociationLists filledAndExcludedTestVariables
+                                                                (partialTestVectorRepresentation
+                                                                 |> MapWithRunLengths.toList)
+                |> List.map snd
+                |> List.toArray
 
         member this.FinalValueCreator () =
             let indicesInVectorForLeftmostTestVariableInEachSubtree subtreeRootNodes =

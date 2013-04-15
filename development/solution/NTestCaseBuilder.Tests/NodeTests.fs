@@ -228,18 +228,18 @@
                                             "The maximum requested strength of combination is the number of tracked variables, but there are higher strength results.")
                         let extractLevelIndicesFromTrackedTestVariablesOnly testVectorRepresentation =
                             let testVectorRepresentationForTrackedVariablesOnly =
-                                    Map.foldBack (fun testVariableIndex level partialResult ->
-                                                    match level with
-                                                        Level testVariableLevelIndex ->
-                                                            match trackedTestVariablesIndexedByTestVariable.[int32 testVariableIndex] with
-                                                                Some trackedTestVariableIndex ->
-                                                                    (trackedTestVariableIndex, testVariableLevelIndex)
-                                                                     :: partialResult
-                                                              | _ ->
-                                                                    partialResult
-                                                      | _ ->
-                                                            partialResult)
-                                                 testVectorRepresentation []
+                                    MapWithRunLengths.foldBack (fun testVariableIndex level partialResult ->
+                                                                    match level with
+                                                                        Level testVariableLevelIndex ->
+                                                                            match trackedTestVariablesIndexedByTestVariable.[int32 testVariableIndex] with
+                                                                                Some trackedTestVariableIndex ->
+                                                                                    (trackedTestVariableIndex, testVariableLevelIndex)
+                                                                                     :: partialResult
+                                                                              | _ ->
+                                                                                    partialResult
+                                                                      | _ ->
+                                                                            partialResult)
+                                                               testVectorRepresentation []
                             testVectorRepresentationForTrackedVariablesOnly
                             |> Map.ofList  // Sort by the tracked test variable index - hence the roundtrip from list -> map -> list!
                             |> Map.toList
@@ -387,33 +387,33 @@
                 printf "Tree #%u\n" treeNumber
                 let results =
                     (tree.AssociationFromStrengthToPartialTestVectorRepresentations (min tree.MaximumStrengthOfTestVariableCombination
-                                                                                        maximumStrengthOfCombination)
+                                                                                         maximumStrengthOfCombination)
                      |> fst
                      :> IDictionary<_, _>).Values
                     |> Seq.reduce Seq.append
                 let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap testVariableIndex testVariableLevelIndex =
                     match testVariableLevelIndex with
                         Level testVariableLevelIndex ->
-                            match Map.tryFind testVariableIndex testVariableIndexToMaximumLevelIndexMap with
+                            match MapWithRunLengths.tryFind testVariableIndex testVariableIndexToMaximumLevelIndexMap with
                                 Some previousTestVariableLevelIndex ->
                                     if previousTestVariableLevelIndex < testVariableLevelIndex
-                                    then Map.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMap
+                                    then MapWithRunLengths.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMap
                                     else testVariableIndexToMaximumLevelIndexMap
                               | _ ->
-                                    Map.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMap
+                                    MapWithRunLengths.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMap
                        | _ ->
                             testVariableIndexToMaximumLevelIndexMap
                 let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap result =
-                    Map.fold foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap result
+                    MapWithRunLengths.fold foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap result
                 let testVariableIndexToMaximumLevelIndexMap =
-                    Seq.fold foldInMaximumLevelIndices Map.empty results
+                    Seq.fold foldInMaximumLevelIndices MapWithRunLengths.empty results
                 let observedNumberOfLevelsMap =
-                    Map.map (fun _ maximumTestVariableLevelIndex ->
-                                uint32 maximumTestVariableLevelIndex + 1u)
-                            testVariableIndexToMaximumLevelIndexMap
+                    MapWithRunLengths.map (fun _ maximumTestVariableLevelIndex ->
+                                            uint32 maximumTestVariableLevelIndex + 1u)
+                                          testVariableIndexToMaximumLevelIndexMap
                 let observedNumberOfLevels =
                     observedNumberOfLevelsMap
-                    |> Map.toList
+                    |> MapWithRunLengths.toList
                     |> List.map snd
 
                 let shouldBeTrue =
