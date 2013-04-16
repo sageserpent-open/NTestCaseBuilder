@@ -12,7 +12,12 @@
 
         interface IComparable with
             member this.CompareTo another =
-                    (this :> IComparable<Unbounded<'X>>).CompareTo (another :?> Unbounded<'X>)
+                match another with
+                    :? Unbounded<'X> as anotherStronglyTyped ->
+                        (this :> IComparable<Unbounded<'X>>).CompareTo anotherStronglyTyped
+                  | _ ->
+                        raise (ArgumentException (sprintf "Rhs of comparison must also be of type: %A"
+                                                          typeof<Unbounded<'X>>.Name))
 
         interface IComparable<Unbounded<'X>> with
             member this.CompareTo another =
