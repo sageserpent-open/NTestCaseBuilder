@@ -519,8 +519,8 @@ namespace NTestCaseBuilder
                                     TreeSearchContextParameters.StartOfSearch
                                     []
 
-        let fillOutPartialTestVectorWithIndeterminates (partialTestVectorRepresentation: MapWithRunLengths<_, _>) =
-            if uint32 (partialTestVectorRepresentation: MapWithRunLengths<_, _>).Count > maximumNumberOfTestVariables
+        let fillOutPartialTestVectorWithIndeterminates (partialTestVectorRepresentation: MapWithRunLengths<_>) =
+            if uint32 (partialTestVectorRepresentation: MapWithRunLengths<_>).Count > maximumNumberOfTestVariables
             then
                 raise (InternalAssertionViolationException "The partial test vector being either merged or added has more entries than the permitted maximum number of test variables.")
 
@@ -1342,7 +1342,7 @@ namespace NTestCaseBuilder
                                                             },
                                                             maximumNumberOfTestVariablesOverall)
 
-        member this.MergeOrAdd (partialTestVectorRepresentationInExternalForm: MapWithRunLengths<_, _>) =
+        member this.MergeOrAdd (partialTestVectorRepresentationInExternalForm: MapWithRunLengths<_>) =
             if MapWithRunLengths.isEmpty partialTestVectorRepresentationInExternalForm
             then
                 this

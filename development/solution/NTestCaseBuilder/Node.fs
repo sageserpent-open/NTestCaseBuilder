@@ -420,12 +420,12 @@ namespace NTestCaseBuilder
             , associationFromTestVariableIndexToNumberOfItsLevels
 
         member this.FillOutPartialTestVectorRepresentation associationFromTestVariableIndexToNumberOfItsLevels
-                                                           (partialTestVectorRepresentation: MapWithRunLengths<_, _>)
+                                                           (partialTestVectorRepresentation: MapWithRunLengths<_>)
                                                            randomBehaviour =
             let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
             let testVariableIndices =
-                (partialTestVectorRepresentation: MapWithRunLengths<_, _>).Keys
+                (partialTestVectorRepresentation: MapWithRunLengths<_>).Keys
                 |> Set.ofSeq
             let missingTestVariableIndices =
                 (List.init (int32 this.CountTestVariables)
