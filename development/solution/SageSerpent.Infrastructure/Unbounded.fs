@@ -4,11 +4,17 @@
     open System.Collections.Generic
     open System
 
-    [<CustomComparison; StructuralEquality>]
+    [<CustomComparison; CustomEquality>]
     type Unbounded<'X> when 'X: comparison=
         Finite of 'X
       | PositiveInfinity
       | NegativeInfinity
+
+        override this.Equals another =
+            0 = (this :> IComparable).CompareTo another
+
+        override this.GetHashCode () =
+            hash this
 
         interface IComparable with
             member this.CompareTo another =
