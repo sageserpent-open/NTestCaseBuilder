@@ -119,9 +119,9 @@
                                     if testVariableIndex + maximumRandomWalkStep >= maximumNumberOfTestVariables
                                     then maximumNumberOfTestVariables - 1u
                                     else testVariableIndex + maximumRandomWalkStep
-                                 let chosenAbitraryTestVariableIndex =
+                                 let chosenArbitraryTestVariableIndex =
                                     lowerBoundInclusive + randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (upperBoundInclusive + 1u - lowerBoundInclusive)
-                                 (chosenAbitraryTestVariableIndex
+                                 (chosenArbitraryTestVariableIndex
                                   , randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumLevelDelta)
                                  :: chooseTestVariableIndicesAndTheirLevels (recursionDepth + 1u)
                          let partialTestVector =
