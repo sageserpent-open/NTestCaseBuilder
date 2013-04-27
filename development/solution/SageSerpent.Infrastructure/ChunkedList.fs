@@ -421,12 +421,14 @@
             ChunkedList.Fuse inefficientRepresentation
 
         static member private RepresentationToList representation =
+                // TODO - inline this into the for-comprehension that uses it. Can then simplify the yields from what become nested iterations, i.e yield! -> yield.
                 let listFrom chunk =
                     match chunk with
                         Contiguous backingArray ->
                             backingArray :> seq<'Element>
                       | RunLength (duplicatedItem
                                    , numberOfRepeats) ->
+                            // TODO - rewrite as for loop with direct yield.
                             seq
                                 {
                                     yield! Seq.init numberOfRepeats
@@ -436,6 +438,7 @@
                       | Slice (backingArray
                                , startIndex
                                , endIndex) ->
+                            // TODO - rewrite as for loop with direct yield.
                             seq
                                 {
                                     for index in startIndex .. endIndex do
