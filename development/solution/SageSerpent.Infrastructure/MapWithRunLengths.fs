@@ -9,64 +9,76 @@
             Singleton of UInt32
           | Interval of UInt32 * UInt32 // These are the *inclusive* lower- and upper-bounds, respectively.
                                         // No need to worry about empty and singleton intervals, obviously.
-            interface IComparable with
+            interface IComparable<SlotKey> with
                 // NOTE: be careful here; the comparison semantics are deliberately sloppy - they violate the rules for a total ordering, because
                 // it is possible to take one slot key A that is less than another slot key B, and then use encompassing or overlapping interval
                 // slot keys to 'bridge the gap' between A and B via of chain of intervals that compare equal to each other and to A and B.
                 // As long as the client code (which is actually 'MapWithRunLengths') doesn't allow multiple items that compare equal in the same
                 // data structure, then this won't cause a problem.
                 member this.CompareTo another =
+                    match this
+                            , another with
+                        Singleton lhs
+                        , Singleton rhs ->
+                            compare lhs rhs
+                        | Singleton lhs
+                        , Interval (rhsLowerBound
+                                    , rhsUpperBound) ->
+                            if lhs < rhsLowerBound
+                            then
+                                -1
+                            else if lhs > rhsUpperBound
+                            then
+                                1
+                            else
+                                0
+                        | Interval (lhsLowerBound
+                                    , lhsUpperBound)
+                        , Singleton rhs ->
+                            if rhs < lhsLowerBound
+                            then
+                                1
+                            else if rhs > lhsUpperBound
+                            then
+                                -1
+                            else
+                                0  
+                        | Interval (_
+                                    , lhsUpperBound)
+                        , Interval (rhsLowerBound
+                                    , _) when lhsUpperBound < rhsLowerBound ->
+                            -1
+                        | Interval (lhsLowerBound
+                                    , _)
+                        , Interval (_
+                                    , rhsUpperBound) when rhsUpperBound < lhsLowerBound ->
+                            1
+                        | _ ->
+                            0
+
+            interface IComparable with
+                member this.CompareTo another =
                     match another with
                         :? SlotKey as another ->
-                            match this
-                                  , another with
-                                Singleton lhs
-                                , Singleton rhs ->
-                                    compare lhs rhs
-                              | Singleton lhs
-                                , Interval (rhsLowerBound
-                                            , rhsUpperBound) ->
-                                    if lhs < rhsLowerBound
-                                    then
-                                        -1
-                                    else if lhs > rhsUpperBound
-                                    then
-                                        1
-                                    else
-                                        0
-                              | Interval (lhsLowerBound
-                                          , lhsUpperBound)
-                                , Singleton rhs ->
-                                    if rhs < lhsLowerBound
-                                    then
-                                        1
-                                    else if rhs > lhsUpperBound
-                                    then
-                                        -1
-                                    else
-                                        0  
-                              | Interval (_
-                                          , lhsUpperBound)
-                                , Interval (rhsLowerBound
-                                            , _) when lhsUpperBound < rhsLowerBound ->
-                                    -1
-                              | Interval (lhsLowerBound
-                                          , _)
-                                , Interval (_
-                                            , rhsUpperBound) when rhsUpperBound < lhsLowerBound ->
-                                    1
-                              | _ ->
-                                    0
+                            (this :> IComparable<SlotKey>).CompareTo another
                       | _ ->
                             raise (ArgumentException (sprintf "Rhs of comparison must also be of type: %A"
                                                               typeof<SlotKey>.Name))
 
+        let (|KeyValue|) (keyValuePair: C5.KeyValuePair<'Key, 'Value>) =
+            keyValuePair.Key
+            , keyValuePair.Value
+
     open MapWithRunLengthsDetail
 
-    type MapWithRunLengths<'Value when 'Value: comparison> (representation: Map<SlotKey, 'Value>) =
+    type MapWithRunLengths<'Value when 'Value: comparison> (representation: C5.ISortedDictionary<SlotKey, 'Value>) =
         do
-            for slotKey
-                , _ in Map.toSeq representation do
+            for KeyValue (key
+                          , value) in representation do
+                if Unchecked.defaultof<SlotKey> = key
+                then
+                    raise (InvariantViolationException "Null key detected.")
+            for slotKey in representation.Keys do
                 match slotKey with
                     Interval (lowerBound
                               , upperBound) ->
@@ -81,20 +93,54 @@
                             raise (InvariantViolationException "One-item interval slot key detected - should have been represented by a singleton slot key instead.")
                   | _ ->
                         ()
+            for (KeyValue (predecessorSlotKey
+                           , predecessorValue)
+                 , KeyValue (successorSlotKey
+                             , successorValue)) in representation
+                                                   |> Seq.pairwise do
+                if predecessorValue = successorValue
+                then
+                    let shouldBeTrue =
+                        match predecessorSlotKey
+                              , successorSlotKey with
+                            Singleton predecessorKey
+                            , Singleton successorKey when 1u + predecessorKey = successorKey ->
+                                false
+                          | Interval (_
+                                      , predecessorUpperBound)
+                            , Singleton successorKey when 1u + predecessorUpperBound = successorKey ->
+                                false
+                          | Singleton predecessorKey
+                            , Interval (successorLowerBound
+                                        , _) when 1u + predecessorKey = successorLowerBound ->
+                                false
+                          | Interval (_
+                                      , predecessorUpperBound)
+                            , Interval (successorLowerBound
+                                        , _) when 1u + predecessorUpperBound = successorLowerBound ->
+                                false
+                          | _ ->
+                                true
+                    if not shouldBeTrue
+                    then
+                        raise (InvariantViolationException "Adjacent slots found that have the same associated value and can be fused together.")
 
-        member this.Keys: seq<UInt32> =
-            seq
-                {
-                    for slotKey
-                        , _ in Map.toSeq representation do
-                        match slotKey with
-                            Singleton key ->
+        member this.Keys: ICollection<UInt32> =
+            [|
+                for slotKey in representation.Keys do
+                    match slotKey with
+                        Singleton key ->
+                            yield key
+                        | Interval (lowerBound
+                                    , upperBound) ->
+                            for key in lowerBound .. upperBound do
                                 yield key
-                          | Interval (lowerBound
-                                      , upperBound) ->
-                                for key in lowerBound .. upperBound do
-                                    yield key
-                }
+            |] :> ICollection<UInt32>
+
+        member this.Values: ICollection<'Value> =
+            representation.Values
+            |> Array.ofSeq
+            :> ICollection<'Value>
 
         member this.Item
             with get (key: UInt32): 'Value =
@@ -102,9 +148,9 @@
 
         member this.Count: int32 =
             representation
-            |> Map.fold (fun count
-                             slotKey
-                             _ ->
+            |> Seq.fold (fun count
+                             (KeyValue (slotKey
+                                       ,_)) ->
                                 count +
                                 match slotKey with
                                     Singleton _ ->
@@ -118,7 +164,25 @@
         member this.IsEmpty =
             representation.IsEmpty
 
-        static member Fuse inefficientRepresentation =
+        static member FuseAndDiscardConflictingAssociations inefficientRepresentation =
+            let rec discardConflicts representation
+                                     reversedPrefixOfResult =
+                match representation with
+                    [] ->
+                        reversedPrefixOfResult
+                  | [singleton] ->
+                        singleton :: reversedPrefixOfResult
+                  | (firstKey
+                     , _) as first :: ((secondKey
+                                        , _) :: _ as nonEmptyTail) when firstKey = secondKey ->
+                        discardConflicts nonEmptyTail
+                                         reversedPrefixOfResult
+                  | first :: ((_ :: _) as nonEmptyList) ->
+                         discardConflicts nonEmptyList
+                                          (first :: reversedPrefixOfResult)
+            let reversedRepresentationWithoutConflicts =
+                discardConflicts inefficientRepresentation
+                                 []
             let rec fuse representation
                          reversedPrefixOfResult =
                 match representation with
@@ -162,20 +226,25 @@
                           | _ ->
                                 fuse nonEmptyTail
                                      (first :: reversedPrefixOfResult)
-                  | first :: (_ :: _) as nonEmptyList ->
+                  | first :: ((_ :: _) as nonEmptyList) ->
                          fuse nonEmptyList
                               (first :: reversedPrefixOfResult)
-            fuse inefficientRepresentation
+            fuse (reversedRepresentationWithoutConflicts
+                  |> List.rev)
                  List.empty
-            |> Map.ofSeq
+            |> List.rev
+            |> Seq.ofList
+            |> Seq.map (fun (slotKey
+                             , value) ->
+                            C5.KeyValuePair (slotKey, value))
 
         member private this.Representation =
             representation
 
         member this.ToList =
             [
-                for slotKey
-                    , value in Map.toSeq representation do
+                for KeyValue (slotKey
+                              , value) in representation do
                     match slotKey with
                         Singleton key ->
                             yield key
@@ -190,8 +259,8 @@
         member this.ToSeq =
             seq
                 {
-                    for slotKey
-                        , value in Map.toSeq representation do
+                    for KeyValue (slotKey
+                                  , value) in representation do
                         match slotKey with
                             Singleton key ->
                                 yield key
@@ -205,20 +274,126 @@
 
         member this.Add (key: UInt32,
                          value: 'Value) =
+            let locallyMutatedRepresentation =
+                C5.TreeDictionary<SlotKey, 'Value> ()
             let liftedKey =
                 Singleton key
-            MapWithRunLengths (Map.add liftedKey
-                                       value
-                                       representation
-                               |> Map.toList
-                               |> MapWithRunLengths<'Value>.Fuse)
+            if representation.IsEmpty
+            then
+                locallyMutatedRepresentation.Add (liftedKey, value)
+            else
+                let greatestLowerBound =
+                    ref Unchecked.defaultof<C5.KeyValuePair<SlotKey, 'Value>>
+                let hasGreatestLowerBound =
+                    ref false
+                let leastUpperBound =
+                    ref Unchecked.defaultof<C5.KeyValuePair<SlotKey, 'Value>>
+                let hasLeastUpperBound =
+                    ref false
+                let entriesWithMatchingKeysToBeAddedIn =
+                    if representation.Cut (liftedKey, greatestLowerBound, hasGreatestLowerBound, leastUpperBound, hasLeastUpperBound)
+                    then
+                        let slotKeyMatchingLiftedKey =
+                            ref liftedKey
+                        let associatedValue =
+                            ref Unchecked.defaultof<'Value>
+                        locallyMutatedRepresentation.Find(slotKeyMatchingLiftedKey, associatedValue)
+                        |> ignore
+                        if value = !associatedValue
+                        then
+                            match !slotKeyMatchingLiftedKey with
+                                Singleton _ ->
+                                    [liftedKey
+                                     , value]
+                              | Interval (lowerBound
+                                          , upperBound) when 1u + lowerBound = upperBound ->
+                                    if lowerBound = key
+                                    then
+                                        [(liftedKey
+                                          , value); (Singleton upperBound
+                                                     , !associatedValue)]
+                                    else
+                                        [(Singleton lowerBound
+                                          , !associatedValue); (liftedKey
+                                                                , value)]
+                              | Interval (lowerBound
+                                          , upperBound) ->
+                                    if lowerBound = key
+                                    then
+                                        [(liftedKey
+                                          , value); (Interval (1u + key
+                                                               , upperBound)
+                                                     , !associatedValue)]
+                                    else if upperBound = key
+                                    then
+                                        [(Interval (lowerBound
+                                                    , key - 1u)
+                                          , !associatedValue); (liftedKey
+                                                                , value)]
+                                    else
+                                        [(Interval (lowerBound
+                                                    , key - 1u)
+                                          , !associatedValue); (liftedKey
+                                                                , value); (Interval (1u + key
+                                                                                     , upperBound)
+                                                                           , !associatedValue)]
+                        else
+                            [!slotKeyMatchingLiftedKey
+                             , value]
+                    else
+                        [liftedKey
+                         , value]
+                match !hasGreatestLowerBound
+                      , !hasLeastUpperBound with
+                    false
+                    , false ->
+                        locallyMutatedRepresentation.AddSorted (entriesWithMatchingKeysToBeAddedIn
+                                                                |> MapWithRunLengths<'Value>.FuseAndDiscardConflictingAssociations)
+                  | true
+                    , false ->
+                        locallyMutatedRepresentation.AddSorted (representation.RangeTo ((!greatestLowerBound).Key))
+                        locallyMutatedRepresentation.AddSorted ([
+                                                                    yield match !greatestLowerBound with
+                                                                            KeyValue greatestLowerBound ->
+                                                                                greatestLowerBound
+                                                                    yield! entriesWithMatchingKeysToBeAddedIn
+                                                                ]
+                                                                |> MapWithRunLengths<'Value>.FuseAndDiscardConflictingAssociations)
+                  | false
+                    , true ->
+                        locallyMutatedRepresentation.AddSorted ([
+                                                                    yield! entriesWithMatchingKeysToBeAddedIn
+                                                                    yield match !leastUpperBound with
+                                                                            KeyValue leastUpperBound ->
+                                                                                leastUpperBound
+                                                                ]
+                                                                |> MapWithRunLengths<'Value>.FuseAndDiscardConflictingAssociations)
+                        locallyMutatedRepresentation.AddSorted (representation.RangeFrom ((!leastUpperBound).Key)
+                                                                |> Seq.skip 1)
+                  | true
+                    , true ->
+                        locallyMutatedRepresentation.AddSorted (representation.RangeTo ((!greatestLowerBound).Key))
+                        locallyMutatedRepresentation.AddSorted ([
+                                                                    yield match !greatestLowerBound with
+                                                                            KeyValue greatestLowerBound ->
+                                                                                greatestLowerBound
+                                                                    yield! entriesWithMatchingKeysToBeAddedIn
+                                                                    yield match !leastUpperBound with
+                                                                            KeyValue leastUpperBound ->
+                                                                                leastUpperBound
+                                                                ]
+                                                                |> MapWithRunLengths<'Value>.FuseAndDiscardConflictingAssociations)
+                        locallyMutatedRepresentation.AddSorted (representation.RangeFrom ((!leastUpperBound).Key)
+                                                                |> Seq.skip 1)
+            
+            MapWithRunLengths locallyMutatedRepresentation
 
         interface IComparable with
             member this.CompareTo another =
                 match another with
-                    :? MapWithRunLengths<'Value> as another ->
-                        compare representation
-                                another.Representation
+                    :? MapWithRunLengths<'Value> as another -> 
+                        compare this.ToList
+                                another.ToList
                   | _ ->
                         raise (ArgumentException (sprintf "Rhs of comparison must also be of type: %A"
                                                           typeof<MapWithRunLengths<'Value>>.Name))
@@ -233,21 +408,19 @@
 
             member this.Keys =
                 this.Keys
-                |> Array.ofSeq
-                :> ICollection<UInt32>
 
             member this.Values =
-                (representation :> IDictionary<SlotKey, 'Value>).Values
+                this.Values
 
             member this.ContainsKey key =
-                representation.ContainsKey (Singleton key)
+                representation.Contains (Singleton key)
 
             member this.Remove (key: UInt32): bool =
                 failwith "The collection is immutable."
 
             member this.TryGetValue (key,
                                      value) =
-                (representation :> IDictionary<SlotKey, 'Value>).TryGetValue (Singleton key, ref value)
+                representation.Find (ref (Singleton key), ref value)
 
             member this.Count =
                 this.Count
@@ -286,29 +459,34 @@
             mapWithRunLengths.IsEmpty
 
         let ofList (list: List<UInt32 * 'Value>): MapWithRunLengths<'Value> =
-            MapWithRunLengths (MapWithRunLengths<'Value>.Fuse (list
-                                                               |> List.map (fun (key
-                                                                                 , value) ->
-                                                                                    Singleton key
-                                                                                    , value)))
+            let sortedList =
+                list
+                |> List.sortBy fst
+            let locallyMutatedRepresentation =
+                C5.TreeDictionary<SlotKey, 'Value> ()
+            let fusedList =
+                MapWithRunLengths<'Value>.FuseAndDiscardConflictingAssociations (sortedList
+                                                                                 |> List.map (fun (key
+                                                                                                   , value) ->
+                                                                                                Singleton key
+                                                                                                , value))
+            locallyMutatedRepresentation.AddSorted fusedList
+            MapWithRunLengths locallyMutatedRepresentation
 
         let inline toList (mapWithRunLengths: MapWithRunLengths<'Value>): List<UInt32 * 'Value> =
             mapWithRunLengths.ToList
 
         let ofSeq (seq: seq<UInt32 * 'Value>): MapWithRunLengths<'Value> =
-            MapWithRunLengths (MapWithRunLengths<'Value>.Fuse (seq
-                                                               |> Seq.map (fun (key
-                                                                                , value) ->
-                                                                                    Singleton key
-                                                                                    , value)
-                                                               |> List.ofSeq))
+            seq
+            |> List.ofSeq
+            |> ofList
 
         let inline toSeq (mapWithRunLengths: MapWithRunLengths<'Value>): seq<UInt32 * 'Value> =
             mapWithRunLengths.ToSeq
 
         [<GeneralizableValue>]
         let empty<'Value when 'Value: comparison> =
-            MapWithRunLengths<'Value> (Map.empty)
+            MapWithRunLengths<'Value> (C5.TreeDictionary ())
 
         let fold (foldOperation: 'State -> UInt32 -> 'Value -> 'State)
                  (state: 'State)
