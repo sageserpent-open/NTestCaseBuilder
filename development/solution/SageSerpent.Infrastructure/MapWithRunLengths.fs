@@ -4,7 +4,7 @@
     open Microsoft.FSharp.Collections
 
     module MapWithRunLengthsDetail =
-        [<CustomComparison; StructuralEquality>]
+        [<CustomComparison; CustomEquality>]
         type SlotKey =
             Singleton of UInt32
           | Interval of UInt32 * UInt32 // These are the *inclusive* lower- and upper-bounds, respectively.
@@ -64,6 +64,21 @@
                       | _ ->
                             raise (ArgumentException (sprintf "Rhs of comparison must also be of type: %A"
                                                               typeof<SlotKey>.Name))
+
+            override this.Equals another =
+                match another with
+                    :? SlotKey as another ->
+                        0 = compare this
+                                    another
+                  | _ -> 
+                        false
+
+            override this.GetHashCode () =
+                match this with
+                    Singleton key ->
+                        1 + hash key
+                  | Interval (_) as pair ->
+                        7 * (3 + hash pair)
 
         let (|KeyValue|) (keyValuePair: C5.KeyValuePair<'Key, 'Value>) =
             keyValuePair.Key
@@ -131,16 +146,24 @@
                     match slotKey with
                         Singleton key ->
                             yield key
-                        | Interval (lowerBound
-                                    , upperBound) ->
+                      | Interval (lowerBound
+                                  , upperBound) ->
                             for key in lowerBound .. upperBound do
                                 yield key
             |] :> ICollection<UInt32>
 
         member this.Values: ICollection<'Value> =
-            representation.Values
-            |> Array.ofSeq
-            :> ICollection<'Value>
+            [|
+                for KeyValue (slotKey
+                              , value) in representation do
+                    match slotKey with
+                        Singleton _ ->
+                            yield value
+                      | Interval (lowerBound
+                                  , upperBound) ->
+                            for _ in lowerBound .. upperBound do
+                                yield value
+            |] :> ICollection<'Value>
 
         member this.Item
             with get (key: UInt32): 'Value =
@@ -173,8 +196,8 @@
                   | [singleton] ->
                         singleton :: reversedPrefixOfResult
                   | (firstKey
-                     , _) as first :: ((secondKey
-                                        , _) :: _ as nonEmptyTail) when firstKey = secondKey ->
+                     , _) as first :: (((secondKey
+                                         , _) :: _) as nonEmptyTail) when firstKey = secondKey ->
                         discardConflicts nonEmptyTail
                                          reversedPrefixOfResult
                   | first :: ((_ :: _) as nonEmptyList) ->
@@ -191,8 +214,8 @@
                   | [singleton] ->
                         singleton :: reversedPrefixOfResult
                   | (firstKey
-                     , firstValue) as first :: ((secondKey
-                                                 , secondValue) :: tail as nonEmptyTail) when firstValue = secondValue ->
+                     , firstValue) as first :: (((secondKey
+                                                  , secondValue) :: tail) as nonEmptyTail) when firstValue = secondValue ->
                         match firstKey
                               , secondKey with
                             Singleton firstKey
@@ -212,10 +235,10 @@
                           | Singleton firstKey
                             , Interval (secondLowerBound
                                         , secondUpperBound) when 1u + firstKey = secondLowerBound ->
-                                fuse tail
-                                     ((Interval (firstKey
-                                                , secondUpperBound)
-                                      , firstValue) :: reversedPrefixOfResult)
+                                fuse ((Interval (firstKey
+                                                 , secondUpperBound)
+                                       , firstValue) :: tail)
+                                     reversedPrefixOfResult
                           | Interval (firstLowerBound
                                       , firstUpperBound)
                             , Singleton secondKey when 1u + firstUpperBound = secondKey ->
@@ -233,13 +256,10 @@
                   |> List.rev)
                  List.empty
             |> List.rev
-            |> Seq.ofList
-            |> Seq.map (fun (slotKey
-                             , value) ->
+            |> List.map (fun (slotKey
+                              , value) ->
                             C5.KeyValuePair (slotKey, value))
-
-        member private this.Representation =
-            representation
+            :> seq<_>
 
         member this.ToList =
             [
@@ -339,7 +359,7 @@
                                                                            , !associatedValue)]
                         else
                             [!slotKeyMatchingLiftedKey
-                             , value]
+                             , !associatedValue]
                     else
                         [liftedKey
                          , value]
@@ -420,7 +440,14 @@
 
             member this.TryGetValue (key,
                                      value) =
-                representation.Find (ref (Singleton key), ref value)
+                let mutableValue
+                    = ref value
+                if representation.Find (ref (Singleton key), ref value)
+                then
+                    value <- mutableValue.Value
+                    true
+                else
+                    false
 
             member this.Count =
                 this.Count
