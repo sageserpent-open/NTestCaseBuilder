@@ -441,8 +441,8 @@
             member this.TryGetValue (key,
                                      value) =
                 let mutableValue
-                    = ref value
-                if representation.Find (ref (Singleton key), ref value)
+                    = ref Unchecked.defaultof<'Value>
+                if representation.Find (ref (Singleton key), mutableValue)
                 then
                     value <- mutableValue.Value
                     true
@@ -466,20 +466,26 @@
                 failwith "The collection is immutable."
 
             member this.Contains keyValuePair =
-                failwith "Not implemented yet."
+                let mutableValue =
+                    ref Unchecked.defaultof<'Value>
+                representation.Find (ref (Singleton keyValuePair.Key), mutableValue)
+                && !mutableValue = keyValuePair.Value
 
             member this.CopyTo (keyValuePairs,
                                 offsetIndexIntoKeyValuePairs) =
                 failwith "Not implemented yet."
 
             member this.GetEnumerator (): IEnumerator<KeyValuePair<UInt32, 'Value>> =
-                failwith "Not implemented yet."
+                (this.ToSeq
+                 |> Seq.map (fun (key
+                                  , value) -> KeyValuePair (key
+                                                            , value))).GetEnumerator ()
 
             member this.Remove (keyValuePair: KeyValuePair<UInt32, 'Value>): bool =
-                failwith "Not implemented yet."
+                failwith "The collection is immutable."
 
             member this.GetEnumerator (): System.Collections.IEnumerator =
-                failwith "Not implemented yet."
+                (this :> seq<KeyValuePair<UInt32, 'Value>>).GetEnumerator () :> System.Collections.IEnumerator
 
     module MapWithRunLengths =
         let inline isEmpty (mapWithRunLengths: MapWithRunLengths<_>): bool =
