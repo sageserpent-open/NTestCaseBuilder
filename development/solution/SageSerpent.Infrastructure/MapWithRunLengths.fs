@@ -524,12 +524,27 @@
         let fold (foldOperation: 'State -> UInt32 -> 'Value -> 'State)
                  (state: 'State)
                  (mapWithRunLengths: MapWithRunLengths<'Value>) =
-            failwith "Not implemented yet."
+            mapWithRunLengths.ToSeq
+            |> Seq.fold (fun state
+                             (key
+                              , value) ->
+                                foldOperation state
+                                              key
+                                              value)
+                        state
 
         let foldBack (foldOperation: UInt32 -> 'Value -> 'State -> 'State)
                      (mapWithRunLengths: MapWithRunLengths<'Value>)
                      (state: 'State): 'State =
-            failwith "Not implemented yet."
+            mapWithRunLengths.ToList
+            |> BargainBasement.Flip (List.foldBack (fun (key
+                                                         , value)
+                                                        state ->
+                                                            foldOperation key
+                                                                          value
+                                                                          state))
+                                    state
+            
 
         let add (key: UInt32)
                 (value: 'Value)
@@ -539,11 +554,24 @@
 
         let map (transformation: UInt32 -> 'Value -> 'TransformedValue)
                 (mapWithRunLengths: MapWithRunLengths<'Value>): MapWithRunLengths<'TransformedValue> =
-            failwith "Not implemented yet."
+                mapWithRunLengths
+                |> toList
+                |> List.map (fun (key
+                                  , value) ->
+                                key
+                                , transformation key
+                                                 value)
+                |> ofList
 
         let tryFind (key: UInt32)
                     (mapWithRunLengths: MapWithRunLengths<'Value>): Option<'Value> =
-            failwith "Not implemented yet."
+            let mutableValue =
+                ref Unchecked.defaultof<'Value>
+            match (mapWithRunLengths :> IDictionary<_, _>).TryGetValue (key, mutableValue) with
+                true ->
+                    Some !mutableValue
+              | false ->
+                    None
 
         let iter (operation: UInt32 -> 'Value -> unit)
                  (mapWithRunLengths: MapWithRunLengths<'Value>): unit =
