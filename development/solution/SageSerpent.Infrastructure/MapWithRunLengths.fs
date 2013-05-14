@@ -317,9 +317,9 @@
                             ref liftedKey
                         let associatedValue =
                             ref Unchecked.defaultof<'Value>
-                        locallyMutatedRepresentation.Find(slotKeyMatchingLiftedKey, associatedValue)
+                        representation.Find(slotKeyMatchingLiftedKey, associatedValue)
                         |> ignore
-                        if value = !associatedValue
+                        if value <> !associatedValue
                         then
                             match !slotKeyMatchingLiftedKey with
                                 Singleton _ ->
@@ -351,11 +351,19 @@
                                           , !associatedValue); (liftedKey
                                                                 , value)]
                                     else
-                                        [(Interval (lowerBound
-                                                    , key - 1u)
+                                        [((if lowerBound + 1u = key
+                                           then
+                                            Singleton lowerBound
+                                           else
+                                            Interval (lowerBound
+                                                      , key - 1u))
                                           , !associatedValue); (liftedKey
-                                                                , value); (Interval (1u + key
-                                                                                     , upperBound)
+                                                                , value); ((if 1u + key = upperBound
+                                                                            then
+                                                                                Singleton upperBound
+                                                                            else
+                                                                                Interval (1u + key
+                                                                                          , upperBound))
                                                                            , !associatedValue)]
                         else
                             [!slotKeyMatchingLiftedKey
@@ -405,7 +413,6 @@
                                                                 |> MapWithRunLengths<'Value>.FuseAndDiscardConflictingAssociations)
                         locallyMutatedRepresentation.AddSorted (representation.RangeFrom ((!leastUpperBound).Key)
                                                                 |> Seq.skip 1)
-            
             MapWithRunLengths locallyMutatedRepresentation
 
         interface IComparable with
