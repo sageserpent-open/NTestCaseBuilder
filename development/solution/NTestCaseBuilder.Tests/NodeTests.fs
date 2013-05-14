@@ -391,22 +391,39 @@
                      |> fst
                      :> IDictionary<_, _>).Values
                     |> Seq.reduce Seq.append
-                let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap testVariableIndex testVariableLevelIndex =
+                let foldInMaximumLevelIndices (testVariableIndexToMaximumLevelIndexMapWithRunLengths, testVariableIndexToMaximumLevelIndexMap) testVariableIndex testVariableLevelIndex =
+                    if (testVariableIndexToMaximumLevelIndexMapWithRunLengths |> MapWithRunLengths.toList)
+                       <> (testVariableIndexToMaximumLevelIndexMap |> Map.toList)
+                    then
+                        failwith (sprintf "Houston we have a probem\nWith run lengths: %A\nPlain:            %A\n" (testVariableIndexToMaximumLevelIndexMapWithRunLengths |> MapWithRunLengths.toList)
+                                          (testVariableIndexToMaximumLevelIndexMap |> Map.toList))
+                    else
+                        printf "************************************************\n"
+                        printf "With run lengths: %A\nPlain:            %A\n" (testVariableIndexToMaximumLevelIndexMapWithRunLengths |> MapWithRunLengths.toList)
+                                          (testVariableIndexToMaximumLevelIndexMap |> Map.toList)
+                        printf "About to add: %A\n" (testVariableIndex, testVariableLevelIndex)
                     match testVariableLevelIndex with
                         Level testVariableLevelIndex ->
-                            match MapWithRunLengths.tryFind testVariableIndex testVariableIndexToMaximumLevelIndexMap with
+                            match Map.tryFind testVariableIndex testVariableIndexToMaximumLevelIndexMap with
                                 Some previousTestVariableLevelIndex ->
                                     if previousTestVariableLevelIndex < testVariableLevelIndex
-                                    then MapWithRunLengths.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMap
-                                    else testVariableIndexToMaximumLevelIndexMap
+                                    then MapWithRunLengths.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMapWithRunLengths
+                                         , Map.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMap
+                                    else testVariableIndexToMaximumLevelIndexMapWithRunLengths
+                                         , testVariableIndexToMaximumLevelIndexMap
                               | _ ->
-                                    MapWithRunLengths.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMap
+                                    MapWithRunLengths.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMapWithRunLengths
+                                    , Map.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMap
                        | _ ->
-                            testVariableIndexToMaximumLevelIndexMap
-                let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap result =
-                    MapWithRunLengths.fold foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap result
-                let testVariableIndexToMaximumLevelIndexMap =
-                    Seq.fold foldInMaximumLevelIndices MapWithRunLengths.empty results
+                            testVariableIndexToMaximumLevelIndexMapWithRunLengths
+                            , testVariableIndexToMaximumLevelIndexMap
+                let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMapPair result =
+                    printf "Starting inner fold...\n"
+                    MapWithRunLengths.fold foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMapPair result
+                printf "Starting big fold...\n"
+                let testVariableIndexToMaximumLevelIndexMap
+                    , _ =
+                    Seq.fold foldInMaximumLevelIndices (MapWithRunLengths.empty, Map.empty) results
                 let observedNumberOfLevelsMap =
                     MapWithRunLengths.map (fun _ maximumTestVariableLevelIndex ->
                                             uint32 maximumTestVariableLevelIndex + 1u)
