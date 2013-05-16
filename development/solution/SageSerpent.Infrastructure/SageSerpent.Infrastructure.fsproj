@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{35dfa6a2-9439-4e92-8d73-540c36d3beae}</ProjectGuid>
+    <ProjectGuid>{35DFA6A2-9439-4E92-8D73-540C36D3BEAE}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Infrastructure</RootNamespace>
     <AssemblyName>SageSerpent.Infrastructure</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Name>SageSerpent.Infrastructure</Name>
     <TargetFrameworkProfile />
@@ -24,8 +24,6 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>3</WarningLevel>
-    <OtherFlags>
-    </OtherFlags>
     <DocumentationFile>bin\Debug\SageSerpent.Infrastructure.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -59,15 +57,15 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="C5">
-      <HintPath>..\packages\C5.2.2.4822.42600\lib\portable-win+net40+sl40+wp+Xbox40\C5.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="nunit-console-runner">
       <HintPath>..\packages\NUnit.Runners.2.6.2\tools\lib\nunit-console-runner.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="C5">
+      <HintPath>..\packages\C5.2.2.4881.16939\lib\portable-win+net40+sl40+wp+Xbox40\C5.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core" />
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
          Other similar extension points exist, see Microsoft.Common.targets.
