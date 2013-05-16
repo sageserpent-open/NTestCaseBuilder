@@ -460,19 +460,30 @@
             let result = 
                 MapWithRunLengths locallyMutatedRepresentation
             let differences =
-                (result.ToList |> Set.ofList) - (this.ToList |> Set.ofList)
-            let shouldBeTrue =
-                differences
-                |> Set.count
-                 = 1
-            if not shouldBeTrue
+                (result.ToList |> Set.ofList)
+                - (this.ToList |> Set.ofList)
+            let noOperationCase =
+                (this :> IDictionary<_, _>).Contains (KeyValuePair (key, value))
+            if noOperationCase
             then
-                raise (LogicErrorException "Postcondition failure: the result should contain exactly one key-value pair that doesn't exist in the original (NOTE: the converse *may* also be true in the overwritten value case).")
-            let shouldBeTrue =
-                differences.Contains (key, value)
-            if not shouldBeTrue
-            then
-                raise (LogicErrorException "Postcondition failure: the key-value pair contained in the result but not in the original should be the one added in.")
+                let shouldBeTrue =
+                    differences.IsEmpty
+                if not shouldBeTrue
+                then
+                    raise (LogicErrorException "Postcondition failure: adding in an existing key-value pair (as distinct from overwriting an associated value under an existing key) should result in an identical map.")
+            else
+                let shouldBeTrue =
+                    differences
+                    |> Set.count
+                     = 1
+                if not shouldBeTrue
+                then
+                    raise (LogicErrorException "Postcondition failure: the result should contain exactly one key-value pair that doesn't exist in the original (NOTE: the converse *may* also be true in the overwritten value case).")
+                let shouldBeTrue =
+                    differences.Contains (key, value)
+                if not shouldBeTrue
+                then
+                    raise (LogicErrorException "Postcondition failure: the key-value pair contained in the result but not in the original should be the one added in.")
             result
 
         interface IComparable with
