@@ -471,7 +471,8 @@ namespace NTestCaseBuilder
                                  :: entriesForExcludedTestVariableIndices)
                                 resultFromRecursiveCase
             let filledAndExcludedTestVariables = fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
-            BargainBasement.MergeDisjointSortedAssociationLists filledAndExcludedTestVariables
+            BargainBasement.MergeDisjointSortedAssociationLists (filledAndExcludedTestVariables
+                                                                 |> List.sortBy fst)
                                                                 (partialTestVectorRepresentation
                                                                  |> Map.toList)
                 |> List.map snd
