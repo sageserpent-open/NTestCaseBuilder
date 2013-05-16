@@ -429,8 +429,8 @@ namespace NTestCaseBuilder
                 |> Set.ofSeq
             let missingTestVariableIndices =
                 (List.init (int32 this.CountTestVariables)
-                           (fun count ->
-                             uint32 count)
+                           (fun testVariableIndex ->
+                             uint32 testVariableIndex)
                  |> Set.ofList)
                 - testVariableIndices
             let rec fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices =
@@ -457,20 +457,25 @@ namespace NTestCaseBuilder
                         , levelForChosenTestVariable
                     let excludedTestVariableIndices =
                         associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.FindAll chosenTestVariableIndex
+                        |> Set.ofList
+                        |> Set.intersect missingTestVariableIndices
                     let entriesForExcludedTestVariableIndices =
                         excludedTestVariableIndices
-                        |> List.map (fun excludedTestVariableIndex ->
+                        |> Seq.map (fun excludedTestVariableIndex ->
                                         excludedTestVariableIndex
                                         , Exclusion)
+                        |> List.ofSeq
                     let missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions =
-                        missingTestVariableIndices - Set.ofList (chosenTestVariableIndex
-                                                                   :: excludedTestVariableIndices)
+                        (missingTestVariableIndices
+                         |> Set.remove chosenTestVariableIndex)
+                        - excludedTestVariableIndices
                     let resultFromRecursiveCase =
                         fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions
                     List.append (entryForChosenTestVariable
                                  :: entriesForExcludedTestVariableIndices)
                                 resultFromRecursiveCase
-            let filledAndExcludedTestVariables = fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
+            let filledAndExcludedTestVariables =
+                fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
             BargainBasement.MergeDisjointSortedAssociationLists (filledAndExcludedTestVariables
                                                                  |> List.sortBy fst)
                                                                 (partialTestVectorRepresentation
