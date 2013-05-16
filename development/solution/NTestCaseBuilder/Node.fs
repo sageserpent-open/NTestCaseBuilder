@@ -433,10 +433,11 @@ namespace NTestCaseBuilder
                              uint32 testVariableIndex)
                  |> Set.ofList)
                 - testVariableIndices
-            let rec fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices =
+            let rec fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
+                                                                       entriesForPreviouslyExcludedTestVariableIndices =
                 if Set.count missingTestVariableIndices = 0
                 then
-                    []
+                    entriesForPreviouslyExcludedTestVariableIndices
                 else
                     let chosenTestVariableIndex =
                         (randomBehaviour: Random).ChooseOneOf missingTestVariableIndices
@@ -469,13 +470,13 @@ namespace NTestCaseBuilder
                         (missingTestVariableIndices
                          |> Set.remove chosenTestVariableIndex)
                         - excludedTestVariableIndices
-                    let resultFromRecursiveCase =
-                        fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions
-                    List.append (entryForChosenTestVariable
-                                 :: entriesForExcludedTestVariableIndices)
-                                resultFromRecursiveCase
+                    fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions
+                                                                       (List.append (entryForChosenTestVariable
+                                                                                     :: entriesForExcludedTestVariableIndices)
+                                                                                    entriesForPreviouslyExcludedTestVariableIndices)
             let filledAndExcludedTestVariables =
                 fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
+                                                                   List.empty
             BargainBasement.MergeDisjointSortedAssociationLists (filledAndExcludedTestVariables
                                                                  |> List.sortBy fst)
                                                                 (partialTestVectorRepresentation
