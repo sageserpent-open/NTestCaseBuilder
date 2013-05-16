@@ -139,6 +139,12 @@
                     if not shouldBeTrue
                     then
                         raise (InvariantViolationException "Adjacent slots found that have the same associated value and can be fused together.")
+                else
+                    let shouldBeTrue =
+                        predecessorSlotKey < successorSlotKey
+                    if not shouldBeTrue
+                    then
+                        raise (InvariantViolationException "Predecessor slot found that is not strictly less than its successor.")
 
         member this.Keys: ICollection<UInt32> =
             [|
