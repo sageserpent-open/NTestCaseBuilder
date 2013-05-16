@@ -252,14 +252,52 @@
                   | first :: ((_ :: _) as nonEmptyList) ->
                          fuse nonEmptyList
                               (first :: reversedPrefixOfResult)
-            fuse (reversedRepresentationWithoutConflicts
-                  |> List.rev)
-                 List.empty
-            |> List.rev
-            |> List.map (fun (slotKey
-                              , value) ->
-                            C5.KeyValuePair (slotKey, value))
-            :> seq<_>
+            let result =
+                fuse (reversedRepresentationWithoutConflicts
+                      |> List.rev)
+                     List.empty
+                |> List.rev
+                |> List.map (fun (slotKey
+                                  , value) ->
+                                C5.KeyValuePair (slotKey, value))
+            let unwind (slotKey
+                        , value) =
+                match slotKey with
+                    Singleton key ->
+                        [key
+                         , value]
+                  | Interval (lowerBound
+                              , upperBound) ->
+                        [
+                            for key in lowerBound .. upperBound do
+                                yield key
+                                      , value
+                        ]
+            let shouldBeTrue =
+                (inefficientRepresentation
+                 |> List.map unwind
+                 |> List.concat
+                 |> Set.ofList).IsSupersetOf (result
+                                              |> List.map (|KeyValue|)
+                                              |> List.map unwind
+                                              |> List.concat
+                                              |> Set.ofList)
+            if not shouldBeTrue
+            then
+                raise (LogicErrorException "Postcondition violation: the fused representation should only cover key-value pairs that are also covered by the inefficient representation.")
+            let shouldBeTrue =
+                (inefficientRepresentation
+                 |> List.map unwind
+                 |> List.concat
+                 |> List.length) >= (result
+                                     |> List.map (|KeyValue|)
+                                     |> List.map unwind
+                                     |> List.concat
+                                     |> List.length)
+            if not shouldBeTrue
+            then
+                raise (LogicErrorException "Postcondition violation: the fused representation should either more or equally as compact as the inefficient representation.")
+            result :> seq<_>
 
         member this.ToList =
             [
@@ -413,7 +451,23 @@
                                                                 |> MapWithRunLengths<'Value>.FuseAndDiscardConflictingAssociations)
                         locallyMutatedRepresentation.AddSorted (representation.RangeFrom ((!leastUpperBound).Key)
                                                                 |> Seq.skip 1)
-            MapWithRunLengths locallyMutatedRepresentation
+            let result = 
+                MapWithRunLengths locallyMutatedRepresentation
+            let differences =
+                (result.ToList |> Set.ofList) - (this.ToList |> Set.ofList)
+            let shouldBeTrue =
+                differences
+                |> Set.count
+                 = 1
+            if not shouldBeTrue
+            then
+                raise (LogicErrorException "Postcondition failure: the result should contain exactly one key-value pair that doesn't exist in the original (NOTE: the converse *may* also be true in the overwritten value case).")
+            let shouldBeTrue =
+                differences.Contains (key, value)
+            if not shouldBeTrue
+            then
+                raise (LogicErrorException "Postcondition failure: the key-value pair contained in the result but not in the original should be the one added in.")
+            result
 
         interface IComparable with
             member this.CompareTo another =
