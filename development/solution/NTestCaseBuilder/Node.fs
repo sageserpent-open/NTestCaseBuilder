@@ -429,14 +429,15 @@ namespace NTestCaseBuilder
                 |> Set.ofSeq
             let missingTestVariableIndices =
                 (List.init (int32 this.CountTestVariables)
-                           (fun count ->
-                             uint32 count)
+                           (fun testVariableIndex ->
+                             uint32 testVariableIndex)
                  |> Set.ofList)
                 - testVariableIndices
-            let rec fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices =
+            let rec fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
+                                                                       entriesForPreviouslyExcludedTestVariableIndices =
                 if Set.count missingTestVariableIndices = 0
                 then
-                    []
+                    entriesForPreviouslyExcludedTestVariableIndices
                 else
                     let chosenTestVariableIndex =
                         (randomBehaviour: Random).ChooseOneOf missingTestVariableIndices
@@ -457,29 +458,31 @@ namespace NTestCaseBuilder
                         , levelForChosenTestVariable
                     let excludedTestVariableIndices =
                         associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.FindAll chosenTestVariableIndex
+                        |> Set.ofList
+                        |> Set.intersect missingTestVariableIndices
                     let entriesForExcludedTestVariableIndices =
                         excludedTestVariableIndices
-                        |> List.map (fun excludedTestVariableIndex ->
+                        |> Seq.map (fun excludedTestVariableIndex ->
                                         excludedTestVariableIndex
                                         , Exclusion)
+                        |> List.ofSeq
                     let missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions =
-                        missingTestVariableIndices - Set.ofList (chosenTestVariableIndex
-                                                                   :: excludedTestVariableIndices)
-                    let resultFromRecursiveCase =
-                        fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions
-                    List.append (entryForChosenTestVariable
-                                 :: entriesForExcludedTestVariableIndices)
-                                resultFromRecursiveCase
-            let filledAndExcludedTestVariables = fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
-            List.append filledAndExcludedTestVariables
-                        (partialTestVectorRepresentation
-                         |> Map.toList)
-                   |> Map.ofList
-                   |> Map.toList   // This ensures the entries are sorted in ascending test variable index order.
-                   |> List.map snd // This is more roundabout than using the 'Values' property, but the latter
-                                   // makes no guarantee about the ordering - we want to preserve the order we
-                                   // just established above.
-                   |> List.toArray
+                        (missingTestVariableIndices
+                         |> Set.remove chosenTestVariableIndex)
+                        - excludedTestVariableIndices
+                    fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions
+                                                                       (List.append (entryForChosenTestVariable
+                                                                                     :: entriesForExcludedTestVariableIndices)
+                                                                                    entriesForPreviouslyExcludedTestVariableIndices)
+            let filledAndExcludedTestVariables =
+                fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
+                                                                   List.empty
+            BargainBasement.MergeDisjointSortedAssociationLists (filledAndExcludedTestVariables
+                                                                 |> List.sortBy fst)
+                                                                (partialTestVectorRepresentation
+                                                                 |> Map.toList)
+                |> List.map snd
+                |> List.toArray
 
         member this.FinalValueCreator () =
             let indicesInVectorForLeftmostTestVariableInEachSubtree subtreeRootNodes =
