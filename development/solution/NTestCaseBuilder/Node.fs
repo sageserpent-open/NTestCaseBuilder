@@ -369,7 +369,7 @@ namespace NTestCaseBuilder
                 |> List.CrossProductWithCommonSuffix sentinelEntriesForInterleavedTestVariableIndices
                 |> LazyList.ofSeq
                 |> LazyList.map (fun testVectorRepresentationAsList ->
-                                    Map.ofList testVectorRepresentationAsList)
+                                    MapWithRunLengths.ofList testVectorRepresentationAsList)
             associationFromStrengthToTestVariableCombinations
             |> Map.map (fun strength testVariableCombinations ->
                             let testVariableCombinations =
@@ -425,7 +425,7 @@ namespace NTestCaseBuilder
             let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
             let testVariableIndices =
-                ((partialTestVectorRepresentation: Map<_, _>):> IDictionary<_, _>).Keys
+                (partialTestVectorRepresentation: MapWithRunLengths<_>).Keys
                 |> Set.ofSeq
             let missingTestVariableIndices =
                 (List.init (int32 this.CountTestVariables)
@@ -480,9 +480,9 @@ namespace NTestCaseBuilder
             BargainBasement.MergeDisjointSortedAssociationLists (filledAndExcludedTestVariables
                                                                  |> List.sortBy fst)
                                                                 (partialTestVectorRepresentation
-                                                                 |> Map.toList)
-                |> List.map snd
-                |> List.toArray
+                                                                 |> MapWithRunLengths.toList)
+            |> List.map snd
+            |> List.toArray
 
         member this.FinalValueCreator () =
             let indicesInVectorForLeftmostTestVariableInEachSubtree subtreeRootNodes =
