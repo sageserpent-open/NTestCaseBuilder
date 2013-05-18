@@ -83,30 +83,33 @@
                         breakOff span listBeingChopped
                     section :: chopUpList remainder tail
 
-    let private chunk chunkSize listBeingChunked =
+
+
+    let Chunk chunkSize sequenceBeingChunked =
         if 0u = chunkSize
         then
             raise (PreconditionViolationException "Chunk size must be non-zero.")
-        [
-            let mutableBuffer =
-                Array.zeroCreate (int32 chunkSize)
-            let mutableIndex = ref 0
-            for item in listBeingChunked do
+        seq
+            {
+                let mutableBuffer =
+                    Array.zeroCreate (int32 chunkSize)
+                let mutableIndex = ref 0
+                for item in sequenceBeingChunked do
+                    let bufferIndex =
+                        !mutableIndex % (int32 chunkSize)
+                    mutableBuffer.[bufferIndex] <- item
+                    if chunkSize = uint32 bufferIndex + 1u
+                    then
+                        yield mutableBuffer
+                              |> List.ofArray
+                    mutableIndex := !mutableIndex + 1
                 let bufferIndex =
                     !mutableIndex % (int32 chunkSize)
-                mutableBuffer.[bufferIndex] <- item
-                if chunkSize = uint32 bufferIndex + 1u
+                if 0 <> bufferIndex
                 then
-                    yield mutableBuffer
+                    yield mutableBuffer.[0 .. bufferIndex - 1]
                           |> List.ofArray
-                mutableIndex := !mutableIndex + 1
-            let bufferIndex =
-                !mutableIndex % (int32 chunkSize)
-            if 0 <> bufferIndex
-            then
-                yield mutableBuffer.[0 .. bufferIndex - 1]
-                      |> List.ofArray
-        ]
+            }
 
     type Microsoft.FSharp.Collections.List<'X> with
         static member CrossProductWithCommonSuffix commonSuffix lists =
@@ -126,6 +129,3 @@
 
         member this.ChopUpList spans =
             chopUpList this spans
-
-        member this.Chunks chunkSize =
-            chunk chunkSize this

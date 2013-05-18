@@ -194,7 +194,7 @@ namespace NTestCaseBuilder
                         then
                             Map.empty
                         else
-                            Map.ofList [1u, [[indexForLeftmostTestVariable]]]
+                            Map.ofList [1u, Seq.singleton [indexForLeftmostTestVariable]]
                         , indexForLeftmostTestVariable + 1u
                         , [indexForLeftmostTestVariable
                            , Array.length levels
@@ -205,7 +205,7 @@ namespace NTestCaseBuilder
                         then
                             Map.empty
                         else
-                            Map.ofList [1u, [[indexForLeftmostTestVariable]]]
+                            Map.ofList [1u, Seq.singleton [indexForLeftmostTestVariable]]
                         , indexForLeftmostTestVariable + 1u
                         , []
 
@@ -219,7 +219,7 @@ namespace NTestCaseBuilder
                                 , associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree =
                                 walkTree subtreeRootNode maximumDesiredStrength indexForLeftmostTestVariable
                             let mergedAssociationFromStrengthToTestVariableCombinations =
-                                BargainBasement.MergeAssociations List.append
+                                BargainBasement.MergeAssociations Seq.append
                                                                   previousAssociationFromStrengthToTestVariableCombinations
                                                                   associationFromStrengthToTestVariableCombinationsFromSubtree
                             let associationFromTestVariableIndexToNumberOfItsLevels =
@@ -302,25 +302,20 @@ namespace NTestCaseBuilder
                                                                   | None ->
                                                                         if strength = 0u
                                                                         then
-                                                                            [[]]
+                                                                            Seq.singleton []
                                                                         else
-                                                                            [])
+                                                                            Seq.empty)
                                 let joinTestVariableCombinations =
                                    List.append
                                 let testVariableCombinationsBuiltFromCrossProduct =
                                     (List.CrossProduct perSubtreeTestVariableCombinations)
-                                    |> List.ofSeq
-                                    |> List.map (List.reduce joinTestVariableCombinations)
-                                List.append testVariableCombinationsBuiltFromCrossProduct partialTestVariableCombinations
+                                    |> Seq.map (List.reduce joinTestVariableCombinations)
+                                Seq.append testVariableCombinationsBuiltFromCrossProduct partialTestVariableCombinations
                             let testVariableCombinationsWithTotalStrength =
-                                distributionsOfStrengthsOverSubtrees |> List.fold addInTestVariableCombinationsForAGivenDistribution []
-                            if testVariableCombinationsWithTotalStrength.IsEmpty
-                            then
-                                partialAssociationFromStrengthToTestVariableCombinations
-                            else
-                                Map.add totalStrength
-                                        testVariableCombinationsWithTotalStrength
-                                        partialAssociationFromStrengthToTestVariableCombinations
+                                distributionsOfStrengthsOverSubtrees |> List.fold addInTestVariableCombinationsForAGivenDistribution Seq.empty
+                            Map.add totalStrength
+                                    testVariableCombinationsWithTotalStrength
+                                    partialAssociationFromStrengthToTestVariableCombinations
                         let associationFromStrengthToTestVariableCombinations =
                             Map.foldBack addInTestVariableCombinationsForGivenTotalStrength distributionsOfStrengthsOverSubtreesAtEachTotalStrength Map.empty
                         associationFromStrengthToTestVariableCombinations
@@ -372,13 +367,13 @@ namespace NTestCaseBuilder
                                     MapWithRunLengths.ofList testVectorRepresentationAsList)
             associationFromStrengthToTestVariableCombinations
             |> Map.map (fun strength testVariableCombinations ->
-                            let testVariableCombinations =
-                                randomBehaviour.Shuffle testVariableCombinations
-                                |> Array.toList // Shuffling the test variable combinations helps break the tendency for successive combinations
-                                                // of test variables to exhibit overlap. This overlap would otherwise make it hard for client code
-                                                // to merge successive partial test vectors generated from the combinations - which in turn would
-                                                // delay the production of full test vectors.
                             let createTestVectorRepresentations testVariableCombinations =
+                                let testVariableCombinations =
+                                    randomBehaviour.Shuffle testVariableCombinations
+                                    |> Array.toList // Shuffling the test variable combinations helps break the tendency for successive combinations
+                                                    // of test variables to exhibit overlap. This overlap would otherwise make it hard for client code
+                                                    // to merge successive partial test vectors generated from the combinations - which in turn would
+                                                    // delay the production of full test vectors.
                                 let listsOfTestVectorsCorrespondingToTestVariableCombinations =
                                     testVariableCombinations
                                     |> List.map createTestVectorRepresentations
@@ -414,7 +409,8 @@ namespace NTestCaseBuilder
                                 1000u
                             seq
                                 {
-                                    for chunkOfTestVariableCombinations in testVariableCombinations.Chunks chunkSizeThatIsSmallEnoughToAvoidMemoryPressure do
+                                    for chunkOfTestVariableCombinations in Chunk chunkSizeThatIsSmallEnoughToAvoidMemoryPressure
+                                                                                 testVariableCombinations do
                                         yield! createTestVectorRepresentations chunkOfTestVariableCombinations
                                 })
             , associationFromTestVariableIndexToNumberOfItsLevels
