@@ -1327,7 +1327,7 @@
                     |> InterleavedTestCaseEnumerableFactory.Create
 
             let maximumSubexpressionNesting =
-                4u
+                3u
 
             let expressionFactory =
                 [true; false]
