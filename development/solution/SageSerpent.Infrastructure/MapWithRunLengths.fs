@@ -84,10 +84,35 @@
             keyValuePair.Key
             , keyValuePair.Value
 
+        let isNotGap (KeyValue (_,
+                                value: Option<_>)) =
+            value.IsSome
+
     open MapWithRunLengthsDetail
 
-    type MapWithRunLengths<'Value when 'Value: comparison> (representation: C5.ISortedDictionary<SlotKey, 'Value>) =
+    type MapWithRunLengths<'Value when 'Value: comparison> (representation: C5.ISortedDictionary<SlotKey, Option<'Value>>) =
         do
+            let shouldBeTrue =
+                representation.IsEmpty
+                || representation
+                   |> Seq.exists isNotGap
+            if not shouldBeTrue
+            then
+                raise (InvariantViolationException "Representation is composed solely of gaps: should be empty instead.")
+            let shouldBeTrue =
+                representation.IsEmpty
+                || representation.FindMin ()
+                |> isNotGap
+            if not shouldBeTrue
+            then
+                raise (InvariantViolationException "Leading gap detected in representation.")
+            let shouldBeTrue =
+                representation.IsEmpty
+                || representation.FindMax ()
+                |> isNotGap
+            if not shouldBeTrue
+            then
+                raise (InvariantViolationException "Trailing gap detected in representation.")
             for KeyValue (key
                           , value) in representation do
                 if Unchecked.defaultof<SlotKey> = key
@@ -113,81 +138,94 @@
                  , KeyValue (successorSlotKey
                              , successorValue)) in representation
                                                    |> Seq.pairwise do
-                if predecessorValue = successorValue
+                if predecessorValue <> successorValue
                 then
                     let shouldBeTrue =
                         match predecessorSlotKey
                               , successorSlotKey with
                             Singleton predecessorKey
                             , Singleton successorKey when 1u + predecessorKey = successorKey ->
-                                false
+                                true
                           | Interval (_
                                       , predecessorUpperBound)
                             , Singleton successorKey when 1u + predecessorUpperBound = successorKey ->
-                                false
+                                true
                           | Singleton predecessorKey
                             , Interval (successorLowerBound
                                         , _) when 1u + predecessorKey = successorLowerBound ->
-                                false
+                                true
                           | Interval (_
                                       , predecessorUpperBound)
                             , Interval (successorLowerBound
                                         , _) when 1u + predecessorUpperBound = successorLowerBound ->
-                                false
-                          | _ ->
                                 true
+                          | _ ->
+                                false
                     if not shouldBeTrue
                     then
-                        raise (InvariantViolationException "Adjacent slots found that have the same associated value and can be fused together.")
+                        raise (InvariantViolationException "Adjacent slots found that refer to different associated values but are non-contiguous - should have an explicit contiguous gap between them.")
                 else
-                    let shouldBeTrue =
-                        predecessorSlotKey < successorSlotKey
-                    if not shouldBeTrue
-                    then
-                        raise (InvariantViolationException "Predecessor slot found that is not strictly less than its successor.")
+                    raise (InvariantViolationException "Adjacent and contiguous slots found referring to the same associated value - should either be fused or have an intervening gap.")
 
         member this.Keys: ICollection<UInt32> =
             [|
-                for slotKey in representation.Keys do
-                    match slotKey with
-                        Singleton key ->
-                            yield key
-                      | Interval (lowerBound
-                                  , upperBound) ->
-                            for key in lowerBound .. upperBound do
-                                yield key
+                for KeyValue (slotKey
+                              , value) in representation do
+                    match value with
+                        Some _ ->
+                            match slotKey with
+                                Singleton key ->
+                                    yield key
+                              | Interval (lowerBound
+                                          , upperBound) ->
+                                    for key in lowerBound .. upperBound do
+                                        yield key
+                      | _ ->
+                            ()
             |] :> ICollection<UInt32>
 
         member this.Values: ICollection<'Value> =
             [|
                 for KeyValue (slotKey
                               , value) in representation do
-                    match slotKey with
-                        Singleton _ ->
-                            yield value
-                      | Interval (lowerBound
-                                  , upperBound) ->
-                            for _ in lowerBound .. upperBound do
-                                yield value
+                    match value with
+                        Some value ->
+                            match slotKey with
+                                Singleton _ ->
+                                    yield value
+                              | Interval (lowerBound
+                                          , upperBound) ->
+                                    for _ in lowerBound .. upperBound do
+                                        yield value
+                      | _ ->
+                            ()
             |] :> ICollection<'Value>
 
         member this.Item
             with get (key: UInt32): 'Value =
-                representation.[Singleton key]
+                match representation.[Singleton key] with
+                    Some value ->
+                        value
+                  | _ ->
+                        raise (KeyNotFoundException (sprintf "Key '%A' not present in map." key))
 
         member this.Count: int32 =
             representation
             |> Seq.fold (fun count
                              (KeyValue (slotKey
-                                       ,_)) ->
-                                count +
-                                match slotKey with
-                                    Singleton _ ->
-                                        1
-                                  | Interval (lowerBound
-                                             , upperBound) ->
-                                        upperBound + 1u - lowerBound
-                                        |> int32)
+                                       , value)) ->
+                                match value with
+                                    Some _ ->
+                                        count +
+                                        match slotKey with
+                                            Singleton _ ->
+                                                1
+                                          | Interval (lowerBound
+                                                     , upperBound) ->
+                                                upperBound + 1u - lowerBound
+                                                |> int32
+                                  | _ ->
+                                        count)
                         0
 
         member this.IsEmpty =
@@ -212,6 +250,15 @@
             let reversedRepresentationWithoutConflicts =
                 discardConflicts inefficientRepresentation
                                  []
+            let makeGapBetween oneBeforeLowerBound
+                               oneAfterUpperBound =
+                if 2u + oneBeforeLowerBound = oneAfterUpperBound
+                then
+                    Singleton (1u + oneBeforeLowerBound)
+                else
+                    Interval (1u + oneBeforeLowerBound
+                              , oneAfterUpperBound - 1u)
+                , None
             let rec fuse representation
                          reversedPrefixOfResult =
                 match representation with
@@ -221,43 +268,68 @@
                         singleton :: reversedPrefixOfResult
                   | (firstKey
                      , firstValue) as first :: (((secondKey
-                                                  , secondValue) :: tail) as nonEmptyTail) when firstValue = secondValue ->
+                                                  , secondValue) :: tail) as nonEmptyTail) ->
                         match firstKey
                               , secondKey with
                             Singleton firstKey
-                            , Singleton secondKey when 1u + firstKey = secondKey ->
+                            , Singleton secondKey when 1u + firstKey = secondKey
+                                                       && firstValue = secondValue ->
                                 fuse ((Interval (firstKey
                                                , secondKey)
                                       , firstValue) :: tail)
                                      reversedPrefixOfResult
+                          | Singleton firstKey
+                            , Singleton secondKey when 1u + firstKey < secondKey ->
+                                fuse (first :: makeGapBetween firstKey
+                                                              secondKey :: nonEmptyTail)
+                                     reversedPrefixOfResult
                           | Interval (firstLowerBound
                                       , firstUpperBound)
                             , Interval (secondLowerBound
-                                        , secondUpperBound) when 1u + firstUpperBound = secondLowerBound ->
+                                        , secondUpperBound) when 1u + firstUpperBound = secondLowerBound
+                                                                 && firstValue = secondValue ->
                                 fuse ((Interval (firstLowerBound
                                                 , secondUpperBound)
                                       , firstValue) :: tail)
                                      reversedPrefixOfResult
+                          | Interval (firstLowerBound
+                                      , firstUpperBound)
+                            , Interval (secondLowerBound
+                                        , secondUpperBound) when 1u + firstUpperBound < secondLowerBound ->
+                                fuse (first :: makeGapBetween firstUpperBound
+                                                              secondLowerBound :: nonEmptyTail)
+                                     reversedPrefixOfResult
                           | Singleton firstKey
                             , Interval (secondLowerBound
-                                        , secondUpperBound) when 1u + firstKey = secondLowerBound ->
+                                        , secondUpperBound) when 1u + firstKey = secondLowerBound
+                                                                 && firstValue = secondValue ->
                                 fuse ((Interval (firstKey
                                                  , secondUpperBound)
                                        , firstValue) :: tail)
                                      reversedPrefixOfResult
+                          | Singleton firstKey
+                            , Interval (secondLowerBound
+                                        , secondUpperBound) when 1u + firstKey < secondLowerBound ->
+                                fuse (first :: makeGapBetween firstKey
+                                                              secondLowerBound :: nonEmptyTail)
+                                     reversedPrefixOfResult
                           | Interval (firstLowerBound
                                       , firstUpperBound)
-                            , Singleton secondKey when 1u + firstUpperBound = secondKey ->
+                            , Singleton secondKey when 1u + firstUpperBound = secondKey
+                                                       && firstValue = secondValue ->
                                 fuse ((Interval (firstLowerBound
                                                 , secondKey)
                                       , firstValue) :: tail)
                                      reversedPrefixOfResult
+                          | Interval (firstLowerBound
+                                      , firstUpperBound)
+                            , Singleton secondKey when 1u + firstUpperBound < secondKey ->
+                                fuse (first :: makeGapBetween firstUpperBound
+                                                              secondKey :: nonEmptyTail)
+                                     reversedPrefixOfResult
                           | _ ->
                                 fuse nonEmptyTail
                                      (first :: reversedPrefixOfResult)
-                  | first :: ((_ :: _) as nonEmptyList) ->
-                         fuse nonEmptyList
-                              (first :: reversedPrefixOfResult)
             let result =
                 fuse (reversedRepresentationWithoutConflicts
                       |> List.rev)
@@ -284,6 +356,7 @@
                  |> List.map unwind
                  |> List.concat
                  |> Set.ofList).IsSupersetOf (result
+                                              |> List.filter isNotGap
                                               |> List.map (|KeyValue|)
                                               |> List.map unwind
                                               |> List.concat
@@ -296,6 +369,7 @@
                  |> List.map unwind
                  |> List.concat
                  |> List.length) >= (result
+                                     |> List.filter isNotGap
                                      |> List.map (|KeyValue|)
                                      |> List.map unwind
                                      |> List.concat
@@ -309,15 +383,19 @@
             [
                 for KeyValue (slotKey
                               , value) in representation do
-                    match slotKey with
-                        Singleton key ->
-                            yield key
-                                  , value
-                      | Interval (lowerBound
-                                  , upperBound) ->
-                            for key in lowerBound .. upperBound do
-                                yield key
-                                      , value
+                    match value with
+                        Some value ->
+                            match slotKey with
+                                Singleton key ->
+                                    yield key
+                                          , value
+                              | Interval (lowerBound
+                                          , upperBound) ->
+                                    for key in lowerBound .. upperBound do
+                                        yield key
+                                              , value
+                      | _ ->
+                            ()
             ]
 
         member this.ToSeq =
@@ -325,33 +403,39 @@
                 {
                     for KeyValue (slotKey
                                   , value) in representation do
-                        match slotKey with
-                            Singleton key ->
-                                yield key
-                                      , value
-                          | Interval (lowerBound
-                                      , upperBound) ->
-                                for key in lowerBound .. upperBound do
-                                    yield key
-                                          , value
+                        match value with
+                            Some value ->
+                                match slotKey with
+                                    Singleton key ->
+                                        yield key
+                                              , value
+                                  | Interval (lowerBound
+                                              , upperBound) ->
+                                        for key in lowerBound .. upperBound do
+                                            yield key
+                                                  , value
+                          | _ ->
+                                ()
                 }
 
         member this.Add (key: UInt32,
                          value: 'Value) =
+            let liftedValue =
+                Some value
             let locallyMutatedRepresentation =
-                C5.TreeDictionary<SlotKey, 'Value> ()
+                C5.TreeDictionary<SlotKey, Option<'Value>> ()
             let liftedKey =
                 Singleton key
             if representation.IsEmpty
             then
-                locallyMutatedRepresentation.Add (liftedKey, value)
+                locallyMutatedRepresentation.Add (liftedKey, liftedValue)
             else
                 let greatestLowerBound =
-                    ref Unchecked.defaultof<C5.KeyValuePair<SlotKey, 'Value>>
+                    ref Unchecked.defaultof<C5.KeyValuePair<SlotKey, Option<'Value>>>
                 let hasGreatestLowerBound =
                     ref false
                 let leastUpperBound =
-                    ref Unchecked.defaultof<C5.KeyValuePair<SlotKey, 'Value>>
+                    ref Unchecked.defaultof<C5.KeyValuePair<SlotKey, Option<'Value>>>
                 let hasLeastUpperBound =
                     ref false
                 let entriesWithMatchingKeysToBeAddedIn =
@@ -360,40 +444,42 @@
                         let slotKeyMatchingLiftedKey =
                             ref liftedKey
                         let associatedValue =
-                            ref Unchecked.defaultof<'Value>
+                            ref Unchecked.defaultof<Option<'Value>>
                         representation.Find(slotKeyMatchingLiftedKey, associatedValue)
                         |> ignore
-                        if value <> !associatedValue
+                        if liftedValue <> !associatedValue
                         then
                             match !slotKeyMatchingLiftedKey with
                                 Singleton _ ->
                                     [liftedKey
-                                     , value]
+                                     , liftedValue]
                               | Interval (lowerBound
                                           , upperBound) when 1u + lowerBound = upperBound ->
                                     if lowerBound = key
                                     then
                                         [(liftedKey
-                                          , value); (Singleton upperBound
+                                          , liftedValue); (Singleton upperBound
                                                      , !associatedValue)]
                                     else
                                         [(Singleton lowerBound
                                           , !associatedValue); (liftedKey
-                                                                , value)]
+                                                                , liftedValue)]
                               | Interval (lowerBound
                                           , upperBound) ->
                                     if lowerBound = key
                                     then
                                         [(liftedKey
-                                          , value); (Interval (1u + key
-                                                               , upperBound)
-                                                     , !associatedValue)]
+                                          , liftedValue);
+                                         (Interval (1u + key
+                                                    , upperBound)
+                                          , !associatedValue)]
                                     else if upperBound = key
                                     then
                                         [(Interval (lowerBound
                                                     , key - 1u)
-                                          , !associatedValue); (liftedKey
-                                                                , value)]
+                                          , !associatedValue);
+                                         (liftedKey
+                                          , liftedValue)]
                                     else
                                         [((if lowerBound + 1u = key
                                            then
@@ -401,20 +487,22 @@
                                            else
                                             Interval (lowerBound
                                                       , key - 1u))
-                                          , !associatedValue); (liftedKey
-                                                                , value); ((if 1u + key = upperBound
-                                                                            then
-                                                                                Singleton upperBound
-                                                                            else
-                                                                                Interval (1u + key
-                                                                                          , upperBound))
-                                                                           , !associatedValue)]
+                                          , !associatedValue);
+                                         (liftedKey
+                                          , liftedValue);
+                                         ((if 1u + key = upperBound
+                                           then
+                                            Singleton upperBound
+                                           else
+                                            Interval (1u + key
+                                                      , upperBound))
+                                          , !associatedValue)]
                         else
                             [!slotKeyMatchingLiftedKey
                              , !associatedValue]
                     else
                         [liftedKey
-                         , value]
+                         , liftedValue]
                 match !hasGreatestLowerBound
                       , !hasLeastUpperBound with
                     false
@@ -519,11 +607,15 @@
             member this.TryGetValue (key,
                                      value) =
                 let mutableValue
-                    = ref Unchecked.defaultof<'Value>
+                    = ref Unchecked.defaultof<Option<'Value>>
                 if representation.Find (ref (Singleton key), mutableValue)
                 then
-                    value <- mutableValue.Value
-                    true
+                    match !mutableValue with
+                        Some retrievedValue ->
+                            value <- retrievedValue
+                            true
+                      | _ ->
+                            false
                 else
                     false
 
@@ -545,9 +637,9 @@
 
             member this.Contains keyValuePair =
                 let mutableValue =
-                    ref Unchecked.defaultof<'Value>
+                    ref Unchecked.defaultof<Option<'Value>>
                 representation.Find (ref (Singleton keyValuePair.Key), mutableValue)
-                && !mutableValue = keyValuePair.Value
+                && !mutableValue = Some keyValuePair.Value
 
             member this.CopyTo (keyValuePairs,
                                 offsetIndexIntoKeyValuePairs) =
@@ -574,13 +666,13 @@
                 list
                 |> List.sortBy fst
             let locallyMutatedRepresentation =
-                C5.TreeDictionary<SlotKey, 'Value> ()
+                C5.TreeDictionary<SlotKey, Option<'Value>> ()
             let fusedList =
                 MapWithRunLengths<'Value>.FuseAndDiscardConflictingAssociations (sortedList
                                                                                  |> List.map (fun (key
                                                                                                    , value) ->
                                                                                                 Singleton key
-                                                                                                , value))
+                                                                                                , Some value))
             locallyMutatedRepresentation.AddSorted fusedList
             MapWithRunLengths locallyMutatedRepresentation
 
