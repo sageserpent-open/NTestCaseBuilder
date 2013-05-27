@@ -338,17 +338,14 @@ namespace NTestCaseBuilder
             let randomBehaviour =
                 Random 6739
             let createTestVectorRepresentations testVariableCombination =
-                let sentinelEntriesForInterleavedTestVariableIndices =
+                let excludedTestVariableIndices =
                    testVariableCombination
                     |> List.map (fun testVariableIndex ->
                                     if associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.ContainsKey testVariableIndex
                                     then associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.FindAll testVariableIndex
                                     else [])
                     |> List.concat
-                    |> Set.ofList
-                    |> Set.toList
-                    |> List.map (fun testVariableIndex ->
-                                    (testVariableIndex, Exclusion))
+                    |> SetWithRunLengths.ofList
                 let shuffledTestVariableCombination =
                     randomBehaviour.Shuffle testVariableCombination
                     |> Array.toList // This has the effect of uncorrelating the cross product of levels we are about to create for this test variable combination
@@ -366,10 +363,13 @@ namespace NTestCaseBuilder
                                       | None ->
                                             [(testVariableIndex, SingletonPlaceholder)])
                 levelEntriesForTestVariableIndicesFromList
-                |> List.CrossProductWithCommonSuffix sentinelEntriesForInterleavedTestVariableIndices
+                |> List.CrossProduct
                 |> LazyList.ofSeq
                 |> LazyList.map (fun testVectorRepresentationAsList ->
-                                    MapWithSharing.ofList testVectorRepresentationAsList)
+                                    MapWithSharing (testVectorRepresentationAsList
+                                                    |> Map.ofList,
+                                                    Exclusion,
+                                                    excludedTestVariableIndices))
             associationFromStrengthToTestVariableCombinations
             |> Map.map (fun strength testVariableCombinations ->
                             let testVariableCombinations =
