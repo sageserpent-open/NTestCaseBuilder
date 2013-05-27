@@ -185,8 +185,8 @@
                         discardConflicts nonEmptyTail
                                          reversedPrefixOfResult
                   | first :: ((_ :: _) as nonEmptyList) ->
-                         discardConflicts nonEmptyList
-                                          (first :: reversedPrefixOfResult)
+                        discardConflicts nonEmptyList
+                                         (first :: reversedPrefixOfResult)
             let reversedRepresentationWithoutConflicts =
                 discardConflicts inefficientRepresentation
                                  []
