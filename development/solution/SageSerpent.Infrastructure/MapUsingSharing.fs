@@ -247,7 +247,7 @@
                                    value)
 
         let map (transformation: UInt32 -> 'Value -> 'TransformedValue)
-                (mapWithSharing: MapWithSharing<'Value>): MapWithSharing<'TransformedValue> =
+                (mapWithSharing: MapWithSharing<'Value>): Map<UInt32, 'TransformedValue> =
                 mapWithSharing
                 |> toList
                 |> List.map (fun (key
@@ -255,7 +255,7 @@
                                 key
                                 , transformation key
                                                  value)
-                |> ofList
+                |> Map.ofList
 
         let tryFind (key: UInt32)
                     (mapWithSharing: MapWithSharing<'Value>): Option<'Value> =

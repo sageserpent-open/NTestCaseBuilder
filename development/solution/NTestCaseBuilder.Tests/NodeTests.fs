@@ -413,7 +413,7 @@
                                           testVariableIndexToMaximumLevelIndexMap
                 let observedNumberOfLevels =
                     observedNumberOfLevelsMap
-                    |> MapWithSharing.toList
+                    |> Map.toList
                     |> List.map snd
 
                 let shouldBeTrue =
