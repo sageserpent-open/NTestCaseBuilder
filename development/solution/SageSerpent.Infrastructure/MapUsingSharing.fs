@@ -2,463 +2,77 @@
     open System
     open System.Collections.Generic
     open Microsoft.FSharp.Collections
+    open ListExtensions
 
-    module MapWithSharingDetail =
-        [<CustomComparison; CustomEquality>]
-        type SlotKey =
-            Singleton of UInt32
-          | Interval of UInt32 * UInt32 // These are the *inclusive* lower- and upper-bounds, respectively.
-                                        // No need to worry about empty and singleton intervals, obviously.
-            interface IComparable<SlotKey> with
-                // NOTE: be careful here; the comparison semantics are deliberately sloppy - they violate the rules for a total ordering, because
-                // it is possible to take one slot key A that is less than another slot key B, and then use encompassing or overlapping interval
-                // slot keys to 'bridge the gap' between A and B via of chain of intervals that compare equal to each other and to A and B.
-                // As long as the client code (which is actually 'MapWithSharing') doesn't allow multiple items that compare equal in the same
-                // data structure, then this won't cause a problem.
-                member this.CompareTo another =
-                    match this
-                            , another with
-                        Singleton lhs
-                        , Singleton rhs ->
-                            compare lhs rhs
-                        | Singleton lhs
-                        , Interval (rhsLowerBound
-                                    , rhsUpperBound) ->
-                            if lhs < rhsLowerBound
-                            then
-                                -1
-                            else if lhs > rhsUpperBound
-                            then
-                                1
-                            else
-                                0
-                        | Interval (lhsLowerBound
-                                    , lhsUpperBound)
-                        , Singleton rhs ->
-                            if rhs < lhsLowerBound
-                            then
-                                1
-                            else if rhs > lhsUpperBound
-                            then
-                                -1
-                            else
-                                0  
-                        | Interval (_
-                                    , lhsUpperBound)
-                        , Interval (rhsLowerBound
-                                    , _) when lhsUpperBound < rhsLowerBound ->
-                            -1
-                        | Interval (lhsLowerBound
-                                    , _)
-                        , Interval (_
-                                    , rhsUpperBound) when rhsUpperBound < lhsLowerBound ->
-                            1
-                        | _ ->
-                            0
-
-            interface IComparable with
-                member this.CompareTo another =
-                    match another with
-                        :? SlotKey as another ->
-                            (this :> IComparable<SlotKey>).CompareTo another
-                      | _ ->
-                            raise (ArgumentException (sprintf "Rhs of comparison must also be of type: %A"
-                                                              typeof<SlotKey>.Name))
-
-            override this.Equals another =
-                match another with
-                    :? SlotKey as another ->
-                        0 = compare this
-                                    another
-                  | _ -> 
-                        false
-
-            override this.GetHashCode () =
-                match this with
-                    Singleton key ->
-                        1 + hash key
-                  | Interval (_) as pair ->
-                        7 * (3 + hash pair)
-
-        let (|KeyValue|) (keyValuePair: C5.KeyValuePair<'Key, 'Value>) =
-            keyValuePair.Key
-            , keyValuePair.Value
-
-    open MapWithSharingDetail
-
-    type MapWithSharing<'Value when 'Value: comparison> (representation: C5.ISortedDictionary<SlotKey, 'Value>) =
+    type MapWithSharing<'Value when 'Value: comparison> (representation: Map<UInt32, 'Value>,
+                                                         fixedValue: 'Value,
+                                                         keysForFixedValue: SetWithRunLengths) =
         do
-            for KeyValue (key
-                          , value) in representation do
-                if Unchecked.defaultof<SlotKey> = key
-                then
-                    raise (InvariantViolationException "Null key detected.")
-            for slotKey in representation.Keys do
-                match slotKey with
-                    Interval (lowerBound
-                              , upperBound) ->
-                        if upperBound + 1u < lowerBound
-                        then
-                            raise (InvariantViolationException "Malformed interval slot key detected: bounds are ordered in reverse.")
-                        else if upperBound + 1u = lowerBound
-                        then
-                            raise (InvariantViolationException "Empty interval slot key detected - should have been represented by the absence of the slot key altogether.")
-                        else if upperBound = lowerBound
-                        then
-                            raise (InvariantViolationException "One-item interval slot key detected - should have been represented by a singleton slot key instead.")
-                  | _ ->
-                        ()
-            for (KeyValue (predecessorSlotKey
-                           , predecessorValue)
-                 , KeyValue (successorSlotKey
-                             , successorValue)) in representation
-                                                   |> Seq.pairwise do
-                if predecessorValue = successorValue
-                then
-                    let shouldBeTrue =
-                        match predecessorSlotKey
-                              , successorSlotKey with
-                            Singleton predecessorKey
-                            , Singleton successorKey when 1u + predecessorKey = successorKey ->
-                                false
-                          | Interval (_
-                                      , predecessorUpperBound)
-                            , Singleton successorKey when 1u + predecessorUpperBound = successorKey ->
-                                false
-                          | Singleton predecessorKey
-                            , Interval (successorLowerBound
-                                        , _) when 1u + predecessorKey = successorLowerBound ->
-                                false
-                          | Interval (_
-                                      , predecessorUpperBound)
-                            , Interval (successorLowerBound
-                                        , _) when 1u + predecessorUpperBound = successorLowerBound ->
-                                false
-                          | _ ->
-                                true
-                    if not shouldBeTrue
-                    then
-                        raise (InvariantViolationException "Adjacent slots found that have the same associated value and can be fused together.")
-                else
-                    let shouldBeTrue =
-                        predecessorSlotKey < successorSlotKey
-                    if not shouldBeTrue
-                    then
-                        raise (InvariantViolationException "Predecessor slot found that is not strictly less than its successor.")
+            let shouldBeTrue =
+                (Set.intersect ((representation :> IDictionary<_, _>).Keys
+                                |> Set.ofSeq)
+                               (keysForFixedValue
+                                |> Set.ofSeq)).IsEmpty
+            if not shouldBeTrue
+            then
+                raise (PreconditionViolationException "'MapWithSharing' does not permit the masking of associations from keys to the fixed value by associations in 'representation' - even if the new associations coincidentally refer to the same fixed value.")
+
+        new (representation: Map<UInt32, 'Value>) =
+            MapWithSharing (representation,
+                            Unchecked.defaultof<'Value>,
+                            SetWithRunLengths.empty)
 
         member this.Keys: ICollection<UInt32> =
-            [|
-                for slotKey in representation.Keys do
-                    match slotKey with
-                        Singleton key ->
-                            yield key
-                      | Interval (lowerBound
-                                  , upperBound) ->
-                            for key in lowerBound .. upperBound do
-                                yield key
-            |] :> ICollection<UInt32>
+            List.MergeSortedListsAllowingDuplicates ((representation :> IDictionary<_, _>).Keys
+                                                     |> List.ofSeq)
+                                                    keysForFixedValue.ToList
+            // OK to allow for duplicates, as there won't be any due to the constructor precondition.
+            |> Array.ofList
+            :> ICollection<UInt32>
 
         member this.Values: ICollection<'Value> =
-            [|
-                for KeyValue (slotKey
-                              , value) in representation do
-                    match slotKey with
-                        Singleton _ ->
-                            yield value
-                      | Interval (lowerBound
-                                  , upperBound) ->
-                            for _ in lowerBound .. upperBound do
-                                yield value
-            |] :> ICollection<'Value>
+            this.ToList
+            |> List.map snd
+            |> Array.ofList
+            :> ICollection<'Value>
 
         member this.Item
             with get (key: UInt32): 'Value =
-                representation.[Singleton key]
+                if keysForFixedValue.Contains key
+                then
+                    fixedValue
+                else
+                    representation.[key]
 
         member this.Count: int32 =
-            representation
-            |> Seq.fold (fun count
-                             (KeyValue (slotKey
-                                       ,_)) ->
-                                count +
-                                match slotKey with
-                                    Singleton _ ->
-                                        1
-                                  | Interval (lowerBound
-                                             , upperBound) ->
-                                        upperBound + 1u - lowerBound
-                                        |> int32)
-                        0
+            representation.Count
+            + keysForFixedValue.Count
 
         member this.IsEmpty =
             representation.IsEmpty
+            && keysForFixedValue.IsEmpty
 
-        static member FuseAndDiscardConflictingAssociations inefficientRepresentation =
-            let rec discardConflicts representation
-                                     reversedPrefixOfResult =
-                match representation with
-                    [] ->
-                        reversedPrefixOfResult
-                  | [singleton] ->
-                        singleton :: reversedPrefixOfResult
-                  | (firstKey
-                     , _) as first :: (((secondKey
-                                         , _) :: _) as nonEmptyTail) when firstKey = secondKey ->
-                        discardConflicts nonEmptyTail
-                                         reversedPrefixOfResult
-                  | first :: ((_ :: _) as nonEmptyList) ->
-                         discardConflicts nonEmptyList
-                                          (first :: reversedPrefixOfResult)
-            let reversedRepresentationWithoutConflicts =
-                discardConflicts inefficientRepresentation
-                                 []
-            let rec fuse representation
-                         reversedPrefixOfResult =
-                match representation with
-                    [] ->
-                        reversedPrefixOfResult
-                  | [singleton] ->
-                        singleton :: reversedPrefixOfResult
-                  | (firstKey
-                     , firstValue) as first :: (((secondKey
-                                                  , secondValue) :: tail) as nonEmptyTail) when firstValue = secondValue ->
-                        match firstKey
-                              , secondKey with
-                            Singleton firstKey
-                            , Singleton secondKey when 1u + firstKey = secondKey ->
-                                fuse ((Interval (firstKey
-                                               , secondKey)
-                                      , firstValue) :: tail)
-                                     reversedPrefixOfResult
-                          | Interval (firstLowerBound
-                                      , firstUpperBound)
-                            , Interval (secondLowerBound
-                                        , secondUpperBound) when 1u + firstUpperBound = secondLowerBound ->
-                                fuse ((Interval (firstLowerBound
-                                                , secondUpperBound)
-                                      , firstValue) :: tail)
-                                     reversedPrefixOfResult
-                          | Singleton firstKey
-                            , Interval (secondLowerBound
-                                        , secondUpperBound) when 1u + firstKey = secondLowerBound ->
-                                fuse ((Interval (firstKey
-                                                 , secondUpperBound)
-                                       , firstValue) :: tail)
-                                     reversedPrefixOfResult
-                          | Interval (firstLowerBound
-                                      , firstUpperBound)
-                            , Singleton secondKey when 1u + firstUpperBound = secondKey ->
-                                fuse ((Interval (firstLowerBound
-                                                , secondKey)
-                                      , firstValue) :: tail)
-                                     reversedPrefixOfResult
-                          | _ ->
-                                fuse nonEmptyTail
-                                     (first :: reversedPrefixOfResult)
-                  | first :: ((_ :: _) as nonEmptyList) ->
-                         fuse nonEmptyList
-                              (first :: reversedPrefixOfResult)
-            let result =
-                fuse (reversedRepresentationWithoutConflicts
-                      |> List.rev)
-                     List.empty
-                |> List.rev
-                |> List.map (fun (slotKey
-                                  , value) ->
-                                C5.KeyValuePair (slotKey, value))
-            let unwind (slotKey
-                        , value) =
-                match slotKey with
-                    Singleton key ->
-                        [key
-                         , value]
-                  | Interval (lowerBound
-                              , upperBound) ->
-                        [
-                            for key in lowerBound .. upperBound do
-                                yield key
-                                      , value
-                        ]
-            let shouldBeTrue =
-                (inefficientRepresentation
-                 |> List.map unwind
-                 |> List.concat
-                 |> Set.ofList).IsSupersetOf (result
-                                              |> List.map (|KeyValue|)
-                                              |> List.map unwind
-                                              |> List.concat
-                                              |> Set.ofList)
-            if not shouldBeTrue
-            then
-                raise (LogicErrorException "Postcondition violation: the fused representation should only cover key-value pairs that are also covered by the inefficient representation.")
-            let shouldBeTrue =
-                (inefficientRepresentation
-                 |> List.map unwind
-                 |> List.concat
-                 |> List.length) >= (result
-                                     |> List.map (|KeyValue|)
-                                     |> List.map unwind
-                                     |> List.concat
-                                     |> List.length)
-            if not shouldBeTrue
-            then
-                raise (LogicErrorException "Postcondition violation: the fused representation should either more or equally as compact as the inefficient representation.")
-            result :> seq<_>
 
         member this.ToList =
-            [
-                for KeyValue (slotKey
-                              , value) in representation do
-                    match slotKey with
-                        Singleton key ->
-                            yield key
-                                  , value
-                      | Interval (lowerBound
-                                  , upperBound) ->
-                            for key in lowerBound .. upperBound do
-                                yield key
-                                      , value
-            ]
+            BargainBasement.MergeDisjointSortedAssociationLists (representation
+                                                                 |> Map.toList)
+                                                                (keysForFixedValue.ToList
+                                                                 |> List.map (fun key ->
+                                                                                key
+                                                                                , fixedValue))
 
         member this.ToSeq =
-            seq
-                {
-                    for KeyValue (slotKey
-                                  , value) in representation do
-                        match slotKey with
-                            Singleton key ->
-                                yield key
-                                      , value
-                          | Interval (lowerBound
-                                      , upperBound) ->
-                                for key in lowerBound .. upperBound do
-                                    yield key
-                                          , value
-                }
+            this.ToList
+            :> seq<_>
 
         member this.Add (key: UInt32,
                          value: 'Value) =
-            let locallyMutatedRepresentation =
-                C5.TreeDictionary<SlotKey, 'Value> ()
-            let liftedKey =
-                Singleton key
-            if representation.IsEmpty
-            then
-                locallyMutatedRepresentation.Add (liftedKey, value)
-            else
-                let greatestLowerBound =
-                    ref Unchecked.defaultof<C5.KeyValuePair<SlotKey, 'Value>>
-                let hasGreatestLowerBound =
-                    ref false
-                let leastUpperBound =
-                    ref Unchecked.defaultof<C5.KeyValuePair<SlotKey, 'Value>>
-                let hasLeastUpperBound =
-                    ref false
-                let entriesWithMatchingKeysToBeAddedIn =
-                    if representation.Cut (liftedKey, greatestLowerBound, hasGreatestLowerBound, leastUpperBound, hasLeastUpperBound)
-                    then
-                        let slotKeyMatchingLiftedKey =
-                            ref liftedKey
-                        let associatedValue =
-                            ref Unchecked.defaultof<'Value>
-                        representation.Find(slotKeyMatchingLiftedKey, associatedValue)
-                        |> ignore
-                        if value <> !associatedValue
-                        then
-                            match !slotKeyMatchingLiftedKey with
-                                Singleton _ ->
-                                    [liftedKey
-                                     , value]
-                              | Interval (lowerBound
-                                          , upperBound) when 1u + lowerBound = upperBound ->
-                                    if lowerBound = key
-                                    then
-                                        [(liftedKey
-                                          , value); (Singleton upperBound
-                                                     , !associatedValue)]
-                                    else
-                                        [(Singleton lowerBound
-                                          , !associatedValue); (liftedKey
-                                                                , value)]
-                              | Interval (lowerBound
-                                          , upperBound) ->
-                                    if lowerBound = key
-                                    then
-                                        [(liftedKey
-                                          , value); (Interval (1u + key
-                                                               , upperBound)
-                                                     , !associatedValue)]
-                                    else if upperBound = key
-                                    then
-                                        [(Interval (lowerBound
-                                                    , key - 1u)
-                                          , !associatedValue); (liftedKey
-                                                                , value)]
-                                    else
-                                        [((if lowerBound + 1u = key
-                                           then
-                                            Singleton lowerBound
-                                           else
-                                            Interval (lowerBound
-                                                      , key - 1u))
-                                          , !associatedValue); (liftedKey
-                                                                , value); ((if 1u + key = upperBound
-                                                                            then
-                                                                                Singleton upperBound
-                                                                            else
-                                                                                Interval (1u + key
-                                                                                          , upperBound))
-                                                                           , !associatedValue)]
-                        else
-                            [!slotKeyMatchingLiftedKey
-                             , !associatedValue]
-                    else
-                        [liftedKey
-                         , value]
-                match !hasGreatestLowerBound
-                      , !hasLeastUpperBound with
-                    false
-                    , false ->
-                        locallyMutatedRepresentation.AddSorted (entriesWithMatchingKeysToBeAddedIn
-                                                                |> MapWithSharing<'Value>.FuseAndDiscardConflictingAssociations)
-                  | true
-                    , false ->
-                        locallyMutatedRepresentation.AddSorted (representation.RangeTo ((!greatestLowerBound).Key))
-                        locallyMutatedRepresentation.AddSorted ([
-                                                                    yield match !greatestLowerBound with
-                                                                            KeyValue greatestLowerBound ->
-                                                                                greatestLowerBound
-                                                                    yield! entriesWithMatchingKeysToBeAddedIn
-                                                                ]
-                                                                |> MapWithSharing<'Value>.FuseAndDiscardConflictingAssociations)
-                  | false
-                    , true ->
-                        locallyMutatedRepresentation.AddSorted ([
-                                                                    yield! entriesWithMatchingKeysToBeAddedIn
-                                                                    yield match !leastUpperBound with
-                                                                            KeyValue leastUpperBound ->
-                                                                                leastUpperBound
-                                                                ]
-                                                                |> MapWithSharing<'Value>.FuseAndDiscardConflictingAssociations)
-                        locallyMutatedRepresentation.AddSorted (representation.RangeFrom ((!leastUpperBound).Key)
-                                                                |> Seq.skip 1)
-                  | true
-                    , true ->
-                        locallyMutatedRepresentation.AddSorted (representation.RangeTo ((!greatestLowerBound).Key))
-                        locallyMutatedRepresentation.AddSorted ([
-                                                                    yield match !greatestLowerBound with
-                                                                            KeyValue greatestLowerBound ->
-                                                                                greatestLowerBound
-                                                                    yield! entriesWithMatchingKeysToBeAddedIn
-                                                                    yield match !leastUpperBound with
-                                                                            KeyValue leastUpperBound ->
-                                                                                leastUpperBound
-                                                                ]
-                                                                |> MapWithSharing<'Value>.FuseAndDiscardConflictingAssociations)
-                        locallyMutatedRepresentation.AddSorted (representation.RangeFrom ((!leastUpperBound).Key)
-                                                                |> Seq.skip 1)
             let result = 
-                MapWithSharing locallyMutatedRepresentation
+                MapWithSharing (Map.add key
+                                        value
+                                        representation,
+                                fixedValue,
+                                keysForFixedValue)
             let differences =
                 (result.ToList |> Set.ofList)
                 - (this.ToList |> Set.ofList)
@@ -511,21 +125,25 @@
                 this.Values
 
             member this.ContainsKey key =
-                representation.Contains (Singleton key)
+                keysForFixedValue.Contains key
+                || representation.ContainsKey key
 
             member this.Remove (key: UInt32): bool =
                 failwith "The collection is immutable."
 
             member this.TryGetValue (key,
                                      value) =
-                let mutableValue
-                    = ref Unchecked.defaultof<'Value>
-                if representation.Find (ref (Singleton key), mutableValue)
+                if keysForFixedValue.Contains key
                 then
-                    value <- mutableValue.Value
+                    value <- fixedValue
                     true
                 else
-                    false
+                    match representation.TryFind key with
+                        Some retrievedValue ->
+                            value <- retrievedValue
+                            true
+                      | None ->
+                            false
 
             member this.Count =
                 this.Count
@@ -544,10 +162,19 @@
                 failwith "The collection is immutable."
 
             member this.Contains keyValuePair =
-                let mutableValue =
-                    ref Unchecked.defaultof<'Value>
-                representation.Find (ref (Singleton keyValuePair.Key), mutableValue)
-                && !mutableValue = keyValuePair.Value
+                let key =
+                    keyValuePair.Key
+                let value =
+                    keyValuePair.Value
+                if keysForFixedValue.Contains key
+                then
+                    value = fixedValue
+                else
+                    match representation.TryFind key with
+                        Some retrievedValue ->
+                            value = retrievedValue
+                      | None ->
+                            false
 
             member this.CopyTo (keyValuePairs,
                                 offsetIndexIntoKeyValuePairs) =
@@ -570,19 +197,8 @@
             mapWithSharing.IsEmpty
 
         let ofList (list: List<UInt32 * 'Value>): MapWithSharing<'Value> =
-            let sortedList =
-                list
-                |> List.sortBy fst
-            let locallyMutatedRepresentation =
-                C5.TreeDictionary<SlotKey, 'Value> ()
-            let fusedList =
-                MapWithSharing<'Value>.FuseAndDiscardConflictingAssociations (sortedList
-                                                                                 |> List.map (fun (key
-                                                                                                   , value) ->
-                                                                                                Singleton key
-                                                                                                , value))
-            locallyMutatedRepresentation.AddSorted fusedList
-            MapWithSharing locallyMutatedRepresentation
+            MapWithSharing (list
+                            |> Map.ofList)
 
         let inline toList (mapWithSharing: MapWithSharing<'Value>): List<UInt32 * 'Value> =
             mapWithSharing.ToList
@@ -597,7 +213,7 @@
 
         [<GeneralizableValue>]
         let empty<'Value when 'Value: comparison> =
-            MapWithSharing<'Value> (C5.TreeDictionary ())
+            MapWithSharing<'Value> (Map.empty)
 
         let fold (foldOperation: 'State -> UInt32 -> 'Value -> 'State)
                  (state: 'State)

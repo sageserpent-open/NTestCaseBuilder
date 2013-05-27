@@ -87,20 +87,20 @@
             for slotKey in representation do
                 if Unchecked.defaultof<SlotKey> = slotKey
                 then
-                    raise (InvariantViolationException "Null key detected.")
+                    raise (PreconditionViolationException "Null key detected.")
             for slotKey in representation do
                 match slotKey with
                     Interval (lowerBound
                               , upperBound) ->
                         if upperBound + 1u < lowerBound
                         then
-                            raise (InvariantViolationException "Malformed interval slot key detected: bounds are ordered in reverse.")
+                            raise (PreconditionViolationException "Malformed interval slot key detected: bounds are ordered in reverse.")
                         else if upperBound + 1u = lowerBound
                         then
-                            raise (InvariantViolationException "Empty interval slot key detected - should have been represented by the absence of the slot key altogether.")
+                            raise (PreconditionViolationException "Empty interval slot key detected - should have been represented by the absence of the slot key altogether.")
                         else if upperBound = lowerBound
                         then
-                            raise (InvariantViolationException "One-item interval slot key detected - should have been represented by a singleton slot key instead.")
+                            raise (PreconditionViolationException "One-item interval slot key detected - should have been represented by a singleton slot key instead.")
                   | _ ->
                         ()
             for predecessorSlotKey
@@ -129,7 +129,7 @@
                             true
                 if not shouldBeTrue
                 then
-                    raise (InvariantViolationException "Adjacent slots found that have the same associated value and can be fused together.")
+                    raise (PreconditionViolationException "Adjacent slots found that have the same associated value and can be fused together.")
 
 //        member this.Keys: ICollection<UInt32> =
 //            [|
