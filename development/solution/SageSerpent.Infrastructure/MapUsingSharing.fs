@@ -3,7 +3,7 @@
     open System.Collections.Generic
     open Microsoft.FSharp.Collections
 
-    module MapWithRunLengthsDetail =
+    module MapWithSharingDetail =
         [<CustomComparison; CustomEquality>]
         type SlotKey =
             Singleton of UInt32
@@ -13,7 +13,7 @@
                 // NOTE: be careful here; the comparison semantics are deliberately sloppy - they violate the rules for a total ordering, because
                 // it is possible to take one slot key A that is less than another slot key B, and then use encompassing or overlapping interval
                 // slot keys to 'bridge the gap' between A and B via of chain of intervals that compare equal to each other and to A and B.
-                // As long as the client code (which is actually 'MapWithRunLengths') doesn't allow multiple items that compare equal in the same
+                // As long as the client code (which is actually 'MapWithSharing') doesn't allow multiple items that compare equal in the same
                 // data structure, then this won't cause a problem.
                 member this.CompareTo another =
                     match this
@@ -84,9 +84,9 @@
             keyValuePair.Key
             , keyValuePair.Value
 
-    open MapWithRunLengthsDetail
+    open MapWithSharingDetail
 
-    type MapWithRunLengths<'Value when 'Value: comparison> (representation: C5.ISortedDictionary<SlotKey, 'Value>) =
+    type MapWithSharing<'Value when 'Value: comparison> (representation: C5.ISortedDictionary<SlotKey, 'Value>) =
         do
             for KeyValue (key
                           , value) in representation do
@@ -420,7 +420,7 @@
                     false
                     , false ->
                         locallyMutatedRepresentation.AddSorted (entriesWithMatchingKeysToBeAddedIn
-                                                                |> MapWithRunLengths<'Value>.FuseAndDiscardConflictingAssociations)
+                                                                |> MapWithSharing<'Value>.FuseAndDiscardConflictingAssociations)
                   | true
                     , false ->
                         locallyMutatedRepresentation.AddSorted (representation.RangeTo ((!greatestLowerBound).Key))
@@ -430,7 +430,7 @@
                                                                                 greatestLowerBound
                                                                     yield! entriesWithMatchingKeysToBeAddedIn
                                                                 ]
-                                                                |> MapWithRunLengths<'Value>.FuseAndDiscardConflictingAssociations)
+                                                                |> MapWithSharing<'Value>.FuseAndDiscardConflictingAssociations)
                   | false
                     , true ->
                         locallyMutatedRepresentation.AddSorted ([
@@ -439,7 +439,7 @@
                                                                             KeyValue leastUpperBound ->
                                                                                 leastUpperBound
                                                                 ]
-                                                                |> MapWithRunLengths<'Value>.FuseAndDiscardConflictingAssociations)
+                                                                |> MapWithSharing<'Value>.FuseAndDiscardConflictingAssociations)
                         locallyMutatedRepresentation.AddSorted (representation.RangeFrom ((!leastUpperBound).Key)
                                                                 |> Seq.skip 1)
                   | true
@@ -454,11 +454,11 @@
                                                                             KeyValue leastUpperBound ->
                                                                                 leastUpperBound
                                                                 ]
-                                                                |> MapWithRunLengths<'Value>.FuseAndDiscardConflictingAssociations)
+                                                                |> MapWithSharing<'Value>.FuseAndDiscardConflictingAssociations)
                         locallyMutatedRepresentation.AddSorted (representation.RangeFrom ((!leastUpperBound).Key)
                                                                 |> Seq.skip 1)
             let result = 
-                MapWithRunLengths locallyMutatedRepresentation
+                MapWithSharing locallyMutatedRepresentation
             let differences =
                 (result.ToList |> Set.ofList)
                 - (this.ToList |> Set.ofList)
@@ -489,12 +489,12 @@
         interface IComparable with
             member this.CompareTo another =
                 match another with
-                    :? MapWithRunLengths<'Value> as another -> 
+                    :? MapWithSharing<'Value> as another -> 
                         compare this.ToList
                                 another.ToList
                   | _ ->
                         raise (ArgumentException (sprintf "Rhs of comparison must also be of type: %A"
-                                                          typeof<MapWithRunLengths<'Value>>.Name))
+                                                          typeof<MapWithSharing<'Value>>.Name))
 
         interface IDictionary<UInt32, 'Value> with
             member this.Item
@@ -565,44 +565,44 @@
             member this.GetEnumerator (): System.Collections.IEnumerator =
                 (this :> seq<KeyValuePair<UInt32, 'Value>>).GetEnumerator () :> System.Collections.IEnumerator
 
-    module MapWithRunLengths =
-        let inline isEmpty (mapWithRunLengths: MapWithRunLengths<_>): bool =
-            mapWithRunLengths.IsEmpty
+    module MapWithSharing =
+        let inline isEmpty (mapWithSharing: MapWithSharing<_>): bool =
+            mapWithSharing.IsEmpty
 
-        let ofList (list: List<UInt32 * 'Value>): MapWithRunLengths<'Value> =
+        let ofList (list: List<UInt32 * 'Value>): MapWithSharing<'Value> =
             let sortedList =
                 list
                 |> List.sortBy fst
             let locallyMutatedRepresentation =
                 C5.TreeDictionary<SlotKey, 'Value> ()
             let fusedList =
-                MapWithRunLengths<'Value>.FuseAndDiscardConflictingAssociations (sortedList
+                MapWithSharing<'Value>.FuseAndDiscardConflictingAssociations (sortedList
                                                                                  |> List.map (fun (key
                                                                                                    , value) ->
                                                                                                 Singleton key
                                                                                                 , value))
             locallyMutatedRepresentation.AddSorted fusedList
-            MapWithRunLengths locallyMutatedRepresentation
+            MapWithSharing locallyMutatedRepresentation
 
-        let inline toList (mapWithRunLengths: MapWithRunLengths<'Value>): List<UInt32 * 'Value> =
-            mapWithRunLengths.ToList
+        let inline toList (mapWithSharing: MapWithSharing<'Value>): List<UInt32 * 'Value> =
+            mapWithSharing.ToList
 
-        let ofSeq (seq: seq<UInt32 * 'Value>): MapWithRunLengths<'Value> =
+        let ofSeq (seq: seq<UInt32 * 'Value>): MapWithSharing<'Value> =
             seq
             |> List.ofSeq
             |> ofList
 
-        let inline toSeq (mapWithRunLengths: MapWithRunLengths<'Value>): seq<UInt32 * 'Value> =
-            mapWithRunLengths.ToSeq
+        let inline toSeq (mapWithSharing: MapWithSharing<'Value>): seq<UInt32 * 'Value> =
+            mapWithSharing.ToSeq
 
         [<GeneralizableValue>]
         let empty<'Value when 'Value: comparison> =
-            MapWithRunLengths<'Value> (C5.TreeDictionary ())
+            MapWithSharing<'Value> (C5.TreeDictionary ())
 
         let fold (foldOperation: 'State -> UInt32 -> 'Value -> 'State)
                  (state: 'State)
-                 (mapWithRunLengths: MapWithRunLengths<'Value>) =
-            mapWithRunLengths.ToSeq
+                 (mapWithSharing: MapWithSharing<'Value>) =
+            mapWithSharing.ToSeq
             |> Seq.fold (fun state
                              (key
                               , value) ->
@@ -612,9 +612,9 @@
                         state
 
         let foldBack (foldOperation: UInt32 -> 'Value -> 'State -> 'State)
-                     (mapWithRunLengths: MapWithRunLengths<'Value>)
+                     (mapWithSharing: MapWithSharing<'Value>)
                      (state: 'State): 'State =
-            mapWithRunLengths.ToList
+            mapWithSharing.ToList
             |> BargainBasement.Flip (List.foldBack (fun (key
                                                          , value)
                                                         state ->
@@ -626,13 +626,13 @@
 
         let add (key: UInt32)
                 (value: 'Value)
-                (mapWithRunLengths: MapWithRunLengths<'Value>) =
-            mapWithRunLengths.Add (key,
+                (mapWithSharing: MapWithSharing<'Value>) =
+            mapWithSharing.Add (key,
                                    value)
 
         let map (transformation: UInt32 -> 'Value -> 'TransformedValue)
-                (mapWithRunLengths: MapWithRunLengths<'Value>): MapWithRunLengths<'TransformedValue> =
-                mapWithRunLengths
+                (mapWithSharing: MapWithSharing<'Value>): MapWithSharing<'TransformedValue> =
+                mapWithSharing
                 |> toList
                 |> List.map (fun (key
                                   , value) ->
@@ -642,16 +642,16 @@
                 |> ofList
 
         let tryFind (key: UInt32)
-                    (mapWithRunLengths: MapWithRunLengths<'Value>): Option<'Value> =
+                    (mapWithSharing: MapWithSharing<'Value>): Option<'Value> =
             let mutableValue =
                 ref Unchecked.defaultof<'Value>
-            match (mapWithRunLengths :> IDictionary<_, _>).TryGetValue (key, mutableValue) with
+            match (mapWithSharing :> IDictionary<_, _>).TryGetValue (key, mutableValue) with
                 true ->
                     Some !mutableValue
               | false ->
                     None
 
         let iter (operation: UInt32 -> 'Value -> unit)
-                 (mapWithRunLengths: MapWithRunLengths<'Value>): unit =
+                 (mapWithSharing: MapWithSharing<'Value>): unit =
             failwith "Not implemented yet."
                     

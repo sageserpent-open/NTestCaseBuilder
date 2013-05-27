@@ -228,7 +228,7 @@
                                             "The maximum requested strength of combination is the number of tracked variables, but there are higher strength results.")
                         let extractLevelIndicesFromTrackedTestVariablesOnly testVectorRepresentation =
                             let testVectorRepresentationForTrackedVariablesOnly =
-                                    MapWithRunLengths.foldBack (fun testVariableIndex level partialResult ->
+                                    MapWithSharing.foldBack (fun testVariableIndex level partialResult ->
                                                                     match level with
                                                                         Level testVariableLevelIndex ->
                                                                             match trackedTestVariablesIndexedByTestVariable.[int32 testVariableIndex] with
@@ -394,26 +394,26 @@
                 let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap testVariableIndex testVariableLevelIndex =
                     match testVariableLevelIndex with
                         Level testVariableLevelIndex ->
-                            match MapWithRunLengths.tryFind testVariableIndex testVariableIndexToMaximumLevelIndexMap with
+                            match MapWithSharing.tryFind testVariableIndex testVariableIndexToMaximumLevelIndexMap with
                                 Some previousTestVariableLevelIndex ->
                                     if previousTestVariableLevelIndex < testVariableLevelIndex
-                                    then MapWithRunLengths.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMap
+                                    then MapWithSharing.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMap
                                     else testVariableIndexToMaximumLevelIndexMap
                               | _ ->
-                                    MapWithRunLengths.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMap
+                                    MapWithSharing.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMap
                        | _ ->
                             testVariableIndexToMaximumLevelIndexMap
                 let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap result =
-                    MapWithRunLengths.fold foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap result
+                    MapWithSharing.fold foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap result
                 let testVariableIndexToMaximumLevelIndexMap =
-                    Seq.fold foldInMaximumLevelIndices MapWithRunLengths.empty results
+                    Seq.fold foldInMaximumLevelIndices MapWithSharing.empty results
                 let observedNumberOfLevelsMap =
-                    MapWithRunLengths.map (fun _ maximumTestVariableLevelIndex ->
+                    MapWithSharing.map (fun _ maximumTestVariableLevelIndex ->
                                             uint32 maximumTestVariableLevelIndex + 1u)
                                           testVariableIndexToMaximumLevelIndexMap
                 let observedNumberOfLevels =
                     observedNumberOfLevelsMap
-                    |> MapWithRunLengths.toList
+                    |> MapWithSharing.toList
                     |> List.map snd
 
                 let shouldBeTrue =
