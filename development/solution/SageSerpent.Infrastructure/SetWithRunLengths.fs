@@ -371,9 +371,6 @@
                                                           typeof<SetWithRunLengths>.Name))
 
         interface ICollection<UInt32> with
-//            member this.ContainsKey key =
-//                representation.Contains (Singleton key)
-
             member this.Remove (key: UInt32): bool =
                 failwith "The collection is immutable."
 
