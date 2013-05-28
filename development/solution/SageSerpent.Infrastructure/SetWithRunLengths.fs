@@ -131,28 +131,6 @@
                 then
                     raise (PreconditionViolationException "Adjacent slots found that have the same associated value and can be fused together.")
 
-//        member this.Keys: ICollection<UInt32> =
-//            [|
-//                for slotKey in representation do
-//                    match slotKey with
-//                        Singleton key ->
-//                            yield key
-//                      | Interval (lowerBound
-//                                  , upperBound) ->
-//                            for key in lowerBound .. upperBound do
-//                                yield key
-//            |] :> ICollection<UInt32>
-
-//        member this.Item
-//            with get (key: UInt32): UInt32 =
-//                let retrievedValue =
-//                    ref (Singleton key)
-//                if representation.Find (retrievedValue)
-//                then
-//                    !retrievedValue
-//                else
-//                    raise (KeyNotFoundException (sprintf "Key %A not present." key))
-
         member this.Contains key =
             representation.Contains (Singleton key)
 
@@ -399,17 +377,6 @@
             member this.Remove (key: UInt32): bool =
                 failwith "The collection is immutable."
 
-//            member this.TryGetValue (key,
-//                                     value) =
-//                let mutableValue
-//                    = ref Unchecked.defaultof<'Value>
-//                if representation.Find (ref (Singleton key), mutableValue)
-//                then
-//                    value <- mutableValue.Value
-//                    true
-//                else
-//                    false
-
             member this.Count =
                 this.Count
 
@@ -492,22 +459,6 @@
                 (setWithRunLengths: SetWithRunLengths) =
             setWithRunLengths.Add key
 
-//        let map (transformation: UInt32 -> UInt32)
-//                (setWithRunLengths: SetWithRunLengths): SetWithRunLengths =
-//                setWithRunLengths
-//                |> toList
-//                |> List.map transformation
-//                |> ofList
-
-//        let tryFind (key: UInt32)
-//                    (setWithRunLengths: SetWithRunLengths): Option<'Value> =
-//            let mutableValue =
-//                ref Unchecked.defaultof<'Value>
-//            match (setWithRunLengths :> IDictionary<_, _>).TryGetValue (key, mutableValue) with
-//                true ->
-//                    Some !mutableValue
-//              | false ->
-//                    None
 
 
                     
