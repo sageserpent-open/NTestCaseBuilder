@@ -57,7 +57,8 @@
     <Compile Include="OptionWorkflow.fs" />
     <Compile Include="ContinuationWorkflow.fs" />
     <Compile Include="ChunkedList.fs" />
-    <Compile Include="MapWithRunLengths.fs" />
+    <Compile Include="SetWithRunLengths.fs" />
+    <Compile Include="MapUsingSharing.fs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

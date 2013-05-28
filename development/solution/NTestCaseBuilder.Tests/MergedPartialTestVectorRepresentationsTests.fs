@@ -56,10 +56,10 @@
                                     List.length completedPartialTestVectors
                                 let levelForVectorBeingCompleted =
                                     shuffledLevels.[numberOfCompletedPartialTestVectors]
-                                MapWithRunLengths.add testVariableIndex levelForVectorBeingCompleted
-                                                                        (if randomBehaviour.HeadsItIs ()
-                                                                            then vectorBeingCompleted
-                                                                            else ensureVectorIsNonEmpty vectorBeingCompleted)
+                                Map.add testVariableIndex levelForVectorBeingCompleted
+                                                          (if randomBehaviour.HeadsItIs ()
+                                                            then vectorBeingCompleted
+                                                            else ensureVectorIsNonEmpty vectorBeingCompleted)
                             ensureVectorIsNonEmpty head
                             :: completedPartialTestVectors
                       | head :: tail ->
@@ -77,11 +77,15 @@
                                 let levelForVectorBeingExamined =
                                     shuffledLevels.[int32 numberOfTestVectors - (1 + numberOfCopiesOfVectorsBeingExamined)]
                                 let vectorBeingExamined =
-                                    MapWithRunLengths.add testVariableIndex levelForVectorBeingExamined vectorBeingExamined
+                                    Map.add testVariableIndex
+                                            levelForVectorBeingExamined
+                                            vectorBeingExamined
                                 let levelForVectorBeingCompleted =
                                     shuffledLevels.[numberOfCompletedPartialTestVectors]
                                 let vectorBeingCompleted =
-                                    MapWithRunLengths.add testVariableIndex levelForVectorBeingCompleted vectorBeingCompleted
+                                    Map.add testVariableIndex
+                                            levelForVectorBeingCompleted
+                                            vectorBeingCompleted
                                 vectorBeingExamined :: modifiedCopiesOfVectorsBeingExamined
                                 , vectorBeingCompleted
                             let modifiedIncompletePartialTestVectors
@@ -90,7 +94,7 @@
                             fillInPartialTestVectors modifiedIncompletePartialTestVectors
                                                      (completedPartialTestVector :: completedPartialTestVectors)
                 let partialTestVectors =
-                    fillInPartialTestVectors (List.init (int32 numberOfTestVectors) (fun _ -> MapWithRunLengths.empty))
+                    fillInPartialTestVectors (List.init (int32 numberOfTestVectors) (fun _ -> Map.empty))
                                              []
                 randomBehaviour.Shuffle partialTestVectors
                 |> List.ofArray
@@ -126,7 +130,7 @@
                                  :: chooseTestVariableIndicesAndTheirLevels (recursionDepth + 1u)
                          let partialTestVector =
                             chooseTestVariableIndicesAndTheirLevels 0u
-                            |> MapWithRunLengths.ofList
+                            |> Map.ofList
                          partialTestVector :: createPartialTestVectors (testVariableIndex + 1u)
                 createPartialTestVectors 0u
             let overlappingPartialTestVectors =
@@ -142,7 +146,7 @@
                             then
                                 let testVariableIndices =
                                     partialTestVector
-                                    |> MapWithRunLengths.toList
+                                    |> Map.toList
                                     |> List.map fst
                                 let unusedTestVariableIndices =
                                     (List.init (int32 maximumNumberOfTestVariables) uint32
@@ -153,9 +157,9 @@
                                     |> Seq.map (fun testVariableIndex -> testVariableIndex, randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfTestVariables)
 
                                 yield partialTestVector
-                                |> MapWithRunLengths.toSeq
+                                |> Map.toSeq
                                 |> Seq.append extraPadding
-                                |> MapWithRunLengths.ofSeq
+                                |> Map.ofSeq
                     }
                 |> randomBehaviour.Shuffle
                 |> List.ofArray
@@ -163,12 +167,11 @@
             for _ in 1u .. overallTestRepeats do
                 testHandoff overlappingPartialTestVectorsWithSomeExtraFullTestVectors
 
-
         let dumpPartialTestVector partialTestVector =
             printf "[ "
             partialTestVector
-            |> MapWithRunLengths.iter (fun testVariableIndex testLevel ->
-                                        printf "(%A, %A) " testVariableIndex testLevel)
+            |> Map.iter (fun testVariableIndex testLevel ->
+                            printf "(%A, %A) " testVariableIndex testLevel)
             printf "]\n"
 
         let mergeOrAddPartialTestVectors partialTestVectors
@@ -187,6 +190,8 @@
                                 match (mergedPartialTestVectors: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector with
                                     updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
                                     , Some resultingFullTestCaseVector ->
+                                        let resultingFullTestCaseVector =
+                                            resultingFullTestCaseVector
                                         let shouldBeTrue =
                                             not (Set.contains resultingFullTestCaseVector
                                                               setOfFullTestVectors)
@@ -205,7 +210,7 @@
                 let sumOfIndicesExpectedForFullTestVector =
                     maximumNumberOfTestVariables * (maximumNumberOfTestVariables + 1u) / 2u
                 partialTestVector
-                |> MapWithRunLengths.toSeq
+                |> Map.toSeq
                 |> Seq.map (fst >> (fun testVariableIndex -> 1u + testVariableIndex))   // NOTE: shift by one because otherwise the leading term for a sum of zero-relative indices would not show up in the sum!
                 |> Seq.reduce (+)
                  = sumOfIndicesExpectedForFullTestVector
@@ -281,7 +286,9 @@
                     Set.ofList partialTestVectorsThatDoNotOverlap = setOfMergedPartialTestVectors
                 if not shouldBeTrue
                 then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
-                     let merged = mergedPartialTestVectors.EnumerationOfMergedTestVectors true |> Set.ofSeq
+                     let merged =
+                        mergedPartialTestVectors.EnumerationOfMergedTestVectors true
+                        |> Set.ofSeq
                      let common = Set.intersect originals merged
                      printf "Only in originals:-\n"
                      (originals - common) |> Set.iter dumpPartialTestVector
@@ -308,13 +315,13 @@
                         let mutantOrCopy =
                             match randomBehaviour.ChooseAnyNumberFromOneTo 3u with
                                 1u ->
-                                    randomBehaviour.ChooseSeveralOf ((MapWithRunLengths.toSeq partialTestVector)
+                                    randomBehaviour.ChooseSeveralOf ((Map.toSeq partialTestVector)
                                                                      , (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 partialTestVector.Count)))
-                                 |> MapWithRunLengths.ofSeq
+                                 |> Map.ofSeq
                               | 2u ->
-                                    MapWithRunLengths.toSeq partialTestVector
+                                    Map.toSeq partialTestVector
                                     |> Seq.take (int32 (randomBehaviour.ChooseAnyNumberFromOneTo (uint32 partialTestVector.Count - 1u)))
-                                    |> MapWithRunLengths.ofSeq
+                                    |> Map.ofSeq
                               | 3u ->
                                     partialTestVector
                               | _ ->
@@ -339,7 +346,9 @@
                     (Set.ofList partialTestVectorsThatDoNotOverlap).Count = setOfMergedPartialTestVectorsFromRemerge.Count
                 if not shouldBeTrue
                 then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
-                     let remerged = remergedPartialTestVectors.EnumerationOfMergedTestVectors true |> Set.ofSeq
+                     let remerged =
+                        remergedPartialTestVectors.EnumerationOfMergedTestVectors true
+                        |> Set.ofSeq
                      let common = Set.intersect originals remerged
                      printf "Only in originals:-\n"
                      (originals - common) |> Set.iter dumpPartialTestVector
@@ -374,10 +383,10 @@
                     mappingAvoidingIndices >> rotation
                 let remappedPartialTestVectors =
                     partialTestVectorsThatDoNotOverlap
-                    |> List.map (MapWithRunLengths.toList >> List.map (function index
-                                                                                , level ->
-                                                                                mappingAvoidingIndicesThenRotation index
-                                                                                , level) >> MapWithRunLengths.ofList)
+                    |> List.map (Map.toList >> List.map (function index
+                                                                  , level ->
+                                                                    mappingAvoidingIndicesThenRotation index
+                                                                    , level) >> Map.ofList)
                 let mergedPartialTestVectors
                     , _ =
                     mergeOrAddPartialTestVectors remappedPartialTestVectors
@@ -394,7 +403,9 @@
                                              (testVariableIndex
                                               , level)
                                              =
-                            MapWithRunLengths.add testVariableIndex level partialTestVector
+                            Map.add testVariableIndex
+                                    level
+                                    partialTestVector
                         Seq.fold addIndexAndLevel partialTestVector)
                 let sortedIndicesToAvoidWithRotationApplied =
                     sortedIndicesToAvoid
@@ -412,12 +423,16 @@
                     Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices = setOfMergedPartialTestVectorsFromRemerge
                 if not shouldBeTrue
                 then let originals = Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
-                     let remerged = remergedPartialTestVectors.EnumerationOfMergedTestVectors true |> Set.ofSeq
+                     let remerged =
+                        remergedPartialTestVectors.EnumerationOfMergedTestVectors true
+                        |> Set.ofSeq
                      let common = Set.intersect originals remerged
                      printf "remappedPartialTestVectors:\n"
                      Set.ofList remappedPartialTestVectors |> Set.iter dumpPartialTestVector
                      printf "mergedPartialTestVectors:\n"
-                     mergedPartialTestVectors.EnumerationOfMergedTestVectors true |> Set.ofSeq  |> Set.iter dumpPartialTestVector
+                     mergedPartialTestVectors.EnumerationOfMergedTestVectors true
+                     |> Set.ofSeq 
+                     |> Set.iter dumpPartialTestVector
                      printf "Only in originals:-\n"
                      (originals - common) |> Set.iter dumpPartialTestVector
                      printf "Only in remerged:-\n"
@@ -449,9 +464,9 @@
                 let checkInclusionInAtLeastOneMergedPartialTestVector partialTestVector =
                     let firstIncludesSecond first second =
                         (first
-                         |> MapWithRunLengths.toList
+                         |> Map.toList
                          |> Set.ofList).IsSupersetOf (second
-                                                       |> MapWithRunLengths.toList
+                                                       |> Map.toList
                                                        |> Set.ofList)
                     let shouldBeTrue =
                         setOfMergedPartialTestVectors
@@ -474,7 +489,7 @@
                                                  true
                 let remergedPartialTestVectors
                     , setOfMergedPartialTestVectorsFromRemerge =
-                    mergeOrAddPartialTestVectors [MapWithRunLengths.empty]
+                    mergeOrAddPartialTestVectors [Map.empty]
                                                  mergedPartialTestVectors
                                                  randomBehaviour
                                                  true
