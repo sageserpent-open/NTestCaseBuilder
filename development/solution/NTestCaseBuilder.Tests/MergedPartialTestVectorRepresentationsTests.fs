@@ -167,7 +167,6 @@
             for _ in 1u .. overallTestRepeats do
                 testHandoff overlappingPartialTestVectorsWithSomeExtraFullTestVectors
 
-
         let dumpPartialTestVector partialTestVector =
             printf "[ "
             partialTestVector
@@ -175,18 +174,10 @@
                             printf "(%A, %A) " testVariableIndex testLevel)
             printf "]\n"
 
-        let convertToMapWithSharing =
-            Map.toSeq >> MapWithSharing.ofSeq
-        let convertToPlainMap =
-            MapWithSharing.toSeq >> Map.ofSeq
-
         let mergeOrAddPartialTestVectors partialTestVectors
                                          initialCollection
                                          randomBehaviour
                                          revealFullTestVectorsAgain =
-            let partialTestVectors =
-                partialTestVectors
-                |> List.map convertToMapWithSharing
             let maximumNumberOfTestVariables =
                 (initialCollection: MergedPartialTestVectorRepresentations<_>).MaximumNumberOfTestVariables
             let shuffledDuplicatedPartialTestVectors =
@@ -201,7 +192,6 @@
                                     , Some resultingFullTestCaseVector ->
                                         let resultingFullTestCaseVector =
                                             resultingFullTestCaseVector
-                                            |> convertToPlainMap
                                         let shouldBeTrue =
                                             not (Set.contains resultingFullTestCaseVector
                                                               setOfFullTestVectors)
@@ -235,7 +225,6 @@
             then
                 let setOfAllMergedTestVectors =
                     mergedPartialTestVectors.EnumerationOfMergedTestVectors true
-                    |> Seq.map convertToPlainMap
                     |> Set.ofSeq
 
                 let shouldBeTrue =
@@ -247,7 +236,6 @@
             else
                 let setOfMergedPartialTestVectors =
                     mergedPartialTestVectors.EnumerationOfMergedTestVectors false
-                    |> Seq.map convertToPlainMap
                     |> Set.ofSeq
 
                 let shouldBeTrue =
@@ -300,7 +288,6 @@
                 then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
                      let merged =
                         mergedPartialTestVectors.EnumerationOfMergedTestVectors true
-                        |> Seq.map convertToPlainMap
                         |> Set.ofSeq
                      let common = Set.intersect originals merged
                      printf "Only in originals:-\n"
@@ -361,7 +348,6 @@
                 then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
                      let remerged =
                         remergedPartialTestVectors.EnumerationOfMergedTestVectors true
-                        |> Seq.map convertToPlainMap
                         |> Set.ofSeq
                      let common = Set.intersect originals remerged
                      printf "Only in originals:-\n"
@@ -439,14 +425,12 @@
                 then let originals = Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
                      let remerged =
                         remergedPartialTestVectors.EnumerationOfMergedTestVectors true
-                        |> Seq.map convertToPlainMap
                         |> Set.ofSeq
                      let common = Set.intersect originals remerged
                      printf "remappedPartialTestVectors:\n"
                      Set.ofList remappedPartialTestVectors |> Set.iter dumpPartialTestVector
                      printf "mergedPartialTestVectors:\n"
                      mergedPartialTestVectors.EnumerationOfMergedTestVectors true
-                     |> Seq.map convertToPlainMap
                      |> Set.ofSeq 
                      |> Set.iter dumpPartialTestVector
                      printf "Only in originals:-\n"

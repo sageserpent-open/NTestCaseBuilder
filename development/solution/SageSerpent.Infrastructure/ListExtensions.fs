@@ -108,6 +108,12 @@
                       |> List.ofArray
         ]
 
+    open System.Collections.Generic
+
+    let private (|KeyValuePair|) (keyValuePair: KeyValuePair<_, _>)=
+        keyValuePair.Key
+        , keyValuePair.Value
+
     type Microsoft.FSharp.Collections.List<'X> with
         static member CrossProductWithCommonSuffix commonSuffix lists =
             crossProductWithCommonSuffix commonSuffix lists
@@ -129,3 +135,11 @@
 
         member this.Chunks chunkSize =
             chunk chunkSize this
+
+        static member ofDictionary dictionary =
+            [
+                for KeyValuePair (key
+                                  , value) in dictionary do
+                    yield key
+                          , value
+            ]

@@ -425,7 +425,7 @@ namespace NTestCaseBuilder
             let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
             let testVariableIndices =
-                (partialTestVectorRepresentation: MapWithSharing<_>).Keys
+                (partialTestVectorRepresentation: IDictionary<_, _>).Keys
                 |> Set.ofSeq
             let missingTestVariableIndices =
                 (List.init (int32 this.CountTestVariables)
@@ -480,7 +480,7 @@ namespace NTestCaseBuilder
             BargainBasement.MergeDisjointSortedAssociationLists (filledAndExcludedTestVariables
                                                                  |> List.sortBy fst)
                                                                 (partialTestVectorRepresentation
-                                                                 |> MapWithSharing.toList)
+                                                                 |> List.ofDictionary)
             |> List.map snd
             |> List.toArray
 
