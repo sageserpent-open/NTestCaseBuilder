@@ -499,7 +499,8 @@ namespace NTestCaseBuilder
                             // NOTE: as we are converting to a map, we can be cavalier about the
                             // order in which associative pairs are added to the partial test vector.
                             Seq.singleton (partialTestVectorBeingBuilt
-                                           |> Map.ofList)
+                                           |> Map.ofList
+                                           :> IDictionary<_, _>)
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
@@ -1378,6 +1379,7 @@ namespace NTestCaseBuilder
                         List.zip testVariableIndicesForFullTestVector
                                  testVariableLevelsForFullTestVector
                         |> Map.ofList
+                        :> IDictionary<_, _>
                         |> Some
                 let modifiedTestVectorPaths
                     , fullTestVectorBeingOfferedNowForEarlyAccess =
@@ -1464,9 +1466,7 @@ namespace NTestCaseBuilder
                             return modifiedTestVectorPaths
                                    , if partialTestVectorRepresentationIsActuallyAlreadyFull
                                      then
-                                        Some (partialTestVectorRepresentationInExternalForm
-                                              |> List.ofDictionary
-                                              |> Map.ofList)
+                                        Some partialTestVectorRepresentationInExternalForm
                                      else
                                         None
                         }
