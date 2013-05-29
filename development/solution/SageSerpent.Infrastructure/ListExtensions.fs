@@ -1,9 +1,9 @@
 ﻿module SageSerpent.Infrastructure.ListExtensions
     let private crossProductWithCommonSuffix commonSuffix
-                                             lists =
+                                             sequences =
         let rec enumerateTreeOfCrossProductPrefixes reverseOfCommonPrefix
-                                                    lists =
-            match lists with
+                                                    sequences =
+            match sequences with
                 [] ->
                     raise (InternalAssertionViolationException "This case should not occur - there is a guard in the calling function, and the following pattern's logic prevents recursion from getting to the empty list case.")
               | [ singleton ] ->
@@ -24,12 +24,12 @@
                                             yield! enumerateTreeOfCrossProductPrefixes (item :: reverseOfCommonPrefix)
                                                                                        tail
                                     })
-        match lists with
+        match sequences with
             [] ->
                 Seq.singleton commonSuffix
           | _ ->
                 enumerateTreeOfCrossProductPrefixes []
-                                                    lists
+                                                    sequences
 
     let rec private mergeSortedListsAllowingDuplicates first second =
         match first, second with
@@ -112,11 +112,18 @@
             }
 
     type Microsoft.FSharp.Collections.List<'X> with
-        static member CrossProductWithCommonSuffix commonSuffix lists =
-            crossProductWithCommonSuffix commonSuffix lists
+        static member CrossProductWithCommonSuffix commonSuffix
+                                                   sequences =
+            crossProductWithCommonSuffix commonSuffix
+                                         sequences
 
-        static member CrossProduct lists =
-            crossProductWithCommonSuffix [] lists
+        static member CrossProduct sequences =
+            crossProductWithCommonSuffix [] sequences
+
+        static member DecorrelatedCrossProduct arrays
+                                               (randomBehaviour: System.Random) =
+            crossProductWithCommonSuffix [] (arrays
+                                             |> List.map Array.toSeq)
 
         static member MergeSortedListsAllowingDuplicates first second =
             mergeSortedListsAllowingDuplicates first second

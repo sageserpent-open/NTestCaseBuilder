@@ -157,3 +157,52 @@
                                        expectedCount = count)
                 Assert.IsTrue shouldBeTrue
             createBinaryCrossProductsAndHandOffToEachTest testHandoff
+
+        [<Test>]
+        member this.TestDistributionOfEachItemInCrossProductResultsIsRandom() =
+            let testHandoff inputList
+                            numberOfBinaryChoiceEntries
+                            _ =
+                let crossProduct
+                    = List.CrossProduct inputList
+                let itemToResultPositionSumAssociation
+                    , numberOfResults =
+                    [for crossProductList in crossProduct do
+                        yield! crossProductList]
+                    |> List.fold (fun (itemToResultPositionSumAssociation
+                                       , position)
+                                      item ->
+                                        match itemToResultPositionSumAssociation
+                                              |> Map.tryFind item with
+                                            Some positionSum ->
+                                                itemToResultPositionSumAssociation
+                                                |> Map.add item
+                                                           (positionSum + position)
+                                          | None ->
+                                                itemToResultPositionSumAssociation
+                                                |> Map.add item
+                                                           position
+                                        , 1 + position)
+                                 (Map.empty
+                                  , 0)
+                let minumumRequiredNumberOfResults
+                    = 10
+                if minumumRequiredNumberOfResults <= numberOfResults
+                then
+                    let toleranceEpsilon =
+                        1e-1
+                    let itemToMeanResultPositionAssociation =
+                        itemToResultPositionSumAssociation
+                        |> Map.map (fun _
+                                        positionSum ->
+                                            ((double) positionSum) / ((double) numberOfResults))
+                    let shouldBeTrue =
+                        itemToMeanResultPositionAssociation
+                        |> Map.forall (fun item
+                                           meanPosition ->
+                                           printf "Item: %A, mean position: %A, number of results: %A\n" item
+                                                                                                         meanPosition
+                                                                                                         numberOfResults
+                                           Math.Abs (2.0 * meanPosition - (double) numberOfResults) < (double) numberOfResults * toleranceEpsilon)
+                    Assert.IsTrue shouldBeTrue
+            createBinaryCrossProductsAndHandOffToEachTest testHandoff
