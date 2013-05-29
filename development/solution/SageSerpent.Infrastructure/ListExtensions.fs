@@ -120,10 +120,9 @@
         static member CrossProduct sequences =
             crossProductWithCommonSuffix [] sequences
 
-        static member DecorrelatedCrossProduct arrays
+        static member DecorrelatedCrossProduct sequences
                                                (randomBehaviour: System.Random) =
-            crossProductWithCommonSuffix [] (arrays
-                                             |> List.map Array.toSeq)
+            crossProductWithCommonSuffix [] sequences
 
         static member MergeSortedListsAllowingDuplicates first second =
             mergeSortedListsAllowingDuplicates first second

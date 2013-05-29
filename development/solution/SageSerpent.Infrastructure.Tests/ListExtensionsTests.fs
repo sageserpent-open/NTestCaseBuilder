@@ -159,15 +159,41 @@
             createBinaryCrossProductsAndHandOffToEachTest testHandoff
 
         [<Test>]
-        member this.TestDistributionOfEachItemInCrossProductResultsIsRandom() =
+        member this.TestThatTheDecorrelatedCrossProductProducesTheSameResultsAsTheConventionalImplementation() =
+            let testHandoff inputList
+                            numberOfBinaryChoiceEntries
+                             _ =
+                let crossProduct =
+                    List.CrossProduct inputList
+                    |> Set.ofSeq
+                let randomisationSeed =
+                    89438
+                let randomBehaviour =
+                    Random randomisationSeed
+                let decorrelatedCrossProduct =
+                    List.DecorrelatedCrossProduct inputList
+                                                  randomBehaviour
+                    |> Set.ofSeq
+                let shouldBeTrue =
+                    crossProduct = decorrelatedCrossProduct
+                Assert.IsTrue shouldBeTrue
+            createBinaryCrossProductsAndHandOffToEachTest testHandoff
+
+        [<Test>]
+        member this.TestDistributionOfEachItemInDecorrelatedCrossProductResultsIsRandom() =
             let testHandoff inputList
                             numberOfBinaryChoiceEntries
                             _ =
-                let crossProduct
-                    = List.CrossProduct inputList
+                let randomisationSeed =
+                    676792
+                let randomBehaviour =
+                    Random randomisationSeed
+                let decorrelatedCrossProduct =
+                    List.DecorrelatedCrossProduct inputList
+                                                  randomBehaviour
                 let itemToResultPositionSumAssociation
                     , numberOfResults =
-                    [for crossProductList in crossProduct do
+                    [for crossProductList in decorrelatedCrossProduct do
                         yield! crossProductList]
                     |> List.fold (fun (itemToResultPositionSumAssociation
                                        , position)
