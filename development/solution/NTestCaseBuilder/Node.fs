@@ -369,7 +369,8 @@ namespace NTestCaseBuilder
                                     MapWithSharing (testVectorRepresentationAsList
                                                     |> Map.ofList,
                                                     Exclusion,
-                                                    excludedTestVariableIndices))
+                                                    excludedTestVariableIndices)
+                                    :> IDictionary<_, _>)
             associationFromStrengthToTestVariableCombinations
             |> Map.map (fun strength testVariableCombinations ->
                             let testVariableCombinations =

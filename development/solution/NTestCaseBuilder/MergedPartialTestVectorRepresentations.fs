@@ -530,7 +530,7 @@ namespace NTestCaseBuilder
                 |> Set.ofSeq
 
             let maximumTestVariableIndexHavingLevel =
-                Seq.max testVariableIndicesHavingLevels
+                Set.maxElement testVariableIndicesHavingLevels
 
             if maximumTestVariableIndexHavingLevel >= maximumNumberOfTestVariables
             then
