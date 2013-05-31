@@ -184,6 +184,7 @@
             let testHandoff inputList
                             numberOfBinaryChoiceEntries
                             _ =
+                printf "Input list: %A\n" inputList
                 let randomisationSeed =
                     676792
                 let randomBehaviour =
@@ -191,23 +192,32 @@
                 let decorrelatedCrossProduct =
                     List.DecorrelatedCrossProduct inputList
                                                   randomBehaviour
+                let numberOfResults =
+                    Seq.length decorrelatedCrossProduct
+                let numberOfInputs =
+                    List.length inputList
                 let itemToResultPositionSumAssociation
-                    , numberOfResults =
+                    , _ =
                     [for crossProductList in decorrelatedCrossProduct do
-                        yield! crossProductList]
+                        printf "%A\n" crossProductList
+                        yield! List.zip crossProductList
+                                        (List.init numberOfInputs
+                                                   BargainBasement.Identity)]
                     |> List.fold (fun (itemToResultPositionSumAssociation
                                        , position)
                                       item ->
+                                        let positionOfEnclosingCrossProductTerm =
+                                            position / numberOfInputs
                                         match itemToResultPositionSumAssociation
                                               |> Map.tryFind item with
                                             Some positionSum ->
                                                 itemToResultPositionSumAssociation
                                                 |> Map.add item
-                                                           (positionSum + position)
+                                                           (positionSum + positionOfEnclosingCrossProductTerm)
                                           | None ->
                                                 itemToResultPositionSumAssociation
                                                 |> Map.add item
-                                                           position
+                                                           positionOfEnclosingCrossProductTerm
                                         , 1 + position)
                                  (Map.empty
                                   , 0)
