@@ -111,6 +111,8 @@
                           |> List.ofArray
             }
 
+    open RandomExtensions
+
     type Microsoft.FSharp.Collections.List<'X> with
         static member CrossProductWithCommonSuffix commonSuffix
                                                    sequences =
@@ -122,7 +124,59 @@
 
         static member DecorrelatedCrossProduct sequences
                                                (randomBehaviour: System.Random) =
-            crossProductWithCommonSuffix [] sequences
+            let rec crossProductSubsequencesFrom sequences
+                                                 existingInversePermutationForEachCrossProductTerm
+                                                 existingCrossProductSubsequenceAndInversePermutationPairs =
+                match sequences with
+                    [] ->
+                        [Seq.empty
+                         , []]
+                  | headSequence :: tailSequences ->
+                        if Seq.isEmpty headSequence
+                        then
+                            existingCrossProductSubsequenceAndInversePermutationPairs
+                        else
+                            let firstItemInHeadSequence =
+                                Seq.head headSequence
+                            let remainingItemsInHeadSequence =
+                                Seq.skip 1
+                                         headSequence
+                            let crossProductSubsequence =
+                                seq
+                                    {
+                                        for tailCrossProductTerm in List<_>.CrossProduct tailSequences do
+                                            yield firstItemInHeadSequence :: tailCrossProductTerm
+                                    }
+                            let sequencesToComputeRemainingCrossProductSubsequencesFrom =
+                                remainingItemsInHeadSequence :: tailSequences
+                            let forwardPermutatedSequencesToComputeRemainingCrossProductSubsequencesFrom
+                                , inversePermutationForEachCrossProductTerm =
+                                Seq.zip sequencesToComputeRemainingCrossProductSubsequencesFrom
+                                        existingInversePermutationForEachCrossProductTerm
+                                |> randomBehaviour.Shuffle
+                                |> List.ofArray
+                                |> List.unzip
+                            crossProductSubsequencesFrom forwardPermutatedSequencesToComputeRemainingCrossProductSubsequencesFrom
+                                                         inversePermutationForEachCrossProductTerm
+                                                         ((crossProductSubsequence
+                                                           , existingInversePermutationForEachCrossProductTerm) :: existingCrossProductSubsequenceAndInversePermutationPairs)
+            let crossProductSubsequenceAndInversePermutationPairs =
+                crossProductSubsequencesFrom sequences
+                                             (List.init sequences.Length
+                                                        (fun index ->
+                                                            index))
+                                             []
+            let crossProductSubsequences =
+                crossProductSubsequenceAndInversePermutationPairs
+                |> List.map (function crossProductSequence
+                                      , inversePermutationForEachCrossProductTerm ->
+                                        let inversePermutationForEachCrossProductTerm =
+                                            inversePermutationForEachCrossProductTerm
+                                            |> Array.ofList
+                                        crossProductSequence
+                                        |> Seq.map (List.permute (fun index ->
+                                                                    inversePermutationForEachCrossProductTerm.[index])))
+            randomBehaviour.PickAlternatelyFrom crossProductSubsequences
 
         static member MergeSortedListsAllowingDuplicates first second =
             mergeSortedListsAllowingDuplicates first second
