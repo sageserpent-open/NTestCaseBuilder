@@ -1,6 +1,7 @@
 ﻿module SageSerpent.Infrastructure.ListExtensions
-    let private crossProductWithCommonSuffix commonSuffix
-                                             sequences =
+    let enumerateTreeOfCrossProductPrefixes reverseOfCommonPrefix
+                                            sequences
+                                            commonSuffix =
         let rec enumerateTreeOfCrossProductPrefixes reverseOfCommonPrefix
                                                     sequences =
             match sequences with
@@ -24,12 +25,17 @@
                                             yield! enumerateTreeOfCrossProductPrefixes (item :: reverseOfCommonPrefix)
                                                                                        tail
                                     })
+        enumerateTreeOfCrossProductPrefixes reverseOfCommonPrefix
+                                            sequences
+    let private crossProductWithCommonSuffix commonSuffix
+                                             sequences =
         match sequences with
             [] ->
                 Seq.singleton commonSuffix
           | _ ->
                 enumerateTreeOfCrossProductPrefixes []
                                                     sequences
+                                                    commonSuffix
 
     let rec private mergeSortedListsAllowingDuplicates first second =
         match first, second with
@@ -124,58 +130,92 @@
 
         static member DecorrelatedCrossProduct sequences
                                                (randomBehaviour: System.Random) =
-            let rec crossProductSubsequencesFrom sequences
+            let maximumNumberOfSplits =
+                5
+            let rec crossProductSubsequencesFrom reverseOfCommonPrefix
                                                  existingInversePermutationForEachCrossProductTerm
-                                                 existingCrossProductSubsequenceAndInversePermutationPairs =
-                match sequences with
-                    [] ->
-                        [Seq.empty
-                         , []]
-                  | headSequence :: tailSequences ->
-                        if Seq.isEmpty headSequence
-                        then
-                            existingCrossProductSubsequenceAndInversePermutationPairs
-                        else
-                            let firstItemInHeadSequence =
-                                Seq.head headSequence
-                            let remainingItemsInHeadSequence =
-                                Seq.skip 1
-                                         headSequence
-                            let crossProductSubsequence =
-                                seq
-                                    {
-                                        for tailCrossProductTerm in List<_>.CrossProduct tailSequences do
-                                            yield firstItemInHeadSequence :: tailCrossProductTerm
-                                    }
-                            let sequencesToComputeRemainingCrossProductSubsequencesFrom =
-                                remainingItemsInHeadSequence :: tailSequences
-                            let forwardPermutatedSequencesToComputeRemainingCrossProductSubsequencesFrom
-                                , inversePermutationForEachCrossProductTerm =
-                                Seq.zip sequencesToComputeRemainingCrossProductSubsequencesFrom
-                                        existingInversePermutationForEachCrossProductTerm
-                                |> randomBehaviour.Shuffle
-                                |> List.ofArray
-                                |> List.unzip
-                            crossProductSubsequencesFrom forwardPermutatedSequencesToComputeRemainingCrossProductSubsequencesFrom
-                                                         inversePermutationForEachCrossProductTerm
-                                                         ((crossProductSubsequence
-                                                           , existingInversePermutationForEachCrossProductTerm) :: existingCrossProductSubsequenceAndInversePermutationPairs)
-            let crossProductSubsequenceAndInversePermutationPairs =
-                crossProductSubsequencesFrom sequences
-                                             (List.init sequences.Length
+                                                 arrays
+                                                 numberOfSplits =
+                let terminateRecursion () =
+                    let existingInversePermutationForEachCrossProductTerm =
+                        Array.ofList existingInversePermutationForEachCrossProductTerm
+                    [
+                        seq
+                            {
+                                for permutedCrossProductTerm in enumerateTreeOfCrossProductPrefixes reverseOfCommonPrefix
+                                                                                                    arrays
+                                                                                                    [] do
+                                    yield List.permute (fun index ->
+                                                            existingInversePermutationForEachCrossProductTerm.[index])
+                                                       permutedCrossProductTerm
+                            }
+                    ]
+                match arrays with
+                    headArray :: ((_ :: _) as nonEmptyTailArrays)  when numberOfSplits < maximumNumberOfSplits ->
+                        let numberOfItemsInHeadArray =
+                            Array.length headArray
+                        match numberOfItemsInHeadArray with
+                            0 ->
+                                []
+                          | 1 ->
+                                crossProductSubsequencesFrom (headArray.[0] :: reverseOfCommonPrefix)
+                                                             existingInversePermutationForEachCrossProductTerm
+                                                             nonEmptyTailArrays
+                                                             numberOfSplits
+                          | _ ->
+                                let numberOfSplits =
+                                    1 + numberOfSplits
+                                let startOfSecondHalfOfSplit =
+                                    numberOfItemsInHeadArray / 2
+                                let firstHalfOfSplit =
+                                    headArray.[0 .. startOfSecondHalfOfSplit - 1]
+                                let arraysResultingFromFirstHalfOfSplit =
+                                    firstHalfOfSplit :: nonEmptyTailArrays
+                                let crossProductSubsequencesFromFirstHalfOfSplit =
+                                    crossProductSubsequencesFrom reverseOfCommonPrefix
+                                                                 existingInversePermutationForEachCrossProductTerm
+                                                                 arraysResultingFromFirstHalfOfSplit
+                                                                 numberOfSplits
+                                let secondHalfOfSplit =
+                                    headArray.[startOfSecondHalfOfSplit .. numberOfItemsInHeadArray - 1]
+                                let arraysResultingFromSecondHalfOfSplit =
+                                    secondHalfOfSplit :: nonEmptyTailArrays
+                                let forwardPermutedArraysResultingFromSecondHalfOfSplit
+                                    , foo =
+                                    List.zip arraysResultingFromSecondHalfOfSplit
+                                            (existingInversePermutationForEachCrossProductTerm
+                                             |> Seq.skip reverseOfCommonPrefix.Length
+                                             |> List.ofSeq)
+//                                    |> randomBehaviour.Shuffle
+//                                    |> List.ofArray
+                                    |> List.unzip
+                                let inversePermutationForEachCrossProductTermToApplyToSecondHalfOfSplit =
+                                    [
+                                        yield! existingInversePermutationForEachCrossProductTerm
+                                               |> Seq.take reverseOfCommonPrefix.Length
+                                        yield! foo
+                                    ]
+                                let crossProductSubsequencesFromSecondHalfOfSplit =
+                                    crossProductSubsequencesFrom reverseOfCommonPrefix
+                                                                 inversePermutationForEachCrossProductTermToApplyToSecondHalfOfSplit
+                                                                 arraysResultingFromSecondHalfOfSplit
+                                                                 numberOfSplits
+                                [
+                                    yield! crossProductSubsequencesFromFirstHalfOfSplit
+                                    yield! crossProductSubsequencesFromSecondHalfOfSplit
+                                ]
+                  | _ ->
+                        terminateRecursion ()
+            let arrays =
+                sequences
+                |> List.map Array.ofSeq
+            let crossProductSubsequences =
+                crossProductSubsequencesFrom []
+                                             (List.init arrays.Length
                                                         (fun index ->
                                                             index))
-                                             []
-            let crossProductSubsequences =
-                crossProductSubsequenceAndInversePermutationPairs
-                |> List.map (function crossProductSequence
-                                      , inversePermutationForEachCrossProductTerm ->
-                                        let inversePermutationForEachCrossProductTerm =
-                                            inversePermutationForEachCrossProductTerm
-                                            |> Array.ofList
-                                        crossProductSequence
-                                        |> Seq.map (List.permute (fun index ->
-                                                                    inversePermutationForEachCrossProductTerm.[index])))
+                                             arrays
+                                             0
             randomBehaviour.PickAlternatelyFrom crossProductSubsequences
 
         static member MergeSortedListsAllowingDuplicates first second =
