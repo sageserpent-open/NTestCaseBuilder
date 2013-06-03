@@ -17,7 +17,7 @@
         let exclusiveUpperBoundOnNumberOfZeroEntries =
             2u
         let inclusiveUpperBoundOnNumberOfBinaryChoiceEntries =
-            5u
+            7u
         let numberOfRepeatsToInvestigateZeroesAndUnits =
             10u
         let createBinaryCrossProductsAndHandOffToEachTest testHandoff =
@@ -226,7 +226,7 @@
                 let minumumRequiredNumberOfPositions
                     = 10
                 let toleranceEpsilon =
-                    1e-1
+                    3e-1
                 let maximumPossiblePosition =
                     (decorrelatedCrossProduct
                     |> Seq.length)

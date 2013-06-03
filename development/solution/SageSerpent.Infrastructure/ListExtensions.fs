@@ -182,12 +182,11 @@
                                     secondHalfOfSplit :: nonEmptyTailArrays
                                 let forwardPermutedArraysResultingFromSecondHalfOfSplit
                                     , foo =
-                                    List.zip arraysResultingFromSecondHalfOfSplit
+                                    Seq.zip arraysResultingFromSecondHalfOfSplit
                                             (existingInversePermutationForEachCrossProductTerm
-                                             |> Seq.skip reverseOfCommonPrefix.Length
-                                             |> List.ofSeq)
-//                                    |> randomBehaviour.Shuffle
-//                                    |> List.ofArray
+                                             |> Seq.skip reverseOfCommonPrefix.Length)
+                                    |> randomBehaviour.Shuffle
+                                    |> List.ofArray
                                     |> List.unzip
                                 let inversePermutationForEachCrossProductTermToApplyToSecondHalfOfSplit =
                                     [
@@ -198,7 +197,7 @@
                                 let crossProductSubsequencesFromSecondHalfOfSplit =
                                     crossProductSubsequencesFrom reverseOfCommonPrefix
                                                                  inversePermutationForEachCrossProductTermToApplyToSecondHalfOfSplit
-                                                                 arraysResultingFromSecondHalfOfSplit
+                                                                 forwardPermutedArraysResultingFromSecondHalfOfSplit
                                                                  numberOfSplits
                                 [
                                     yield! crossProductSubsequencesFromFirstHalfOfSplit
