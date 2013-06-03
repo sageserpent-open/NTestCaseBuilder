@@ -192,53 +192,50 @@
                 let decorrelatedCrossProduct =
                     List.DecorrelatedCrossProduct inputList
                                                   randomBehaviour
-                let numberOfResults =
-                    Seq.length decorrelatedCrossProduct
                 let numberOfInputs =
                     List.length inputList
-                let itemToResultPositionSumAssociation
+                let itemToCrossProductPositionSumAndCountAssociation
                     , _ =
                     [for crossProductList in decorrelatedCrossProduct do
                         printf "%A\n" crossProductList
                         yield! List.zip crossProductList
                                         (List.init numberOfInputs
                                                    BargainBasement.Identity)]
-                    |> List.fold (fun (itemToResultPositionSumAssociation
-                                       , position)
+                    |> List.fold (fun (itemToCrossProductPositionSumAndCountAssociation
+                                       , itemPosition)
                                       item ->
                                         let positionOfEnclosingCrossProductTerm =
-                                            position / numberOfInputs
-                                        match itemToResultPositionSumAssociation
-                                              |> Map.tryFind item with
-                                            Some positionSum ->
-                                                itemToResultPositionSumAssociation
-                                                |> Map.add item
-                                                           (positionSum + positionOfEnclosingCrossProductTerm)
-                                          | None ->
-                                                itemToResultPositionSumAssociation
-                                                |> Map.add item
-                                                           positionOfEnclosingCrossProductTerm
-                                        , 1 + position)
+                                            itemPosition / numberOfInputs
+                                        itemToCrossProductPositionSumAndCountAssociation
+                                        |> match Map.tryFind item
+                                                             itemToCrossProductPositionSumAndCountAssociation with
+                                                    Some (positionSum
+                                                            , numberOfPositions) ->
+                                                        Map.add item
+                                                                (positionOfEnclosingCrossProductTerm + positionSum
+                                                                 , 1 + numberOfPositions)
+                                                  | None ->
+                                                        Map.add item
+                                                                (positionOfEnclosingCrossProductTerm
+                                                                 , 1)
+                                        , 1 + itemPosition)
                                  (Map.empty
                                   , 0)
-                let minumumRequiredNumberOfResults
+                let minumumRequiredNumberOfPositions
                     = 10
-                if minumumRequiredNumberOfResults <= numberOfResults
-                then
-                    let toleranceEpsilon =
-                        1e-1
-                    let itemToMeanResultPositionAssociation =
-                        itemToResultPositionSumAssociation
-                        |> Map.map (fun _
-                                        positionSum ->
-                                            ((double) positionSum) / ((double) numberOfResults))
-                    let shouldBeTrue =
-                        itemToMeanResultPositionAssociation
-                        |> Map.forall (fun item
-                                           meanPosition ->
-                                           printf "Item: %A, mean position: %A, number of results: %A\n" item
-                                                                                                         meanPosition
-                                                                                                         numberOfResults
-                                           Math.Abs (2.0 * meanPosition - (double) numberOfResults) < (double) numberOfResults * toleranceEpsilon)
-                    Assert.IsTrue shouldBeTrue
+                let toleranceEpsilon =
+                    1e-1
+                for item
+                    , (positionSum
+                       , numberOfPositions) in Map.toSeq itemToCrossProductPositionSumAndCountAssociation do
+                    if minumumRequiredNumberOfPositions <= numberOfPositions
+                    then
+                        let meanPosition =
+                            (double) positionSum / (double) numberOfPositions
+                        printf "Item: %A, mean position: %A, number of positions: %A\n" item
+                                                                                        meanPosition
+                                                                                        numberOfPositions
+                        let shouldBeTrue =
+                            Math.Abs (2.0 * meanPosition - (double) numberOfPositions) < (double) numberOfPositions * toleranceEpsilon
+                        Assert.IsTrue shouldBeTrue
             createBinaryCrossProductsAndHandOffToEachTest testHandoff
