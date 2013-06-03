@@ -196,11 +196,13 @@
                     List.length inputList
                 let itemToCrossProductPositionSumAndCountAssociation
                     , _ =
-                    [for crossProductList in decorrelatedCrossProduct do
-                        printf "%A\n" crossProductList
-                        yield! List.zip crossProductList
-                                        (List.init numberOfInputs
-                                                   BargainBasement.Identity)]
+                    [
+                        for crossProductList in decorrelatedCrossProduct do
+                            printf "%A\n" crossProductList
+                            yield! List.zip crossProductList
+                                            (List.init numberOfInputs
+                                                       BargainBasement.Identity)
+                    ]
                     |> List.fold (fun (itemToCrossProductPositionSumAndCountAssociation
                                        , itemPosition)
                                       item ->
@@ -225,6 +227,10 @@
                     = 10
                 let toleranceEpsilon =
                     1e-1
+                let maximumPossiblePosition =
+                    (decorrelatedCrossProduct
+                    |> Seq.length)
+                    - 1 // NOTE: if the cross product is empty, the resulting bogus value of -1 will nevertheless be ignored by the next code block.
                 for item
                     , (positionSum
                        , numberOfPositions) in Map.toSeq itemToCrossProductPositionSumAndCountAssociation do
@@ -232,10 +238,10 @@
                     then
                         let meanPosition =
                             (double) positionSum / (double) numberOfPositions
-                        printf "Item: %A, mean position: %A, number of positions: %A\n" item
-                                                                                        meanPosition
-                                                                                        numberOfPositions
+                        printf "Item: %A, mean position: %A, maximum possible position: %A\n" item
+                                                                                              meanPosition
+                                                                                              maximumPossiblePosition
                         let shouldBeTrue =
-                            Math.Abs (2.0 * meanPosition - (double) numberOfPositions) < (double) numberOfPositions * toleranceEpsilon
+                            Math.Abs (2.0 * meanPosition - (double) maximumPossiblePosition) < (double) maximumPossiblePosition * toleranceEpsilon
                         Assert.IsTrue shouldBeTrue
             createBinaryCrossProductsAndHandOffToEachTest testHandoff
