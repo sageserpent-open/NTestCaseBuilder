@@ -133,12 +133,10 @@
             let maximumNumberOfSplits =
                 5
             let rec crossProductSubsequencesFrom reverseOfCommonPrefix
-                                                 existingInversePermutationForEachCrossProductTerm
+                                                 (existingInversePermutationForEachCrossProductTerm: array<_>)
                                                  arrays
                                                  numberOfSplits =
                 let terminateRecursion () =
-                    let existingInversePermutationForEachCrossProductTerm =
-                        Array.ofList existingInversePermutationForEachCrossProductTerm
                     [
                         seq
                             {
@@ -180,20 +178,27 @@
                                     headArray.[startOfSecondHalfOfSplit .. numberOfItemsInHeadArray - 1]
                                 let arraysResultingFromSecondHalfOfSplit =
                                     secondHalfOfSplit :: nonEmptyTailArrays
+                                let lengthOfCommonPrefix =
+                                    reverseOfCommonPrefix
+                                    |> List.length
                                 let forwardPermutedArraysResultingFromSecondHalfOfSplit
-                                    , foo =
+                                    , inversePermutationForEachCrossProductTermExcludingCommonPrefix =
+                                    let maximumIndexOfInversePermutation =
+                                        (existingInversePermutationForEachCrossProductTerm
+                                        |> Array.length)
+                                        - 1
                                     Seq.zip arraysResultingFromSecondHalfOfSplit
-                                            (existingInversePermutationForEachCrossProductTerm
-                                             |> Seq.skip reverseOfCommonPrefix.Length)
+                                            existingInversePermutationForEachCrossProductTerm.[lengthOfCommonPrefix .. maximumIndexOfInversePermutation]
                                     |> randomBehaviour.Shuffle
                                     |> List.ofArray
                                     |> List.unzip
+                                let inversePermutationForEachCrossProductTermInCommonPrefix =
+                                        existingInversePermutationForEachCrossProductTerm.[0 .. lengthOfCommonPrefix - 1]
                                 let inversePermutationForEachCrossProductTermToApplyToSecondHalfOfSplit =
-                                    [
-                                        yield! existingInversePermutationForEachCrossProductTerm
-                                               |> Seq.take reverseOfCommonPrefix.Length
-                                        yield! foo
-                                    ]
+                                    [|
+                                        yield! inversePermutationForEachCrossProductTermInCommonPrefix
+                                        yield! inversePermutationForEachCrossProductTermExcludingCommonPrefix
+                                    |]
                                 let crossProductSubsequencesFromSecondHalfOfSplit =
                                     crossProductSubsequencesFrom reverseOfCommonPrefix
                                                                  inversePermutationForEachCrossProductTermToApplyToSecondHalfOfSplit
@@ -210,8 +215,8 @@
                 |> List.map Array.ofSeq
             let crossProductSubsequences =
                 crossProductSubsequencesFrom []
-                                             (List.init arrays.Length
-                                                        (fun index ->
+                                             (Array.init arrays.Length
+                                                         (fun index ->
                                                             index))
                                              arrays
                                              0
