@@ -221,7 +221,10 @@ namespace NTestCaseBuilder
                                 , associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree =
                                 walkTree subtreeRootNode maximumDesiredStrength indexForLeftmostTestVariable
                             let mergedAssociationFromStrengthToTestVariableCombinations =
-                                BargainBasement.MergeAssociations Seq.append
+                                let interleaveTestVariableCombinations firstSequence
+                                                                       secondSequence =
+                                    randomBehaviour.PickAlternatelyFrom [firstSequence; secondSequence]
+                                BargainBasement.MergeAssociations interleaveTestVariableCombinations
                                                                   previousAssociationFromStrengthToTestVariableCombinations
                                                                   associationFromStrengthToTestVariableCombinationsFromSubtree
                             let associationFromTestVariableIndexToNumberOfItsLevels =
