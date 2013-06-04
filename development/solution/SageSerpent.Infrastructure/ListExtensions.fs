@@ -43,6 +43,11 @@
     let private decorrelatedCrossProductWithCommonSuffix commonSuffix
                                                          sequences
                                                          (randomBehaviour: System.Random) =
+        let arrays =
+            sequences
+            |> List.map Array.ofSeq
+        let numberOfArrays =
+            arrays.Length
         let maximumNumberOfSplits =
             5
         let rec crossProductSubsequencesFrom reverseOfCommonPrefix
@@ -57,7 +62,11 @@
                                                                                                 arrays
                                                                                                 commonSuffix do
                                 yield List.permute (fun index ->
-                                                        existingInversePermutationForEachCrossProductTerm.[index])
+                                                        if numberOfArrays <= index
+                                                        then
+                                                            index
+                                                        else
+                                                            existingInversePermutationForEachCrossProductTerm.[index])
                                                         permutedCrossProductTerm
                         }
                 ]
@@ -123,16 +132,13 @@
                             ]
                 | _ ->
                     terminateRecursion ()
-        let arrays =
-            sequences
-            |> List.map Array.ofSeq
         let crossProductSubsequences =
             crossProductSubsequencesFrom []
-                                            (Array.init arrays.Length
-                                                        (fun index ->
+                                         (Array.init numberOfArrays
+                                                     (fun index ->
                                                         index))
-                                            arrays
-                                            0
+                                         arrays
+                                         0
         randomBehaviour.PickAlternatelyFrom crossProductSubsequences
 
     let rec private mergeSortedListsAllowingDuplicates first second =
