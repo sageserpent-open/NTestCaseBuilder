@@ -171,8 +171,8 @@
                 let randomBehaviour =
                     Random randomisationSeed
                 let decorrelatedCrossProduct =
-                    List.DecorrelatedCrossProduct inputList
-                                                  randomBehaviour
+                    List.DecorrelatedCrossProduct randomBehaviour
+                                                  inputList
                     |> Set.ofSeq
                 let shouldBeTrue =
                     crossProduct = decorrelatedCrossProduct
@@ -190,8 +190,8 @@
                 let randomBehaviour =
                     Random randomisationSeed
                 let decorrelatedCrossProduct =
-                    List.DecorrelatedCrossProduct inputList
-                                                  randomBehaviour
+                    List.DecorrelatedCrossProduct randomBehaviour
+                                                  inputList
                 let numberOfInputs =
                     List.length inputList
                 let itemToCrossProductPositionSumAndCountAssociation

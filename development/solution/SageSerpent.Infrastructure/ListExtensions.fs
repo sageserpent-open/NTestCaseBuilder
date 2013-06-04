@@ -225,15 +225,15 @@
             crossProductWithCommonSuffix []
                                          sequences
 
-        static member DecorrelatedCrossProductWithCommonSuffix commonSuffix
-                                                               sequences
-                                                               (randomBehaviour: System.Random) =
+        static member DecorrelatedCrossProductWithCommonSuffix randomBehaviour
+                                                               commonSuffix
+                                                               sequences =
             decorrelatedCrossProductWithCommonSuffix commonSuffix
                                                      sequences
                                                      randomBehaviour
 
-        static member DecorrelatedCrossProduct sequences
-                                               (randomBehaviour: System.Random) =
+        static member DecorrelatedCrossProduct randomBehaviour
+                                               sequences =
             decorrelatedCrossProductWithCommonSuffix []
                                                      sequences
                                                      randomBehaviour
