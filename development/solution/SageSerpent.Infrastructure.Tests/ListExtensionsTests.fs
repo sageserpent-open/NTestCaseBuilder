@@ -180,6 +180,55 @@
             createBinaryCrossProductsAndHandOffToEachTest testHandoff
 
         [<Test>]
+        member this.TestThatTheCrossProductWithCommonSuffixProducesTheSameResultsAsThePlainCrossProductWithTheSuffixAppendedToEachResult() =
+            let testHandoff inputList
+                            numberOfBinaryChoiceEntries
+                             _ =
+                for commonSuffix in [[];[Some -1];[Some -1; Some -2]] do
+                    let crossProductWithSuffices =
+                        List.CrossProductWithCommonSuffix commonSuffix
+                                                          inputList
+                        |> Set.ofSeq
+                    let randomisationSeed =
+                        89438
+                    let randomBehaviour =
+                        Random randomisationSeed
+                    let crossProduct =
+                        List.CrossProduct inputList
+                        |> Set.ofSeq
+                    let shouldBeTrue =
+                        crossProductWithSuffices = (crossProduct
+                                                    |> Set.map (fun crossProductTerm ->
+                                                                    List.append crossProductTerm
+                                                                                commonSuffix))
+                    Assert.IsTrue shouldBeTrue
+            createBinaryCrossProductsAndHandOffToEachTest testHandoff
+
+        [<Test>]
+        member this.TestThatTheDecorrelatedCrossProductWithCommonSuffixProducesTheSameResultsAsTheConventionalImplementation() =
+            let testHandoff inputList
+                            numberOfBinaryChoiceEntries
+                             _ =
+                for commonSuffix in [[];[Some -1];[Some -1; Some -2]] do
+                    let crossProductWithSuffices =
+                        List.CrossProductWithCommonSuffix commonSuffix
+                                                          inputList
+                        |> Set.ofSeq
+                    let randomisationSeed =
+                        89438
+                    let randomBehaviour =
+                        Random randomisationSeed
+                    let decorrelatedCrossProductWithSuffices =
+                        List.DecorrelatedCrossProductWithCommonSuffix randomBehaviour
+                                                                      commonSuffix
+                                                                      inputList
+                        |> Set.ofSeq
+                    let shouldBeTrue =
+                        crossProductWithSuffices = decorrelatedCrossProductWithSuffices
+                    Assert.IsTrue shouldBeTrue
+            createBinaryCrossProductsAndHandOffToEachTest testHandoff
+
+        [<Test>]
         member this.TestDistributionOfEachItemInDecorrelatedCrossProductResultsIsRandom() =
             let testHandoff inputList
                             numberOfBinaryChoiceEntries
