@@ -187,6 +187,8 @@ namespace NTestCaseBuilder
             HashMultiMap (result, HashIdentity.Structural)
 
         member this.AssociationFromStrengthToPartialTestVectorRepresentations maximumDesiredStrength =
+            let randomBehaviour =
+                Random 6739
             let rec walkTree node maximumDesiredStrength indexForLeftmostTestVariable =
                 match node with
                     TestVariableNode levels ->
@@ -308,7 +310,8 @@ namespace NTestCaseBuilder
                                 let joinTestVariableCombinations =
                                    List.append
                                 let testVariableCombinationsBuiltFromCrossProduct =
-                                    (List.CrossProduct perSubtreeTestVariableCombinations)
+                                    (List.DecorrelatedCrossProduct randomBehaviour
+                                                                   perSubtreeTestVariableCombinations)
                                     |> Seq.map (List.reduce joinTestVariableCombinations)
                                 Seq.append testVariableCombinationsBuiltFromCrossProduct partialTestVariableCombinations
                             let testVariableCombinationsWithTotalStrength =
@@ -330,8 +333,6 @@ namespace NTestCaseBuilder
                 |> Map.ofList
             let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
-            let randomBehaviour =
-                Random 6739
             let createTestVectorRepresentations testVariableCombination =
                 let sentinelEntriesForInterleavedTestVariableIndices =
                    testVariableCombination
@@ -344,14 +345,8 @@ namespace NTestCaseBuilder
                     |> Set.toList
                     |> List.map (fun testVariableIndex ->
                                     (testVariableIndex, Exclusion))
-                let shuffledTestVariableCombination =
-                    randomBehaviour.Shuffle testVariableCombination
-                    |> Array.toList // This has the effect of uncorrelating the cross product of levels we are about to create for this test variable combination
-                                    // with the following cross product for the following test variable combination. The upshot of this is to avoid situations
-                                    // where we keep seeing runs of full test vectors being merged in client code that share a set of test variables whose levels
-                                    // hardly vary from one full test vector to another.
                 let levelEntriesForTestVariableIndicesFromList =
-                    shuffledTestVariableCombination
+                    testVariableCombination
                     |> List.map (fun testVariableIndex ->
                                     match Map.tryFind testVariableIndex associationFromTestVariableIndexToNumberOfItsLevels with
                                         Some numberOfLevels ->
@@ -361,19 +356,15 @@ namespace NTestCaseBuilder
                                       | None ->
                                             [(testVariableIndex, SingletonPlaceholder)])
                 levelEntriesForTestVariableIndicesFromList
-                |> List.CrossProductWithCommonSuffix sentinelEntriesForInterleavedTestVariableIndices
+                |> List.DecorrelatedCrossProductWithCommonSuffix randomBehaviour
+                                                                 sentinelEntriesForInterleavedTestVariableIndices
                 |> LazyList.ofSeq
                 |> LazyList.map (fun testVectorRepresentationAsList ->
                                     MapWithRunLengths.ofList testVectorRepresentationAsList)
             associationFromStrengthToTestVariableCombinations
-            |> Map.map (fun strength testVariableCombinations ->
+            |> Map.map (fun _
+                            testVariableCombinations ->
                             let createTestVectorRepresentations testVariableCombinations =
-                                let testVariableCombinations =
-                                    randomBehaviour.Shuffle testVariableCombinations
-                                    |> Array.toList // Shuffling the test variable combinations helps break the tendency for successive combinations
-                                                    // of test variables to exhibit overlap. This overlap would otherwise make it hard for client code
-                                                    // to merge successive partial test vectors generated from the combinations - which in turn would
-                                                    // delay the production of full test vectors.
                                 let listsOfTestVectorsCorrespondingToTestVariableCombinations =
                                     testVariableCombinations
                                     |> List.map createTestVectorRepresentations
