@@ -499,7 +499,8 @@ namespace NTestCaseBuilder
                             // NOTE: as we are converting to a map, we can be cavalier about the
                             // order in which associative pairs are added to the partial test vector.
                             Seq.singleton (partialTestVectorBeingBuilt
-                                           |> MapWithRunLengths.ofList)
+                                           |> Map.ofList
+                                           :> IDictionary<_, _>)
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
@@ -519,8 +520,8 @@ namespace NTestCaseBuilder
                                     TreeSearchContextParameters.StartOfSearch
                                     []
 
-        let fillOutPartialTestVectorWithIndeterminates (partialTestVectorRepresentation: MapWithRunLengths<_>) =
-            if uint32 (partialTestVectorRepresentation: MapWithRunLengths<_>).Count > maximumNumberOfTestVariables
+        let fillOutPartialTestVectorWithIndeterminates (partialTestVectorRepresentation: IDictionary<_, _>) =
+            if uint32 partialTestVectorRepresentation.Count > maximumNumberOfTestVariables
             then
                 raise (InternalAssertionViolationException "The partial test vector being either merged or added has more entries than the permitted maximum number of test variables.")
 
@@ -529,7 +530,7 @@ namespace NTestCaseBuilder
                 |> Set.ofSeq
 
             let maximumTestVariableIndexHavingLevel =
-                Seq.max testVariableIndicesHavingLevels
+                Set.maxElement testVariableIndicesHavingLevels
 
             if maximumTestVariableIndexHavingLevel >= maximumNumberOfTestVariables
             then
@@ -551,7 +552,7 @@ namespace NTestCaseBuilder
                 let isFullTestVector =
                     maximumNumberOfTestVariables = 1u + maximumTestVariableIndexHavingLevel
                 partialTestVectorRepresentation
-                |> MapWithRunLengths.toList
+                |> List.ofDictionary
                 |> List.map (snd >> Some)
                 , isFullTestVector
             else
@@ -564,7 +565,7 @@ namespace NTestCaseBuilder
 
                 let sortedAssociationListFromTestVariableIndicesToLevels =
                     partialTestVectorRepresentation
-                    |> MapWithRunLengths.toList
+                    |> List.ofDictionary
                     |> List.map (fun (testVariableIndex
                                       , testVariableLevel) ->
                                         testVariableIndex
@@ -1342,8 +1343,8 @@ namespace NTestCaseBuilder
                                                             },
                                                             maximumNumberOfTestVariablesOverall)
 
-        member this.MergeOrAdd (partialTestVectorRepresentationInExternalForm: MapWithRunLengths<_>) =
-            if MapWithRunLengths.isEmpty partialTestVectorRepresentationInExternalForm
+        member this.MergeOrAdd (partialTestVectorRepresentationInExternalForm: IDictionary<_, _>) =
+            if 0 = partialTestVectorRepresentationInExternalForm.Count
             then
                 this
                 , None
@@ -1377,7 +1378,8 @@ namespace NTestCaseBuilder
 
                         List.zip testVariableIndicesForFullTestVector
                                  testVariableLevelsForFullTestVector
-                        |> MapWithRunLengths.ofList
+                        |> Map.ofList
+                        :> IDictionary<_, _>
                         |> Some
                 let modifiedTestVectorPaths
                     , fullTestVectorBeingOfferedNowForEarlyAccess =

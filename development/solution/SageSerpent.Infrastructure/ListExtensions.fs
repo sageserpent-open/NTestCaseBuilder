@@ -221,6 +221,12 @@
                           |> List.ofArray
             }
 
+    open System.Collections.Generic
+
+    let private (|KeyValuePair|) (keyValuePair: KeyValuePair<_, _>)=
+        keyValuePair.Key
+        , keyValuePair.Value
+
     type Microsoft.FSharp.Collections.List<'X> with
         static member CrossProductWithCommonSuffix commonSuffix
                                                    sequences =
@@ -255,3 +261,11 @@
 
         member this.ChopUpList spans =
             chopUpList this spans
+
+        static member ofDictionary dictionary =
+            [
+                for KeyValuePair (key
+                                  , value) in dictionary do
+                    yield key
+                          , value
+            ]
