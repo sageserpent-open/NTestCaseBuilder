@@ -1200,7 +1200,7 @@
         [<Test>]
         member this.StressCopiousUseOfInterleavesMotivatedByBuildingLogicalExpressionTestCases () =
             let maximumNumberOfOperands =
-                3u
+                4u
 
             let rec expressionFactory maximumSubexpressionNesting
                                       expectSuccess =
@@ -1327,7 +1327,7 @@
                     |> InterleavedTestCaseEnumerableFactory.Create
 
             let maximumSubexpressionNesting =
-                3u
+                4u
 
             let expressionFactory =
                 [true; false]
