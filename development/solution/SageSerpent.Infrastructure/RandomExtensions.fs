@@ -56,3 +56,43 @@ module SageSerpent.Infrastructure.RandomExtensions
             result.AddAll items
             result.Shuffle this
             result.ToArray ()
+
+        [<System.Runtime.CompilerServices.Extension>]
+        [<CompiledName("PickAlternatelyFrom")>]
+        member this.PickAlternatelyFrom (sequences: List<seq<_>>) =
+            let onlyNonEmptyFrom =
+                Seq.filter (LazyList.isEmpty >> not)
+            let pickAnItemFromNonEmptySequences nonEmptyLazyLists =
+                let numberOfLazyLists =
+                    Array.length nonEmptyLazyLists
+                match numberOfLazyLists with
+                    0 ->
+                        None
+                  | _ ->
+                        let chosenLazyListIndex =
+                            this.ChooseAnyNumberFromZeroToOneLessThan (uint32 numberOfLazyLists)
+                            |> int32
+                        match nonEmptyLazyLists.[chosenLazyListIndex] with
+                            LazyList.Cons(pickedItem
+                                          , tailFromChosenLazyList) ->
+                            let remainingLazyLists =
+                                seq
+                                    {
+                                        for index in 0 .. numberOfLazyLists - 1 do
+                                            if chosenLazyListIndex = index
+                                            then
+                                                yield tailFromChosenLazyList
+                                            else
+                                                yield nonEmptyLazyLists.[index]
+                                    }
+                                |> onlyNonEmptyFrom
+                                |> Array.ofSeq
+                            Some (pickedItem
+                                  , remainingLazyLists)
+                          | _ ->
+                                raise (InternalAssertionViolationException "At this point the lazy list should be gauranteed to be non-empty.")
+            Seq.unfold pickAnItemFromNonEmptySequences
+                       (sequences
+                        |> List.map (LazyList.ofSeq)
+                        |> onlyNonEmptyFrom
+                        |> Array.ofSeq)
