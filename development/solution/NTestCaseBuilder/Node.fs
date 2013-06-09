@@ -361,8 +361,7 @@ namespace NTestCaseBuilder
                 levelEntriesForTestVariableIndicesFromList
                 |> List.DecorrelatedCrossProductWithCommonSuffix randomBehaviour
                                                                  sentinelEntriesForInterleavedTestVariableIndices
-                |> LazyList.ofSeq
-                |> LazyList.map (fun testVectorRepresentationAsList ->
+                |> Seq.map (fun testVectorRepresentationAsList ->
                                     Map.ofList testVectorRepresentationAsList)
             associationFromStrengthToTestVariableCombinations
             |> Map.map (fun _
@@ -371,34 +370,7 @@ namespace NTestCaseBuilder
                                 let listsOfTestVectorsCorrespondingToTestVariableCombinations =
                                     testVariableCombinations
                                     |> List.map createTestVectorRepresentations
-                                let assembleHeadTestVectorRepresentationsFromEachList listsOfTestVectorsCorrespondingToTestVariableCombinations =
-                                    let headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations =
-                                        [ for testVectorsCorrespondingToASingleTestVariableCombination in listsOfTestVectorsCorrespondingToTestVariableCombinations do
-                                            match testVectorsCorrespondingToASingleTestVariableCombination with
-                                                LazyList.Cons (head
-                                                               , tail) ->
-                                                    yield head
-                                                          , tail
-                                              | LazyList.Nil ->
-                                                    () ]
-                                    match headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations with
-                                        [] ->
-                                            None
-                                      | _ ->
-                                            let heads
-                                                , tails =
-                                                headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations
-                                                |> List.unzip
-                                            Some (heads
-                                                  , tails)
-                                let groupsOfTestVectorsWhereEachGroupSpansTheTestVariableCombinations
-                                    = listsOfTestVectorsCorrespondingToTestVariableCombinations
-                                      |> Seq.unfold assembleHeadTestVectorRepresentationsFromEachList
-                                seq
-                                    {
-                                        for group in groupsOfTestVectorsWhereEachGroupSpansTheTestVariableCombinations do
-                                            yield! group
-                                    }
+                                randomBehaviour.PickAlternatelyFrom listsOfTestVectorsCorrespondingToTestVariableCombinations
                             let chunkSizeThatIsSmallEnoughToAvoidMemoryPressure =
                                 1000u
                             seq
