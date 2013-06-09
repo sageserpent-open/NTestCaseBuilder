@@ -61,7 +61,8 @@ module SageSerpent.Infrastructure.RandomExtensions
         [<CompiledName("PickAlternatelyFrom")>]
         member this.PickAlternatelyFrom (sequences: List<seq<_>>) =
             let onlyNonEmptyFrom =
-                Seq.filter (LazyList.isEmpty >> not)
+                List.filter (LazyList.isEmpty >> not)
+                >> Array.ofList
             let pickAnItemFromNonEmptySequences nonEmptyLazyLists =
                 let numberOfLazyLists =
                     Array.length nonEmptyLazyLists
@@ -73,20 +74,18 @@ module SageSerpent.Infrastructure.RandomExtensions
                             this.ChooseAnyNumberFromZeroToOneLessThan (uint32 numberOfLazyLists)
                             |> int32
                         match nonEmptyLazyLists.[chosenLazyListIndex] with
-                            LazyList.Cons(pickedItem
-                                          , tailFromChosenLazyList) ->
+                            LazyList.Cons (pickedItem
+                                           , tailFromChosenLazyList) ->
                             let remainingLazyLists =
-                                seq
-                                    {
-                                        for index in 0 .. numberOfLazyLists - 1 do
-                                            if chosenLazyListIndex = index
-                                            then
-                                                yield tailFromChosenLazyList
-                                            else
-                                                yield nonEmptyLazyLists.[index]
-                                    }
+                                [
+                                    for index in 0 .. numberOfLazyLists - 1 do
+                                        if chosenLazyListIndex = index
+                                        then
+                                            yield tailFromChosenLazyList
+                                        else
+                                            yield nonEmptyLazyLists.[index]
+                                ]
                                 |> onlyNonEmptyFrom
-                                |> Array.ofSeq
                             Some (pickedItem
                                   , remainingLazyLists)
                           | _ ->
@@ -94,5 +93,4 @@ module SageSerpent.Infrastructure.RandomExtensions
             Seq.unfold pickAnItemFromNonEmptySequences
                        (sequences
                         |> List.map (LazyList.ofSeq)
-                        |> onlyNonEmptyFrom
-                        |> Array.ofSeq)
+                        |> onlyNonEmptyFrom)
