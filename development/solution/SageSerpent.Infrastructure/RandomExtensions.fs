@@ -61,38 +61,62 @@ module SageSerpent.Infrastructure.RandomExtensions
         [<CompiledName("PickAlternatelyFrom")>]
         member this.PickAlternatelyFrom (sequences: List<seq<_>>) =
             let onlyNonEmptyFrom =
-                Seq.filter (LazyList.isEmpty >> not)
-            let pickAnItemFromNonEmptySequences nonEmptyLazyLists =
+                List.filter (LazyList.isEmpty >> not)
+            let pickAnItemFromNonEmptyLazyLists nonEmptyLazyLists =
                 let numberOfLazyLists =
                     Array.length nonEmptyLazyLists
                 match numberOfLazyLists with
                     0 ->
                         None
                   | _ ->
-                        let chosenLazyListIndex =
+                        let sliceStartInclusiveIndex =
                             this.ChooseAnyNumberFromZeroToOneLessThan (uint32 numberOfLazyLists)
                             |> int32
-                        match nonEmptyLazyLists.[chosenLazyListIndex] with
-                            LazyList.Cons(pickedItem
-                                          , tailFromChosenLazyList) ->
-                            let remainingLazyLists =
-                                seq
-                                    {
-                                        for index in 0 .. numberOfLazyLists - 1 do
-                                            if chosenLazyListIndex = index
-                                            then
-                                                yield tailFromChosenLazyList
-                                            else
-                                                yield nonEmptyLazyLists.[index]
-                                    }
-                                |> onlyNonEmptyFrom
-                                |> Array.ofSeq
-                            Some (pickedItem
-                                  , remainingLazyLists)
-                          | _ ->
-                                raise (InternalAssertionViolationException "At this point the lazy list should be gauranteed to be non-empty.")
-            Seq.unfold pickAnItemFromNonEmptySequences
-                       (sequences
-                        |> List.map (LazyList.ofSeq)
-                        |> onlyNonEmptyFrom
-                        |> Array.ofSeq)
+                        let sliceEndExclusiveIndex =
+                            this.ChooseAnyNumberFromZeroToOneLessThan (uint32 numberOfLazyLists)
+                            |> int32
+                        let sliceLength =
+                            numberOfLazyLists
+                            - ((numberOfLazyLists + sliceStartInclusiveIndex -  sliceEndExclusiveIndex) % numberOfLazyLists)
+                        let translateIndex sourceIndex =
+                            (sourceIndex + sliceStartInclusiveIndex) % numberOfLazyLists
+                        let intraSlicePermutationDestinationIndices =
+                            seq
+                                {
+                                    for intraSliceIndex in 0 .. sliceLength - 1 do
+                                        yield translateIndex intraSliceIndex
+                                }
+                            |> this.Shuffle
+                        let pickedItems
+                            , lazyListsPickedFrom =
+                            [
+                                for sourceIndex in 0 .. sliceLength - 1 do
+                                    yield match nonEmptyLazyLists.[intraSlicePermutationDestinationIndices.[sourceIndex]] with
+                                            LazyList.Cons (pickedItem
+                                                            , tailFromPickedLazyList) ->
+                                                pickedItem
+                                                , tailFromPickedLazyList
+                                          | _ ->
+                                                raise (InternalAssertionViolationException "At this point the lazy list should be guaranteed to be non-empty.")
+                            ]
+                            |> List.unzip
+                        let unchangedLazyLists =
+                            [
+                                for sourceIndex in sliceLength .. numberOfLazyLists - 1 do
+                                    yield nonEmptyLazyLists.[translateIndex sourceIndex]
+                            ]
+                        Some (pickedItems
+                              , [|
+                                    yield! lazyListsPickedFrom
+                                           |> onlyNonEmptyFrom
+                                    yield! unchangedLazyLists
+                                |])
+            seq
+                {
+                    for pickedItemsChunk in Seq.unfold pickAnItemFromNonEmptyLazyLists
+                                                       (sequences
+                                                        |> List.map (LazyList.ofSeq)
+                                                        |> onlyNonEmptyFrom
+                                                        |> Array.ofList) do
+                        yield! pickedItemsChunk
+                }
