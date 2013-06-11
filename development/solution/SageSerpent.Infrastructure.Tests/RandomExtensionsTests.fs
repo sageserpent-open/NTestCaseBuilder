@@ -31,6 +31,26 @@
                 for chosenItem in chosenItems do
                     ()
 
+        let commonTestStructureForTestingAlternatePickingFromSequences testOnSequences =
+            let randomBehaviour =
+                Random 232
+            for numberOfSequences in 0 .. 50 do
+                let maximumPossibleNumberOfItemsInASequence =
+                    100
+                let sequenceSizes =
+                    List.init numberOfSequences
+                              (fun _ ->
+                                randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 maximumPossibleNumberOfItemsInASequence)
+                                |> int32)
+                let sequences =
+                    sequenceSizes
+                    |> List.mapi (fun sequenceIndex
+                                      sequenceSize ->
+                                        Seq.init sequenceSize
+                                                 (fun itemIndex ->
+                                                    sequenceIndex + numberOfSequences * itemIndex))
+                testOnSequences sequences
+
         [<Test>]
         member this.TestCoverageOfIntegersUpToExclusiveUpperBound() =
             let random = Random 29
@@ -161,3 +181,50 @@
         member this.TestPig8() =
             pig 50000u
 
+        [<Test>]
+        member this.TestThatPickingAlternatelyFromSequencesPreservesTheItemsInTheOriginalSequences () =
+            let randomBehaviour =
+                Random 89734873
+            let testHandoff sequences =
+                let alternatelyPickedSequence =
+                    randomBehaviour.PickAlternatelyFrom sequences
+                let setOfAllItemsPickedFrom =
+                    sequences
+                    |> List.map Set.ofSeq
+                    |> Set.unionMany
+                let setofAllItemsActuallyPicked =
+                    alternatelyPickedSequence
+                    |> Set.ofSeq
+                let shouldBeTrue =
+                    setOfAllItemsPickedFrom = setofAllItemsActuallyPicked
+                Assert.IsTrue shouldBeTrue
+            commonTestStructureForTestingAlternatePickingFromSequences testHandoff
+
+        [<Test>]
+        member this.TestThatPickingAlternatelyFromSequencesPreservesTheOrderOfItemsInTheOriginalSequences () =
+            let randomBehaviour =
+                Random 2317667
+            let testHandoff sequences =
+                let alternatelyPickedSequence =
+                    randomBehaviour.PickAlternatelyFrom sequences
+                let numberOfSequences =
+                    sequences
+                    |> List.length
+                let disentangledPickedSubsequences =
+                    sequences
+                    |> List.mapi (fun sequenceIndex
+                                      sequence ->
+                                      sequence
+                                      |> Seq.filter (fun item ->
+                                                        item % numberOfSequences
+                                                         = sequenceIndex))
+                let shouldBeTrue =
+                    List.zip sequences
+                             disentangledPickedSubsequences
+                    |> List.forall (fun (sequence
+                                         , disentangledPickedSubsequence) ->
+                                         0 = Seq.compareWith compare
+                                                             sequence
+                                                             disentangledPickedSubsequence)
+                Assert.IsTrue shouldBeTrue
+            commonTestStructureForTestingAlternatePickingFromSequences testHandoff
