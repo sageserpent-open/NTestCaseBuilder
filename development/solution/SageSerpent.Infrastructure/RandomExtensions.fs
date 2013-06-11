@@ -69,42 +69,32 @@ module SageSerpent.Infrastructure.RandomExtensions
                     0 ->
                         None
                   | _ ->
-                        let sliceStartInclusiveIndex =
-                            this.ChooseAnyNumberFromZeroToOneLessThan (uint32 numberOfLazyLists)
-                            |> int32
-                        let sliceEndExclusiveIndex =
-                            this.ChooseAnyNumberFromZeroToOneLessThan (uint32 numberOfLazyLists)
-                            |> int32
                         let sliceLength =
-                            numberOfLazyLists
-                            - ((numberOfLazyLists + sliceStartInclusiveIndex -  sliceEndExclusiveIndex) % numberOfLazyLists)
-                        let translateIndex sourceIndex =
-                            (sourceIndex + sliceStartInclusiveIndex) % numberOfLazyLists
-                        let intraSlicePermutationDestinationIndices =
-                            seq
-                                {
-                                    for intraSliceIndex in 0 .. sliceLength - 1 do
-                                        yield translateIndex intraSliceIndex
-                                }
+                            this.ChooseAnyNumberFromOneTo (uint32 numberOfLazyLists)
+                            |> int32
+                        let permutationDestinationIndices =
+                            Seq.init numberOfLazyLists
+                                     (fun index ->
+                                        index)
                             |> this.Shuffle
                         let pickedItems
                             , lazyListsPickedFrom =
-                            [
-                                for sourceIndex in 0 .. sliceLength - 1 do
-                                    yield match nonEmptyLazyLists.[intraSlicePermutationDestinationIndices.[sourceIndex]] with
+                            List.init sliceLength
+                                      (fun sourceIndex ->
+                                        match nonEmptyLazyLists.[permutationDestinationIndices.[sourceIndex]] with
                                             LazyList.Cons (pickedItem
-                                                            , tailFromPickedLazyList) ->
+                                                           , tailFromPickedLazyList) ->
                                                 pickedItem
                                                 , tailFromPickedLazyList
                                           | _ ->
-                                                raise (InternalAssertionViolationException "At this point the lazy list should be guaranteed to be non-empty.")
-                            ]
+                                                raise (InternalAssertionViolationException "At this point the lazy list should be guaranteed to be non-empty."))
                             |> List.unzip
                         let unchangedLazyLists =
-                            [
-                                for sourceIndex in sliceLength .. numberOfLazyLists - 1 do
-                                    yield nonEmptyLazyLists.[translateIndex sourceIndex]
-                            ]
+                            List.init (numberOfLazyLists - sliceLength)
+                                      (fun zeroRelativeIndex ->
+                                        let sourceIndex =
+                                            sliceLength + zeroRelativeIndex
+                                        nonEmptyLazyLists.[permutationDestinationIndices.[sourceIndex]])
                         Some (pickedItems
                               , [|
                                     yield! lazyListsPickedFrom
