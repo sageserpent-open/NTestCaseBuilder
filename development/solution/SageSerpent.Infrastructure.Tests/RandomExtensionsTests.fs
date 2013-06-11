@@ -198,6 +198,14 @@
                 let shouldBeTrue =
                     setOfAllItemsPickedFrom = setofAllItemsActuallyPicked
                 Assert.IsTrue shouldBeTrue
+                let shouldBeTrue =
+                    (sequences
+                     |> List.map Seq.length
+                     |> List.fold (+)
+                                  0)
+                     = (alternatelyPickedSequence
+                        |> Seq.length)
+                Assert.IsTrue shouldBeTrue
             commonTestStructureForTestingAlternatePickingFromSequences testHandoff
 
         [<Test>]
@@ -227,4 +235,58 @@
                                                              sequence
                                                              disentangledPickedSubsequence)
                 Assert.IsTrue shouldBeTrue
+            commonTestStructureForTestingAlternatePickingFromSequences testHandoff
+
+        [<Test>]
+        member this.TestThatPickingAlternatelyFromSequencesChoosesRandomlyFromTheSequences () =
+            let randomBehaviour =
+                Random 2317667
+            let testHandoff sequences =
+                let alternatelyPickedSequence =
+                    randomBehaviour.PickAlternatelyFrom sequences
+                let numberOfSequences =
+                    sequences
+                    |> List.length
+                let sequenceIndexToPositionSumAndCount
+                    , pickedSequenceLength =
+                    alternatelyPickedSequence
+                    |> Seq.fold (fun (sequenceIndexToPositionSumAndCount
+                                      , itemPosition)
+                                     item ->
+                                    let sequenceIndex =
+                                        item % numberOfSequences
+                                    sequenceIndexToPositionSumAndCount
+                                    |> match Map.tryFind sequenceIndex
+                                                         sequenceIndexToPositionSumAndCount with
+                                        Some (positionSum
+                                              , numberOfPositions) ->
+                                            Map.add sequenceIndex
+                                                    (itemPosition + positionSum
+                                                     , 1 + numberOfPositions)
+                                                
+                                      | None ->
+                                            Map.add sequenceIndex
+                                                    (itemPosition
+                                                     , 1)
+                                    , 1 + itemPosition)
+                                (Map.empty
+                                 , 0)
+
+                let minumumRequiredNumberOfPositions
+                    = 50
+                let toleranceEpsilon =
+                    6e-1
+                for item
+                    , (positionSum
+                       , numberOfPositions) in Map.toSeq sequenceIndexToPositionSumAndCount do
+                    if minumumRequiredNumberOfPositions <= numberOfPositions
+                    then
+                        let meanPosition =
+                            (double) positionSum / (double) numberOfPositions
+                        printf "Item: %A, mean position: %A, picked sequence length: %A\n" item
+                                                                                           meanPosition
+                                                                                           pickedSequenceLength
+                        let shouldBeTrue =
+                            Math.Abs (2.0 * meanPosition - (double) pickedSequenceLength) < (double) pickedSequenceLength * toleranceEpsilon
+                        Assert.IsTrue shouldBeTrue
             commonTestStructureForTestingAlternatePickingFromSequences testHandoff
