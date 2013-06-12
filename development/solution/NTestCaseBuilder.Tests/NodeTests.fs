@@ -218,7 +218,7 @@
                         let resultsAtDesiredStrength =
                             if numberOfTrackedTestVariables = maximumStrengthFromResults
                             then
-                                (results :> IDictionary<_, _>).[numberOfTrackedTestVariables]
+                                results.[numberOfTrackedTestVariables]
                             else
                                 if numberOfTrackedTestVariables > maximumStrengthFromResults
                                 then
@@ -228,18 +228,24 @@
                                             "The maximum requested strength of combination is the number of tracked variables, but there are higher strength results.")
                         let extractLevelIndicesFromTrackedTestVariablesOnly testVectorRepresentation =
                             let testVectorRepresentationForTrackedVariablesOnly =
-                                    Map.foldBack (fun testVariableIndex level partialResult ->
+                                    Seq.fold (fun partialResult
+                                                  (keyValuePair: KeyValuePair<_, _>) ->
+                                                    let testVariableIndex =
+                                                        keyValuePair.Key
+                                                    let level =
+                                                        keyValuePair.Value
                                                     match level with
                                                         Level testVariableLevelIndex ->
                                                             match trackedTestVariablesIndexedByTestVariable.[int32 testVariableIndex] with
                                                                 Some trackedTestVariableIndex ->
                                                                     (trackedTestVariableIndex, testVariableLevelIndex)
-                                                                     :: partialResult
-                                                              | _ ->
+                                                                        :: partialResult
+                                                                | _ ->
                                                                     partialResult
-                                                      | _ ->
+                                                        | _ ->
                                                             partialResult)
-                                                 testVectorRepresentation []
+                                              [] testVectorRepresentation
+                                    |> List.rev
                             testVectorRepresentationForTrackedVariablesOnly
                             |> Map.ofList  // Sort by the tracked test variable index - hence the roundtrip from list -> map -> list!
                             |> Map.toList
@@ -387,11 +393,16 @@
                 printf "Tree #%u\n" treeNumber
                 let results =
                     (tree.AssociationFromStrengthToPartialTestVectorRepresentations (min tree.MaximumStrengthOfTestVariableCombination
-                                                                                        maximumStrengthOfCombination)
+                                                                                         maximumStrengthOfCombination)
                      |> fst
                      :> IDictionary<_, _>).Values
                     |> Seq.reduce Seq.append
-                let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap testVariableIndex testVariableLevelIndex =
+                let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap
+                                              (keyValuePair: KeyValuePair<_, _>)  =
+                    let testVariableIndex =
+                        keyValuePair.Key
+                    let testVariableLevelIndex =
+                        keyValuePair.Value
                     match testVariableLevelIndex with
                         Level testVariableLevelIndex ->
                             match Map.tryFind testVariableIndex testVariableIndexToMaximumLevelIndexMap with
@@ -403,8 +414,8 @@
                                     Map.add testVariableIndex testVariableLevelIndex testVariableIndexToMaximumLevelIndexMap
                        | _ ->
                             testVariableIndexToMaximumLevelIndexMap
-                let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap result =
-                    Map.fold foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap result
+                let foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap (result: IDictionary<_, _>) =
+                    Seq.fold foldInMaximumLevelIndices testVariableIndexToMaximumLevelIndexMap result
                 let testVariableIndexToMaximumLevelIndexMap =
                     Seq.fold foldInMaximumLevelIndices Map.empty results
                 let observedNumberOfLevelsMap =

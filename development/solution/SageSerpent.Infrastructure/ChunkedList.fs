@@ -51,7 +51,7 @@
     and ChunkedList<'Element when 'Element: equality> (representation: List<Chunk<'Element>>) =
         do
             if representation
-                |> List.exists (fun (chunk: Chunk<'Element>) ->
+               |> List.exists (fun (chunk: Chunk<'Element>) ->
                                     chunk.IsEmpty)
             then
                 raise (InvariantViolationException "All chunks must be non-empty.")
@@ -331,7 +331,7 @@
                             rhs.Representation
             ChunkedList<'Element>.Fuse concatenatedRepresentation
 
-        static member private Fuse representation =
+        static member private Fuse inefficientRepresentation =
             let rec fuseRunLengths representation
                                    reversedPrefixOfResult =
                 match representation with
@@ -389,7 +389,7 @@
                                         ChunkedList<'Element>.RepresentationToList group
                                         |> Array.ofList
                                         |> Contiguous)
-            ChunkedList (fuseRunLengths representation
+            ChunkedList (fuseRunLengths inefficientRepresentation
                                         List.empty
                          |> fuseOddPieces)  // NOTE: the innate reversals from both 'fuseRunLengths' and 'fuseOddPieces' cancel
                                             // each other out, even though the latter reverses at both group and intra-group level.

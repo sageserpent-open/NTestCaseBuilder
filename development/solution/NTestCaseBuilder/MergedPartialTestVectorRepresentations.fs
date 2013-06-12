@@ -499,7 +499,8 @@ namespace NTestCaseBuilder
                             // NOTE: as we are converting to a map, we can be cavalier about the
                             // order in which associative pairs are added to the partial test vector.
                             Seq.singleton (partialTestVectorBeingBuilt
-                                           |> Map.ofList)
+                                           |> Map.ofList
+                                           :> IDictionary<_, _>)
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
@@ -519,18 +520,17 @@ namespace NTestCaseBuilder
                                     TreeSearchContextParameters.StartOfSearch
                                     []
 
-        let fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation =
-            if uint32 (partialTestVectorRepresentation: Map<_, _>).Count > maximumNumberOfTestVariables
+        let fillOutPartialTestVectorWithIndeterminates (partialTestVectorRepresentation: IDictionary<_, _>) =
+            if uint32 partialTestVectorRepresentation.Count > maximumNumberOfTestVariables
             then
                 raise (InternalAssertionViolationException "The partial test vector being either merged or added has more entries than the permitted maximum number of test variables.")
 
             let testVariableIndicesHavingLevels =
-                partialTestVectorRepresentation
-                |> Seq.map (fun keyValuePair -> keyValuePair.Key)
+                partialTestVectorRepresentation.Keys
                 |> Set.ofSeq
 
             let maximumTestVariableIndexHavingLevel =
-                Seq.max testVariableIndicesHavingLevels
+                Set.maxElement testVariableIndicesHavingLevels
 
             if maximumTestVariableIndexHavingLevel >= maximumNumberOfTestVariables
             then
@@ -552,7 +552,7 @@ namespace NTestCaseBuilder
                 let isFullTestVector =
                     maximumNumberOfTestVariables = 1u + maximumTestVariableIndexHavingLevel
                 partialTestVectorRepresentation
-                |> Map.toList
+                |> List.ofDictionary
                 |> List.map (snd >> Some)
                 , isFullTestVector
             else
@@ -565,9 +565,11 @@ namespace NTestCaseBuilder
 
                 let sortedAssociationListFromTestVariableIndicesToLevels =
                     partialTestVectorRepresentation
-                    |> Map.map (fun _ level ->
-                                    Some level)
-                    |> Map.toList
+                    |> List.ofDictionary
+                    |> List.map (fun (testVariableIndex
+                                      , testVariableLevel) ->
+                                        testVariableIndex
+                                        , Some testVariableLevel)
 
                 let mergedAssociationList =
                     BargainBasement.MergeDisjointSortedAssociationLists sortedAssociationListFromTestVariableIndicesToLevels
@@ -1341,8 +1343,8 @@ namespace NTestCaseBuilder
                                                             },
                                                             maximumNumberOfTestVariablesOverall)
 
-        member this.MergeOrAdd partialTestVectorRepresentationInExternalForm =
-            if Map.isEmpty partialTestVectorRepresentationInExternalForm
+        member this.MergeOrAdd (partialTestVectorRepresentationInExternalForm: IDictionary<_, _>) =
+            if 0 = partialTestVectorRepresentationInExternalForm.Count
             then
                 this
                 , None
@@ -1362,7 +1364,7 @@ namespace NTestCaseBuilder
                     if lengthOfPartialTestVectorRepresentation
                         |> uint32 < maximumNumberOfTestVariables
                         || partialTestVectorRepresentation
-                            |> List.exists Option.isNone
+                           |> List.exists Option.isNone
                     then
                         None
                     else
@@ -1377,6 +1379,7 @@ namespace NTestCaseBuilder
                         List.zip testVariableIndicesForFullTestVector
                                  testVariableLevelsForFullTestVector
                         |> Map.ofList
+                        :> IDictionary<_, _>
                         |> Some
                 let modifiedTestVectorPaths
                     , fullTestVectorBeingOfferedNowForEarlyAccess =

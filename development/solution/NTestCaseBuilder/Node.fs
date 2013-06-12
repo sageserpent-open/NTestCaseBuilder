@@ -337,17 +337,14 @@ namespace NTestCaseBuilder
             let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
             let createTestVectorRepresentations testVariableCombination =
-                let sentinelEntriesForInterleavedTestVariableIndices =
+                let excludedTestVariableIndices =
                    testVariableCombination
                     |> List.map (fun testVariableIndex ->
                                     if associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.ContainsKey testVariableIndex
                                     then associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.FindAll testVariableIndex
                                     else [])
                     |> List.concat
-                    |> Set.ofList
-                    |> Set.toList
-                    |> List.map (fun testVariableIndex ->
-                                    (testVariableIndex, Exclusion))
+                    |> SetWithRunLengths.ofList
                 let levelEntriesForTestVariableIndicesFromList =
                     testVariableCombination
                     |> List.map (fun testVariableIndex ->
@@ -359,10 +356,13 @@ namespace NTestCaseBuilder
                                       | None ->
                                             [(testVariableIndex, SingletonPlaceholder)])
                 levelEntriesForTestVariableIndicesFromList
-                |> List.DecorrelatedCrossProductWithCommonSuffix randomBehaviour
-                                                                 sentinelEntriesForInterleavedTestVariableIndices
+                |> List.DecorrelatedCrossProduct randomBehaviour
                 |> Seq.map (fun testVectorRepresentationAsList ->
-                                    Map.ofList testVectorRepresentationAsList)
+                                MapWithSharing (testVectorRepresentationAsList
+                                                |> Map.ofList,
+                                                Exclusion,
+                                                excludedTestVariableIndices)
+                                :> IDictionary<_, _>)
             associationFromStrengthToTestVariableCombinations
             |> Map.map (fun _
                             testVariableCombinations ->
@@ -387,7 +387,7 @@ namespace NTestCaseBuilder
             let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
             let testVariableIndices =
-                ((partialTestVectorRepresentation: Map<_, _>):> IDictionary<_, _>).Keys
+                (partialTestVectorRepresentation: IDictionary<_, _>).Keys
                 |> Set.ofSeq
             let missingTestVariableIndices =
                 (List.init (int32 this.CountTestVariables)
@@ -442,9 +442,9 @@ namespace NTestCaseBuilder
             BargainBasement.MergeDisjointSortedAssociationLists (filledAndExcludedTestVariables
                                                                  |> List.sortBy fst)
                                                                 (partialTestVectorRepresentation
-                                                                 |> Map.toList)
-                |> List.map snd
-                |> List.toArray
+                                                                 |> List.ofDictionary)
+            |> List.map snd
+            |> List.toArray
 
         member this.FinalValueCreator () =
             let indicesInVectorForLeftmostTestVariableInEachSubtree subtreeRootNodes =
