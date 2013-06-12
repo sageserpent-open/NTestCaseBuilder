@@ -370,7 +370,7 @@ namespace NTestCaseBuilder
                                 let listsOfTestVectorsCorrespondingToTestVariableCombinations =
                                     testVariableCombinations
                                     |> List.map createTestVectorRepresentations
-                                randomBehaviour.PickAlternatelyFrom listsOfTestVectorsCorrespondingToTestVariableCombinations
+                                RoundRobinPickFrom listsOfTestVectorsCorrespondingToTestVariableCombinations
                             let chunkSizeThatIsSmallEnoughToAvoidMemoryPressure =
                                 1000u
                             seq

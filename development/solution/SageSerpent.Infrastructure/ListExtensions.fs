@@ -221,6 +221,42 @@
                           |> List.ofArray
             }
 
+    let RoundRobinPickFrom (sequences: List<seq<_>>) =
+        let onlyNonEmptyFrom =
+            List.filter (LazyList.isEmpty >> not)
+            >> Array.ofList
+        let pickAnItemFromNonEmptyLazyLists nonEmptyLazyLists =
+            let numberOfLazyLists =
+                Array.length nonEmptyLazyLists
+            match numberOfLazyLists with
+                0 ->
+                    None
+              | _ ->
+                    let pickedItems
+                        , lazyListsPickedFrom =
+                        List.init numberOfLazyLists
+                                    (fun sourceIndex ->
+                                        match nonEmptyLazyLists.[sourceIndex] with
+                                            LazyList.Cons (pickedItem
+                                                            , tailFromPickedLazyList) ->
+                                                pickedItem
+                                                , tailFromPickedLazyList
+                                          | _ ->
+                                                raise (InternalAssertionViolationException "At this point the lazy list should be guaranteed to be non-empty."))
+                        |> List.unzip
+                    Some (pickedItems
+                          , lazyListsPickedFrom
+                            |> onlyNonEmptyFrom)
+
+        seq
+            {
+                for pickedItemsChunk in Seq.unfold pickAnItemFromNonEmptyLazyLists
+                                                   (sequences
+                                                    |> List.map (LazyList.ofSeq)
+                                                    |> onlyNonEmptyFrom) do
+                    yield! pickedItemsChunk
+            }
+
     type Microsoft.FSharp.Collections.List<'X> with
         static member CrossProductWithCommonSuffix commonSuffix
                                                    sequences =
