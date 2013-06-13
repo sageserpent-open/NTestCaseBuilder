@@ -9,7 +9,6 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>Tests</RootNamespace>
     <AssemblyName>SageSerpent.Infrastructure.Tests</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Name>SageSerpent.Infrastructure.Tests</Name>
     <TargetFrameworkProfile />

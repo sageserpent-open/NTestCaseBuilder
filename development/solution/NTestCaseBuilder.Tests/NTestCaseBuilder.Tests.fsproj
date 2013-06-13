@@ -9,7 +9,6 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>SageSerpent.TestInfrastructure.TestsInFSharp</RootNamespace>
     <AssemblyName>NTestCaseBuilder.Tests</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Name>NTestCaseBuilder.Tests</Name>
     <TargetFrameworkProfile />

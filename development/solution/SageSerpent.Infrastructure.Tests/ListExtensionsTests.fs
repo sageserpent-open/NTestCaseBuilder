@@ -17,7 +17,7 @@
         let exclusiveUpperBoundOnNumberOfZeroEntries =
             2u
         let inclusiveUpperBoundOnNumberOfBinaryChoiceEntries =
-            5u
+            7u
         let numberOfRepeatsToInvestigateZeroesAndUnits =
             10u
         let createBinaryCrossProductsAndHandOffToEachTest testHandoff =
@@ -156,4 +156,141 @@
                                        count ->
                                        expectedCount = count)
                 Assert.IsTrue shouldBeTrue
+            createBinaryCrossProductsAndHandOffToEachTest testHandoff
+
+        [<Test>]
+        member this.TestThatTheDecorrelatedCrossProductProducesTheSameResultsAsTheConventionalImplementation() =
+            let testHandoff inputList
+                            numberOfBinaryChoiceEntries
+                             _ =
+                let crossProduct =
+                    List.CrossProduct inputList
+                    |> Set.ofSeq
+                let randomisationSeed =
+                    89438
+                let randomBehaviour =
+                    Random randomisationSeed
+                let decorrelatedCrossProduct =
+                    List.DecorrelatedCrossProduct randomBehaviour
+                                                  inputList
+                    |> Set.ofSeq
+                let shouldBeTrue =
+                    crossProduct = decorrelatedCrossProduct
+                Assert.IsTrue shouldBeTrue
+            createBinaryCrossProductsAndHandOffToEachTest testHandoff
+
+        [<Test>]
+        member this.TestThatTheCrossProductWithCommonSuffixProducesTheSameResultsAsThePlainCrossProductWithTheSuffixAppendedToEachResult() =
+            let testHandoff inputList
+                            numberOfBinaryChoiceEntries
+                             _ =
+                for commonSuffix in [[];[Some -1];[Some -1; Some -2]] do
+                    let crossProductWithSuffices =
+                        List.CrossProductWithCommonSuffix commonSuffix
+                                                          inputList
+                        |> Set.ofSeq
+                    let randomisationSeed =
+                        89438
+                    let randomBehaviour =
+                        Random randomisationSeed
+                    let crossProduct =
+                        List.CrossProduct inputList
+                        |> Set.ofSeq
+                    let shouldBeTrue =
+                        crossProductWithSuffices = (crossProduct
+                                                    |> Set.map (fun crossProductTerm ->
+                                                                    List.append crossProductTerm
+                                                                                commonSuffix))
+                    Assert.IsTrue shouldBeTrue
+            createBinaryCrossProductsAndHandOffToEachTest testHandoff
+
+        [<Test>]
+        member this.TestThatTheDecorrelatedCrossProductWithCommonSuffixProducesTheSameResultsAsTheConventionalImplementation() =
+            let testHandoff inputList
+                            numberOfBinaryChoiceEntries
+                             _ =
+                for commonSuffix in [[];[Some -1];[Some -1; Some -2]] do
+                    let crossProductWithSuffices =
+                        List.CrossProductWithCommonSuffix commonSuffix
+                                                          inputList
+                        |> Set.ofSeq
+                    let randomisationSeed =
+                        89438
+                    let randomBehaviour =
+                        Random randomisationSeed
+                    let decorrelatedCrossProductWithSuffices =
+                        List.DecorrelatedCrossProductWithCommonSuffix randomBehaviour
+                                                                      commonSuffix
+                                                                      inputList
+                        |> Set.ofSeq
+                    let shouldBeTrue =
+                        crossProductWithSuffices = decorrelatedCrossProductWithSuffices
+                    Assert.IsTrue shouldBeTrue
+            createBinaryCrossProductsAndHandOffToEachTest testHandoff
+
+        [<Test>]
+        member this.TestDistributionOfEachItemInDecorrelatedCrossProductResultsIsRandom() =
+            let testHandoff inputList
+                            numberOfBinaryChoiceEntries
+                            _ =
+                printf "Input list: %A\n" inputList
+                let randomisationSeed =
+                    676792
+                let randomBehaviour =
+                    Random randomisationSeed
+                let decorrelatedCrossProduct =
+                    List.DecorrelatedCrossProduct randomBehaviour
+                                                  inputList
+                let numberOfInputs =
+                    List.length inputList
+                let itemToCrossProductPositionSumAndCountAssociation
+                    , _ =
+                    [
+                        for crossProductList in decorrelatedCrossProduct do
+                            printf "%A\n" crossProductList
+                            yield! List.zip crossProductList
+                                            (List.init numberOfInputs
+                                                       BargainBasement.Identity)
+                    ]
+                    |> List.fold (fun (itemToCrossProductPositionSumAndCountAssociation
+                                       , itemPosition)
+                                      item ->
+                                        let positionOfEnclosingCrossProductTerm =
+                                            itemPosition / numberOfInputs
+                                        itemToCrossProductPositionSumAndCountAssociation
+                                        |> match Map.tryFind item
+                                                             itemToCrossProductPositionSumAndCountAssociation with
+                                                    Some (positionSum
+                                                            , numberOfPositions) ->
+                                                        Map.add item
+                                                                (positionOfEnclosingCrossProductTerm + positionSum
+                                                                 , 1 + numberOfPositions)
+                                                  | None ->
+                                                        Map.add item
+                                                                (positionOfEnclosingCrossProductTerm
+                                                                 , 1)
+                                        , 1 + itemPosition)
+                                 (Map.empty
+                                  , 0)
+                let minumumRequiredNumberOfPositions
+                    = 10
+                let toleranceEpsilon =
+                    3e-1
+                let maximumPossiblePosition =
+                    (decorrelatedCrossProduct
+                    |> Seq.length)
+                    - 1 // NOTE: if the cross product is empty, the resulting bogus value of -1 will nevertheless be ignored by the next code block.
+                for item
+                    , (positionSum
+                       , numberOfPositions) in Map.toSeq itemToCrossProductPositionSumAndCountAssociation do
+                    if minumumRequiredNumberOfPositions <= numberOfPositions
+                    then
+                        let meanPosition =
+                            (double) positionSum / (double) numberOfPositions
+                        printf "Item: %A, mean position: %A, maximum possible position: %A\n" item
+                                                                                              meanPosition
+                                                                                              maximumPossiblePosition
+                        let shouldBeTrue =
+                            Math.Abs (2.0 * meanPosition - (double) maximumPossiblePosition) < (double) maximumPossiblePosition * toleranceEpsilon
+                        Assert.IsTrue shouldBeTrue
             createBinaryCrossProductsAndHandOffToEachTest testHandoff

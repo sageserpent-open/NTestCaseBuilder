@@ -187,6 +187,8 @@ namespace NTestCaseBuilder
             HashMultiMap (result, HashIdentity.Structural)
 
         member this.AssociationFromStrengthToPartialTestVectorRepresentations maximumDesiredStrength =
+            let randomBehaviour =
+                Random 6739
             let rec walkTree node maximumDesiredStrength indexForLeftmostTestVariable =
                 match node with
                     TestVariableNode levels ->
@@ -194,7 +196,7 @@ namespace NTestCaseBuilder
                         then
                             Map.empty
                         else
-                            Map.ofList [1u, [[indexForLeftmostTestVariable]]]
+                            Map.ofList [1u, Seq.singleton [indexForLeftmostTestVariable]]
                         , indexForLeftmostTestVariable + 1u
                         , [indexForLeftmostTestVariable
                            , Array.length levels
@@ -205,7 +207,7 @@ namespace NTestCaseBuilder
                         then
                             Map.empty
                         else
-                            Map.ofList [1u, [[indexForLeftmostTestVariable]]]
+                            Map.ofList [1u, Seq.singleton [indexForLeftmostTestVariable]]
                         , indexForLeftmostTestVariable + 1u
                         , []
 
@@ -219,7 +221,10 @@ namespace NTestCaseBuilder
                                 , associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree =
                                 walkTree subtreeRootNode maximumDesiredStrength indexForLeftmostTestVariable
                             let mergedAssociationFromStrengthToTestVariableCombinations =
-                                BargainBasement.MergeAssociations List.append
+                                let interleaveTestVariableCombinations firstSequence
+                                                                       secondSequence =
+                                    randomBehaviour.PickAlternatelyFrom [firstSequence; secondSequence]
+                                BargainBasement.MergeAssociations interleaveTestVariableCombinations
                                                                   previousAssociationFromStrengthToTestVariableCombinations
                                                                   associationFromStrengthToTestVariableCombinationsFromSubtree
                             let associationFromTestVariableIndexToNumberOfItsLevels =
@@ -302,25 +307,21 @@ namespace NTestCaseBuilder
                                                                   | None ->
                                                                         if strength = 0u
                                                                         then
-                                                                            [[]]
+                                                                            Seq.singleton []
                                                                         else
-                                                                            [])
+                                                                            Seq.empty)
                                 let joinTestVariableCombinations =
                                    List.append
                                 let testVariableCombinationsBuiltFromCrossProduct =
-                                    (List.CrossProduct perSubtreeTestVariableCombinations)
-                                    |> List.ofSeq
-                                    |> List.map (List.reduce joinTestVariableCombinations)
-                                List.append testVariableCombinationsBuiltFromCrossProduct partialTestVariableCombinations
+                                    (List.DecorrelatedCrossProduct randomBehaviour
+                                                                   perSubtreeTestVariableCombinations)
+                                    |> Seq.map (List.reduce joinTestVariableCombinations)
+                                Seq.append testVariableCombinationsBuiltFromCrossProduct partialTestVariableCombinations
                             let testVariableCombinationsWithTotalStrength =
-                                distributionsOfStrengthsOverSubtrees |> List.fold addInTestVariableCombinationsForAGivenDistribution []
-                            if testVariableCombinationsWithTotalStrength.IsEmpty
-                            then
-                                partialAssociationFromStrengthToTestVariableCombinations
-                            else
-                                Map.add totalStrength
-                                        testVariableCombinationsWithTotalStrength
-                                        partialAssociationFromStrengthToTestVariableCombinations
+                                distributionsOfStrengthsOverSubtrees |> List.fold addInTestVariableCombinationsForAGivenDistribution Seq.empty
+                            Map.add totalStrength
+                                    testVariableCombinationsWithTotalStrength
+                                    partialAssociationFromStrengthToTestVariableCombinations
                         let associationFromStrengthToTestVariableCombinations =
                             Map.foldBack addInTestVariableCombinationsForGivenTotalStrength distributionsOfStrengthsOverSubtreesAtEachTotalStrength Map.empty
                         associationFromStrengthToTestVariableCombinations
@@ -335,8 +336,6 @@ namespace NTestCaseBuilder
                 |> Map.ofList
             let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
-            let randomBehaviour =
-                Random 6739
             let createTestVectorRepresentations testVariableCombination =
                 let sentinelEntriesForInterleavedTestVariableIndices =
                    testVariableCombination
@@ -349,14 +348,8 @@ namespace NTestCaseBuilder
                     |> Set.toList
                     |> List.map (fun testVariableIndex ->
                                     (testVariableIndex, Exclusion))
-                let shuffledTestVariableCombination =
-                    randomBehaviour.Shuffle testVariableCombination
-                    |> Array.toList // This has the effect of uncorrelating the cross product of levels we are about to create for this test variable combination
-                                    // with the following cross product for the following test variable combination. The upshot of this is to avoid situations
-                                    // where we keep seeing runs of full test vectors being merged in client code that share a set of test variables whose levels
-                                    // hardly vary from one full test vector to another.
                 let levelEntriesForTestVariableIndicesFromList =
-                    shuffledTestVariableCombination
+                    testVariableCombination
                     |> List.map (fun testVariableIndex ->
                                     match Map.tryFind testVariableIndex associationFromTestVariableIndexToNumberOfItsLevels with
                                         Some numberOfLevels ->
@@ -366,55 +359,24 @@ namespace NTestCaseBuilder
                                       | None ->
                                             [(testVariableIndex, SingletonPlaceholder)])
                 levelEntriesForTestVariableIndicesFromList
-                |> List.CrossProductWithCommonSuffix sentinelEntriesForInterleavedTestVariableIndices
-                |> LazyList.ofSeq
-                |> LazyList.map (fun testVectorRepresentationAsList ->
+                |> List.DecorrelatedCrossProductWithCommonSuffix randomBehaviour
+                                                                 sentinelEntriesForInterleavedTestVariableIndices
+                |> Seq.map (fun testVectorRepresentationAsList ->
                                     Map.ofList testVectorRepresentationAsList)
             associationFromStrengthToTestVariableCombinations
-            |> Map.map (fun strength testVariableCombinations ->
-                            let testVariableCombinations =
-                                randomBehaviour.Shuffle testVariableCombinations
-                                |> Array.toList // Shuffling the test variable combinations helps break the tendency for successive combinations
-                                                // of test variables to exhibit overlap. This overlap would otherwise make it hard for client code
-                                                // to merge successive partial test vectors generated from the combinations - which in turn would
-                                                // delay the production of full test vectors.
+            |> Map.map (fun _
+                            testVariableCombinations ->
                             let createTestVectorRepresentations testVariableCombinations =
                                 let listsOfTestVectorsCorrespondingToTestVariableCombinations =
                                     testVariableCombinations
                                     |> List.map createTestVectorRepresentations
-                                let assembleHeadTestVectorRepresentationsFromEachList listsOfTestVectorsCorrespondingToTestVariableCombinations =
-                                    let headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations =
-                                        [ for testVectorsCorrespondingToASingleTestVariableCombination in listsOfTestVectorsCorrespondingToTestVariableCombinations do
-                                            match testVectorsCorrespondingToASingleTestVariableCombination with
-                                                LazyList.Cons (head
-                                                               , tail) ->
-                                                    yield head
-                                                          , tail
-                                              | LazyList.Nil ->
-                                                    () ]
-                                    match headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations with
-                                        [] ->
-                                            None
-                                      | _ ->
-                                            let heads
-                                                , tails =
-                                                headsAndTailsFromListsOfTestVectorsCorrespondingToTestVariableCombinations
-                                                |> List.unzip
-                                            Some (heads
-                                                  , tails)
-                                let groupsOfTestVectorsWhereEachGroupSpansTheTestVariableCombinations
-                                    = listsOfTestVectorsCorrespondingToTestVariableCombinations
-                                      |> Seq.unfold assembleHeadTestVectorRepresentationsFromEachList
-                                seq
-                                    {
-                                        for group in groupsOfTestVectorsWhereEachGroupSpansTheTestVariableCombinations do
-                                            yield! group
-                                    }
+                                RoundRobinPickFrom listsOfTestVectorsCorrespondingToTestVariableCombinations
                             let chunkSizeThatIsSmallEnoughToAvoidMemoryPressure =
                                 1000u
                             seq
                                 {
-                                    for chunkOfTestVariableCombinations in testVariableCombinations.Chunks chunkSizeThatIsSmallEnoughToAvoidMemoryPressure do
+                                    for chunkOfTestVariableCombinations in Chunk chunkSizeThatIsSmallEnoughToAvoidMemoryPressure
+                                                                                 testVariableCombinations do
                                         yield! createTestVectorRepresentations chunkOfTestVariableCombinations
                                 })
             , associationFromTestVariableIndexToNumberOfItsLevels
@@ -429,14 +391,15 @@ namespace NTestCaseBuilder
                 |> Set.ofSeq
             let missingTestVariableIndices =
                 (List.init (int32 this.CountTestVariables)
-                           (fun count ->
-                             uint32 count)
+                           (fun testVariableIndex ->
+                             uint32 testVariableIndex)
                  |> Set.ofList)
                 - testVariableIndices
-            let rec fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices =
+            let rec fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
+                                                                       entriesForPreviouslyExcludedTestVariableIndices =
                 if Set.count missingTestVariableIndices = 0
                 then
-                    []
+                    entriesForPreviouslyExcludedTestVariableIndices
                 else
                     let chosenTestVariableIndex =
                         (randomBehaviour: Random).ChooseOneOf missingTestVariableIndices
@@ -457,29 +420,31 @@ namespace NTestCaseBuilder
                         , levelForChosenTestVariable
                     let excludedTestVariableIndices =
                         associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.FindAll chosenTestVariableIndex
+                        |> Set.ofList
+                        |> Set.intersect missingTestVariableIndices
                     let entriesForExcludedTestVariableIndices =
                         excludedTestVariableIndices
-                        |> List.map (fun excludedTestVariableIndex ->
+                        |> Seq.map (fun excludedTestVariableIndex ->
                                         excludedTestVariableIndex
                                         , Exclusion)
+                        |> List.ofSeq
                     let missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions =
-                        missingTestVariableIndices - Set.ofList (chosenTestVariableIndex
-                                                                   :: excludedTestVariableIndices)
-                    let resultFromRecursiveCase =
-                        fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions
-                    List.append (entryForChosenTestVariable
-                                 :: entriesForExcludedTestVariableIndices)
-                                resultFromRecursiveCase
-            let filledAndExcludedTestVariables = fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
-            List.append filledAndExcludedTestVariables
-                        (partialTestVectorRepresentation
-                         |> Map.toList)
-                   |> Map.ofList
-                   |> Map.toList   // This ensures the entries are sorted in ascending test variable index order.
-                   |> List.map snd // This is more roundabout than using the 'Values' property, but the latter
-                                   // makes no guarantee about the ordering - we want to preserve the order we
-                                   // just established above.
-                   |> List.toArray
+                        (missingTestVariableIndices
+                         |> Set.remove chosenTestVariableIndex)
+                        - excludedTestVariableIndices
+                    fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions
+                                                                       (List.append (entryForChosenTestVariable
+                                                                                     :: entriesForExcludedTestVariableIndices)
+                                                                                    entriesForPreviouslyExcludedTestVariableIndices)
+            let filledAndExcludedTestVariables =
+                fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
+                                                                   List.empty
+            BargainBasement.MergeDisjointSortedAssociationLists (filledAndExcludedTestVariables
+                                                                 |> List.sortBy fst)
+                                                                (partialTestVectorRepresentation
+                                                                 |> Map.toList)
+                |> List.map snd
+                |> List.toArray
 
         member this.FinalValueCreator () =
             let indicesInVectorForLeftmostTestVariableInEachSubtree subtreeRootNodes =
