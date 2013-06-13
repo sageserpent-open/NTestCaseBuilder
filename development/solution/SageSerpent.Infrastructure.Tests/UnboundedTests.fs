@@ -5,7 +5,7 @@
     open SageSerpent.Infrastructure
 
     [<TestFixture>]
-    type UnboundedTestFixture() =
+    type UnboundedTestFixture () =
         let fortyFive =
             Finite 45
 

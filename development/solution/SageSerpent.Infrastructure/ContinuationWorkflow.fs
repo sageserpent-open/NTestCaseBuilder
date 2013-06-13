@@ -3,14 +3,14 @@
     type ContinuationMonad<'Input, 'ExternalFinalResult> =
         Step of (('Input -> 'ExternalFinalResult) * (unit -> 'ExternalFinalResult) -> 'ExternalFinalResult)
 
-            member inline this.Execute(successContinuation
-                                       , failureContinuation) =
+            member inline this.Execute (successContinuation
+                                        , failureContinuation) =
                 match this with
                     Step computation ->
                         computation (successContinuation
                                      , failureContinuation)
 
-            static member inline Execute(continuationMonad: ContinuationMonad<'FinalResult, 'FinalResult>) =
+            static member inline Execute (continuationMonad: ContinuationMonad<'FinalResult, 'FinalResult>) =
                 continuationMonad.Execute(BargainBasement.Identity, (fun () -> failwith "Unhandled failure: use the '+' operator to introduce an alternative computation for failure."))
 
             static member inline (+) (lhs: ContinuationMonad<'Input, 'ExternalFinalResult>,
@@ -22,7 +22,7 @@
                                             rhs.Execute(successContinuation,
                                                         failureContinuation)))
 
-            static member inline CallCC(body: ('Result -> ContinuationMonad<_, 'ExternalFinalResult>) -> ContinuationMonad<'Result, 'ExternalFinalResult>) =
+            static member inline CallCC (body: ('Result -> ContinuationMonad<_, 'ExternalFinalResult>) -> ContinuationMonad<'Result, 'ExternalFinalResult>) =
                 Step (fun (successContinuation
                            , failureContinuation) ->
                     let ejectionSeat fastReturnResult =

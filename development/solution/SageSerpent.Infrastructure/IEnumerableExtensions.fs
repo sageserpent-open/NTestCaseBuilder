@@ -10,4 +10,4 @@ module SageSerpent.Infrastructure.IEnumerableExtensions
             |> Seq.pairwise
             |> Seq.forall (fun (lhs: 'HasComparison
                                 , rhs)
-                            -> lhs < rhs)
+                            -> lhs <= rhs)

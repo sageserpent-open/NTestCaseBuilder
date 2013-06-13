@@ -44,6 +44,7 @@
     <Compile Include="UnboundedTests.fs" />
     <Compile Include="RandomExtensionsTests.fs" />
     <Compile Include="ListExtensionsTests.fs" />
+    <Compile Include="ChunkedListTests.fs" />
     <Compile Include="Driver.fs" />
     <None Include="App.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
