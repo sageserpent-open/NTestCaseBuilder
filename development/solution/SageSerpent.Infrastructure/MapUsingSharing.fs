@@ -6,7 +6,7 @@
 
     type MapWithSharing<'Value when 'Value: comparison> (representation: Map<UInt32, 'Value>,
                                                          fixedValue: 'Value,
-                                                         keysForFixedValue: SetWithRunLengths) =
+                                                         keysForFixedValue: Set<UInt32>) =
         do
             let shouldBeTrue =
                 (Set.intersect ((representation :> IDictionary<_, _>).Keys
@@ -20,12 +20,13 @@
         new (representation: Map<UInt32, 'Value>) =
             MapWithSharing (representation,
                             Unchecked.defaultof<'Value>,
-                            SetWithRunLengths.empty)
+                            Set.empty)
 
         member this.Keys: ICollection<UInt32> =
             List.MergeSortedListsAllowingDuplicates ((representation :> IDictionary<_, _>).Keys
                                                      |> List.ofSeq)
-                                                    keysForFixedValue.ToList
+                                                    (keysForFixedValue
+                                                     |> Set.toList)
             // OK to allow for duplicates, as there won't be any due to the constructor precondition.
             |> Array.ofList
             :> ICollection<UInt32>
@@ -56,7 +57,8 @@
         member this.ToList =
             BargainBasement.MergeDisjointSortedAssociationLists (representation
                                                                  |> Map.toList)
-                                                                (keysForFixedValue.ToList
+                                                                (keysForFixedValue
+                                                                 |> Set.toList
                                                                  |> List.map (fun key ->
                                                                                 key
                                                                                 , fixedValue))

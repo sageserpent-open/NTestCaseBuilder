@@ -344,7 +344,7 @@ namespace NTestCaseBuilder
                                     then associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.FindAll testVariableIndex
                                     else [])
                     |> List.concat
-                    |> SetWithRunLengths.ofList
+                    |> Set.ofList
                 let levelEntriesForTestVariableIndicesFromList =
                     testVariableCombination
                     |> List.map (fun testVariableIndex ->
