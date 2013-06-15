@@ -15,7 +15,7 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
             | head :: [] -> if head >= total
                             then [[total]]
                             else []
-            | head :: tail -> [for contributionFromHead in 0u .. (min head total) do
+            | head :: tail -> [for contributionFromHead in 0 .. (min head total) do
                                 let resultFromTail = ChooseContributionsToMeetTotal tail (total - contributionFromHead)
                                 if not resultFromTail.IsEmpty
                                 then yield! List.map (function item -> contributionFromHead::item) resultFromTail]
@@ -28,12 +28,12 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
     let rec ChooseContributionsToMeetTotalsUpToLimit contributionLimits limit =
         match contributionLimits with
             [] -> Map.empty
-            | head :: [] -> Map.ofList [for contributionFromHead in 0u .. (min head limit) do
+            | head :: [] -> Map.ofList [for contributionFromHead in 0 .. (min head limit) do
                                             yield (contributionFromHead, [[contributionFromHead]])]
             | head :: tail -> let resultFromTail = ChooseContributionsToMeetTotalsUpToLimit tail limit
-                              Map.ofList [for total in 0u .. limit do
+                              Map.ofList [for total in 0 .. limit do
                                             let resultForTotal =
-                                                [for contributionFromHead in 0u .. (min head total) do
+                                                [for contributionFromHead in 0 .. (min head total) do
                                                     let totalRequiredFromTail = total - contributionFromHead
                                                     if resultFromTail.ContainsKey totalRequiredFromTail
                                                     then yield! List.map (function item -> contributionFromHead::item) resultFromTail.[totalRequiredFromTail]]
@@ -47,12 +47,12 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
     /// case an empty sequence results, or to request zero items, in which case a single empty
     /// combination is generated.</summary>
     let rec GenerateCombinationsOfGivenSizePreservingOrder size items =
-        if 0u = size
+        if 0 = size
         then Seq.singleton []
         else match items with
                 head :: tail ->
                     let combinationsIncludingHead =
-                        GenerateCombinationsOfGivenSizePreservingOrder (size - 1u) tail
+                        GenerateCombinationsOfGivenSizePreservingOrder (size - 1) tail
                         |> Seq.map (fun combinationFromTail ->
                                             head :: combinationFromTail)
                     let combinationsExcludingHead =
@@ -72,20 +72,19 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
     let GenerateCombinationOfGivenSizePreservingOrder size items indexOfCombination =
         let numberOfItems =
             Array.length items
-            |> uint32
         if BargainBasement.NumberOfCombinations numberOfItems size <= indexOfCombination
         then raise (PreconditionViolationException "'indexOfCombination' is too large: there are not enough combinations to support this choice.")
         let rec generateCombinationOfIndicesOfGivenSizePreservingOrder size
                                                                        startingIndex
                                                                        indexOfCombination =
-            if 0u = size
+            if 0 = size
             then []
             else let sizeLessOne =
-                     size - 1u
+                     size - 1
                  let numberOfItemsLessOne =
-                     numberOfItems - 1u
+                     numberOfItems - 1
                  let startingIndexPlusOne =
-                     startingIndex + 1u
+                     startingIndex + 1
                  let numberOfItemsToChooseFromAfterEitherPickingOrDiscardingTheOneAtTheStartingIndex =
                      numberOfItems - startingIndexPlusOne
                  let numberOfCombinationsIncludingHead =
@@ -99,7 +98,7 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
                                                                              (indexOfCombination - numberOfCombinationsIncludingHead)
         let combinationOfIndicesToPickOutAt =
             generateCombinationOfIndicesOfGivenSizePreservingOrder size
-                                                                   0u
+                                                                   0
                                                                    indexOfCombination
         [for indexToPickItemAt in combinationOfIndicesToPickOutAt do
          yield items.[int32 indexToPickItemAt]]
@@ -111,7 +110,6 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
     let rec GeneratePermutation items indexOfPermutation =
         let numberOfItems =
             List.length items
-            |> uint32
         let numberOfPermutations =
             BargainBasement.Factorial numberOfItems
         if numberOfPermutations <= indexOfPermutation

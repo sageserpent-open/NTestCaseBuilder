@@ -161,16 +161,16 @@
                     []
               | head :: next :: tail when head = next ->
                     match produceItemCountPairs (next :: tail) with
-                        (duplicatedItem, count) :: partialResultTail -> (duplicatedItem, count + 1u) :: partialResultTail
+                        (duplicatedItem, count) :: partialResultTail -> (duplicatedItem, count + 1) :: partialResultTail
                       | _ -> raise (InternalAssertionViolationException "The partial result in this situation should be non-empty.")
               | head :: tail ->
-                    (head, 1u) :: produceItemCountPairs tail
+                    (head, 1) :: produceItemCountPairs tail
         produceItemCountPairs list
 
     let rec private breakOff sizeOfFirstPart listBeingBroken =
         match sizeOfFirstPart
               , listBeingBroken with
-            0u
+            0
             , _ ->
                 []
                 , listBeingBroken
@@ -178,7 +178,7 @@
             , head :: tail ->
                 let partialFirstPart
                     , secondPart =
-                        breakOff (sizeOfFirstPart - 1u) tail
+                        breakOff (sizeOfFirstPart - 1) tail
                 head :: partialFirstPart
                 , secondPart
           | _ -> raise (PreconditionViolationException "Attempt to break off more elements than present in list.")
@@ -196,19 +196,19 @@
 
 
     let Chunk chunkSize sequenceBeingChunked =
-        if 0u = chunkSize
+        if 0 = chunkSize
         then
             raise (PreconditionViolationException "Chunk size must be non-zero.")
         seq
             {
                 let mutableBuffer =
-                    Array.zeroCreate (int32 chunkSize)
+                    Array.zeroCreate chunkSize
                 let mutableIndex = ref 0
                 for item in sequenceBeingChunked do
                     let bufferIndex =
                         !mutableIndex % (int32 chunkSize)
                     mutableBuffer.[bufferIndex] <- item
-                    if chunkSize = uint32 bufferIndex + 1u
+                    if chunkSize = bufferIndex + 1
                     then
                         yield mutableBuffer
                               |> List.ofArray

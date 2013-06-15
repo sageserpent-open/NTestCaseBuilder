@@ -29,7 +29,7 @@ namespace NTestCaseBuilder.Examples
             ///<param name = "leastItemInSequence">The lowest value that starts off <cref>OriginalMonotonicIncreasingSequence</cref></param>
             ///<param name = "nonNegativeDeltas">Sequence of non-negative deltas that will be used to build up <cref>OriginalMonotonicIncreasingSequence</cref></param>
             ///<param name = "permutation">A permutation that is used to shuffle <cref>OriginalMonotonicIncreasingSequence</cref> to give <cref>PermutedSequence</cref></param>
-            public TestCase(Int32 leastItemInSequence, IEnumerable<UInt32> nonNegativeDeltas,
+            public TestCase(Int32 leastItemInSequence, IEnumerable<Int32> nonNegativeDeltas,
                             Permutation<Int32> permutation)
             {
                 var originalMonotonicIncreasingSequence = new List<Int32>();
@@ -99,14 +99,14 @@ namespace NTestCaseBuilder.Examples
                                                                 });
         }
 
-        private static TypedTestCaseEnumerableFactory<Tuple<FSharpList<UInt32>, Permutation<Int32>>>
+        private static TypedTestCaseEnumerableFactory<Tuple<FSharpList<Int32>, Permutation<Int32>>>
             BuildNonNegativeDeltasAndPermutationFactory(int numberOfDeltas)
         {
             var factoryForNonNegativeDelta =
                 TestVariableLevelEnumerableFactory.Create(from signedDelta in Enumerable.Range(0, 5)
-                                                          select (UInt32) signedDelta);
+                                                          select (Int32) signedDelta);
             return
-                SynthesizedTestCaseEnumerableFactory.CreateWithPermutation<UInt32, Int32>(
+                SynthesizedTestCaseEnumerableFactory.CreateWithPermutation<Int32, Int32>(
                     Enumerable.Repeat(factoryForNonNegativeDelta, numberOfDeltas));
         }
 

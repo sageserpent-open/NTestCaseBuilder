@@ -1,14 +1,15 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using NTestCaseBuilder;
 using SageSerpent.Infrastructure;
-using Key = System.UInt32;
+using Key = System.Int32;
 using Value = System.String;
 using Operation =
-    System.Action<NTestCaseBuilder.Examples.IndexedSortedDictionary<System.UInt32, System.String>>;
+    System.Action<System.Collections.Generic.IDictionary<System.Int32, System.String>>;
 
 
 namespace NTestCaseBuilder.Examples
@@ -18,7 +19,7 @@ namespace NTestCaseBuilder.Examples
     [TestFixture]
     public class SimpleExample
     {
-        private static readonly Key[] LevelsOne = {0u, 56u, 789u, 789u}, LevelsTwo = {100u, 123u};
+        private static readonly Key[] LevelsOne = {0, 56, 789, 789}, LevelsTwo = {100, 123};
 
         ///<summary>
         ///</summary>
@@ -79,7 +80,7 @@ namespace NTestCaseBuilder.Examples
 
         private class OperationListBuilder
         {
-            private const UInt32 MaximumValueRepresentation = 20U;
+            private const Int32 MaximumValueRepresentation = 20;
             private readonly Key _key;
 
             private readonly IDictionary<OperationKind, OperationCreator>
@@ -159,10 +160,10 @@ namespace NTestCaseBuilder.Examples
             private void AddQueryOperationThatShouldSucceed()
             {
                 Operations.Add
-                    (delegate(IndexedSortedDictionary<Key, Value> indexedSortedDictionary1)
+                    (indexedSortedDictionary =>
                          {
-                             Assert.IsTrue(indexedSortedDictionary1.ContainsKey(_key));
-                             Assert.IsTrue(indexedSortedDictionary1[_key] == _value);
+                             Assert.IsTrue(indexedSortedDictionary.ContainsKey(_key));
+                             Assert.IsTrue(indexedSortedDictionary[_key] == _value);
                          });
             }
 
@@ -186,7 +187,7 @@ namespace NTestCaseBuilder.Examples
             private void AddInsertionOperationThatShouldFail()
             {
                 Operations.Add
-                    (delegate(IndexedSortedDictionary<Key, Value> indexedSortedDictionary)
+                    (indexedSortedDictionary =>
                          {
                              try
                              {
@@ -199,11 +200,9 @@ namespace NTestCaseBuilder.Examples
 
                              var stringBuilder = new StringBuilder();
 
-                             stringBuilder.AppendFormat
-                                 ("Should not have been able to insert with key {0} as it already has an entry in the dictionary {1} of {2}",
-                                  _key,
-                                  indexedSortedDictionary,
-                                  _value);
+                             stringBuilder.AppendFormat(
+                                 "Should not have been able to insert with key {0} as it already has an entry in the dictionary {1} of {2}",
+                                 _key, indexedSortedDictionary, _value);
 
                              Assert.Fail(stringBuilder.ToString());
                          });
@@ -242,15 +241,15 @@ namespace NTestCaseBuilder.Examples
             return operationsListBuilder.Operations;
         }
 
-        private delegate UInt32 MappingToAvoidPreviouslyChosenIndices(UInt32 index);
+        private delegate Int32 MappingToAvoidPreviouslyChosenIndices(Int32 index);
 
-        private delegate void PlacementOfOperationsIntoFinalOrder(UInt32 numberOfIndicesToChooseFrom,
+        private delegate void PlacementOfOperationsIntoFinalOrder(Int32 numberOfIndicesToChooseFrom,
                                                                   MappingToAvoidPreviouslyChosenIndices
                                                                       mappingToAvoidPreviouslyChosenIndices,
                                                                   IList<Operation> operationsPlacedIntoFinalOrder);
 
         private static void BaseCaseForPlacementOfOperationsIntoFinalOrder
-            (UInt32 numberOfIndicesToChooseFrom,
+            (Int32 numberOfIndicesToChooseFrom,
              MappingToAvoidPreviouslyChosenIndices mappingToAvoidPreviouslyChosenIndices,
              IList<Operation> operationsPlacedIntoFinalOrder)
         {
@@ -258,14 +257,13 @@ namespace NTestCaseBuilder.Examples
 
         private static PlacementOfOperationsIntoFinalOrder BuildInductiveCaseForPlacementOfOperationsIntoFinalOrder
             (IList<Operation> operationsPertainingToTheSameKeyToPlaceIntoFinalOrder,
-             UInt32 combinationSelector,
+             Int32 combinationSelector,
              PlacementOfOperationsIntoFinalOrder placementOfOperationsForRemainingKeysIntoFinalOrder)
         {
             return
                 (numberOfIndicesToChooseFrom, mappingToAvoidPreviouslyChosenIndices, operationsPlacedIntoFinalOrder) =>
                     {
                         var numberOfIndicesToChoose1 =
-                            (UInt32)
                             operationsPertainingToTheSameKeyToPlaceIntoFinalOrder
                                 .
                                 Count;
@@ -307,7 +305,7 @@ namespace NTestCaseBuilder.Examples
         }
 
         private static MappingToAvoidPreviouslyChosenIndices ComposeMappingToAvoidAllIndices
-            (IEnumerable<UInt32> indicesToPlaceAt,
+            (IEnumerable<Int32> indicesToPlaceAt,
              MappingToAvoidPreviouslyChosenIndices mappingToAvoidPreviouslyChosenIndices)
         {
             var mappingAvoidingJustTheIndicesChosenInThisCall = BargainBasement.MappingAvoidingIndices(indicesToPlaceAt);
@@ -319,7 +317,7 @@ namespace NTestCaseBuilder.Examples
 
         private static void PlaceOperations
             (IList<Operation> operationsPertainingToTheSameKeyToPlaceIntoFinalOrder,
-             IEnumerable<UInt32> indicesToPlaceAt,
+             IEnumerable<Int32> indicesToPlaceAt,
              MappingToAvoidPreviouslyChosenIndices mappingToAvoidPreviouslyChosenIndices,
              IList<Operation> operationsPlacedIntoFinalOrder)
         {
@@ -330,19 +328,19 @@ namespace NTestCaseBuilder.Examples
                  operationIndex < operationsPertainingToTheSameKeyToPlaceIntoFinalOrder.Count;
                  ++operationIndex)
             {
-                operationsPlacedIntoFinalOrder[(Int32) placementIndices[operationIndex]] =
+                operationsPlacedIntoFinalOrder[placementIndices[operationIndex]] =
                     operationsPertainingToTheSameKeyToPlaceIntoFinalOrder[operationIndex];
             }
         }
 
-        private static IEnumerable<UInt32> ChooseIndicesToPlaceAt
-            (UInt32 numberOfIndicesToChooseFrom,
-             UInt32 numberOfIndicesToChoose,
-             UInt32 combinationSelector)
+        private static IEnumerable<Int32> ChooseIndicesToPlaceAt
+            (Int32 numberOfIndicesToChooseFrom,
+             Int32 numberOfIndicesToChoose,
+             Int32 combinationSelector)
         {
-            var indicesToChooseFrom = new UInt32[numberOfIndicesToChooseFrom];
+            var indicesToChooseFrom = new Int32[numberOfIndicesToChooseFrom];
 
-            for (var index = 0U; index < numberOfIndicesToChooseFrom; ++index)
+            for (var index = 0; index < numberOfIndicesToChooseFrom; ++index)
             {
                 indicesToChooseFrom[index] = index;
             }
@@ -351,7 +349,7 @@ namespace NTestCaseBuilder.Examples
                 (numberOfIndicesToChoose, indicesToChooseFrom, combinationSelector);
         }
 
-        private static readonly C5.IList<Key> Keys = new C5.ArrayList<UInt32> {0u, 1u};
+        private static readonly C5.IList<Key> Keys = new C5.ArrayList<Int32> {0, 1};
 
         private static readonly IEnumerable<OperationKind> OperationKinds =
             ((IList<Int32>) Enum.GetValues(typeof (OperationKind))).Select(constant => (OperationKind) constant);
@@ -359,7 +357,7 @@ namespace NTestCaseBuilder.Examples
 
         private static TypedTestCaseEnumerableFactory<PlacementOfOperationsIntoFinalOrder> MakeTestCaseEnumerableFactory
             (Random randomBehaviour,
-             UInt32 sequenceLength,
+             Int32 sequenceLength,
              C5.IList<Key> keys)
         {
             if (0 == keys.Count)
@@ -373,7 +371,7 @@ namespace NTestCaseBuilder.Examples
                 MakeSynthesizingFactoryForOperationSequenceEnumerable(key, randomBehaviour);
 
             var numberOfCombinations = BargainBasement.NumberOfCombinations
-                (sequenceLength * (UInt32) keys.Count, sequenceLength);
+                (sequenceLength * keys.Count, sequenceLength);
 
             var testVariableLevelFactoryForIndexCombinationEnumerable =
                 MakeTestVariableLevelFactoryForIndexCombinationEnumerable(numberOfCombinations);
@@ -387,12 +385,12 @@ namespace NTestCaseBuilder.Examples
                  factoryDealingWithRemainingKeys);
         }
 
-        private static TypedTestCaseEnumerableFactory<UInt32> MakeTestVariableLevelFactoryForIndexCombinationEnumerable
-            (UInt32 numberOfCombinations)
+        private static TypedTestCaseEnumerableFactory<Int32> MakeTestVariableLevelFactoryForIndexCombinationEnumerable
+            (Int32 numberOfCombinations)
         {
             var combinationSelector = numberOfCombinations;
 
-            var combinationSelectors = new List<UInt32>();
+            var combinationSelectors = new List<Int32>();
 
             while (0U != combinationSelector--)
             {
@@ -404,7 +402,7 @@ namespace NTestCaseBuilder.Examples
         private static TypedTestCaseEnumerableFactory<PlacementOfOperationsIntoFinalOrder>
             MakeRecursionInductiveCaseFactory
             (TypedTestCaseEnumerableFactory<IList<Operation>> synthesizingFactoryForOperationSequence,
-             TypedTestCaseEnumerableFactory<UInt32> testVariableLevelFactoryForFinalOperationsListIndexCombinations,
+             TypedTestCaseEnumerableFactory<Int32> testVariableLevelFactoryForFinalOperationsListIndexCombinations,
              TypedTestCaseEnumerableFactory<PlacementOfOperationsIntoFinalOrder> factoryDealingWithRemainingKeys)
         {
             return
@@ -446,9 +444,9 @@ namespace NTestCaseBuilder.Examples
                       randomBehaviour)));
         }
 
-        private const UInt32 SequenceLength = 5U;
+        private const Int32 SequenceLength = 5;
 
-        private const UInt32 CombinationStrength = 3U;
+        private const Int32 CombinationStrength = 3;
 
         ///<summary>
         ///</summary>
@@ -458,7 +456,7 @@ namespace NTestCaseBuilder.Examples
             var numberOfKeys = Keys.Count;
             var randomBehaviour = new Random(892893767);
 
-            var totalNumberOfOperations = (UInt32) numberOfKeys * SequenceLength;
+            var totalNumberOfOperations = numberOfKeys * SequenceLength;
 
             var testCasesEnumerableFactory = MakeTestCaseEnumerableFactory(randomBehaviour, SequenceLength, Keys);
 
@@ -486,7 +484,7 @@ namespace NTestCaseBuilder.Examples
             var numberOfKeys = Keys.Count;
             var randomBehaviour = new Random(892893767);
 
-            var totalNumberOfOperations = (UInt32) numberOfKeys * SequenceLength;
+            var totalNumberOfOperations = numberOfKeys * SequenceLength;
 
             var testCasesEnumerableFactory = MakeTestCaseEnumerableFactory(randomBehaviour, SequenceLength, Keys);
 
@@ -508,7 +506,7 @@ namespace NTestCaseBuilder.Examples
         }
 
         private static void ExerciseTestCase(PlacementOfOperationsIntoFinalOrder testCase,
-                                             UInt32 totalNumberOfOperations, IList<Operation> operations,
+                                             Int32 totalNumberOfOperations, IList<Operation> operations,
                                              ref UInt64 numberOfTestCases)
         {
             testCase
@@ -520,7 +518,7 @@ namespace NTestCaseBuilder.Examples
                 indexedSortedDictionary
                     =
                     new IndexedSortedDictionary
-                        <UInt32,
+                        <Int32,
                             Value>();
 
             ++numberOfTestCases;

@@ -37,14 +37,14 @@
     let PartitionSizeIntoSectionsOfRandomNonZeroLength size
                                                        numberOfSubgroups
                                                        randomBehaviour =
-        if size = 0u
+        if size = 0
         then
             raise (PreconditionViolationException "Must have at least one item to start with for subgroups to have non-zero length.")
         else
             match numberOfSubgroups with
-                0u ->
+                0 ->
                     raise (PreconditionViolationException "Must have at least one subgroup to place items into.")
-              | 1u ->
+              | 1 ->
                     [ size ]
               | _ ->
                     if numberOfSubgroups > size
@@ -52,14 +52,14 @@
                         raise (PreconditionViolationException "Number of subgroups must be at most the number of items.")
                     else
                         let potentialPartitionPoints
-                            = [1u .. size - 1u]
+                            = [1 .. size - 1]
                         let chosenPartitionPoints =
-                            (randomBehaviour: Random).ChooseSeveralOf (potentialPartitionPoints, (numberOfSubgroups - 1u))
+                            (randomBehaviour: Random).ChooseSeveralOf (potentialPartitionPoints, (numberOfSubgroups - 1))
                         let chosenSortedPartitionPoints =
                             chosenPartitionPoints |> Seq.sort
                         seq
                             {
-                                yield 0u
+                                yield 0
                                 yield! chosenSortedPartitionPoints
                                 yield size
                             }
@@ -72,7 +72,7 @@
                                                          numberOfSubgroups
                                                          randomBehaviour =
         let numberOfItems =
-            uint32 (List.length items)
+            List.length items
         let spans =
             PartitionSizeIntoSectionsOfRandomNonZeroLength numberOfItems
                                                            numberOfSubgroups
@@ -84,14 +84,14 @@
 
     let NumberOfPermutations originalSize permutationSize =
         if permutationSize > originalSize
-        then 0u
+        then 0
         else let numberOfItemsLeftOutOfPermutation =
                 originalSize - permutationSize
              let rec productOfPartialResultAndNumberOfSubpermutations originalSize partialResult =
                 if originalSize = numberOfItemsLeftOutOfPermutation
                 then partialResult
-                else productOfPartialResultAndNumberOfSubpermutations (originalSize - 1u) (originalSize * partialResult)
-             productOfPartialResultAndNumberOfSubpermutations originalSize 1u
+                else productOfPartialResultAndNumberOfSubpermutations (originalSize - 1) (originalSize * partialResult)
+             productOfPartialResultAndNumberOfSubpermutations originalSize 1
 
     let Factorial x =
         NumberOfPermutations x x
@@ -110,14 +110,14 @@
             let arrangeDeferredAssociations (runningIncrement
                                              , deferredActionsForPredecessors)
                                             indexToAvoid =
-                let nextIncrement = runningIncrement + 1u
+                let nextIncrement = runningIncrement + 1
                 nextIncrement
                 , (fun associationBuiltSoFar ->
                     deferredActionsForPredecessors ((indexToAvoid - runningIncrement
                                                     , nextIncrement)
                                                       :: associationBuiltSoFar))
             (sortedIndicesToAvoid
-             |> Seq.fold arrangeDeferredAssociations (0u, (fun result -> result))
+             |> Seq.fold arrangeDeferredAssociations (0, (fun result -> result))
              |> snd) []
             |> Map.ofList   // This has the effect of eliminating all but the last entry for a group of associations
                             // for consecutive indices. Otherwise the associations for lesser indices in the group
@@ -127,9 +127,9 @@
             let foundIndex =
                 Array.BinarySearch (sortedAssociationBetweenIndicesAndIncrementsToApply,
                                     (index
-                                     , 0u),
+                                     , 0),
                                     {
-                                        new IComparer<UInt32 * UInt32> with
+                                        new IComparer<Int32 * Int32> with
                                             member this.Compare (first, second) =
                                                 compare (fst first) (fst second)
                                     })
@@ -140,7 +140,7 @@
                             ~~~ foundIndex
                      if foundIndex > 0
                      then snd sortedAssociationBetweenIndicesAndIncrementsToApply.[foundIndex - 1]
-                     else 0u
+                     else 0
             index + incrementToApplyToIndex
         remapIndex
 

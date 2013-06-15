@@ -9,22 +9,22 @@
     [<TestFixture>]
     type RandomExtensionsTestFixture() =
         let inclusiveUpToExclusiveRange inclusiveLimit exclusiveLimit =
-            Seq.init (int32 (exclusiveLimit - inclusiveLimit)) (fun x -> inclusiveLimit + uint32 x)
+            Seq.init (exclusiveLimit - inclusiveLimit) (fun x -> inclusiveLimit + x)
 
         let commonTestStructureForTestingOfChoosingSeveralItems testOnSuperSetAndItemsChosenFromIt =
             let  random = Random 1
 
-            for inclusiveLowerBound in 58u .. 98u do
-                for numberOfConsecutiveItems in 1u .. 50u do
+            for inclusiveLowerBound in 58 .. 98 do
+                for numberOfConsecutiveItems in 1 .. 50 do
                     let superSet = inclusiveUpToExclusiveRange inclusiveLowerBound (inclusiveLowerBound + numberOfConsecutiveItems) |> Set.ofSeq
-                    for subsetSize in 1u .. numberOfConsecutiveItems do
+                    for subsetSize in 1 .. numberOfConsecutiveItems do
                         for _ in 1 .. 10 do
                             let chosenItems = random.ChooseSeveralOf(superSet, subsetSize)
                             testOnSuperSetAndItemsChosenFromIt superSet chosenItems subsetSize
 
         let pig maximumUpperBound =
             let random = Random 678
-            let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0u maximumUpperBound
+            let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0 maximumUpperBound
 
             for _ in 1 .. 10 do
                 let chosenItems = random.ChooseSeveralOf(concreteRangeOfIntegers, maximumUpperBound)
@@ -40,8 +40,7 @@
                 let sequenceSizes =
                     List.init numberOfSequences
                               (fun _ ->
-                                randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 maximumPossibleNumberOfItemsInASequence)
-                                |> int32)
+                                randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumPossibleNumberOfItemsInASequence)
                 let sequences =
                     sequenceSizes
                     |> List.mapi (fun sequenceIndex
@@ -55,13 +54,13 @@
         member this.TestCoverageOfIntegersUpToExclusiveUpperBound() =
             let random = Random 29
 
-            let maximumUpperBound = 30u
+            let maximumUpperBound = 30
 
-            for upperBound in 0u .. maximumUpperBound do
-                let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0u upperBound
+            for upperBound in 0 .. maximumUpperBound do
+                let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0 upperBound
 
                 let chosenItems = random.ChooseSeveralOf(concreteRangeOfIntegers, upperBound)
-                let expectedRange = inclusiveUpToExclusiveRange 0u upperBound
+                let expectedRange = inclusiveUpToExclusiveRange 0 upperBound
                 let shouldBeTrue = (chosenItems |> Set.ofArray) = (expectedRange |> Set.ofSeq)
                 Assert.IsTrue shouldBeTrue
 
@@ -69,25 +68,25 @@
         member this.TestUniquenessOfIntegersProduced() =
             let random = Random 678
 
-            let maximumUpperBound = 30u
+            let maximumUpperBound = 30
 
-            for upperBound in 0u .. maximumUpperBound do
-                let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0u upperBound
+            for upperBound in 0 .. maximumUpperBound do
+                let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0 upperBound
 
                 let chosenItems = random.ChooseSeveralOf(concreteRangeOfIntegers, upperBound)
-                let shouldBeTrue = upperBound = (chosenItems |> Set.ofArray |> Seq.length |> uint32)
+                let shouldBeTrue = upperBound = (chosenItems |> Set.ofArray |> Seq.length)
                 Assert.IsTrue shouldBeTrue
-                let shouldBeTrue = upperBound = (chosenItems |> Array.length |> uint32)
+                let shouldBeTrue = upperBound = (chosenItems |> Array.length)
                 Assert.IsTrue shouldBeTrue
 
         [<Test>]
         member this.TestDistributionOfSuccessiveSequencesWithTheSameUpperBound() =
             let random = Random 1
 
-            let maximumUpperBound = 30u
+            let maximumUpperBound = 30
 
-            for upperBound in 0u .. maximumUpperBound do
-                let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0u upperBound
+            for upperBound in 0 .. maximumUpperBound do
+                let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0 upperBound
 
                 let numberOfTrials = 100000
 
@@ -103,7 +102,7 @@
                 let shouldBeTrue =
                     itemToCountAndSumOfPositionsMap
                     |> Seq.forall (fun (count, sumOfPositions)
-                                    -> let difference = (sumOfPositions / (float count) - float (0u + upperBound - 1u) / 2.0)
+                                    -> let difference = (sumOfPositions / (float count) - float (upperBound - 1) / 2.0)
                                        difference < toleranceEpsilon)
 
                 Assert.IsTrue shouldBeTrue
@@ -128,14 +127,14 @@
 
         [<Test>]
         member this.TestThatChoosingItemsRepeatedlyEventuallyCoversAllPermutations() =
-            let empiricallyDeterminedMultiplicationFactorToEnsureCoverage = double 70500 / (BargainBasement.Factorial 7u |> double)
+            let empiricallyDeterminedMultiplicationFactorToEnsureCoverage = double 70500 / (BargainBasement.Factorial 7 |> double)
 
             let random = Random 1
 
-            for inclusiveLowerBound in 58u .. 98u do
-                for numberOfConsecutiveItems in 1u .. 7u do
+            for inclusiveLowerBound in 58 .. 98 do
+                for numberOfConsecutiveItems in 1 .. 7 do
                     let superSet = inclusiveUpToExclusiveRange inclusiveLowerBound (inclusiveLowerBound + numberOfConsecutiveItems) |> Set.ofSeq
-                    for subsetSize in 1u .. numberOfConsecutiveItems do
+                    for subsetSize in 1 .. numberOfConsecutiveItems do
                         let expectedNumberOfPermutations = BargainBasement.NumberOfPermutations numberOfConsecutiveItems subsetSize
                         let oversampledOutputs =
                             seq {
@@ -147,39 +146,39 @@
 
         [<Test>]
         member this.TestPig0GetInTheTrough() =
-            pig 64000u
+            pig 64000
 
         [<Test>]
         member this.TestPig1() =
-            pig 1000u
+            pig 1000
 
         [<Test>]
         member this.TestPig2() =
-            pig 2000u
+            pig 2000
 
         [<Test>]
         member this.TestPig3() =
-            pig 4000u
+            pig 4000
 
         [<Test>]
         member this.TestPig4() =
-            pig 8000u
+            pig 8000
 
         [<Test>]
         member this.TestPig5() =
-            pig 16000u
+            pig 16000
 
         [<Test>]
         member this.TestPig6() =
-            pig 32000u
+            pig 32000
 
         [<Test>]
         member this.TestPig7() =
-            pig 64000u
+            pig 64000
 
         [<Test>]
         member this.TestPig8() =
-            pig 50000u
+            pig 50000
 
         [<Test>]
         member this.TestThatPickingAlternatelyFromSequencesPreservesTheItemsInTheOriginalSequences () =
