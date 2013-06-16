@@ -254,7 +254,7 @@
                                     Random (randomBehaviour.Next())
                                 if allowDuplicatedLevels
                                 then
-                                        List.init (int32 levelCountForTestVariableIntroducedHere) (fun _ -> 0)
+                                        List.init levelCountForTestVariableIntroducedHere (fun _ -> 0)
                                         |> List.scan (fun previousLevel _ ->
                                                         if privateRandomBehaviourThatDoesNotPerturbTheMainOne.HeadsItIs ()
                                                         then previousLevel
@@ -1069,12 +1069,11 @@
                                                              nAryCondensationDelegate)
             let numberOfStringVariables = 3
             let stringSynthesizer = // Progressive Rock, yeah!
-                let numberOfStringLevels = 10u
+                let numberOfStringLevels = 10
                 buildSynthesizingFactory (seq
                                             {
                                                 for _ in 1 .. numberOfStringVariables do
-                                                    yield Seq.init (numberOfStringLevels
-                                                                    |> int32)
+                                                    yield Seq.init numberOfStringLevels
                                                                    (fun item ->
                                                                         item.ToString ())
                                             })
@@ -1084,8 +1083,7 @@
                 buildSynthesizingFactory (seq
                                             {
                                                 for _ in 1 .. numberOfIntegerVariables do
-                                                    yield Seq.init (numberOfIntegerLevels
-                                                                    |> int32)
+                                                    yield Seq.init numberOfIntegerLevels
                                                                    (fun item ->
                                                                         item)
                                             })
@@ -1131,7 +1129,7 @@
                                 factoryWithSeveralTestVariables.ExecuteParameterisedUnitTestForAllTypedTestCases(combinationStrength, Action<_>(ignore))
                             printf "Number of test variables: %A, number of test cases: %A.\n"
                                    numberOfTestVariables
-                                   ((int32) numberOfTestCases))
+                                   numberOfTestCases)
 
 
         [<Test>]
@@ -1190,7 +1188,7 @@
                                 factoryWithGroupInterleaves.ExecuteParameterisedUnitTestForAllTypedTestCases(combinationStrength, Action<_>(ignore))
                             printf "Number of test variables: %A, number of test cases: %A.\n"
                                    (numberOfGroupInterleaves * numberOfVariables)
-                                   ((int32) numberOfTestCases))
+                                   numberOfTestCases)
 
         [<Test>]
         member this.StressCopiousUseOfInterleavesMotivatedByBuildingLogicalExpressionTestCases () =

@@ -25,8 +25,7 @@
                 Random randomSeed
             for numberOfBinaryChoiceEntries in 0 .. inclusiveUpperBoundOnNumberOfBinaryChoiceEntries do
                 let binaryChoiceEntries =
-                    List.init (numberOfBinaryChoiceEntries
-                               |> int32)
+                    List.init numberOfBinaryChoiceEntries
                               (fun index ->
                                 seq
                                     {
@@ -86,7 +85,7 @@
                     then
                         0
                     else
-                        1 <<< (int32 numberOfBinaryChoiceEntries)
+                        1 <<< numberOfBinaryChoiceEntries
                 let crossProduct =
                     List.CrossProduct inputList
                 printf "Expecting %A number of items in cross product %A, taken from input list %A\n" expectedNumberOfItems crossProduct inputList
@@ -125,7 +124,7 @@
                             numberOfBinaryChoiceEntries
                             _ =
                 let expectedCount =
-                    (1u <<< (int32 numberOfBinaryChoiceEntries)) / 2u   // NOTE: zeroes make this value irrelevant, as does any input list consisting of only unit entries.
+                    (1u <<< numberOfBinaryChoiceEntries) / 2u   // NOTE: zeroes make this value irrelevant, as does any input list consisting of only unit entries.
                 let crossProduct
                     = List.CrossProduct inputList
                 printf "Expecting each item to occur %A times in cross product %A, taken from input list %A\n" expectedCount crossProduct inputList

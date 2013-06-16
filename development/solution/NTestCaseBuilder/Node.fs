@@ -159,7 +159,7 @@ namespace NTestCaseBuilder
                                          interleavingTestVariableIndicesFromTheLeftSiblings
                                          previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
                             let testVariableIndicesFromNode =
-                                List.init (int32 (maximumTestVariableFromSubtree - indexForLeftmostTestVariable))
+                                List.init (maximumTestVariableFromSubtree - indexForLeftmostTestVariable)
                                           (fun variableCount -> variableCount + indexForLeftmostTestVariable)
                             maximumTestVariableFromSubtree
                             , List.append testVariableIndicesFromNode interleavingTestVariableIndicesFromTheLeftSiblings
@@ -353,7 +353,6 @@ namespace NTestCaseBuilder
                                     match Map.tryFind testVariableIndex associationFromTestVariableIndexToNumberOfItsLevels with
                                         Some numberOfLevels ->
                                             numberOfLevels
-                                            |> int32
                                             |> (BargainBasement.Flip List.init) (fun levelIndex -> testVariableIndex, Level levelIndex)
                                       | None ->
                                             [(testVariableIndex, SingletonPlaceholder)])

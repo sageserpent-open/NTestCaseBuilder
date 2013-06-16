@@ -234,7 +234,7 @@
                             (seq
                                 {
                                     for partialTestVectorsAtTheSameStrength in associationFromStrengthToPartialTestVectorRepresentations
-                                                                               |> Seq.sortBy (fun keyValuePair -> - (int32 keyValuePair.Key))
+                                                                               |> Seq.sortBy (fun keyValuePair -> - keyValuePair.Key)
                                                                                |> Seq.map (fun keyValuePair -> keyValuePair.Value) do
                                         yield! partialTestVectorsAtTheSameStrength
                                 })

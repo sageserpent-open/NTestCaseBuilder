@@ -80,8 +80,8 @@
                 if numberOfTrackedTestVariables = 1
                 then didTheSingleTestVariableEdgeCase := true
                 let trackedTestVariableToNumberOfLevelsMap =
-                    Map.ofList (List.init (int32 numberOfTrackedTestVariables)
-                                           (fun testVariable -> testVariable, randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable))
+                    Map.ofList (List.init numberOfTrackedTestVariables
+                                          (fun testVariable -> testVariable, randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable))
                 let rec createTree distributionModeWrtInterleavingNode
                                    previousTrackedTestVariablesIndexedByTestVariable
                                    indexForRightmostTrackedTestVariable
@@ -114,7 +114,7 @@
                                     let sums
                                         = List.toArray sums
                                     List.ofArray [|for _ in 1 .. numberOfSubtrees - 1 do
-                                                        yield sums.[int32 (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan sums.Length)]|]
+                                                        yield sums.[randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan sums.Length]|]
                                  let selectedSumsIncludingNumberOfTrackedTestVariables =
                                     List.append (pickRandomlyAllowingRepetitionOfChoices [0 .. numberOfTrackedTestVariables]
                                                  |> List.sort) [numberOfTrackedTestVariables]
@@ -231,7 +231,7 @@
                                     Map.foldBack (fun testVariableIndex level partialResult ->
                                                     match level with
                                                         Level testVariableLevelIndex ->
-                                                            match trackedTestVariablesIndexedByTestVariable.[int32 testVariableIndex] with
+                                                            match trackedTestVariablesIndexedByTestVariable.[testVariableIndex] with
                                                                 Some trackedTestVariableIndex ->
                                                                     (trackedTestVariableIndex, testVariableLevelIndex)
                                                                      :: partialResult

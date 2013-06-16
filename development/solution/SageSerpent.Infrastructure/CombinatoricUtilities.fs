@@ -101,7 +101,7 @@ module SageSerpent.Infrastructure.CombinatoricUtilities
                                                                    0
                                                                    indexOfCombination
         [for indexToPickItemAt in combinationOfIndicesToPickOutAt do
-         yield items.[int32 indexToPickItemAt]]
+         yield items.[indexToPickItemAt]]
 
     /// <summary>Creates a specific permutation containing all the items presented to it.</summary>
     /// <param name="items" Items to permute - all of them will be placed into the resulting permutation./>

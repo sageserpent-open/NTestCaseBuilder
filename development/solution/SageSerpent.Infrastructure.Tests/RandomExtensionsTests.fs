@@ -90,12 +90,12 @@
 
                 let numberOfTrials = 100000
 
-                let itemToCountAndSumOfPositionsMap = Array.create (int32 upperBound) (0, 0.0)
+                let itemToCountAndSumOfPositionsMap = Array.create upperBound (0, 0.0)
 
                 for _ in 1 .. numberOfTrials do
                     for position, item in random.ChooseSeveralOf(concreteRangeOfIntegers, upperBound) |> Seq.mapi (fun position item -> position, item) do
-                        let count, sumOfPositions = itemToCountAndSumOfPositionsMap.[int32 item]
-                        itemToCountAndSumOfPositionsMap.[int32 item] <- 1 + count, (float position + sumOfPositions)
+                        let count, sumOfPositions = itemToCountAndSumOfPositionsMap.[item]
+                        itemToCountAndSumOfPositionsMap.[item] <- 1 + count, (float position + sumOfPositions)
 
                 let toleranceEpsilon = 1e-1
 
@@ -116,7 +116,7 @@
         [<Test>]
         member this.TestThatTheNumberOfItemsRequestedIsHonouredIfPossible() =
             commonTestStructureForTestingOfChoosingSeveralItems (fun _ chosenItems subsetSize ->
-                                                                    let shouldBeTrue = (chosenItems |> Array.length) = (subsetSize |> int32)
+                                                                    let shouldBeTrue = (chosenItems |> Array.length) = subsetSize
                                                                     Assert.IsTrue shouldBeTrue)
 
         [<Test>]
@@ -141,7 +141,7 @@
                                 for _ in 1 .. Math.Ceiling(empiricallyDeterminedMultiplicationFactorToEnsureCoverage * double expectedNumberOfPermutations) |> int32 do
                                     yield random.ChooseSeveralOf(superSet, subsetSize) |> List.ofArray
                                 }
-                        let shouldBeTrue = oversampledOutputs |> Set.ofSeq |> Seq.length = (expectedNumberOfPermutations |> int32)
+                        let shouldBeTrue = oversampledOutputs |> Set.ofSeq |> Seq.length = expectedNumberOfPermutations
                         Assert.IsTrue shouldBeTrue
 
         [<Test>]

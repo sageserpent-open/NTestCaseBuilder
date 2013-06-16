@@ -39,7 +39,7 @@ module SageSerpent.Infrastructure.RandomExtensions
                             candidateArray.[chosenCandidateIndex]
                         candidateArray.[chosenCandidateIndex] <- candidateArray.[numberOfCandidatesAlreadyChosen]
                         candidateArray.[numberOfCandidatesAlreadyChosen] <- chosenCandidate
-                candidateArray.[0 .. (int32 numberToChoose) - 1]
+                candidateArray.[0 .. numberToChoose - 1]
 
         [<System.Runtime.CompilerServices.Extension>]
         [<CompiledName("ChooseOneOf")>]

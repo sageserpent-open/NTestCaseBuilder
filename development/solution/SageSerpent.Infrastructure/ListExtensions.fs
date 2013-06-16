@@ -206,7 +206,7 @@
                 let mutableIndex = ref 0
                 for item in sequenceBeingChunked do
                     let bufferIndex =
-                        !mutableIndex % (int32 chunkSize)
+                        !mutableIndex % chunkSize
                     mutableBuffer.[bufferIndex] <- item
                     if chunkSize = bufferIndex + 1
                     then
@@ -214,7 +214,7 @@
                               |> List.ofArray
                     mutableIndex := !mutableIndex + 1
                 let bufferIndex =
-                    !mutableIndex % (int32 chunkSize)
+                    !mutableIndex % chunkSize
                 if 0 <> bufferIndex
                 then
                     yield mutableBuffer.[0 .. bufferIndex - 1]

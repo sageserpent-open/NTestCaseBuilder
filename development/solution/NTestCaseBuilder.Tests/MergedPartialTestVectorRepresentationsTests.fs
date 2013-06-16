@@ -69,13 +69,13 @@
                                 let testVariableIndex =
                                     randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfTestVariables
                                 let shuffledLevels =
-                                    shuffleForEachTestVariableIndex.[int32 testVariableIndex]
+                                    shuffleForEachTestVariableIndex.[testVariableIndex]
                                 let numberOfCompletedPartialTestVectors =
                                     List.length completedPartialTestVectors
                                 let numberOfCopiesOfVectorsBeingExamined =
                                     List.length modifiedCopiesOfVectorsBeingExamined
                                 let levelForVectorBeingExamined =
-                                    shuffledLevels.[int32 numberOfTestVectors - (1 + numberOfCopiesOfVectorsBeingExamined)]
+                                    shuffledLevels.[numberOfTestVectors - (1 + numberOfCopiesOfVectorsBeingExamined)]
                                 let vectorBeingExamined =
                                     Map.add testVariableIndex levelForVectorBeingExamined vectorBeingExamined
                                 let levelForVectorBeingCompleted =
@@ -90,7 +90,7 @@
                             fillInPartialTestVectors modifiedIncompletePartialTestVectors
                                                      (completedPartialTestVector :: completedPartialTestVectors)
                 let partialTestVectors =
-                    fillInPartialTestVectors (List.init (int32 numberOfTestVectors) (fun _ -> Map.empty))
+                    fillInPartialTestVectors (List.init numberOfTestVectors (fun _ -> Map.empty))
                                              []
                 randomBehaviour.Shuffle partialTestVectors
                 |> List.ofArray
@@ -313,7 +313,7 @@
                                  |> Map.ofSeq
                               | 2 ->
                                     Map.toSeq partialTestVector
-                                    |> Seq.take (int32 (randomBehaviour.ChooseAnyNumberFromOneTo (partialTestVector.Count - 1)))
+                                    |> Seq.take (randomBehaviour.ChooseAnyNumberFromOneTo (partialTestVector.Count - 1))
                                     |> Map.ofSeq
                               | 3 ->
                                     partialTestVector
