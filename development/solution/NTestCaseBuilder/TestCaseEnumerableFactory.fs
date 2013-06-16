@@ -128,7 +128,7 @@
         /// <param name="maximumDesiredStrength">Maximum strength of test variable combinations that must be covered by the sequence.</param>
         /// <param name="parameterisedUnitTest">A call to this delegate runs a unit test over the test case passed in as the single parameter.</param>
         /// <seealso cref="ExecuteParameterisedUnitTestForReproducedTestCase"/>
-        abstract ExecuteParameterisedUnitTestForAllTestCases: UInt32 * Action<Object> -> UInt32
+        abstract ExecuteParameterisedUnitTestForAllTestCases: Int32 * Action<Object> -> Int32
 
         /// <summary>Executes a parameterised unit test for some specific test case described by a reproduction string.</summary>
         /// <remarks>The reproduction string is obtained by catching (or examining via a debugger) a test case reproduction exeception
@@ -142,10 +142,10 @@
         /// combination of test variables across the entire sequence.</summary>
         /// <param name="maximumDesiredStrength">Maximum strength of test variable combinations that must be covered by the sequence.</param>
         /// <returns>A sequence of test cases typed as a non-generic IEnumerable.</returns>
-        abstract CreateEnumerable: UInt32 -> IEnumerable
+        abstract CreateEnumerable: Int32 -> IEnumerable
 
         /// <value>The maximum strength of combination of test variables that the factory can make guarantees about in a call to CreateEnumerable.</value>
-        abstract MaximumStrength: UInt32
+        abstract MaximumStrength: Int32
 
     /// <summary>This extends the API provided by TestCaseEnumerableFactory to deal with test cases of a specific type given
     /// by the type parameter TestCase.</summary>
@@ -172,7 +172,7 @@
                 Some prunedNode ->
                     prunedNode.MaximumStrengthOfTestVariableCombination
               | None ->
-                    0u
+                    0
 
         member this.CreateTypedEnumerable maximumDesiredStrength =
             this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
@@ -180,12 +180,12 @@
 
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
                                                                                                                 , parameterisedUnitTest) =
-            let mutable count = 0u
+            let mutable count = 0
             for testCase
                 , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength do
                 try
                     parameterisedUnitTest testCase
-                    count <- count + 1u
+                    count <- count + 1
                 with
                     anyException ->
                         raise (TestCaseReproductionException (fullTestVector
@@ -234,13 +234,14 @@
                             (seq
                                 {
                                     for partialTestVectorsAtTheSameStrength in associationFromStrengthToPartialTestVectorRepresentations
-                                                                               |> Seq.sortBy (fun keyValuePair -> - (int32 keyValuePair.Key))
+                                                                               |> Seq.sortBy (fun keyValuePair -> - keyValuePair.Key)
                                                                                |> Seq.map (fun keyValuePair -> keyValuePair.Value) do
                                         yield! partialTestVectorsAtTheSameStrength
                                 })
 
                         let lazilyProduceMergedPartialTestVectors mergedPartialTestVectorRepresentations
                                                                   partialTestVectors =
+                            // TODO: use 'Seq.unfold' here!
                             seq
                                 {
                                     let locallyModifiedMergedPartialTestVectorRepresentations =

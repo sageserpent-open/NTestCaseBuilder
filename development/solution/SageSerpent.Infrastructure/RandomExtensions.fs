@@ -7,46 +7,44 @@ module SageSerpent.Infrastructure.RandomExtensions
         [<CompiledName("ChooseAnyNumberFromZeroToOneLessThan")>]
         member this.ChooseAnyNumberFromZeroToOneLessThan exclusiveLimit =
             exclusiveLimit
-            |> int32
             |> this.Next
-            |> uint32
 
         [<System.Runtime.CompilerServices.Extension>]
         [<CompiledName("ChooseAnyNumberFromOneTo")>]
         member this.ChooseAnyNumberFromOneTo inclusiveLimit =
-            this.ChooseAnyNumberFromZeroToOneLessThan inclusiveLimit + 1u
+            this.ChooseAnyNumberFromZeroToOneLessThan inclusiveLimit + 1
 
         [<System.Runtime.CompilerServices.Extension>]
         [<CompiledName("HeadsItIs")>]
         member this.HeadsItIs () =
-            this.ChooseAnyNumberFromZeroToOneLessThan 2u = 0u
+            this.ChooseAnyNumberFromZeroToOneLessThan 2 = 0
 
         [<System.Runtime.CompilerServices.Extension>]
         [<CompiledName("ChooseSeveralOf")>]
         member this.ChooseSeveralOf ((candidates: #seq<_>), numberToChoose) =
             let numberOfCandidates =
                 Seq.length candidates
-            if numberToChoose > uint32 numberOfCandidates
+            if numberToChoose > numberOfCandidates
             then
                 raise (PreconditionViolationException "Insufficient number of candidates to satisfy number to choose.")
             else
                 let candidateArray =
                     Array.ofSeq candidates
-                for numberOfCandidatesAlreadyChosen in 0 .. (int32 numberToChoose) - 1 do
+                for numberOfCandidatesAlreadyChosen in 0 .. numberToChoose - 1 do
                     let chosenCandidateIndex =
-                        numberOfCandidatesAlreadyChosen + int32 (this.ChooseAnyNumberFromZeroToOneLessThan (uint32 (numberOfCandidates - numberOfCandidatesAlreadyChosen)))
+                        numberOfCandidatesAlreadyChosen + this.ChooseAnyNumberFromZeroToOneLessThan (numberOfCandidates - numberOfCandidatesAlreadyChosen)
                     if numberOfCandidatesAlreadyChosen < chosenCandidateIndex
                     then
                         let chosenCandidate =
                             candidateArray.[chosenCandidateIndex]
                         candidateArray.[chosenCandidateIndex] <- candidateArray.[numberOfCandidatesAlreadyChosen]
                         candidateArray.[numberOfCandidatesAlreadyChosen] <- chosenCandidate
-                candidateArray.[0 .. (int32 numberToChoose) - 1]
+                candidateArray.[0 .. numberToChoose - 1]
 
         [<System.Runtime.CompilerServices.Extension>]
         [<CompiledName("ChooseOneOf")>]
         member this.ChooseOneOf (candidates: #seq<_>) =
-            (this.ChooseSeveralOf (candidates, 1u)).[0]
+            (this.ChooseSeveralOf (candidates, 1)).[0]
 
         [<System.Runtime.CompilerServices.Extension>]
         [<CompiledName("Shuffle")>]
@@ -70,8 +68,7 @@ module SageSerpent.Infrastructure.RandomExtensions
                         None
                   | _ ->
                         let sliceLength =
-                            this.ChooseAnyNumberFromOneTo (uint32 numberOfLazyLists)
-                            |> int32
+                            this.ChooseAnyNumberFromOneTo numberOfLazyLists
                         let permutationDestinationIndices =
                             Seq.init numberOfLazyLists
                                      (fun index ->

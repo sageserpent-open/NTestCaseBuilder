@@ -444,11 +444,10 @@ namespace NTestCaseBuilder
                 let subtreeRootNodesIncludingImplicitFactoryForPermutation =
                     let numberOfExplicitlySuppliedFactories =
                         Seq.length sequenceOfFactoriesProvidingInputsToSynthesis
-                        |> uint32
                     let numberOfPermutations =
                         BargainBasement.Factorial numberOfExplicitlySuppliedFactories
                     let additionalFactoryForPermutations =
-                        TestVariableLevelEnumerableFactory.Create [0u .. numberOfPermutations - 1u |> uint32]
+                        TestVariableLevelEnumerableFactory.Create [0 .. numberOfPermutations - 1]
                     [
                         yield additionalFactoryForPermutations.Node
                         yield! subtreeRootNodesFromExplicitFactories

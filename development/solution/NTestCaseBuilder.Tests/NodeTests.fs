@@ -64,59 +64,59 @@
                               | None ->
                                     printf "sentinel for an interleaved situation.\n")
 
-        let maximumNumberOfTrackedTestVariables = 4u
-        let maximumNumberOfTestLevelsForATestVariable = 3u
-        let maximumNumberOfSubtreeHeadsPerAncestorNode = 5u
-        let maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 1u
-        let maximumStrengthOfTestVariableCombinationAllowed = 30u
+        let maximumNumberOfTrackedTestVariables = 4
+        let maximumNumberOfTestLevelsForATestVariable = 3
+        let maximumNumberOfSubtreeHeadsPerAncestorNode = 5
+        let maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 1
+        let maximumStrengthOfTestVariableCombinationAllowed = 30
         let randomBehaviourSeed = 23
 
         let createTreesTopDownAndHandEachOffToTest distributionModeWrtInterleavingNode testHandoff =
             let randomBehaviour = Random randomBehaviourSeed
             let didTheSingleTestVariableEdgeCase = ref false
             let timeAtStart = DateTime.Now
-            for treeNumber in 1u .. 100u do
+            for treeNumber in 1 .. 100 do
                 let numberOfTrackedTestVariables = randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTrackedTestVariables
-                if numberOfTrackedTestVariables = 1u
+                if numberOfTrackedTestVariables = 1
                 then didTheSingleTestVariableEdgeCase := true
                 let trackedTestVariableToNumberOfLevelsMap =
-                    Map.ofList (List.init (int32 numberOfTrackedTestVariables)
-                                           (fun testVariable -> testVariable, randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable))
+                    Map.ofList (List.init numberOfTrackedTestVariables
+                                          (fun testVariable -> testVariable, randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable))
                 let rec createTree distributionModeWrtInterleavingNode
                                    previousTrackedTestVariablesIndexedByTestVariable
                                    indexForRightmostTrackedTestVariable
                                    numberOfTrackedTestVariables
                                    maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables =
-                    let thinkAboutTerminatingRecursion = numberOfTrackedTestVariables <= 1u
+                    let thinkAboutTerminatingRecursion = numberOfTrackedTestVariables <= 1
                     if randomBehaviour.HeadsItIs () && thinkAboutTerminatingRecursion
-                       || maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 0u
-                    then if numberOfTrackedTestVariables = 1u
-                         then TestVariableNode ([|for _ in 1u .. trackedTestVariableToNumberOfLevelsMap.[int32 indexForRightmostTrackedTestVariable] do
+                       || maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables = 0
+                    then if numberOfTrackedTestVariables = 1
+                         then TestVariableNode ([|for _ in 1 .. trackedTestVariableToNumberOfLevelsMap.[indexForRightmostTrackedTestVariable] do
                                                     yield box ()|])
                               , Some indexForRightmostTrackedTestVariable :: previousTrackedTestVariablesIndexedByTestVariable
-                              , indexForRightmostTrackedTestVariable + 1u
+                              , indexForRightmostTrackedTestVariable + 1
                          else // TODO: add in a synthesizing node with no subtrees as an occasional alternative here.
-                              TestVariableNode ([|for _ in 1u .. randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable do
+                              TestVariableNode ([|for _ in 1 .. randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable do
                                                     yield box ()|])
                               , None :: previousTrackedTestVariablesIndexedByTestVariable
                               , indexForRightmostTrackedTestVariable
                     else let allOnOneSubtreeDistributionMaker numberOfSubtrees numberOfTrackedTestVariables =
                             let choice =
                                 randomBehaviour.ChooseAnyNumberFromOneTo numberOfSubtrees
-                            [for counter in 1u .. numberOfSubtrees do
+                            [for counter in 1 .. numberOfSubtrees do
                                 if counter = choice
                                 then yield numberOfTrackedTestVariables
-                                else yield 0u]
+                                else yield 0]
                          let arbitrarilySpreadAcrossSubtreesDistributionMaker numberOfSubtrees numberOfTrackedTestVariables =
-                            if numberOfSubtrees = 1u
+                            if numberOfSubtrees = 1
                             then [numberOfTrackedTestVariables]
                             else let pickRandomlyAllowingRepetitionOfChoices sums =
                                     let sums
                                         = List.toArray sums
-                                    List.ofArray [|for _ in 1u .. numberOfSubtrees - 1u do
-                                                        yield sums.[int32 (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 sums.Length))]|]
+                                    List.ofArray [|for _ in 1 .. numberOfSubtrees - 1 do
+                                                        yield sums.[randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan sums.Length]|]
                                  let selectedSumsIncludingNumberOfTrackedTestVariables =
-                                    List.append (pickRandomlyAllowingRepetitionOfChoices [0u .. numberOfTrackedTestVariables]
+                                    List.append (pickRandomlyAllowingRepetitionOfChoices [0 .. numberOfTrackedTestVariables]
                                                  |> List.sort) [numberOfTrackedTestVariables]
                                  let firstSum
                                     = List.head selectedSumsIncludingNumberOfTrackedTestVariables
@@ -137,16 +137,16 @@
                               | WithinOnlyASingleSubtree -> arbitrarilySpreadAcrossSubtreesDistributionMaker
                          let distributionMakerForInterleavedNodes numberOfSubtrees numberOfTrackedTestVariables =
                             match distributionModeWrtInterleavingNode with
-                                BetweenSiblingSubtrees when numberOfSubtrees > 1u ->
-                                    if numberOfTrackedTestVariables > 1u
+                                BetweenSiblingSubtrees when numberOfSubtrees > 1 ->
+                                    if numberOfTrackedTestVariables > 1
                                     then let rec incrementOneOfTheEntriesWithoutPuttingAllOfTheTrackedVariablesInOneSubtree distribution =
                                             match distribution with
                                                 [] -> raise (InternalAssertionViolationException "Either given an empty distribution or one with too high a limit.")
-                                              | head :: tail -> if head + 1u = numberOfTrackedTestVariables
+                                              | head :: tail -> if head + 1 = numberOfTrackedTestVariables
                                                                 then head :: incrementOneOfTheEntriesWithoutPuttingAllOfTheTrackedVariablesInOneSubtree tail
-                                                                else head + 1u :: tail
+                                                                else head + 1 :: tail
                                          incrementOneOfTheEntriesWithoutPuttingAllOfTheTrackedVariablesInOneSubtree
-                                            (arbitrarilySpreadAcrossSubtreesDistributionMaker numberOfSubtrees (numberOfTrackedTestVariables - 1u))
+                                            (arbitrarilySpreadAcrossSubtreesDistributionMaker numberOfSubtrees (numberOfTrackedTestVariables - 1))
                                     else arbitrarilySpreadAcrossSubtreesDistributionMaker numberOfSubtrees numberOfTrackedTestVariables
                               | _ -> allOnOneSubtreeDistributionMaker numberOfSubtrees numberOfTrackedTestVariables
                          let generateNode nodeFactory
@@ -165,7 +165,7 @@
                                                indexForRightmostTrackedTestVariable
                                                numberOfTrackedVariables
                                                (if thinkAboutTerminatingRecursion
-                                                then maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables - 1u
+                                                then maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables - 1
                                                 else maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables)
                                 subtree :: previouslyGatheredSubtrees
                                 , trackedTestVariablesIndexedByTestVariable
@@ -191,7 +191,7 @@
                     , _ =
                     createTree distributionModeWrtInterleavingNode
                                []
-                               0u
+                               0
                                numberOfTrackedTestVariables
                                maximumDepthOfSubtreeWithOneOrNoTrackedTestVariables
                 let trackedTestVariablesIndexedByTestVariable =
@@ -231,7 +231,7 @@
                                     Map.foldBack (fun testVariableIndex level partialResult ->
                                                     match level with
                                                         Level testVariableLevelIndex ->
-                                                            match trackedTestVariablesIndexedByTestVariable.[int32 testVariableIndex] with
+                                                            match trackedTestVariablesIndexedByTestVariable.[testVariableIndex] with
                                                                 Some trackedTestVariableIndex ->
                                                                     (trackedTestVariableIndex, testVariableLevelIndex)
                                                                      :: partialResult
@@ -246,7 +246,7 @@
                             |> List.map snd
                         resultsAtDesiredStrength
                         |> Seq.map extractLevelIndicesFromTrackedTestVariablesOnly
-                        |> Seq.filter (fun levelIndices -> uint32 levelIndices.Length = numberOfTrackedTestVariables)
+                        |> Seq.filter (fun levelIndices -> levelIndices.Length = numberOfTrackedTestVariables)
                         |> Set.ofSeq
                      testHandoff tree trackedTestVariableToNumberOfLevelsMap resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength
                 else printf "Rejected tree of strength %d as it would take too long!\n" maximumStrengthOfTestVariableCombination
@@ -254,9 +254,9 @@
             printf "**** TIME FOR TEST: %A\n" (timeAtEnd - timeAtStart)
             Assert.IsTrue !didTheSingleTestVariableEdgeCase
 
-        let maximumNumberOfTestVariables = 20u
+        let maximumNumberOfTestVariables = 20
 
-        let maximumStrengthOfCombination = 6u
+        let maximumStrengthOfCombination = 6
 
         [<Test>]
         member this.TestThatARandomlyChosenNCombinationOfTestVariablesIsCoveredInTermsOfCrossProductOfLevels () =
@@ -265,7 +265,7 @@
                             resultsWithOnlyLevelIndicesFromTrackedTestVariablesCombinedAtDesiredStrength =
                 let crossProductOfLevelIndices =
                     Map.foldBack (fun _ numberOfLevels partialResult ->
-                                    [0 .. int32 numberOfLevels - 1] :: partialResult)
+                                    [0 .. numberOfLevels - 1] :: partialResult)
                                  trackedTestVariableToNumberOfLevelsMap []
                     |> List.CrossProduct
                     |> Set.ofSeq
@@ -294,20 +294,20 @@
             let randomBehaviour = Random randomBehaviourSeed
             let didTheSingleTestVariableEdgeCase = ref false
             let timeAtStart = DateTime.Now
-            for treeNumber in 1u .. 100u do
+            for treeNumber in 1 .. 100 do
                 let rec workUpToTreeRootByMakingNewSubtreeRoots accumulatingInterleavedTestVariableIndexPairs
                                                                 nodeAndItsSpannedTestVariableIndicesPairs =
                     let numberOfNodes =
-                        uint32 (List.length nodeAndItsSpannedTestVariableIndicesPairs)
+                        List.length nodeAndItsSpannedTestVariableIndicesPairs
                     match numberOfNodes with
-                        0u ->
+                        0 ->
                             raise (InternalAssertionViolationException "Internal failure in test - should have at least one node.")
-                      | 1u ->
+                      | 1 ->
                             nodeAndItsSpannedTestVariableIndicesPairs
                             , accumulatingInterleavedTestVariableIndexPairs
                       | _ ->
                             let numberOfSubtreeRoots =
-                                randomBehaviour.ChooseAnyNumberFromOneTo (numberOfNodes - 1u)
+                                randomBehaviour.ChooseAnyNumberFromOneTo (numberOfNodes - 1)
                             let groupsForSubtreeRoots =
                                 BargainBasement.PartitionItemsIntoSubgroupsOfRandomNonZeroLength nodeAndItsSpannedTestVariableIndicesPairs
                                                                                                  numberOfSubtreeRoots
@@ -323,7 +323,7 @@
                                         nodeAndItsSpannedTestVariableIndicesPairs
                                         |> List.map (snd >> randomBehaviour.ChooseOneOf)
                                      let chosenPair =
-                                        randomBehaviour.ChooseSeveralOf (testVariableIndicesChosenFromSeparateSpans, 2u)
+                                        randomBehaviour.ChooseSeveralOf (testVariableIndicesChosenFromSeparateSpans, 2)
                                      Some (chosenPair.[0], chosenPair.[1])
                                 else None
                             let chosenPairsOfInterleavedTestVariableIndices =
@@ -355,9 +355,9 @@
                                                                                  accumulatingInterleavedTestVariableIndexPairs)
                                                                     nextLevelOfNodeAndItsSpannedTestVariableIndicesPairs
                 let testVariableIndices =
-                       List.init (int32 (randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestVariables))
+                       List.init (randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestVariables)
                                  (fun testVariableIndex ->
-                                    uint32 testVariableIndex)
+                                    testVariableIndex)
                 if testVariableIndices.Length = 1
                 then didTheSingleTestVariableEdgeCase := true
                 let testVariableNodes
@@ -366,7 +366,7 @@
                     |> List.map (fun testVariableIndex ->
                                     let testVariableLevelCount =
                                         randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestLevelsForATestVariable
-                                    TestVariableNode [|for _ in [1u .. testVariableLevelCount] do
+                                    TestVariableNode [|for _ in [1 .. testVariableLevelCount] do
                                                                 yield box ()|]
                                     , testVariableLevelCount)
                     |> List.unzip
@@ -387,7 +387,7 @@
                 printf "Tree #%u\n" treeNumber
                 let results =
                     (tree.AssociationFromStrengthToPartialTestVectorRepresentations (min tree.MaximumStrengthOfTestVariableCombination
-                                                                                        maximumStrengthOfCombination)
+                                                                                         maximumStrengthOfCombination)
                      |> fst
                      :> IDictionary<_, _>).Values
                     |> Seq.reduce Seq.append
@@ -409,7 +409,7 @@
                     Seq.fold foldInMaximumLevelIndices Map.empty results
                 let observedNumberOfLevelsMap =
                     Map.map (fun _ maximumTestVariableLevelIndex ->
-                                uint32 maximumTestVariableLevelIndex + 1u)
+                                maximumTestVariableLevelIndex + 1)
                             testVariableIndexToMaximumLevelIndexMap
                 let observedNumberOfLevels =
                     observedNumberOfLevelsMap

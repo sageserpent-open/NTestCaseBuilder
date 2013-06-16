@@ -154,7 +154,7 @@ namespace NTestCaseBuilder
                                     SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
                                     SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
                                 } ->
-                                    1u
+                                    1
                                     + subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
                                     + subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
                         this.CacheOfNumberOfLevelsForLeadingTestVariable :=
@@ -173,22 +173,22 @@ namespace NTestCaseBuilder
                     InternalNode internalNode ->
                         internalNode.NumberOfLevelsForLeadingTestVariable
                   | UnsuccessfulSearchTerminationNode ->
-                        0u
+                        0
 
         type TreeSearchContextParameters =
             {
-                TestVariableIndex: UInt32
+                TestVariableIndex: Int32
                 HasSuffixContextOfPossibleFullTestVector: Boolean
             }
 
             static member StartOfSearch =
                 {
-                    TestVariableIndex = 0u
+                    TestVariableIndex = 0
                     HasSuffixContextOfPossibleFullTestVector = true
                 }
 
             member this.IsSpecialCaseDenotingInitialState =   // The tests define this special state as not possessing any test vectors, not even the trivial empty one.
-                0u = this.TestVariableIndex
+                0 = this.TestVariableIndex
 
             member this.IsFullTestVector maximumNumberOfTestVariables =
                 this.HasSuffixContextOfPossibleFullTestVector
@@ -197,13 +197,13 @@ namespace NTestCaseBuilder
             member this.PropagateFromDefinedLevelToNextTestVariable =
                 {
                     this with
-                        TestVariableIndex = this.TestVariableIndex + 1u
+                        TestVariableIndex = this.TestVariableIndex + 1
                 }
 
             member this.PropagateFromWildcardLevelToNextTestVariable =
                 {
                     this with
-                        TestVariableIndex = this.TestVariableIndex + 1u
+                        TestVariableIndex = this.TestVariableIndex + 1
                         HasSuffixContextOfPossibleFullTestVector = false
                 }
 
@@ -419,7 +419,7 @@ namespace NTestCaseBuilder
     open MergedPartialTestVectorRepresentationsDetail
 
     type MergedPartialTestVectorRepresentations<'Level when 'Level: comparison>(testVectorPaths: TestVectorPaths<'Level>,
-                                                                                maximumNumberOfTestVariables: UInt32) =
+                                                                                maximumNumberOfTestVariables: Int32) =
         let createPartialTestVectorSequence revealFullTestVectorsAgain =
             let rec traverseTestVectorPaths {
                                                 SharedPathPrefix = sharedPathPrefix
@@ -492,7 +492,7 @@ namespace NTestCaseBuilder
                             then
                                 raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors should have resulted in the original collection.")
 
-                            if uint32 partialTestVectorBeingBuilt.Length > maximumNumberOfTestVariables
+                            if partialTestVectorBeingBuilt.Length > maximumNumberOfTestVariables
                             then
                                 raise (InternalAssertionViolationException "The test vector has more entries than the permitted maximum number of test variables.")
 
@@ -520,7 +520,7 @@ namespace NTestCaseBuilder
                                     []
 
         let fillOutPartialTestVectorWithIndeterminates partialTestVectorRepresentation =
-            if uint32 (partialTestVectorRepresentation: Map<_, _>).Count > maximumNumberOfTestVariables
+            if (partialTestVectorRepresentation: Map<_, _>).Count > maximumNumberOfTestVariables
             then
                 raise (InternalAssertionViolationException "The partial test vector being either merged or added has more entries than the permitted maximum number of test variables.")
 
@@ -538,7 +538,7 @@ namespace NTestCaseBuilder
 
             let testVariableIndicesForFilledOutTestVector = // NOTE: only up to 'maximumTestVariableIndexHavingLevel' exclusive
                                                             // - this is to avoid having a tail of indeterminate entries.
-                Seq.init (int32 maximumTestVariableIndexHavingLevel) uint32
+                Seq.init maximumTestVariableIndexHavingLevel BargainBasement.Identity
                 |> Set.ofSeq
 
             let testVariableIndicesForIndeterminates =
@@ -550,7 +550,7 @@ namespace NTestCaseBuilder
             if isPrefixOfFullTestVector
             then
                 let isFullTestVector =
-                    maximumNumberOfTestVariables = 1u + maximumTestVariableIndexHavingLevel
+                    maximumNumberOfTestVariables = 1 + maximumTestVariableIndexHavingLevel
                 partialTestVectorRepresentation
                 |> Map.toList
                 |> List.map (snd >> Some)
@@ -1201,9 +1201,9 @@ namespace NTestCaseBuilder
                                                     testVariableIndex =
                 let numberOfSuccessfulPathsFromSubtreeForFollowingIndices =
                     checkInvariantOfTernarySearchTree branchingRoot
-                                                      (testVariableIndex + uint32 sharedPathPrefix.Length)
+                                                      (testVariableIndex + sharedPathPrefix.Length)
                 match numberOfSuccessfulPathsFromSubtreeForFollowingIndices with
-                    0u when 0 < ChunkedList.length sharedPathPrefix ->
+                    0 when 0 < ChunkedList.length sharedPathPrefix ->
                         raise (InvariantViolationException "Redundant non-empty shared path prefix with no successful search paths leading through it.")
                   | _ ->
                         numberOfSuccessfulPathsFromSubtreeForFollowingIndices
@@ -1218,7 +1218,7 @@ namespace NTestCaseBuilder
                             then
                                 raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
-                            0u
+                            0
                       | InternalNode
                         {
                             LevelForTestVariableIndex = levelForTestVariableIndex
@@ -1244,38 +1244,38 @@ namespace NTestCaseBuilder
                                                                                   upperBound
                             let numberOfSuccessfulPathsFromTestVectorPathsForFollowingIndices =
                                 checkInvariantOfTestVectorPaths testVectorPathsForFollowingIndices
-                                                                (testVariableIndex + 1u)
+                                                                (testVariableIndex + 1)
                             match numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
                                   , numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
                                   , numberOfSuccessfulPathsFromTestVectorPathsForFollowingIndices with
-                                0u
-                                , 0u
-                                , 0u ->
+                                0
+                                , 0
+                                , 0 ->
                                     raise (InvariantViolationException "Redundant internal node with no successful search paths leading through it.")
                               | _
-                                , 0u
-                                , 0u ->
+                                , 0
+                                , 0 ->
                                     raise (InvariantViolationException "Redundant internal node with all successful search paths leading via subtree for lesser levels.")
-                              | 0u
+                              | 0
                                 , _
-                                , 0u ->
+                                , 0 ->
                                     raise (InvariantViolationException "Redundant internal node with all successful search paths leading via subtree for greater levels.")
                               | _
                                 , _
-                                , 0u ->
+                                , 0 ->
                                     raise (InvariantViolationException "Redundant internal node with its own 'ghost' level that participates in no successful search paths.")
-//                              | 0u
+//                              | 0
 //                                , _
 //                                , _ ->
-//                                    if numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex > 1u
+//                                    if numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex > 1
 //                                    then
 //                                        Diagnostics.Debug.Print ("Lone greater subtree with: {0} successful paths through it.", numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex)
 //                                    numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
 //                                    + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
 //                              | _
-//                                , 0u
+//                                , 0
 //                                , _ ->
-//                                    if numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex > 1u
+//                                    if numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex > 1
 //                                    then
 //                                        Diagnostics.Debug.Print ("Lone lesser subtree with: {0} successful paths through it.", numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex)
 //                                    numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
@@ -1293,7 +1293,7 @@ namespace NTestCaseBuilder
                         then
                             raise (InternalAssertionViolationException "The test vector refers to test variable indices that are greater than the permitted maximum.")
 
-                        1u
+                        1
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable ->
                         checkInvariantOfBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                           NegativeInfinity
@@ -1309,22 +1309,22 @@ namespace NTestCaseBuilder
                                                                               PositiveInfinity
                         let numberOfSuccessfulPathsFromTestVectorPathsForFollowingIndices =
                             checkInvariantOfTestVectorPaths testVectorPathsForFollowingIndices
-                                                            (testVariableIndex + 1u)
+                                                            (testVariableIndex + 1)
                         match numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex
                               , numberOfSuccessfulPathsFromTestVectorPathsForFollowingIndices with
-                            0u
-                            , 0u ->
+                            0
+                            , 0 ->
                                 raise (LogicErrorException "Redundant wildcard node with no successful search paths leading through it.")
                           | _
-                            , 0u ->
+                            , 0 ->
                                 raise (LogicErrorException "Redundant wildcard node that has no successful paths using its wildcard match leading through it.")
                           | _
                             , _ ->
                                 numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex
                                 + numberOfSuccessfulPathsFromTestVectorPathsForFollowingIndices
 
-            if 0u = checkInvariantOfTestVectorPaths testVectorPaths
-                                                    0u
+            if 0 = checkInvariantOfTestVectorPaths testVectorPaths
+                                                    0
             then
                 raise (LogicErrorException "No successful search paths but tree should be non-empty.")
 
@@ -1353,27 +1353,22 @@ namespace NTestCaseBuilder
                 let detectAndConvertFullTestVector partialTestVectorRepresentation =
                     let lengthOfPartialTestVectorRepresentation =
                         List.length partialTestVectorRepresentation
-                        |> uint32
-
                     if lengthOfPartialTestVectorRepresentation > maximumNumberOfTestVariables
                     then
                         raise (InternalAssertionViolationException "The merged removed partial test vector has more entries than the permitted maximum number of test variables.")
 
-                    if lengthOfPartialTestVectorRepresentation
-                        |> uint32 < maximumNumberOfTestVariables
-                        || partialTestVectorRepresentation
-                            |> List.exists Option.isNone
+                    if lengthOfPartialTestVectorRepresentation < maximumNumberOfTestVariables
+                       || partialTestVectorRepresentation
+                          |> List.exists Option.isNone
                     then
                         None
                     else
                         let testVariableIndicesForFullTestVector =
-                            List.init (int32 maximumNumberOfTestVariables)
-                                      uint32
-
+                            List.init maximumNumberOfTestVariables
+                                      BargainBasement.Identity
                         let testVariableLevelsForFullTestVector =
                             partialTestVectorRepresentation
                             |> List.map Option.get
-
                         List.zip testVariableIndicesForFullTestVector
                                  testVariableLevelsForFullTestVector
                         |> Map.ofList
@@ -1408,7 +1403,7 @@ namespace NTestCaseBuilder
                                                                                 raise (InternalAssertionViolationException "The merged removed partial test vector should be as least as long as the original.")
                                                                             let truncatedMergedPartialTestVectorRepresentation
                                                                                 , _ =
-                                                                                mergedPartialTestVectorRepresentation.BreakOff (uint32 lengthOfPartialTestVectorRepresentation)
+                                                                                mergedPartialTestVectorRepresentation.BreakOff lengthOfPartialTestVectorRepresentation
                                                                             List.zip partialTestVectorRepresentation
                                                                                      truncatedMergedPartialTestVectorRepresentation
                                                                             |> List.iter (fun (original

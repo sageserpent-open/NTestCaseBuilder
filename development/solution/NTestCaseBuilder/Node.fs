@@ -62,24 +62,24 @@ namespace NTestCaseBuilder
 
         let countTestVariables =
             traverseTree    {
-                                TestVariableNodeResult = fun _ -> 1u
-                                SingletonNodeResult = fun () -> 1u
+                                TestVariableNodeResult = fun _ -> 1
+                                SingletonNodeResult = fun () -> 1
                                 CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
                                 CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                             }
 
         let sumLevelCountsFromAllTestVariables =
             traverseTree    {
-                                TestVariableNodeResult = fun levels -> uint32 (Seq.length levels)
-                                SingletonNodeResult = fun () -> 0u
+                                TestVariableNodeResult = fun levels -> Seq.length levels
+                                SingletonNodeResult = fun () -> 0
                                 CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
                                 CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                             }
 
         let maximumStrengthOfTestVariableCombination =
             traverseTree    {
-                                TestVariableNodeResult = fun _ -> 1u
-                                SingletonNodeResult = fun () -> 1u
+                                TestVariableNodeResult = fun _ -> 1
+                                SingletonNodeResult = fun () -> 1
                                 CombineResultsFromInterleavingNodeSubtrees = Seq.max
                                 CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
                             }
@@ -138,7 +138,7 @@ namespace NTestCaseBuilder
                         |> List.map (function interleavingTestVariableIndex ->
                                                 interleavingTestVariableIndex
                                                 , indexForLeftmostTestVariable)
-                    indexForLeftmostTestVariable + 1u
+                    indexForLeftmostTestVariable + 1
                     , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
                       |> List.append forwardInterleavingPairs
                       |> List.append backwardInterleavingPairs
@@ -159,8 +159,8 @@ namespace NTestCaseBuilder
                                          interleavingTestVariableIndicesFromTheLeftSiblings
                                          previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
                             let testVariableIndicesFromNode =
-                                List.init (int32 (maximumTestVariableFromSubtree - indexForLeftmostTestVariable))
-                                          (fun variableCount -> uint32 variableCount + indexForLeftmostTestVariable)
+                                List.init (maximumTestVariableFromSubtree - indexForLeftmostTestVariable)
+                                          (fun variableCount -> variableCount + indexForLeftmostTestVariable)
                             maximumTestVariableFromSubtree
                             , List.append testVariableIndicesFromNode interleavingTestVariableIndicesFromTheLeftSiblings
                             , associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
@@ -183,7 +183,7 @@ namespace NTestCaseBuilder
                                                                  , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt)
             let _,
                 result =
-                    walkTree this 0u [] []
+                    walkTree this 0 [] []
             HashMultiMap (result, HashIdentity.Structural)
 
         member this.AssociationFromStrengthToPartialTestVectorRepresentations maximumDesiredStrength =
@@ -192,23 +192,22 @@ namespace NTestCaseBuilder
             let rec walkTree node maximumDesiredStrength indexForLeftmostTestVariable =
                 match node with
                     TestVariableNode levels ->
-                        if 0u = maximumDesiredStrength
+                        if 0 = maximumDesiredStrength
                         then
                             Map.empty
                         else
-                            Map.ofList [1u, Seq.singleton [indexForLeftmostTestVariable]]
-                        , indexForLeftmostTestVariable + 1u
+                            Map.ofList [1, Seq.singleton [indexForLeftmostTestVariable]]
+                        , indexForLeftmostTestVariable + 1
                         , [indexForLeftmostTestVariable
-                           , Array.length levels
-                             |> uint32]
+                           , Array.length levels]
 
                   | SingletonNode _ ->
-                        if 0u = maximumDesiredStrength
+                        if 0 = maximumDesiredStrength
                         then
                             Map.empty
                         else
-                            Map.ofList [1u, Seq.singleton [indexForLeftmostTestVariable]]
-                        , indexForLeftmostTestVariable + 1u
+                            Map.ofList [1, Seq.singleton [indexForLeftmostTestVariable]]
+                        , indexForLeftmostTestVariable + 1
                         , []
 
                   | InterleavingNode subtreeRootNodes ->
@@ -268,7 +267,7 @@ namespace NTestCaseBuilder
                             |> List.map (fun associationFromStrengthToTestVariableCombinationsForOneSubtree ->
                                             if associationFromStrengthToTestVariableCombinationsForOneSubtree.IsEmpty
                                             then
-                                                0u
+                                                0
                                             else
                                                associationFromStrengthToTestVariableCombinationsForOneSubtree
                                                |> Map.toSeq
@@ -290,7 +289,7 @@ namespace NTestCaseBuilder
                         // merging, but does lead to a combinatoric explosion of memory usage and time.
                         let distributionsOfStrengthsOverSubtreesAtEachTotalStrength =
                             CombinatoricUtilities.ChooseContributionsToMeetTotalsUpToLimit maximumStrengthsFromSubtrees maximumDesiredStrength
-                            |> Map.remove 0u
+                            |> Map.remove 0
                         let addInTestVariableCombinationsForGivenTotalStrength totalStrength
                                                                                distributionsOfStrengthsOverSubtrees
                                                                                partialAssociationFromStrengthToTestVariableCombinations =
@@ -300,12 +299,12 @@ namespace NTestCaseBuilder
                                     |> List.map (function strength
                                                          , associationFromStrengthToTestVariableCombinationsForOneSubtree ->
                                                                 match Map.tryFind strength associationFromStrengthToTestVariableCombinationsForOneSubtree with
-                                                                    Some testVariableCombinations when strength > 0u ->
+                                                                    Some testVariableCombinations when strength > 0 ->
                                                                         testVariableCombinations
                                                                   | Some _ ->
                                                                         raise (InternalAssertionViolationException "Non-zero strength combinations are not permitted as results from any node.")
                                                                   | None ->
-                                                                        if strength = 0u
+                                                                        if strength = 0
                                                                         then
                                                                             Seq.singleton []
                                                                         else
@@ -330,7 +329,7 @@ namespace NTestCaseBuilder
             let associationFromStrengthToTestVariableCombinations
                 , _
                 , associationFromTestVariableIndexToNumberOfItsLevels =
-                walkTree this maximumDesiredStrength 0u
+                walkTree this maximumDesiredStrength 0
             let associationFromTestVariableIndexToNumberOfItsLevels =
                 associationFromTestVariableIndexToNumberOfItsLevels
                 |> Map.ofList
@@ -354,7 +353,6 @@ namespace NTestCaseBuilder
                                     match Map.tryFind testVariableIndex associationFromTestVariableIndexToNumberOfItsLevels with
                                         Some numberOfLevels ->
                                             numberOfLevels
-                                            |> int32
                                             |> (BargainBasement.Flip List.init) (fun levelIndex -> testVariableIndex, Level levelIndex)
                                       | None ->
                                             [(testVariableIndex, SingletonPlaceholder)])
@@ -372,7 +370,7 @@ namespace NTestCaseBuilder
                                     |> List.map createTestVectorRepresentations
                                 RoundRobinPickFrom listsOfTestVectorsCorrespondingToTestVariableCombinations
                             let chunkSizeThatIsSmallEnoughToAvoidMemoryPressure =
-                                1000u
+                                1000
                             seq
                                 {
                                     for chunkOfTestVariableCombinations in Chunk chunkSizeThatIsSmallEnoughToAvoidMemoryPressure
@@ -390,9 +388,9 @@ namespace NTestCaseBuilder
                 ((partialTestVectorRepresentation: Map<_, _>):> IDictionary<_, _>).Keys
                 |> Set.ofSeq
             let missingTestVariableIndices =
-                (List.init (int32 this.CountTestVariables)
+                (List.init this.CountTestVariables
                            (fun testVariableIndex ->
-                             uint32 testVariableIndex)
+                                testVariableIndex)
                  |> Set.ofList)
                 - testVariableIndices
             let rec fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
@@ -409,7 +407,6 @@ namespace NTestCaseBuilder
                                 let chosenLevel =
                                     (randomBehaviour: Random).ChooseAnyNumberFromZeroToOneLessThan numberOfLevels
                                 chosenLevel
-                                |> int32
                                 |> Level
                           | None ->
                                 // This case picks up a test variable index for a singleton test case:
@@ -452,7 +449,7 @@ namespace NTestCaseBuilder
                 |> Array.scan (fun indexInVectorForLeftmostVariableInPreviousSubtree
                                    subtreeRootNode ->
                                 indexInVectorForLeftmostVariableInPreviousSubtree
-                                + int32 (subtreeRootNode: Node).CountTestVariables) 0
+                                + (subtreeRootNode: Node).CountTestVariables) 0
             match this with
                 TestVariableNode levels ->
                     let levels =
@@ -490,7 +487,7 @@ namespace NTestCaseBuilder
                     fun fullTestVector ->
                         let fullTestVectorLength =
                             Array.length fullTestVector
-                        if uint32 fullTestVectorLength > this.CountTestVariables
+                        if fullTestVectorLength > this.CountTestVariables
                         then
                             raise (PreconditionViolationException "Vector is inconsistent with node rendering it: it has more test variables then expected by the interleaving node.")
                         match fullTestVector
@@ -548,7 +545,7 @@ namespace NTestCaseBuilder
                     let finalValueCreator =
                         fixedCombinationOfSubtreeNodesForSynthesis.FinalValueCreator ()
                     fun fullTestVector ->
-                        if uint32 (Array.length fullTestVector) > this.CountTestVariables
+                        if Array.length fullTestVector > this.CountTestVariables
                         then
                             raise (PreconditionViolationException "Vector is inconsistent with node rendering it: it has more test variables then expected by the synthesizing node.")
                         let slicesOfFullTestVectorCorrespondingToSubtrees =

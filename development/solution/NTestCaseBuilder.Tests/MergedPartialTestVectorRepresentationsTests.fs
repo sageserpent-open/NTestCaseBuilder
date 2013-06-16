@@ -15,30 +15,30 @@
     type MergedPartialTestVectorRepresentationsTestFixture () =
         let randomBehaviourSeed = 23
 
-        let reciprocalOfProbabilityOfTerminatingRandomlyGeneratedPartOfPartialTestVector = 10u
+        let reciprocalOfProbabilityOfTerminatingRandomlyGeneratedPartOfPartialTestVector = 10
 
-        let reciprocalOfProbabilityOfNotGeneratingAnyFurtherPartialTestVectors = 30u
+        let reciprocalOfProbabilityOfNotGeneratingAnyFurtherPartialTestVectors = 30
 
-        let maximumNumberOfTestVariables = 70u
+        let maximumNumberOfTestVariables = 70
 
-        let maximumNumberOfTestVectors = 1000u
+        let maximumNumberOfTestVectors = 1000
 
-        let maximumRandomWalkStep = 10u
+        let maximumRandomWalkStep = 10
 
-        let maximumLevelDelta = 5u
+        let maximumLevelDelta = 5
 
-        let overallTestRepeats = 300u
+        let overallTestRepeats = 300
 
-        let maximumNumberOfIndicesToAvoid = 4u
+        let maximumNumberOfIndicesToAvoid = 4
 
         let createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff =
             let randomBehaviour =
                 Random randomBehaviourSeed
             let createPartialTestVectors () =
                 let createShuffledUniqueLevels () =
-                    randomBehaviour.Shuffle (seq {1u .. maximumNumberOfTestVectors})
+                    randomBehaviour.Shuffle (seq {1 .. maximumNumberOfTestVectors})
                 let shuffleForEachTestVariableIndex =
-                    Array.init (int32 maximumNumberOfTestVariables) (fun _ -> createShuffledUniqueLevels ())
+                    Array.init maximumNumberOfTestVariables (fun _ -> createShuffledUniqueLevels ())
                 let numberOfTestVectors =
                     randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestVectors
                 let rec fillInPartialTestVectors incompletePartialTestVectors
@@ -51,7 +51,7 @@
                                 let testVariableIndex =
                                     randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfTestVariables
                                 let shuffledLevels =
-                                    shuffleForEachTestVariableIndex.[int32 testVariableIndex]
+                                    shuffleForEachTestVariableIndex.[testVariableIndex]
                                 let numberOfCompletedPartialTestVectors =
                                     List.length completedPartialTestVectors
                                 let levelForVectorBeingCompleted =
@@ -69,13 +69,13 @@
                                 let testVariableIndex =
                                     randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfTestVariables
                                 let shuffledLevels =
-                                    shuffleForEachTestVariableIndex.[int32 testVariableIndex]
+                                    shuffleForEachTestVariableIndex.[testVariableIndex]
                                 let numberOfCompletedPartialTestVectors =
                                     List.length completedPartialTestVectors
                                 let numberOfCopiesOfVectorsBeingExamined =
                                     List.length modifiedCopiesOfVectorsBeingExamined
                                 let levelForVectorBeingExamined =
-                                    shuffledLevels.[int32 numberOfTestVectors - (1 + numberOfCopiesOfVectorsBeingExamined)]
+                                    shuffledLevels.[numberOfTestVectors - (1 + numberOfCopiesOfVectorsBeingExamined)]
                                 let vectorBeingExamined =
                                     Map.add testVariableIndex levelForVectorBeingExamined vectorBeingExamined
                                 let levelForVectorBeingCompleted =
@@ -90,11 +90,11 @@
                             fillInPartialTestVectors modifiedIncompletePartialTestVectors
                                                      (completedPartialTestVector :: completedPartialTestVectors)
                 let partialTestVectors =
-                    fillInPartialTestVectors (List.init (int32 numberOfTestVectors) (fun _ -> Map.empty))
+                    fillInPartialTestVectors (List.init numberOfTestVectors (fun _ -> Map.empty))
                                              []
                 randomBehaviour.Shuffle partialTestVectors
                 |> List.ofArray
-            for _ in 1u .. overallTestRepeats do
+            for _ in 1 .. overallTestRepeats do
                 testHandoff (createPartialTestVectors ())
 
         let createOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff =
@@ -103,32 +103,32 @@
             let createPartialTestVectors () =
                 let rec createPartialTestVectors testVariableIndex =
                     if testVariableIndex = maximumNumberOfTestVariables
-                       || 0u < testVariableIndex
-                          && randomBehaviour.ChooseAnyNumberFromOneTo reciprocalOfProbabilityOfNotGeneratingAnyFurtherPartialTestVectors = 1u
+                       || 0 < testVariableIndex
+                          && randomBehaviour.ChooseAnyNumberFromOneTo reciprocalOfProbabilityOfNotGeneratingAnyFurtherPartialTestVectors = 1
                     then []
                     else let rec chooseTestVariableIndicesAndTheirLevels recursionDepth =
-                            let maximumRecursionDepth = 50u
+                            let maximumRecursionDepth = 50
                             if recursionDepth = maximumRecursionDepth
-                               || randomBehaviour.ChooseAnyNumberFromOneTo reciprocalOfProbabilityOfTerminatingRandomlyGeneratedPartOfPartialTestVector = 1u
+                               || randomBehaviour.ChooseAnyNumberFromOneTo reciprocalOfProbabilityOfTerminatingRandomlyGeneratedPartOfPartialTestVector = 1
                             then []
                             else let lowerBoundInclusive =
                                     if testVariableIndex > maximumRandomWalkStep
                                     then testVariableIndex - maximumRandomWalkStep
-                                    else 0u
+                                    else 0
                                  let upperBoundInclusive =
                                     if testVariableIndex + maximumRandomWalkStep >= maximumNumberOfTestVariables
-                                    then maximumNumberOfTestVariables - 1u
+                                    then maximumNumberOfTestVariables - 1
                                     else testVariableIndex + maximumRandomWalkStep
                                  let chosenAbitraryTestVariableIndex =
-                                    lowerBoundInclusive + randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (upperBoundInclusive + 1u - lowerBoundInclusive)
+                                    lowerBoundInclusive + randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (upperBoundInclusive + 1 - lowerBoundInclusive)
                                  (chosenAbitraryTestVariableIndex
                                   , randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumLevelDelta)
-                                 :: chooseTestVariableIndicesAndTheirLevels (recursionDepth + 1u)
+                                 :: chooseTestVariableIndicesAndTheirLevels (recursionDepth + 1)
                          let partialTestVector =
-                            chooseTestVariableIndicesAndTheirLevels 0u
+                            chooseTestVariableIndicesAndTheirLevels 0
                             |> Map.ofList
-                         partialTestVector :: createPartialTestVectors (testVariableIndex + 1u)
-                createPartialTestVectors 0u
+                         partialTestVector :: createPartialTestVectors (testVariableIndex + 1)
+                createPartialTestVectors 0
             let overlappingPartialTestVectors =
                 createPartialTestVectors ()
 
@@ -145,7 +145,7 @@
                                     |> Map.toList
                                     |> List.map fst
                                 let unusedTestVariableIndices =
-                                    (List.init (int32 maximumNumberOfTestVariables) uint32
+                                    (List.init maximumNumberOfTestVariables BargainBasement.Identity
                                      |> Set.ofList) - (testVariableIndices
                                                        |> Set.ofList)
                                 let extraPadding =
@@ -160,7 +160,7 @@
                 |> randomBehaviour.Shuffle
                 |> List.ofArray
 
-            for _ in 1u .. overallTestRepeats do
+            for _ in 1 .. overallTestRepeats do
                 testHandoff overlappingPartialTestVectorsWithSomeExtraFullTestVectors
 
 
@@ -203,10 +203,10 @@
                              (initialCollection, Set.empty)
             let isFullTestVector partialTestVector =
                 let sumOfIndicesExpectedForFullTestVector =
-                    maximumNumberOfTestVariables * (maximumNumberOfTestVariables + 1u) / 2u
+                    maximumNumberOfTestVariables * (maximumNumberOfTestVariables + 1) / 2
                 partialTestVector
                 |> Map.toSeq
-                |> Seq.map (fst >> (fun testVariableIndex -> 1u + testVariableIndex))   // NOTE: shift by one because otherwise the leading term for a sum of zero-relative indices would not show up in the sum!
+                |> Seq.map (fst >> (fun testVariableIndex -> 1 + testVariableIndex))   // NOTE: shift by one because otherwise the leading term for a sum of zero-relative indices would not show up in the sum!
                 |> Seq.reduce (+)
                  = sumOfIndicesExpectedForFullTestVector
 
@@ -303,19 +303,19 @@
                                                  randomBehaviour
                                                  true
                 let mutantsOrCopiesOf partialTestVector =
-                    let maximumRecursionDepth = 50u
+                    let maximumRecursionDepth = 50
                     let rec createMutantOrCopy recursionDepth =
                         let mutantOrCopy =
-                            match randomBehaviour.ChooseAnyNumberFromOneTo 3u with
-                                1u ->
+                            match randomBehaviour.ChooseAnyNumberFromOneTo 3 with
+                                1 ->
                                     randomBehaviour.ChooseSeveralOf ((Map.toSeq partialTestVector)
-                                                                     , (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 partialTestVector.Count)))
+                                                                     , (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan partialTestVector.Count))
                                  |> Map.ofSeq
-                              | 2u ->
+                              | 2 ->
                                     Map.toSeq partialTestVector
-                                    |> Seq.take (int32 (randomBehaviour.ChooseAnyNumberFromOneTo (uint32 partialTestVector.Count - 1u)))
+                                    |> Seq.take (randomBehaviour.ChooseAnyNumberFromOneTo (partialTestVector.Count - 1))
                                     |> Map.ofSeq
-                              | 3u ->
+                              | 3 ->
                                     partialTestVector
                               | _ ->
                                     raise (InternalAssertionViolationException "This case should never be matched.")
@@ -323,8 +323,8 @@
                         :: if recursionDepth = maximumRecursionDepth
                               || randomBehaviour.HeadsItIs ()
                            then []
-                           else createMutantOrCopy (recursionDepth + 1u)
-                    createMutantOrCopy 0u
+                           else createMutantOrCopy (recursionDepth + 1)
+                    createMutantOrCopy 0
                 let partialTestVectorsThatAddNoNewInformation =
                     partialTestVectorsThatDoNotOverlap
                     |> List.map mutantsOrCopiesOf
@@ -358,7 +358,7 @@
                 let numberOfIndicesToAvoid =
                     randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfIndicesToAvoid
                 let sortedIndicesToAvoid =
-                    randomBehaviour.ChooseSeveralOf ((List.init (int32 maximumNumberOfTestVariables) uint32)
+                    randomBehaviour.ChooseSeveralOf ((List.init maximumNumberOfTestVariables BargainBasement.Identity)
                                                      , numberOfIndicesToAvoid)
                     |> List.ofArray
                     |> List.sort
@@ -387,9 +387,9 @@
                 let possiblyAddLevelsForIndices indicesToAdd partialTestVector =
                     let chosenIndicesToAdd =
                         randomBehaviour.ChooseSeveralOf (indicesToAdd
-                                                         , (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (uint32 (Seq.length indicesToAdd) + 1u)))
+                                                         , (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (Seq.length indicesToAdd + 1)))
                     seq {for index in chosenIndicesToAdd do
-                            yield index, index + uint32 (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumLevelDelta)}
+                            yield index, index + randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumLevelDelta}
                     |> (let addIndexAndLevel partialTestVector
                                              (testVariableIndex
                                               , level)
@@ -535,7 +535,7 @@
 
         [<Test>]
         member this.TestInitialStateIsEmptyAndDoesNotContainATrivialEmptyPartialTestVector () =
-            for maximumNumberOfTestVariables in 0u .. maximumNumberOfTestVariables do   // NOTE: includes the boundary case of no test variables whatsover.
+            for maximumNumberOfTestVariables in 0 .. maximumNumberOfTestVariables do   // NOTE: includes the boundary case of no test variables whatsover.
                 let initial =
                     MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables
                 let containedPartialTestVectors =
