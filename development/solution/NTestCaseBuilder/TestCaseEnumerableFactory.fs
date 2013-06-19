@@ -57,6 +57,9 @@
         inherit Exception (makeDescriptionOfReproductionString fullTestVector
                            , innerException)
 
+    type LevelCombinationFilter =
+        delegate of IDictionary<Int32, Int32 * Object> -> Boolean
+
     /// <summary>A factory that can create an enumerable sequence of test cases used in turn to drive a parameterised
     /// unit test. Each test case is presented as a parameter to repeated calls to the parameterised unit test. The test
     /// cases are configured in terms of 'test variables', each of which can be set a particular 'level'; a given
@@ -131,7 +134,7 @@
         abstract ExecuteParameterisedUnitTestForAllTestCases: Int32 * Action<Object> -> Int32
 
         /// <summary>Executes a parameterised unit test for some specific test case described by a reproduction string.</summary>
-        /// <remarks>The reproduction string is obtained by catching (or examining via a debugger) a test case reproduction exeception
+        /// <remarks>The reproduction string is obtained by catching (or examining via a debugger) a test case reproduction exception
         /// obtained while running ExecuteParameterisedUnitTestForAllTestCases.</remarks>
         /// <param name="parameterisedUnitTest">A call to this delegate runs a unit test over the test case passed in as the single parameter.</param>
         /// <param name="reproductionString">Encoded text that reproduces the test case: this is obtained by inspection of a test case reproduction
@@ -146,6 +149,32 @@
 
         /// <value>The maximum strength of combination of test variables that the factory can make guarantees about in a call to CreateEnumerable.</value>
         abstract MaximumStrength: Int32
+
+        /// <summary>Creates a new factory based on 'this' with the addition of a filter. Any existing filters will continue to be honoured as well;
+        /// the operation adds the filter without replacing any previous ones. The internal implementation will call the filters to decide whether
+        /// or not to accept a combination of levels for some set of test variables - if a filter call returns false, the combination considered by
+        /// that call will be blocked.</summary>.
+        /// <remarks>By default, a factory will not contain any filters to start with - this method is used to populate a factory.</remarks>
+        /// <remarks>Filter calls that return false do not simply create 'holes' in the resulting set of test cases yielded by calls to CreateEnumerable;
+        /// the factory will repack its test cases so as to honour its strength guarantee in an optimal fashion, albeit with the rejected combination
+        /// of levels excluded.</remarks>
+        /// <remarks>The implementation is at liberty to make successive calls at any point to a filter for the same combination of test levels,
+        /// and may also consider supersets and / or subsets of that combination, as well as overlapping combinations - the filter implementation
+        /// must guarantee consistency of logic for such calls, otherwise the resulting behaviour is undefined.</remarks>
+        /// <remarks>If any of the filters blocks a combination, it will be excluded - the filters act in conjunction to pass, disjunction to exclude.</remarks>
+        /// <remarks>The combinations considered by the filter do *not* have to be complete combinations that would describe a full test case, although full combinations will also be considered.</remarks>
+        /// <remarks>The test variable indices used as keys in the dictionary passed to the filter are taken so that zero represents the test variable from the leftmost test variable
+        /// factory that is a leaf node used to build up 'this'. This holds even if 'this' forms part of a larger tree structure leading to a higher-level factory.</remarks>
+        /// <returns>A new factory that is a copy of 'this' but with the additional filter included.</returns>
+        /// <remarks>Filters are free to disregard the actual value of a test variable levels and simply use the paired index for it instead. The index corresponds
+        /// to the position of the level in the sequence used to construct the test variable level factory for the level's test variable. This is useful, for example,
+        /// for when two test variables share the same level and the filter is used to impose a constraint that the levels from both test variables can never be
+        /// equal - comparing the indices allows a general-purpose filter to be written that avoids worrying about whether equality is defined for the level type.</remarks>
+        /// <param name="filter">Delegate accepting a dictionary that describes the combination of levels being considered - each key in the dictionary is a test
+        /// variable index denoting one of the test variables involved; the associated value is a pair of an index denoting the actual test level for that test
+        /// variable in the combination, together with the value of the test level itself. Returns true if the combination of levels is permitted, false if the combination
+        /// must be excluded.</param>
+        abstract WithFilter: LevelCombinationFilter -> TestCaseEnumerableFactory
 
     /// <summary>This extends the API provided by TestCaseEnumerableFactory to deal with test cases of a specific type given
     /// by the type parameter TestCase.</summary>
@@ -173,6 +202,10 @@
                     prunedNode.MaximumStrengthOfTestVariableCombination
               | None ->
                     0
+
+        default this.WithFilter filter =
+            this.WithFilterTyped filter
+            :> TestCaseEnumerableFactory
 
         member this.CreateTypedEnumerable maximumDesiredStrength =
             this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
@@ -282,3 +315,5 @@
               | None ->
                     Seq.empty
 
+        member this.WithFilterTyped (filter: LevelCombinationFilter): TypedTestCaseEnumerableFactory<'TestCase> =
+            failwith "Not yet implemented."
