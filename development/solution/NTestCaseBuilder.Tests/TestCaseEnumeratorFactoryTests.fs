@@ -254,12 +254,12 @@
                                     Random (randomBehaviour.Next())
                                 if allowDuplicatedLevels
                                 then
-                                        List.init levelCountForTestVariableIntroducedHere (fun _ -> 0)
+                                        List.init levelCountForTestVariableIntroducedHere (fun _ -> ())
                                         |> List.scan (fun previousLevel _ ->
                                                         if privateRandomBehaviourThatDoesNotPerturbTheMainOne.HeadsItIs ()
                                                         then previousLevel
                                                         else 1 + previousLevel)
-                                                    0
+                                                     0
                                         |> List.tail
                                         |> List.map (fun level -> [(indexForLeftmostTestVariable, Some level)])
 
@@ -676,7 +676,7 @@
                         permutationExample
                         |> Set.count
                     (maximumStrength
-                     |> max 1) - 1    // Subtract one to make room for the implicit permutation
+                     |> max 1) - 1      // Subtract one to make room for the implicit permutation
                                         // test variable - this is what this test is checking.
                     |> min numberOfTestVariablesInPermutationExample
 
@@ -819,8 +819,7 @@
 
                 let shouldBeTrue =
                     unaccountedCombinationsOfTestLevels
-                    |> Set.count
-                     = 0
+                    |> Set.isEmpty
                 Assert.IsTrue shouldBeTrue
 
             createTreesAndHandOffToTest testHandoff
@@ -931,8 +930,8 @@
 
                 let shouldBeTrue =
                     unaccountedCombinationsOfTestLevels
-                    |> Set.count
-                     > 0
+                    |> Set.isEmpty
+                    |> not
                 Assert.IsTrue shouldBeTrue
 
         [<Test>]
