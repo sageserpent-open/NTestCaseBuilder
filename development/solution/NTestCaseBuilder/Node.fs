@@ -35,6 +35,8 @@ namespace NTestCaseBuilder
 
         abstract FinalValueCreator: Unit -> (List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase)
 
+        abstract IsNodeZeroCost: Int32 -> Boolean
+
     and Node =
         TestVariableNode of array<Object>
       | SingletonNode of Object
@@ -252,6 +254,8 @@ namespace NTestCaseBuilder
                             perSubtreeAssociationsFromStrengthToTestVariableCombinations
                             , maximumTestVariableIndexFromSubtree
                             , associationFromTestVariableIndexToNumberOfItsLevels
+                        let subtreeNodes =
+                            fixedCombinationOfSubtreeNodesForSynthesis.Nodes
                         // Using 'fold' causes 'perSubtreeAssociationsFromStrengthToTestVariableCombinations' to be built up in
                         // reverse to the subtree sequence, and this reversal propagates consistently through the code below. The
                         // only way it could cause a problem would be due to the order of processing the subtrees, but because the
@@ -260,8 +264,10 @@ namespace NTestCaseBuilder
                         let perSubtreeAssociationsFromStrengthToTestVariableCombinations
                             , maximumTestVariableIndex
                             , associationFromTestVariableIndexToNumberOfItsLevels =
-                            fixedCombinationOfSubtreeNodesForSynthesis.Nodes
+                            subtreeNodes
                             |> Seq.fold gatherTestVariableCombinationsFromSubtree ([], indexForLeftmostTestVariable, [])
+                        let numberOfSubtrees =
+                            List.length subtreeNodes
                         let maximumStrengthsFromSubtrees =
                             perSubtreeAssociationsFromStrengthToTestVariableCombinations
                             |> List.map (fun associationFromStrengthToTestVariableCombinationsForOneSubtree ->
@@ -269,9 +275,7 @@ namespace NTestCaseBuilder
                                             then
                                                 0
                                             else
-                                               associationFromStrengthToTestVariableCombinationsForOneSubtree
-                                               |> Map.toSeq
-                                               |> Seq.map fst
+                                               (associationFromStrengthToTestVariableCombinationsForOneSubtree :> IDictionary<_, _>).Keys
                                                |> Seq.max)
                         // We have to cope with individual subtrees being requested to yield zero strength combinations: what we
                         // mean is that the subtree doesn't have to provide any test variables for a given distribution,
@@ -296,19 +300,29 @@ namespace NTestCaseBuilder
                             let addInTestVariableCombinationsForAGivenDistribution partialTestVariableCombinations distributionOfStrengthsOverSubtrees =
                                 let perSubtreeTestVariableCombinations =
                                     List.zip distributionOfStrengthsOverSubtrees perSubtreeAssociationsFromStrengthToTestVariableCombinations
-                                    |> List.map (function strength
-                                                         , associationFromStrengthToTestVariableCombinationsForOneSubtree ->
-                                                                match Map.tryFind strength associationFromStrengthToTestVariableCombinationsForOneSubtree with
-                                                                    Some testVariableCombinations when strength > 0 ->
-                                                                        testVariableCombinations
-                                                                  | Some _ ->
-                                                                        raise (InternalAssertionViolationException "Non-zero strength combinations are not permitted as results from any node.")
-                                                                  | None ->
-                                                                        if strength = 0
-                                                                        then
-                                                                            Seq.singleton []
-                                                                        else
-                                                                            Seq.empty)
+                                    |> List.mapi (fun indexOfSubtreeCountingFromTheRight
+                                                      (strength
+                                                       , associationFromStrengthToTestVariableCombinationsForOneSubtree) ->
+                                                        let indexOfSubtree =
+                                                            numberOfSubtrees - (1 + indexOfSubtreeCountingFromTheRight)
+                                                        let strength =
+                                                            if fixedCombinationOfSubtreeNodesForSynthesis.IsNodeZeroCost indexOfSubtree
+                                                            then
+                                                                (associationFromStrengthToTestVariableCombinationsForOneSubtree :> IDictionary<_, _>).Keys
+                                                                |> Seq.max      
+                                                            else
+                                                                strength
+                                                        match Map.tryFind strength associationFromStrengthToTestVariableCombinationsForOneSubtree with
+                                                            Some testVariableCombinations when strength > 0 ->
+                                                                testVariableCombinations
+                                                          | Some _ ->
+                                                                raise (InternalAssertionViolationException "Zero strength combinations are not permitted as results from any node.")
+                                                          | None ->
+                                                                if strength = 0
+                                                                then
+                                                                    Seq.singleton []
+                                                                else
+                                                                    Seq.empty)
                                 let joinTestVariableCombinations =
                                    List.append
                                 let testVariableCombinationsBuiltFromCrossProduct =
@@ -597,6 +611,9 @@ namespace NTestCaseBuilder
                                     |> List.toArray
                                 (synthesisDelegate: Delegate).DynamicInvoke invocationArguments
                                 |> unbox
+
+                        member this.IsNodeZeroCost _ =
+                            false
                 }
             fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes
             |> SynthesizingNode
