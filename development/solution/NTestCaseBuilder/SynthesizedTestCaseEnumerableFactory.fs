@@ -391,7 +391,9 @@ namespace NTestCaseBuilder
         /// <remarks>There is an option to apply a permutation to the input test cases before they are submitted to
         /// the condensation delegate, in other words, the input tests cases are reordered before being processed. The
         /// choice of permutation that is used to generate each output test case is systematically varied as another
-        /// implicit test variable that contributes to the synthesis; it is therefore subject to the strength guarantees
+        /// implicit test variable that contributes to the synthesis; this is dealt with by locally increasing the
+        /// strength for the synthesizing factory (but not for its child factories), so that the implicit variable does
+        /// not have to compete with the explicitly supplied test variable level factories for the strength guarantees
         /// documented for TestCaseEnumerableFactory.</remarks>
         /// <remarks>There is another overload that does almost exactly the same thing; that overload does
         /// not permit the option of applying permutations across the inputs.</remarks>

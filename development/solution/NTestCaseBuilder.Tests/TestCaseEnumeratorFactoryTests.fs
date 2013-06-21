@@ -640,14 +640,28 @@
             let randomBehaviour = Random randomBehaviourSeed
             for _ in 1 .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
+                let sharedSeed =
+                    randomBehaviour.Next()
+                let copiedRandomBehaviourOne =
+                    Random sharedSeed
+                let copiedRandomBehaviourTwo =
+                    Random sharedSeed
                 let testCaseEnumerableFactory
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping
                     , Some permutationExample =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
-                                                                                               randomBehaviour
+                                                                                               copiedRandomBehaviourOne
                                                                                                false
                                                                                                true
+                let unpermutedTestCaseEnumerableFactory
+                    , _
+                    , _
+                    , _ =
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
+                                                                                               copiedRandomBehaviourTwo
+                                                                                               false
+                                                                                               false
 
                 printf "Permutation example: %A\n" permutationExample
 
@@ -660,13 +674,22 @@
                 let testCases =
                     testCaseEnumerableFactory.CreateTypedEnumerable maximumStrength
 
-                let slicedTestCases =
+                let unpermutedTestCases =
+                    unpermutedTestCaseEnumerableFactory.CreateTypedEnumerable maximumStrength
+
+                let slice testCases =
                     testCases
                     |> Seq.map (List.filter (fun (testVariableIndex
                                                   , _) ->
                                                 permutationExample.Contains testVariableIndex))
-                    |> Set.ofSeq   // Eliminate duplicates caused by slicing throwing away distinguishing state.
+                    |> Set.ofSeq    // Eliminate duplicates caused by slicing throwing away distinguishing state.
                     |> Set.remove List.empty
+
+                let slicedTestCases =
+                    slice testCases
+
+                let slicedUnpermutedTestCases =
+                    slice unpermutedTestCases
 
                 let chosenSlicedTestCaseToSelectTestVariables =
                     randomBehaviour.ChooseOneOf slicedTestCases
@@ -676,8 +699,7 @@
                         permutationExample
                         |> Set.count
                     (maximumStrength
-                     |> max 1) - 1    // Subtract one to make room for the implicit permutation
-                                        // test variable - this is what this test is checking.
+                     |> max 1)
                     |> min numberOfTestVariablesInPermutationExample
 
                 let chosenTestVariablesToCheckPermutationCoverageFor =
@@ -695,7 +717,7 @@
                         :> seq<_>
                     |> Set.ofSeq
 
-                let finelySlicedTestCases =
+                let fineSlice slicedTestCases =
                     slicedTestCases
                     |> Set.map (List.filter (fun (testVariableIndex
                                                   , _) ->
@@ -709,6 +731,12 @@
                     // subsets of the fine slice - this can happen when some of the test variables in the
                     // permutation example are individually bracketed by interleaves - so they can drop out
                     // of a test case.
+
+                let finelySlicedTestCases =
+                    fineSlice slicedTestCases
+
+                let finelySlicedUnpermutedTestCases =
+                    fineSlice slicedUnpermutedTestCases
 
                 let finelySlicedTestCasesGroupedByTestLevelCombinations =
                     finelySlicedTestCases
@@ -727,6 +755,13 @@
                                         |> Map.add groupKey
                                                    groupWithFinelySlicedTestCaseAdded)
                                 Map.empty
+
+                let shouldBeTrue =
+                    ((finelySlicedTestCasesGroupedByTestLevelCombinations :> IDictionary<_, _>).Keys
+                     |> Set.ofSeq)
+                     = (finelySlicedUnpermutedTestCases
+                        |> Set.map Set.ofList)
+                Assert.IsTrue shouldBeTrue
 
                 let numberOfPermutationsExpected =
                     numberOfTestVariablesInSliceThatPermutationCoverageIsGuaranteedFor
