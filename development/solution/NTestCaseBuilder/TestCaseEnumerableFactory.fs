@@ -165,7 +165,6 @@
         /// <remarks>The combinations considered by the filter do *not* have to be complete combinations that would describe a full test case, although full combinations will also be considered.</remarks>
         /// <remarks>The test variable indices used as keys in the dictionary passed to the filter are taken so that zero represents the test variable from the leftmost test variable
         /// factory that is a leaf node used to build up 'this'. This holds even if 'this' forms part of a larger tree structure leading to a higher-level factory.</remarks>
-        /// <returns>A new factory that is a copy of 'this' but with the additional filter included.</returns>
         /// <remarks>Filters are free to disregard the actual value of a test variable levels and simply use the paired index for it instead. The index corresponds
         /// to the position of the level in the sequence used to construct the test variable level factory for the level's test variable. This is useful, for example,
         /// for when two test variables share the same level and the filter is used to impose a constraint that the levels from both test variables can never be
@@ -176,6 +175,7 @@
         /// variable index denoting one of the test variables involved; the associated value is a pair of an index denoting the actual test level for that test
         /// variable in the combination, together with the value of the test level itself. Returns true if the combination of levels is permitted, false if the combination
         /// must be excluded.</param>
+        /// <returns>A new factory that is a copy of 'this' but with the additional filter included.</returns>
         abstract WithFilter: LevelCombinationFilter -> TestCaseEnumerableFactory
 
     /// <summary>This extends the API provided by TestCaseEnumerableFactory to deal with test cases of a specific type given
