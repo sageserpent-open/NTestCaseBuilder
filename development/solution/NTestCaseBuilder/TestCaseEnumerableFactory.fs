@@ -318,4 +318,4 @@
                     Seq.empty
 
         member this.WithFilterTyped (filter: LevelCombinationFilter): TypedTestCaseEnumerableFactory<'TestCase> =
-            failwith "Not yet implemented."
+            this    // TODO: this is a bogus implementation - hopefully there will be a test failure!

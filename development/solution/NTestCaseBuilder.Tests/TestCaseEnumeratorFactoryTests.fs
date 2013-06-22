@@ -144,6 +144,7 @@
 
     type FactoryConstructors<'Factory, 'TestCase> =
         {
+            TestCaseEnumerableFactoryWithFilterFrom: 'Factory -> LevelCombinationFilter -> 'Factory
             TestVariableLevelEnumerableFactoryFrom: List<'TestCase> -> 'Factory
             SingletonTestCaseEnumerableFactoryFrom: 'TestCase -> 'Factory
             SynthesizedTestCaseEnumerableFactoryFrom: 'Factory [] -> (List<'TestCase> -> 'TestCase) -> Boolean -> 'Factory
@@ -168,6 +169,10 @@
 
         let weaklyTypedFactoryConstructors =
             {
+                TestCaseEnumerableFactoryWithFilterFrom =
+                    (fun (factory: TestCaseEnumerableFactory)
+                         filter ->
+                         factory.WithFilter filter)
                 TestVariableLevelEnumerableFactoryFrom =
                     (fun testVariableLevels ->
                         TestVariableLevelEnumerableFactory.Create testVariableLevels
@@ -197,6 +202,10 @@
 
         let stronglyTypedFactoryConstructors =
             {
+                TestCaseEnumerableFactoryWithFilterFrom =
+                    (fun (factory: TypedTestCaseEnumerableFactory<_>)
+                         filter ->
+                         factory.WithFilterTyped filter)
                 TestVariableLevelEnumerableFactoryFrom =
                     (fun testVariableLevels ->
                         TestVariableLevelEnumerableFactory.Create testVariableLevels)
@@ -243,11 +252,48 @@
                                                                                                numberOfAncestorFactories
                                                                                                allowEmptyValueNodes
                                                                                                mustHavePermutingSynthesisInTree =
+                let indexForLeftmostTestVariable =
+                    (testVariableIndexToLevelsMapping: Map<_, _>).Count
+                let considerAddingFilterToFactory factory
+                                                  indexForTestVariableFollowingTheRightmost
+                                                  filters =
+                    let numberOfTestVariablesCoveredBySynthesis =
+                        indexForTestVariableFollowingTheRightmost
+                        - indexForLeftmostTestVariable
+                    match randomBehaviour.ChooseAnyNumberFromOneTo 4 with
+                        1 when 1 < numberOfTestVariablesCoveredBySynthesis ->
+                            let relativeTestVariableIndicesMonitoredByFilter =
+                                let numberOfTestVariablesMonitoredByFilter =
+                                    1 + randomBehaviour.ChooseAnyNumberFromOneTo (numberOfTestVariablesCoveredBySynthesis - 1)
+                                randomBehaviour.ChooseSeveralOf (Seq.init numberOfTestVariablesCoveredBySynthesis BargainBasement.Identity,
+                                                                          numberOfTestVariablesMonitoredByFilter)
+                                |> Set.ofArray
+                            let additionalFilterForThisFactory (dictionary: IDictionary<Int32, Int32 * Object>) =
+                                let relevantTestVariableLevelIndices =
+                                    seq
+                                        {
+                                            for KeyValue (relativeTestVariableIndex
+                                                            , (testVariableLevelIndex
+                                                               , _)) in dictionary do
+                                                if relativeTestVariableIndicesMonitoredByFilter.Contains relativeTestVariableIndex
+                                                then
+                                                    yield testVariableLevelIndex
+                                        }
+                                relevantTestVariableLevelIndices
+                                |> Seq.groupBy BargainBasement.Identity
+                                |> Seq.forall (function _
+                                                        , groupOfTheSameTestVariableLevelIndicesOriginatingFromDifferentTestVariables ->
+                                                            1 = Seq.length groupOfTheSameTestVariableLevelIndicesOriginatingFromDifferentTestVariables)
+                            factoryConstructors.TestCaseEnumerableFactoryWithFilterFrom factory
+                                                                                        (LevelCombinationFilter additionalFilterForThisFactory)
+                            , (indexForLeftmostTestVariable
+                               , additionalFilterForThisFactory) :: filters
+                      | _ ->
+                            factory
+                            , filters
                 match randomBehaviour.ChooseAnyNumberFromOneTo 3 with
                     1 when combinationStrength = 1
                             && not mustHavePermutingSynthesisInTree ->
-                        let indexForLeftmostTestVariable =
-                            (testVariableIndexToLevelsMapping: Map<_, _>).Count
                         if randomBehaviour.HeadsItIs ()
                         then
                             let levelCountForTestVariableIntroducedHere =
@@ -291,6 +337,7 @@
                                         testVariableLevels
                                         testVariableIndexToLevelsMapping
                             , None
+                            , []
                         else
                             let testVariableLevel =
                                 [(indexForLeftmostTestVariable, None)]: List<TestVariableLevel>
@@ -303,6 +350,7 @@
                                       testVariableLevels
                                       testVariableIndexToLevelsMapping
                             , None
+                            , []
                   | _ ->
                     if randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (2 * maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving)
                        < max maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving
@@ -375,13 +423,15 @@
                                     , []
                                     , testVariableIndexToLevelsMapping
                                     , permutationExtentsForSubtrees
+                                    , []
                               | (subtreeCombinationStrength
                                  , allowEmptyValueNodeInSubtree
                                  , mustHavePermutingSynthesisInTreeInSubtree) :: tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice ->
                                     let subtree
                                         , testVariableCombinationFromSubtree
                                         , testVariableIndexToLevelsMappingFromSubtree
-                                        , permutationExtentFromSubtree =
+                                        , permutationExtentFromSubtree
+                                        , filtersFromSubtree =
                                         constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations subtreeCombinationStrength
                                                                                                                    testVariableIndexToLevelsMapping
                                                                                                                    (numberOfAncestorFactories + 1)
@@ -392,7 +442,8 @@
                                     let remainingSubtrees
                                         , testVariableCombinationsFromRemainingSubtrees
                                         , testVariableIndexToLevelsMappingFromRemainingSubtrees
-                                        , permutationExtentsFromRemainingSubtrees =
+                                        , permutationExtentsFromRemainingSubtrees
+                                        , filtersFromRemainingSubtrees =
                                         createSubtrees tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                        testVariableIndexToLevelsMappingFromSubtree
                                                        permutationExtentsForSubtrees
@@ -400,10 +451,12 @@
                                     , testVariableCombinationFromSubtree :: testVariableCombinationsFromRemainingSubtrees
                                     , testVariableIndexToLevelsMappingFromRemainingSubtrees
                                     , permutationExtentFromSubtree :: permutationExtentsFromRemainingSubtrees
+                                    , List.append filtersFromSubtree filtersFromRemainingSubtrees
                         let subtrees
                             , testVariableCombinationsFromSubtrees
                             , testVariableIndexToLevelsMappingFromSubtrees
-                            , permutationExtentsForSubtrees =
+                            , permutationExtentsForSubtrees
+                            , filtersFromSubtrees =
                             createSubtrees triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                            testVariableIndexToLevelsMapping
                                            []
@@ -476,19 +529,29 @@
                                 randomBehaviour.ChooseOneOf permutationExampleChoices
                                 |> Some
 
-                        factoryConstructors.SynthesizedTestCaseEnumerableFactoryFrom shuffledSubtrees
-                                                                                     undoShuffleAndConcatenateContributedLevels
-                                                                                     (permuteInputs
-                                                                                      && match allowSynthesisToPermuteInputs with
-                                                                                            No ->
-                                                                                                false
-                                                                                          | Yes ->
-                                                                                                true
-                                                                                          | Randomly ->
-                                                                                                randomBehaviour.HeadsItIs ())
+                        let factory =
+                            factoryConstructors.SynthesizedTestCaseEnumerableFactoryFrom shuffledSubtrees
+                                                                                            undoShuffleAndConcatenateContributedLevels
+                                                                                            (permuteInputs
+                                                                                            && match allowSynthesisToPermuteInputs with
+                                                                                                No ->
+                                                                                                    false
+                                                                                              | Yes ->
+                                                                                                    true
+                                                                                              | Randomly ->
+                                                                                                    randomBehaviour.HeadsItIs ())
+
+                        let factory
+                            , filters =
+                            considerAddingFilterToFactory factory
+                                                          testVariableIndexToLevelsMappingFromSubtrees.Count
+                                                          filtersFromSubtrees
+
+                        factory
                         , testVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
                         , chosenPermutationExample
+                        , filters
                     else
                         let numberOfSubtrees =
                             randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfNonZeroCombinationStrengthSubtrees
@@ -533,13 +596,15 @@
                                     , []
                                     , testVariableIndexToLevelsMapping
                                     , permutationExtentsForSubtrees
+                                    , []
                               | (subtreeCombinationStrength
                                  , allowEmptyValueNodeInSubtree
                                  , mustHavePermutingSynthesisInTreeInSubtree) :: tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice ->
                                     let subtree
                                         , testVariableCombinationFromSubtree
                                         , testVariableIndexToLevelsMappingFromSubtree
-                                        , permutationExtentFromSubtree =
+                                        , permutationExtentFromSubtree
+                                        , filtersFromSubtree =
                                         constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations subtreeCombinationStrength
                                                                                                                    testVariableIndexToLevelsMapping
                                                                                                                    (numberOfAncestorFactories + 1)
@@ -548,7 +613,8 @@
                                     let remainingSubtrees
                                         , testVariableCombinationsFromRemainingSubtrees
                                         , testVariableIndexToLevelsMappingFromRemainingSubtrees
-                                        , permutationExtentsFromRemainingSubtrees =
+                                        , permutationExtentsFromRemainingSubtrees
+                                        , filtersFromRemainingSubtrees =
                                         createSubtrees tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                        testVariableIndexToLevelsMappingFromSubtree
                                                        permutationExtentsForSubtrees
@@ -556,10 +622,12 @@
                                     , testVariableCombinationFromSubtree :: testVariableCombinationsFromRemainingSubtrees
                                     , testVariableIndexToLevelsMappingFromRemainingSubtrees
                                     , permutationExtentFromSubtree :: permutationExtentsFromRemainingSubtrees
+                                    , List.append filtersFromSubtree filtersFromRemainingSubtrees
                         let subtrees
                             , testVariableCombinationsFromSubtrees
                             , testVariableIndexToLevelsMappingFromSubtrees
-                            , permutationExtentsForSubtrees =
+                            , permutationExtentsForSubtrees
+                            , filtersFromSubtrees =
                             createSubtrees (List.zip3 combinationStrengths
                                                       whetherToAllowEmptyValueNodeChoices
                                                       mustHavePermutingSynthesisInTreeChoices)
@@ -588,15 +656,26 @@
                                 randomBehaviour.ChooseOneOf permutationExampleChoices
                                 |> Some
 
-                        factoryConstructors.InterleavedTestCaseEnumerableFactoryFrom subtrees
+                        let factory =
+                            factoryConstructors.InterleavedTestCaseEnumerableFactoryFrom subtrees
+
+                        let factory
+                            , filters =
+                            considerAddingFilterToFactory factory
+                                                          testVariableIndexToLevelsMappingFromSubtrees.Count
+                                                          filtersFromSubtrees
+
+                        factory
                         , chosenTestVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
                         , chosenPermutationExample
+                        , filtersFromSubtrees
 
             let testCaseEnumerableFactory
                 , testVariableCombination
                 , testVariableIndexToLevelsMapping
-                , permutationExample =
+                , permutationExample
+                , filters =
                 constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                                            Map.empty
                                                                                            0
@@ -606,6 +685,7 @@
             , testVariableCombination.Value
             , testVariableIndexToLevelsMapping
             , permutationExample
+            , filters
 
         let randomBehaviourSeed = 23
 
@@ -631,7 +711,8 @@
                 let testCaseEnumerableFactory
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping
-                    , permutationExample =
+                    , permutationExample
+                    , filters =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                randomBehaviour
                                                                                                false
@@ -648,6 +729,7 @@
                 testHandoff testCaseEnumerable
                             testVariableCombinationConformingToMaximumStrength
                             testVariableIndexToLevelsMapping
+                            filters
                             maximumStrength
                             randomBehaviour
 
@@ -665,12 +747,14 @@
                 let testCaseEnumerableFactory
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping
-                    , Some permutationExample =
+                    , Some permutationExample
+                    , _ =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
                                                                                                copiedRandomBehaviourOne
                                                                                                false
                                                                                                Yes
                 let unpermutedTestCaseEnumerableFactory
+                    , _
                     , _
                     , _
                     , _ =
@@ -806,6 +890,7 @@
                 let testCaseEnumerableFactory
                     , _
                     , _
+                    , _
                     , _ =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
                                                                                                randomBehaviour
@@ -827,6 +912,7 @@
                             _
                             _
                             _
+                            _
                             _ =
                 for testCase in testCaseEnumerable do
                     let testCase = unbox<List<TestVariableLevel>> testCase
@@ -839,6 +925,7 @@
             let testHandoff (testCaseEnumerable: System.Collections.IEnumerable)
                             testVariableCombination
                             testVariableIndexToLevelsMapping
+                            filters
                             _
                             _ =
                 let testVariableIndexToLevelsMappingForTestVariableCombination =
@@ -848,6 +935,26 @@
                                     testVariable
                                     , Map.find testVariable testVariableIndexToLevelsMapping)
 
+                let combinedFilter testVariableCombination =
+                    filters
+                    |> List.forall (fun (indexOfLeftmostTestVariableCoveredByFilter
+                                         , filterDelegate) ->
+                                        testVariableCombination
+                                        |> Seq.map (fun (testVariableIndex
+                                                         , testVariableLevel) ->
+                                                        testVariableIndex - indexOfLeftmostTestVariableCoveredByFilter
+                                                        , (let indexOfTestVariableLevel =
+                                                            match testVariableLevel with
+                                                                Some index ->
+                                                                    index
+                                                              | None ->
+                                                                    0
+                                                           indexOfTestVariableLevel
+                                                           , box testVariableIndex))
+                                        |> Map.ofSeq
+                                        :> IDictionary<_, _>
+                                        |> filterDelegate)
+
                 let expectedCombinationsOfTestLevels =
                     testVariableIndexToLevelsMappingForTestVariableCombination
                     |> List.filter (snd >> List.isEmpty >> not)
@@ -855,6 +962,7 @@
                     |> List.CrossProduct
                     |> Seq.map Set.ofList
                     |> Set.ofSeq
+                    |> Set.filter combinedFilter
 
                 let testCases =
                     seq {for testCase in testCaseEnumerable do
@@ -895,18 +1003,18 @@
                     , _
                     , _
                     , _
-                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
-                                                                                                 copiedRandomBehaviourOne
-                                                                                                 false
-                                                                                                 No
+                    , _ = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                                                                                                     copiedRandomBehaviourOne
+                                                                                                     false
+                                                                                                     No
                 let testCaseEnumerableFactoryBasedOnDuplicateLevels
                     , _
                     , _
                     , _
-                    = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
-                                                                                                 copiedRandomBehaviourTwo
-                                                                                                 true
-                                                                                                 No
+                    , _ = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                                                                                                     copiedRandomBehaviourTwo
+                                                                                                     true
+                                                                                                     No
                 let maximumStrength =
                     testCaseEnumerableFactory.MaximumStrength
                 let shouldBeTrue =
@@ -938,6 +1046,7 @@
                 let testCaseEnumerableFactory
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping
+                    , _
                     , _ =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                randomBehaviour
@@ -996,6 +1105,7 @@
             for _ in 1 .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumerableFactory
+                    , _
                     , _
                     , _
                     , _ =
@@ -1072,12 +1182,14 @@
                 let weaklyTypedTestCaseEnumerableFactory
                     , _
                     , _
+                    , _
                     , _ =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                copiedRandomBehaviourOne
                                                                                                false
                                                                                                No
                 let stronglyTypedTestCaseEnumerableFactory
+                    , _
                     , _
                     , _
                     , _ =
