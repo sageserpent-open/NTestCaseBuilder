@@ -955,35 +955,54 @@
                                         :> IDictionary<_, _>
                                         |> filterDelegate)
 
-                let expectedCombinationsOfTestLevels =
+                let combinationsOfTestLevels =
                     testVariableIndexToLevelsMappingForTestVariableCombination
                     |> List.filter (snd >> List.isEmpty >> not)
                     |> List.map (snd >> List.head)
                     |> List.CrossProduct
                     |> Seq.map Set.ofList
                     |> Set.ofSeq
-                    |> Set.filter combinedFilter
+
+                let expectedCombinationsOfTestLevels
+                    , forbiddenCombinationsOfTestLevels =
+                    combinationsOfTestLevels
+                    |> Set.partition combinedFilter
 
                 let testCases =
                     seq {for testCase in testCaseEnumerable do
                             yield unbox<List<TestVariableLevel>> testCase
                                   |> Set.ofList}
 
-                let unaccountedCombinationsOfTestLevels =
+                let unaccountedExpectedCombinationsOfTestLevels =
                     Seq.fold (fun expectedCombinationsOfTestLevels
                                   testCase ->
                                     let expectedCombinationsOfTestLevelsSatisfiedByTestCase =
                                         expectedCombinationsOfTestLevels
-                                        |> Set.filter (fun testLevelCombination ->
-                                                            (testCase: Set<_>).IsSupersetOf testLevelCombination)
+                                        |> Set.filter (fun expectedTestLevelCombination ->
+                                                            (testCase: Set<_>).IsSupersetOf expectedTestLevelCombination)
                                     expectedCombinationsOfTestLevels - expectedCombinationsOfTestLevelsSatisfiedByTestCase)
                              expectedCombinationsOfTestLevels
                              testCases
 
                 let shouldBeTrue =
-                    unaccountedCombinationsOfTestLevels
-                    |> Set.count
-                     = 0
+                    unaccountedExpectedCombinationsOfTestLevels
+                    |> Set.isEmpty
+                Assert.IsTrue shouldBeTrue
+
+                let unwantedForbiddenCombinationsOfTestLevels =
+                    Seq.fold (fun unwantedForbiddenCombinationsOfTestLevels
+                                  testCase ->
+                                    let unwantedForbiddenCombinationsOfTestLevelsSatisfiedByTestCase =
+                                        forbiddenCombinationsOfTestLevels
+                                        |> Set.filter (fun forbiddenTestLevelCombination ->
+                                                            (testCase: Set<_>).IsSupersetOf forbiddenTestLevelCombination)
+                                    unwantedForbiddenCombinationsOfTestLevels + unwantedForbiddenCombinationsOfTestLevelsSatisfiedByTestCase)
+                             Set.empty
+                             testCases
+
+                let shouldBeTrue =
+                    unwantedForbiddenCombinationsOfTestLevels
+                    |> Set.isEmpty
                 Assert.IsTrue shouldBeTrue
 
             createTreesAndHandOffToTest testHandoff
