@@ -7,6 +7,7 @@ namespace NTestCaseBuilder
     open SageSerpent.Infrastructure.OptionWorkflow
     open SageSerpent.Infrastructure.CombinatoricUtilities
     open BargainBasement
+    open NodeExtensions
 
     module SynthesizedTestCaseEnumerableFactoryDetail =
         let mediateFinalValueCreatorType (createFinalValueFrom: List<FullTestVector> -> 'CreatorViewOfSynthesizedTestCase) =

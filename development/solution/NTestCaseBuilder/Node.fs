@@ -37,11 +37,44 @@ namespace NTestCaseBuilder
 
         abstract IsNodeZeroCost: Int32 -> Boolean
 
-    and Node =
-        TestVariableNode of array<Object>
-      | SingletonNode of Object
-      | InterleavingNode of List<Node>
-      | SynthesizingNode of IFixedCombinationOfSubtreeNodesForSynthesis
+    and NodeKind =
+        TestVariable of array<Object>
+      | Singleton of Object
+      | Interleaving of List<Node>
+      | Synthesizing of IFixedCombinationOfSubtreeNodesForSynthesis
+
+    and Node (kind: NodeKind) =
+        member this.Kind =
+            kind
+
+    module NodeExtensions =
+        let inline (|TestVariableNode|SingletonNode|InterleavingNode|SynthesizingNode|) (node: Node) =
+            // NASTY HACK: I wish this was written in Scala! There, I said it.
+            // Just whingeing about the inability to extend a discriminated union
+            // with additional state in F#, which necessitates this hack.
+            match node.Kind with
+                TestVariable levels ->
+                    Choice1Of4 levels
+              | Singleton singletonTestCase ->
+                    Choice2Of4 singletonTestCase
+              | Interleaving subtreeRootNodes ->
+                    Choice3Of4 subtreeRootNodes
+              | Synthesizing fixedCombinationOfSubtreeNodesForSynthesis ->
+                    Choice4Of4 fixedCombinationOfSubtreeNodesForSynthesis
+
+        let inline TestVariableNode levels =
+            Node (TestVariable levels)
+
+        let inline SingletonNode singletonTestCase =
+            Node (Singleton singletonTestCase)
+
+        let inline InterleavingNode subtreeRootNodes =
+            Node (Interleaving subtreeRootNodes)
+
+        let inline SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis =
+            Node (Synthesizing fixedCombinationOfSubtreeNodesForSynthesis)
+
+    open NodeExtensions
 
     module NodeDetail =
         let traverseTree nodeOperations =
