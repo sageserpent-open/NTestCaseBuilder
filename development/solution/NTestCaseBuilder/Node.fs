@@ -458,7 +458,7 @@ namespace NTestCaseBuilder
                         then
                             yield testVariableIndex
                 ]
-            let associationFromMissingTestVariableIndexToPermutationToReshuffleItsLevels =
+            let associationFromMissingTestVariableIndexToPermutationThatReshufflesItsLevelsAndLevelCount =
                 missingTestVariableIndices
                 |> List.map (fun missingTestVariableIndex ->
                                 missingTestVariableIndex
@@ -468,8 +468,9 @@ namespace NTestCaseBuilder
                                         let shuffledLevelIndices =
                                             randomBehaviour.Shuffle (List.init numberOfLevels
                                                                                BargainBasement.Identity)
-                                        (fun unshuffledLevelIndex ->
+                                        ((fun unshuffledLevelIndex ->
                                             shuffledLevelIndices.[unshuffledLevelIndex])
+                                         , numberOfLevels)
                                         |> Some
                                   | None ->
                                         None)
@@ -484,20 +485,6 @@ namespace NTestCaseBuilder
                         else
                             let chosenTestVariableIndex =
                                 Set.minElement missingTestVariableIndices
-                            let levelForChosenTestVariable =
-                                match associationFromMissingTestVariableIndexToPermutationToReshuffleItsLevels.[chosenTestVariableIndex] with
-                                    Some permutation ->
-                                        let chosenLevel =
-                                            permutation 0
-                                        chosenLevel
-                                        |> Level
-                                  | None ->
-                                        // This case picks up a test variable index for a singleton test case:
-                                        // the map is built so that it doesn't have entries for these.
-                                        SingletonPlaceholder
-                            let entryForChosenTestVariable =
-                                chosenTestVariableIndex
-                                , levelForChosenTestVariable
                             let excludedTestVariableIndices =
                                 associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.FindAll chosenTestVariableIndex
                                 |> Set.ofList
@@ -512,10 +499,42 @@ namespace NTestCaseBuilder
                                 (missingTestVariableIndices
                                  |> Set.remove chosenTestVariableIndex)
                                 - excludedTestVariableIndices
-                            return! fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions
-                                                                                       (List.append (entryForChosenTestVariable
-                                                                                                     :: entriesForExcludedTestVariableIndices)
-                                                                                                    entriesForPreviouslyExcludedTestVariableIndices)
+                            match associationFromMissingTestVariableIndexToPermutationThatReshufflesItsLevelsAndLevelCount.[chosenTestVariableIndex] with
+                                Some (permutation
+                                      , numberOfLevels) ->
+                                    let rec tryANewLevelIndex unshuffledLevelIndex =
+                                        continuationWorkflow
+                                            {
+                                                let levelForChosenTestVariable =
+                                                    permutation unshuffledLevelIndex
+                                                    |> Level
+                                                return! fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions
+                                                                                                           (List.append ((chosenTestVariableIndex
+                                                                                                                          , levelForChosenTestVariable)
+                                                                                                                         :: entriesForExcludedTestVariableIndices)
+                                                                                                                        entriesForPreviouslyExcludedTestVariableIndices)
+                                            }
+                                        + continuationWorkflow
+                                            {
+                                                let unshuffledLevelIndex =
+                                                    1 + unshuffledLevelIndex
+                                                if numberOfLevels = unshuffledLevelIndex
+                                                then
+                                                    return! continuationWorkflow.Zero ()
+                                                else
+                                                    return! tryANewLevelIndex unshuffledLevelIndex
+                                            }
+                                    return! tryANewLevelIndex 0
+                              | None ->
+                                    // This case picks up a test variable index for a singleton test case:
+                                    // the map is built so that it doesn't have entries for these.
+                                    let levelForChosenTestVariable =
+                                        SingletonPlaceholder
+                                    return! fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions
+                                                                                               (List.append ((chosenTestVariableIndex
+                                                                                                              , levelForChosenTestVariable)
+                                                                                                             :: entriesForExcludedTestVariableIndices)
+                                                                                                            entriesForPreviouslyExcludedTestVariableIndices)
                     }
             (continuationWorkflow
                 {
