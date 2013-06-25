@@ -57,9 +57,6 @@
         inherit Exception (makeDescriptionOfReproductionString fullTestVector
                            , innerException)
 
-    type LevelCombinationFilter =
-        delegate of IDictionary<Int32, Int32 * Object> -> Boolean
-
     /// <summary>A factory that can create an enumerable sequence of test cases used in turn to drive a parameterised
     /// unit test. Each test case is presented as a parameter to repeated calls to the parameterised unit test. The test
     /// cases are configured in terms of 'test variables', each of which can be set a particular 'level'; a given
@@ -318,4 +315,4 @@
                     Seq.empty
 
         member this.WithFilterTyped (filter: LevelCombinationFilter): TypedTestCaseEnumerableFactory<'TestCase> =
-            this    // TODO: this is a bogus implementation - hopefully there will be a test failure!
+            TypedTestCaseEnumerableFactory<'TestCase> (this.Node.WithFilter filter)

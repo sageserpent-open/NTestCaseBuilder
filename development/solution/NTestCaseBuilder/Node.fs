@@ -10,6 +10,7 @@ namespace NTestCaseBuilder
     open SageSerpent.Infrastructure.ListExtensions
     open SageSerpent.Infrastructure.OptionWorkflow
     open SageSerpent.Infrastructure.OptionExtensions
+    open SageSerpent.Infrastructure.ContinuationWorkflow
     open Microsoft.FSharp.Collections
 
     type NodeVisitOperations<'Result> =
@@ -43,9 +44,24 @@ namespace NTestCaseBuilder
       | Interleaving of List<Node>
       | Synthesizing of IFixedCombinationOfSubtreeNodesForSynthesis
 
-    and Node (kind: NodeKind) =
+    and Node (kind: NodeKind,
+              filters: List<LevelCombinationFilter>) =
+        new kind =
+            Node (kind,
+                  List.empty)
+
         member this.Kind =
             kind
+
+        member this.Filters =
+            filters
+
+        member this.WithFilter filter =
+            Node (kind,
+                  filter :: filters) 
+
+    and LevelCombinationFilter =
+        delegate of IDictionary<Int32, Int32 * Object> -> Boolean
 
     module NodeExtensions =
         let inline (|TestVariableNode|SingletonNode|InterleavingNode|SynthesizingNode|) (node: Node) =
@@ -428,31 +444,49 @@ namespace NTestCaseBuilder
 
         member this.FillOutPartialTestVectorRepresentation associationFromTestVariableIndexToNumberOfItsLevels
                                                            partialTestVectorRepresentation
-                                                           randomBehaviour =
+                                                           (randomBehaviour: Random) =
             let associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                 this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
             let testVariableIndices =
-                ((partialTestVectorRepresentation: Map<_, _>):> IDictionary<_, _>).Keys
+                (partialTestVectorRepresentation :> IDictionary<_, _>).Keys
                 |> Set.ofSeq
             let missingTestVariableIndices =
-                (List.init this.CountTestVariables
-                           (fun testVariableIndex ->
-                                testVariableIndex)
-                 |> Set.ofList)
-                - testVariableIndices
+                [
+                    for testVariableIndex in 0 .. this.CountTestVariables - 1 do
+                        if testVariableIndices.Contains testVariableIndex
+                           |> not
+                        then
+                            yield testVariableIndex
+                ]
+            let associationFromMissingTestVariableIndexToPermutationToReshuffleItsLevels =
+                missingTestVariableIndices
+                |> List.map (fun missingTestVariableIndex ->
+                                missingTestVariableIndex
+                                , match Map.tryFind missingTestVariableIndex
+                                                    associationFromTestVariableIndexToNumberOfItsLevels with
+                                    Some numberOfLevels ->
+                                        let shuffledLevelIndices =
+                                            randomBehaviour.Shuffle (List.init numberOfLevels
+                                                                               BargainBasement.Identity)
+                                        (fun unshuffledLevelIndex ->
+                                            shuffledLevelIndices.[unshuffledLevelIndex])
+                                        |> Some
+                                  | None ->
+                                        None)
+                |> Map.ofList
             let rec fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
                                                                        entriesForPreviouslyExcludedTestVariableIndices =
-                if Set.count missingTestVariableIndices = 0
+                if Set.isEmpty missingTestVariableIndices
                 then
                     entriesForPreviouslyExcludedTestVariableIndices
                 else
                     let chosenTestVariableIndex =
-                        (randomBehaviour: Random).ChooseOneOf missingTestVariableIndices
+                        Set.minElement missingTestVariableIndices
                     let levelForChosenTestVariable =
-                        match Map.tryFind chosenTestVariableIndex associationFromTestVariableIndexToNumberOfItsLevels with
-                            Some numberOfLevels ->
+                        match associationFromMissingTestVariableIndexToPermutationToReshuffleItsLevels.[chosenTestVariableIndex] with
+                            Some permutation ->
                                 let chosenLevel =
-                                    (randomBehaviour: Random).ChooseAnyNumberFromZeroToOneLessThan numberOfLevels
+                                    permutation 0
                                 chosenLevel
                                 |> Level
                           | None ->
@@ -481,7 +515,8 @@ namespace NTestCaseBuilder
                                                                                      :: entriesForExcludedTestVariableIndices)
                                                                                     entriesForPreviouslyExcludedTestVariableIndices)
             let filledAndExcludedTestVariables =
-                fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
+                fillInRandomTestVariablesMarkingExcludedOnesAsWell (missingTestVariableIndices
+                                                                    |> Set.ofList)
                                                                    List.empty
             BargainBasement.MergeDisjointSortedAssociationLists (filledAndExcludedTestVariables
                                                                  |> List.sortBy fst)
