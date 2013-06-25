@@ -302,12 +302,14 @@
                         seq
                             {
                                 for mergedPartialTestVector in lazilyProducedMergedPartialTestVectors  do
-                                    let fullTestVector =
-                                        prunedNode.FillOutPartialTestVectorRepresentation associationFromTestVariableIndexToNumberOfItsLevels
-                                                                                          mergedPartialTestVector
-                                                                                          randomBehaviour
-                                    yield (finalValueCreator fullTestVector: 'TestCase)
-                                           , fullTestVector
+                                    match prunedNode.FillOutPartialTestVectorRepresentation associationFromTestVariableIndexToNumberOfItsLevels
+                                                                                            mergedPartialTestVector
+                                                                                            randomBehaviour with
+                                        Some fullTestVector ->
+                                            yield (finalValueCreator fullTestVector: 'TestCase)
+                                                   , fullTestVector
+                                      | None ->
+                                            ()
                             }
                     sequenceOfFinalValues
 
