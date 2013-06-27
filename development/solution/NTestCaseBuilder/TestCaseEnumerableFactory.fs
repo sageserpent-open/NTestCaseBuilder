@@ -302,8 +302,7 @@
                         seq
                             {
                                 for mergedPartialTestVector in lazilyProducedMergedPartialTestVectors  do
-                                    match prunedNode.FillOutPartialTestVectorRepresentation associationFromTestVariableIndexToNumberOfItsLevels
-                                                                                            mergedPartialTestVector
+                                    match prunedNode.FillOutPartialTestVectorRepresentation mergedPartialTestVector
                                                                                             randomBehaviour with
                                         Some fullTestVector ->
                                             yield (finalValueCreator fullTestVector: 'TestCase)
