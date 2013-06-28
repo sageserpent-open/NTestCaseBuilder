@@ -429,9 +429,8 @@
                                    , numberOfRepeats) ->
                             seq
                                 {
-                                    yield! Seq.init numberOfRepeats
-                                                    (fun _ ->
-                                                        duplicatedItem)
+                                    yield! List.replicate numberOfRepeats
+                                                          duplicatedItem
                                 }
                       | Slice (backingArray
                                , startIndex

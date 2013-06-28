@@ -538,8 +538,8 @@ namespace NTestCaseBuilder
 
             let testVariableIndicesForFilledOutTestVector = // NOTE: only up to 'maximumTestVariableIndexHavingLevel' exclusive
                                                             // - this is to avoid having a tail of indeterminate entries.
-                Seq.init maximumTestVariableIndexHavingLevel BargainBasement.Identity
-                |> Set.ofSeq
+                List.init maximumTestVariableIndexHavingLevel BargainBasement.Identity
+                |> Set.ofList
 
             let testVariableIndicesForIndeterminates =
                 Set.difference testVariableIndicesForFilledOutTestVector testVariableIndicesHavingLevels
@@ -961,9 +961,8 @@ namespace NTestCaseBuilder
                           | ShortenedPrefixAgreesWithEntirePartialTestVector (lengthOfQueryPartialTestVectorRepresentation
                                                                               , agreeingPrefixOfQueryPartialTestVectorRepresentation) ->
                                 let paddingForRemainderOfQueryPartialTestVectorRepresentation =
-                                    List.init (sharedPathPrefix.Length - lengthOfQueryPartialTestVectorRepresentation)
-                                              (fun _ ->
-                                                None)
+                                    List.replicate (sharedPathPrefix.Length - lengthOfQueryPartialTestVectorRepresentation)
+                                                   None
                                 return! removeWhenSharedPathPrefixAgreesWithQuery (List.append agreeingPrefixOfQueryPartialTestVectorRepresentation
                                                                                                paddingForRemainderOfQueryPartialTestVectorRepresentation)
                                                                                   []

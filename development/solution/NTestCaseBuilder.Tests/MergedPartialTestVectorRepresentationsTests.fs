@@ -90,7 +90,7 @@
                             fillInPartialTestVectors modifiedIncompletePartialTestVectors
                                                      (completedPartialTestVector :: completedPartialTestVectors)
                 let partialTestVectors =
-                    fillInPartialTestVectors (List.init numberOfTestVectors (fun _ -> Map.empty))
+                    fillInPartialTestVectors (List.replicate numberOfTestVectors Map.empty)
                                              []
                 randomBehaviour.Shuffle partialTestVectors
                 |> List.ofArray

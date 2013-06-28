@@ -356,8 +356,7 @@
                                                                     nextLevelOfNodeAndItsSpannedTestVariableIndicesPairs
                 let testVariableIndices =
                        List.init (randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestVariables)
-                                 (fun testVariableIndex ->
-                                    testVariableIndex)
+                                 BargainBasement.Identity
                 if testVariableIndices.Length = 1
                 then didTheSingleTestVariableEdgeCase := true
                 let testVariableNodes

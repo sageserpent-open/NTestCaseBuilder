@@ -28,7 +28,7 @@ namespace SageSerpent.Infrastructure.Tests
 
         let sumContributions = List.reduceBack (+)
 
-        let sequenceOfOrderedListsOfUniqueItems = List.init 10 (fun item -> item)
+        let sequenceOfOrderedListsOfUniqueItems = List.init 10 BargainBasement.Identity
                                                   |> (BargainBasement.Flip (List.scanBack (FuncConvert.FuncFromTupled List.Cons))) []
 
         [<Test>]

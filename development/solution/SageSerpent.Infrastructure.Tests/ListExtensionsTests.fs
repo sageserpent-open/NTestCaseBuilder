@@ -34,13 +34,11 @@
                                     })
                 for _ in 1 .. numberOfRepeatsToInvestigateZeroesAndUnits do
                     let unitEntries =
-                        List.init (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan exclusiveUpperBoundOnNumberOfUnitEntries)
-                                  (fun _ ->
-                                    Seq.singleton None)
+                        List.replicate (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan exclusiveUpperBoundOnNumberOfUnitEntries)
+                                       (Seq.singleton None)
                     let zeroEntries =
-                        List.init (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan exclusiveUpperBoundOnNumberOfZeroEntries)
-                                  (fun _ ->
-                                    Seq.empty)
+                        List.replicate (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan exclusiveUpperBoundOnNumberOfZeroEntries)
+                                       Seq.empty
                     let shuffledZeroAndUnitEntries =
                         [yield! unitEntries
                          yield! zeroEntries]

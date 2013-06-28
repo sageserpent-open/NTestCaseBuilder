@@ -233,7 +233,7 @@ namespace NTestCaseBuilder
                             , maximumTestVariableIndexFromSubtree
                            , associationFromTestVariableIndexToNumberOfItsLevels
                         subtreeRootNodes
-                        |> Seq.fold mergeTestVariableCombinationsFromSubtree (Map.empty, indexForLeftmostTestVariable, [])
+                        |> List.fold mergeTestVariableCombinationsFromSubtree (Map.empty, indexForLeftmostTestVariable, [])
 
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                         let gatherTestVariableCombinationsFromSubtree (previousPerSubtreeAssociationsFromStrengthToTestVariableCombinations
@@ -261,7 +261,7 @@ namespace NTestCaseBuilder
                             , maximumTestVariableIndex
                             , associationFromTestVariableIndexToNumberOfItsLevels =
                             fixedCombinationOfSubtreeNodesForSynthesis.Nodes
-                            |> Seq.fold gatherTestVariableCombinationsFromSubtree ([], indexForLeftmostTestVariable, [])
+                            |> List.fold gatherTestVariableCombinationsFromSubtree ([], indexForLeftmostTestVariable, [])
                         let maximumStrengthsFromSubtrees =
                             perSubtreeAssociationsFromStrengthToTestVariableCombinations
                             |> List.map (fun associationFromStrengthToTestVariableCombinationsForOneSubtree ->
@@ -389,8 +389,7 @@ namespace NTestCaseBuilder
                 |> Set.ofSeq
             let missingTestVariableIndices =
                 (List.init this.CountTestVariables
-                           (fun testVariableIndex ->
-                                testVariableIndex)
+                           BargainBasement.Identity
                  |> Set.ofList)
                 - testVariableIndices
             let rec fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices

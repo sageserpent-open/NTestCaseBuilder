@@ -13,6 +13,7 @@
     open System.Windows.Forms
     open System.Collections.Generic
     open System.Text.RegularExpressions
+    open System.Linq
     open Microsoft.FSharp.Collections
     open Microsoft.FSharp.Quotations
     open Microsoft.FSharp.Quotations.Patterns
@@ -254,7 +255,7 @@
                                     Random (randomBehaviour.Next())
                                 if allowDuplicatedLevels
                                 then
-                                        List.init levelCountForTestVariableIntroducedHere (fun _ -> ())
+                                        List.replicate levelCountForTestVariableIntroducedHere ()
                                         |> List.scan (fun previousLevel _ ->
                                                         if privateRandomBehaviourThatDoesNotPerturbTheMainOne.HeadsItIs ()
                                                         then previousLevel
@@ -493,8 +494,8 @@
                                 // Rounding down causes the next binding to favour the cause of *not* flipping 'allowEmptyValueNodes'
                                 // - that way, if we have a trivial interleave with just a single subtree, 'allowEmptyValueNodes' will
                                 // not be flipped.
-                            Seq.append (Seq.init halfNumberOfSubtreesRoundedDown (fun _ -> not allowEmptyValueNodes))
-                                       (Seq.init (numberOfSubtrees - halfNumberOfSubtreesRoundedDown) (fun _ -> allowEmptyValueNodes))
+                            Seq.append (List.replicate halfNumberOfSubtreesRoundedDown (not allowEmptyValueNodes))
+                                       (List.replicate (numberOfSubtrees - halfNumberOfSubtreesRoundedDown) allowEmptyValueNodes)
                             |> randomBehaviour.Shuffle
                             |> List.ofArray
 
@@ -1082,9 +1083,7 @@
                 buildSynthesizingFactory (seq
                                             {
                                                 for _ in 1 .. numberOfIntegerVariables do
-                                                    yield Seq.init numberOfIntegerLevels
-                                                                   (fun item ->
-                                                                        item)
+                                                    yield Enumerable.Range(0, numberOfIntegerLevels)
                                             })
             let interleavingSynthesizer =
                 InterleavedTestCaseEnumerableFactory.Create [stringSynthesizer; integerSynthesizer]
@@ -1106,9 +1105,8 @@
             let numberOfVariables =
                 35
             let testVariableFactories =
-                List.init numberOfVariables
-                          (fun _ ->
-                            testVariableFactory)
+                List.replicate numberOfVariables
+                               testVariableFactory
             let factoriesWithIncreasingNumberOfTestVariables =
                 List.scan (fun factoryWithSeveralTestVariables
                                testVariableFactory ->
@@ -1143,9 +1141,8 @@
             let numberOfVariables =
                 5
             let testVariableFactories =
-                List.init numberOfVariables
-                          (fun _ ->
-                            testVariableFactory)
+                List.replicate numberOfVariables
+                               testVariableFactory
             let groupOfTestVariableFactories =
                 List.fold (fun factoryWithSeveralTestVariables
                                testVariableFactory ->
@@ -1165,9 +1162,8 @@
             let numberOfGroups =
                 5
             let interleavedFactories =
-                List.init numberOfGroups
-                          (fun _ ->
-                            testVariableFactory)
+                List.replicate numberOfGroups
+                               testVariableFactory
             let factoriesWithIncreasingNumberOfGroupInterleaves =
                 List.scan (fun factoryWithGroupInterleaves
                                testVariableFactory ->
