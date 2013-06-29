@@ -887,7 +887,8 @@ namespace NTestCaseBuilder
                                                 BranchingRoot = branchingRoot
                                               }
                                               queryPartialTestVectorRepresentation
-                                              treeSearchContextParameters =
+                                              treeSearchContextParameters
+                                              removedPartialTestVectorInReverse =
                 let treeSearchContextParametersAfter sharedPathPrefix =
                     sharedPathPrefix
                     |> ChunkedList.fold (fun (treeSearchContextParameters: TreeSearchContextParameters)
@@ -902,15 +903,18 @@ namespace NTestCaseBuilder
                                                               remainderOfQueryPartialTestVectorRepresentation =
                     continuationWorkflow
                         {
+                            let mergedSharedPathPrefix =
+                                merge agreeingPrefixOfQueryPartialTestVectorRepresentation
+                                      sharedPathPrefix
+                                |> ChunkedList.toList
                             let! modifiedBranchingRoot
                                  , removedPartialTestVectorFromBranchingRoot =
                                 removeFromTernarySearchTree branchingRoot
                                                             remainderOfQueryPartialTestVectorRepresentation
                                                             (treeSearchContextParametersAfter sharedPathPrefix)
-                            let mergedSharedPathPrefix =
-                                merge agreeingPrefixOfQueryPartialTestVectorRepresentation
-                                      sharedPathPrefix
-                                |> ChunkedList.toList
+                                                            (List.append (mergedSharedPathPrefix
+                                                                          |> List.rev)
+                                                                         removedPartialTestVectorInReverse)
                             let removedPartialTestVector =
                                 List.append mergedSharedPathPrefix
                                             removedPartialTestVectorFromBranchingRoot
@@ -971,7 +975,8 @@ namespace NTestCaseBuilder
                     }
             and removeFromTernarySearchTree ternarySearchTree
                                             queryPartialTestVectorRepresentation
-                                            (treeSearchContextParameters: TreeSearchContextParameters) =
+                                            (treeSearchContextParameters: TreeSearchContextParameters)
+                                            removedPartialTestVectorInReverse =
                 let buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices tailFromQueryPartialTestVectorRepresentation
                                                                                                levelForTestVariableIndex
                                                                                                subtreeWithLesserLevelsForSameTestVariableIndex
@@ -984,6 +989,7 @@ namespace NTestCaseBuilder
                                 removeFromTestVectorPaths testVectorPathsForFollowingIndices
                                                           tailFromQueryPartialTestVectorRepresentation
                                                           treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
+                                                          (Some levelForTestVariableIndex :: removedPartialTestVectorInReverse)
                             let modifiedBinarySearchTree =
                                 buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
                                                                                                         subtreeWithLesserLevelsForSameTestVariableIndex
@@ -1004,6 +1010,7 @@ namespace NTestCaseBuilder
                                 removeFromTestVectorPaths testVectorPathsForFollowingIndices
                                                           tailFromQueryPartialTestVectorRepresentation
                                                           treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
+                                                          (headFromQueryPartialTestVectorRepresentation :: removedPartialTestVectorInReverse)
                             let modifiedTernarySearchTree =
                                 buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                         modifiedSubtreeForFollowingTestVariableIndices
@@ -1011,9 +1018,9 @@ namespace NTestCaseBuilder
                                    , headFromQueryPartialTestVectorRepresentation :: removedPartialTestVector
                         }
 
-                let rec removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                                                                         levelFromQueryPartialTestVectorRepresentation
-                                                                         tailFromQueryPartialTestVectorRepresentation =
+                let removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                                                                     levelFromQueryPartialTestVectorRepresentation
+                                                                     tailFromQueryPartialTestVectorRepresentation =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
                             if maximumNumberOfTestVariables <= treeSearchContextParameters.TestVariableIndex
@@ -1041,8 +1048,8 @@ namespace NTestCaseBuilder
                                                                                                                splayedTestVectorPathsForFollowingIndices
                               | _ ->
                                     continuationWorkflow.Zero ()
-                and removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                                                                             tailFromQueryPartialTestVectorRepresentation =
+                let rec removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                                                                                 tailFromQueryPartialTestVectorRepresentation =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
                             if maximumNumberOfTestVariables <= treeSearchContextParameters.TestVariableIndex
@@ -1110,6 +1117,8 @@ namespace NTestCaseBuilder
                         else
                             continuationWorkflow
                                 {
+//                                    do printf "Down in the trenches #2:\n%A\n" (List.append (List.rev removedPartialTestVectorInReverse)
+//                                                                               queryPartialTestVectorRepresentation)
                                     return EmptyTernarySearchTree
                                            , queryPartialTestVectorRepresentation
                                 }
@@ -1188,9 +1197,11 @@ namespace NTestCaseBuilder
                         removeFromTernarySearchTree ternarySearchTree
                                                     [None]
                                                     treeSearchContextParameters
+                                                    removedPartialTestVectorInReverse
             removeFromTestVectorPaths testVectorPaths
                                       queryPartialTestVectorRepresentation
                                       TreeSearchContextParameters.StartOfSearch
+                                      []
 
         let checkInvariant testVectorPaths =
             let rec checkInvariantOfTestVectorPaths {
