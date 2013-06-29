@@ -462,7 +462,7 @@ namespace NTestCaseBuilder
                 let rec combinationsOfTestVariablesAssociatedWithTheirLevels node
                                                                              testVariableIndices
                                                                              indexForLeftmostTestVariable =
-                    let chunksForRelevantNodes subtreeNodes =    // TODO: results in reverse order of subtrees. Check assumption that it doesn't matter.
+                    let chunksForRelevantNodes subtreeNodes =
                         let rec chunksForRelevantNodes subtreeNodes
                                                        testVariableIndices
                                                        indexForLeftmostTestVariable
@@ -602,11 +602,9 @@ namespace NTestCaseBuilder
             if missingTestVariableIndices
                |> List.isEmpty
             then
-                partialTestVectorRepresentation
-                |> Map.toList
-                |> List.map snd
-                |> List.toArray
-                |> Some     // TODO: remove duplicated code - compare with 'else' block. Consider where filtering should go, too. How about using '.Values' / 'Array.ofSeq'?
+                partialTestVectorRepresentation.Values
+                |> Array.ofSeq
+                |> Some
             else
                 let fillerSections =
                     combinationsOfTestVariablesAssociatedWithTheirLevels this
@@ -619,103 +617,11 @@ namespace NTestCaseBuilder
                                     BargainBasement.MergeDisjointSortedAssociationLists (fillerSection
                                                                                          |> List.sortBy fst)
                                                                                         (partialTestVectorRepresentation
-                                                                                         |> Map.toList)
-                                    |> List.map snd
-                                    |> List.toArray)
+                                                                                         |> Map.toList))
                 Seq.head fullTestVectorRepresentations
+                |> List.map snd
+                |> List.toArray
                 |> Some
-//            let associationFromMissingTestVariableIndexToPermutationThatReshufflesItsLevelsAndLevelCount =
-//                missingTestVariableIndices
-//                |> List.map (fun missingTestVariableIndex ->
-//                                missingTestVariableIndex
-//                                , match Map.tryFind missingTestVariableIndex
-//                                                    associationFromTestVariableIndexToNumberOfItsLevels with
-//                                    Some numberOfLevels ->
-//                                        let shuffledLevelIndices =
-//                                            randomBehaviour.Shuffle (List.init numberOfLevels
-//                                                                               BargainBasement.Identity)
-//                                        ((fun unshuffledLevelIndex ->
-//                                            shuffledLevelIndices.[unshuffledLevelIndex])
-//                                         , numberOfLevels)
-//                                        |> Some
-//                                  | None ->
-//                                        None)
-//                |> Map.ofList
-//            let rec fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndices
-//                                                                       entriesForPreviouslyExcludedTestVariableIndices =
-//                continuationWorkflow
-//                    {
-//                        if Set.isEmpty missingTestVariableIndices
-//                        then
-//                            return entriesForPreviouslyExcludedTestVariableIndices
-//                        else
-//                            let chosenTestVariableIndex =
-//                                Set.minElement missingTestVariableIndices
-//                            let excludedTestVariableIndices =
-//                                associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt.FindAll chosenTestVariableIndex
-//                                |> Set.ofList
-//                                |> Set.intersect missingTestVariableIndices
-//                            let entriesForExcludedTestVariableIndices =
-//                                excludedTestVariableIndices
-//                                |> Seq.map (fun excludedTestVariableIndex ->
-//                                                excludedTestVariableIndex
-//                                                , Exclusion)
-//                                |> List.ofSeq
-//                            let missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions =
-//                                (missingTestVariableIndices
-//                                 |> Set.remove chosenTestVariableIndex)
-//                                - excludedTestVariableIndices
-//                            match associationFromMissingTestVariableIndexToPermutationThatReshufflesItsLevelsAndLevelCount.[chosenTestVariableIndex] with
-//                                Some (permutation
-//                                      , numberOfLevels) ->
-//                                    let rec tryANewLevelIndex unshuffledLevelIndex =
-//                                        continuationWorkflow
-//                                            {
-//                                                let levelForChosenTestVariable =
-//                                                    permutation unshuffledLevelIndex
-//                                                    |> Level
-//                                                return! fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions
-//                                                                                                           (List.append ((chosenTestVariableIndex
-//                                                                                                                          , levelForChosenTestVariable)
-//                                                                                                                         :: entriesForExcludedTestVariableIndices)
-//                                                                                                                        entriesForPreviouslyExcludedTestVariableIndices)
-//                                            }
-//                                        + continuationWorkflow
-//                                            {
-//                                                let unshuffledLevelIndex =
-//                                                    1 + unshuffledLevelIndex
-//                                                if numberOfLevels = unshuffledLevelIndex
-//                                                then
-//                                                    return! continuationWorkflow.Zero ()
-//                                                else
-//                                                    return! tryANewLevelIndex unshuffledLevelIndex
-//                                            }
-//                                    return! tryANewLevelIndex 0
-//                              | None ->
-//                                    // This case picks up a test variable index for a singleton test case.
-//                                    let levelForChosenTestVariable =
-//                                        SingletonPlaceholder
-//                                    return! fillInRandomTestVariablesMarkingExcludedOnesAsWell missingTestVariableIndicesExcludingTheChosenOneAndItsExclusions
-//                                                                                               (List.append ((chosenTestVariableIndex
-//                                                                                                              , levelForChosenTestVariable)
-//                                                                                                             :: entriesForExcludedTestVariableIndices)
-//                                                                                                            entriesForPreviouslyExcludedTestVariableIndices)
-//                    }
-//            (continuationWorkflow
-//                {
-//                    let! filledAndExcludedTestVariables =
-//                        fillInRandomTestVariablesMarkingExcludedOnesAsWell (missingTestVariableIndices
-//                                                                            |> Set.ofList)
-//                                                                           List.empty
-//                    return BargainBasement.MergeDisjointSortedAssociationLists (filledAndExcludedTestVariables
-//                                                                                |> List.sortBy fst)
-//                                                                               (partialTestVectorRepresentation
-//                                                                                |> Map.toList)
-//                           |> List.map snd
-//                           |> List.toArray
-//                }).Execute(Some,
-//                           (fun () ->
-//                                None))
 
         member this.FinalValueCreator () =
             let indicesInVectorForLeftmostTestVariableInEachSubtree subtreeRootNodes =
