@@ -903,21 +903,18 @@ namespace NTestCaseBuilder
                                                               remainderOfQueryPartialTestVectorRepresentation =
                     continuationWorkflow
                         {
-                            let mergedSharedPathPrefix =
+                            let mergedSharedPathPrefixInReverse =
                                 merge agreeingPrefixOfQueryPartialTestVectorRepresentation
                                       sharedPathPrefix
+                                |> ChunkedList.rev
                                 |> ChunkedList.toList
                             let! modifiedBranchingRoot
-                                 , removedPartialTestVectorFromBranchingRoot =
+                                 , removedPartialTestVector =
                                 removeFromTernarySearchTree branchingRoot
                                                             remainderOfQueryPartialTestVectorRepresentation
                                                             (treeSearchContextParametersAfter sharedPathPrefix)
-                                                            (List.append (mergedSharedPathPrefix
-                                                                          |> List.rev)
+                                                            (List.append mergedSharedPathPrefixInReverse
                                                                          removedPartialTestVectorInReverse)
-                            let removedPartialTestVector =
-                                List.append mergedSharedPathPrefix
-                                            removedPartialTestVectorFromBranchingRoot
                             match modifiedBranchingRoot with
                                 EmptyTernarySearchTree ->
                                     return NoTestVectorPaths
@@ -996,7 +993,7 @@ namespace NTestCaseBuilder
                                                                                                         subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                         modifiedSubtreeForFollowingTestVariableIndices
                             return modifiedBinarySearchTree
-                                   , (Some levelForTestVariableIndex :: removedPartialTestVector)
+                                   , removedPartialTestVector
 
                         }
                 let buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
@@ -1015,7 +1012,7 @@ namespace NTestCaseBuilder
                                 buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                         modifiedSubtreeForFollowingTestVariableIndices
                             return modifiedTernarySearchTree
-                                   , headFromQueryPartialTestVectorRepresentation :: removedPartialTestVector
+                                   , removedPartialTestVector
                         }
 
                 let removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
@@ -1117,10 +1114,9 @@ namespace NTestCaseBuilder
                         else
                             continuationWorkflow
                                 {
-//                                    do printf "Down in the trenches #2:\n%A\n" (List.append (List.rev removedPartialTestVectorInReverse)
-//                                                                               queryPartialTestVectorRepresentation)
                                     return EmptyTernarySearchTree
-                                           , queryPartialTestVectorRepresentation
+                                           , List.append (List.rev removedPartialTestVectorInReverse)
+                                                         queryPartialTestVectorRepresentation
                                 }
                   | WildcardNode
                     {
