@@ -1,6 +1,7 @@
 ﻿[<System.Runtime.CompilerServices.Extension>]
 module SageSerpent.Infrastructure.RandomExtensions
     open System
+    open System.Linq
 
     type Random with
         [<System.Runtime.CompilerServices.Extension>]
@@ -70,9 +71,7 @@ module SageSerpent.Infrastructure.RandomExtensions
                         let sliceLength =
                             this.ChooseAnyNumberFromOneTo numberOfLazyLists
                         let permutationDestinationIndices =
-                            Seq.init numberOfLazyLists
-                                     (fun index ->
-                                        index)
+                            Enumerable.Range(0, numberOfLazyLists)
                             |> this.Shuffle
                         let pickedItems
                             , lazyListsPickedFrom =

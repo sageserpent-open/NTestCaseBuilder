@@ -284,7 +284,7 @@ namespace NTestCaseBuilder
                             , maximumTestVariableIndexFromSubtree
                            , associationFromTestVariableIndexToNumberOfItsLevels
                         subtreeRootNodes
-                        |> Seq.fold mergeTestVariableCombinationsFromSubtree (Map.empty, indexForLeftmostTestVariable, [])  // TODO: List.fold, not Seq.fold.
+                        |> List.fold mergeTestVariableCombinationsFromSubtree (Map.empty, indexForLeftmostTestVariable, [])
 
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                         let gatherTestVariableCombinationsFromSubtree (previousPerSubtreeAssociationsFromStrengthToTestVariableCombinations
@@ -314,7 +314,7 @@ namespace NTestCaseBuilder
                             , maximumTestVariableIndex
                             , associationFromTestVariableIndexToNumberOfItsLevels =
                             subtreeNodes
-                            |> Seq.fold gatherTestVariableCombinationsFromSubtree ([], indexForLeftmostTestVariable, [])    // TODO: List.fold, not Seq.fold
+                            |> List.fold gatherTestVariableCombinationsFromSubtree ([], indexForLeftmostTestVariable, [])
                         let numberOfSubtrees =
                             List.length subtreeNodes
                         let maximumStrengthsFromSubtrees =
