@@ -901,20 +901,22 @@ namespace NTestCaseBuilder
                                         treeSearchContextParameters
                 let removeWhenSharedPathPrefixAgreesWithQuery agreeingPrefixOfQueryPartialTestVectorRepresentation
                                                               remainderOfQueryPartialTestVectorRepresentation =
+                    let mergedSharedPathPrefix =
+                        merge agreeingPrefixOfQueryPartialTestVectorRepresentation
+                              sharedPathPrefix
+                        |> ChunkedList.toList
+                    let removedPartialTestVectorSharedPathPrefixInReverse =
+                        List.append (mergedSharedPathPrefix
+                                     |> List.rev)
+                                    removedPartialTestVectorInReverse
                     continuationWorkflow
                         {
-                            let mergedSharedPathPrefix =
-                                merge agreeingPrefixOfQueryPartialTestVectorRepresentation
-                                      sharedPathPrefix
-                                |> ChunkedList.toList
                             let! modifiedBranchingRoot
                                  , removedPartialTestVectorFromBranchingRoot =
                                 removeFromTernarySearchTree branchingRoot
                                                             remainderOfQueryPartialTestVectorRepresentation
                                                             (treeSearchContextParametersAfter sharedPathPrefix)
-                                                            (List.append (mergedSharedPathPrefix
-                                                                          |> List.rev)
-                                                                         removedPartialTestVectorInReverse)
+                                                            removedPartialTestVectorSharedPathPrefixInReverse
                             let removedPartialTestVector =
                                 List.append mergedSharedPathPrefix
                                             removedPartialTestVectorFromBranchingRoot
@@ -1201,7 +1203,7 @@ namespace NTestCaseBuilder
             removeFromTestVectorPaths testVectorPaths
                                       queryPartialTestVectorRepresentation
                                       TreeSearchContextParameters.StartOfSearch
-                                      []
+                                      [] 
 
         let checkInvariant testVectorPaths =
             let rec checkInvariantOfTestVectorPaths {
