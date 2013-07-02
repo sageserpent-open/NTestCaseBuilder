@@ -901,12 +901,12 @@ namespace NTestCaseBuilder
                                         treeSearchContextParameters
                 let removeWhenSharedPathPrefixAgreesWithQuery agreeingPrefixOfQueryPartialTestVectorRepresentation
                                                               remainderOfQueryPartialTestVectorRepresentation =
-                    let mergedSharedPathPrefix =
-                        merge agreeingPrefixOfQueryPartialTestVectorRepresentation
-                              sharedPathPrefix
-                        |> ChunkedList.toList
                     let removedPartialTestVectorSharedPathPrefixInReverse =
                         fun () ->
+                            let mergedSharedPathPrefix =
+                                merge agreeingPrefixOfQueryPartialTestVectorRepresentation
+                                      sharedPathPrefix
+                                |> ChunkedList.toList
                             LazyList.append (mergedSharedPathPrefix
                                              |> List.rev
                                              |> LazyList.ofList)
@@ -915,14 +915,11 @@ namespace NTestCaseBuilder
                     continuationWorkflow
                         {
                             let! modifiedBranchingRoot
-                                 , removedPartialTestVectorFromBranchingRoot =
+                                 , removedPartialTestVector =
                                 removeFromTernarySearchTree branchingRoot
                                                             remainderOfQueryPartialTestVectorRepresentation
                                                             (treeSearchContextParametersAfter sharedPathPrefix)
                                                             removedPartialTestVectorSharedPathPrefixInReverse
-                            let removedPartialTestVector =
-                                List.append mergedSharedPathPrefix
-                                            removedPartialTestVectorFromBranchingRoot
                             match modifiedBranchingRoot with
                                 EmptyTernarySearchTree ->
                                     return NoTestVectorPaths
@@ -1004,7 +1001,7 @@ namespace NTestCaseBuilder
                                                                                                         subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                         modifiedSubtreeForFollowingTestVariableIndices
                             return modifiedBinarySearchTree
-                                   , (Some levelForTestVariableIndex :: removedPartialTestVector)
+                                   , removedPartialTestVector
 
                         }
                 let buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
@@ -1026,7 +1023,7 @@ namespace NTestCaseBuilder
                                 buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                         modifiedSubtreeForFollowingTestVariableIndices
                             return modifiedTernarySearchTree
-                                   , headFromQueryPartialTestVectorRepresentation :: removedPartialTestVector
+                                   , removedPartialTestVector
                         }
 
                 let removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
@@ -1128,13 +1125,11 @@ namespace NTestCaseBuilder
                         else
                             continuationWorkflow
                                 {
-                                    let removedMergedPartialTestVectorRepresentation =
-                                        List.append (removedPartialTestVectorInReverse
-                                                     |> LazyList.toList
-                                                     |> List.rev)
-                                                    queryPartialTestVectorRepresentation
                                     return EmptyTernarySearchTree
-                                           , queryPartialTestVectorRepresentation
+                                           , List.append (removedPartialTestVectorInReverse
+                                                          |> LazyList.toList
+                                                          |> List.rev)
+                                                         queryPartialTestVectorRepresentation
                                 }
                   | WildcardNode
                     {
