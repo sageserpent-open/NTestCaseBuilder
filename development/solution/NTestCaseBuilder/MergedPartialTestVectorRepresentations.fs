@@ -984,6 +984,8 @@ namespace NTestCaseBuilder
                                                                                                subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                testVectorPathsForFollowingIndices =
+                    let removedPartialTestVectorWithNewLevelInReverse =
+                        Some levelForTestVariableIndex :: removedPartialTestVectorInReverse
                     continuationWorkflow
                         {
                             let! modifiedSubtreeForFollowingTestVariableIndices
@@ -991,7 +993,7 @@ namespace NTestCaseBuilder
                                 removeFromTestVectorPaths testVectorPathsForFollowingIndices
                                                           tailFromQueryPartialTestVectorRepresentation
                                                           treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
-                                                          (Some levelForTestVariableIndex :: removedPartialTestVectorInReverse)
+                                                          removedPartialTestVectorWithNewLevelInReverse
                             let modifiedBinarySearchTree =
                                 buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
                                                                                                         subtreeWithLesserLevelsForSameTestVariableIndex
@@ -1005,6 +1007,8 @@ namespace NTestCaseBuilder
                                                                                                tailFromQueryPartialTestVectorRepresentation
                                                                                                subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                testVectorPathsForFollowingIndices =
+                    let removedPartialTestVectorWithNewLevelInReverse =
+                        headFromQueryPartialTestVectorRepresentation :: removedPartialTestVectorInReverse
                     continuationWorkflow
                         {
                             let! modifiedSubtreeForFollowingTestVariableIndices
@@ -1012,7 +1016,7 @@ namespace NTestCaseBuilder
                                 removeFromTestVectorPaths testVectorPathsForFollowingIndices
                                                           tailFromQueryPartialTestVectorRepresentation
                                                           treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
-                                                          (headFromQueryPartialTestVectorRepresentation :: removedPartialTestVectorInReverse)
+                                                          removedPartialTestVectorWithNewLevelInReverse
                             let modifiedTernarySearchTree =
                                 buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                         modifiedSubtreeForFollowingTestVariableIndices
