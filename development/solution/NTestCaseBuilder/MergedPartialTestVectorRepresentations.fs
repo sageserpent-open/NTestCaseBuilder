@@ -906,9 +906,12 @@ namespace NTestCaseBuilder
                               sharedPathPrefix
                         |> ChunkedList.toList
                     let removedPartialTestVectorSharedPathPrefixInReverse =
-                        List.append (mergedSharedPathPrefix
-                                     |> List.rev)
-                                    removedPartialTestVectorInReverse
+                        fun () ->
+                            LazyList.append (mergedSharedPathPrefix
+                                             |> List.rev
+                                             |> LazyList.ofList)
+                                            removedPartialTestVectorInReverse
+                        |> LazyList.delayed
                     continuationWorkflow
                         {
                             let! modifiedBranchingRoot
@@ -985,7 +988,8 @@ namespace NTestCaseBuilder
                                                                                                subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                testVectorPathsForFollowingIndices =
                     let removedPartialTestVectorWithNewLevelInReverse =
-                        Some levelForTestVariableIndex :: removedPartialTestVectorInReverse
+                        LazyList.cons (Some levelForTestVariableIndex)
+                                      removedPartialTestVectorInReverse
                     continuationWorkflow
                         {
                             let! modifiedSubtreeForFollowingTestVariableIndices
@@ -1008,7 +1012,8 @@ namespace NTestCaseBuilder
                                                                                                subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                testVectorPathsForFollowingIndices =
                     let removedPartialTestVectorWithNewLevelInReverse =
-                        headFromQueryPartialTestVectorRepresentation :: removedPartialTestVectorInReverse
+                        LazyList.cons headFromQueryPartialTestVectorRepresentation
+                                      removedPartialTestVectorInReverse
                     continuationWorkflow
                         {
                             let! modifiedSubtreeForFollowingTestVariableIndices
@@ -1123,8 +1128,11 @@ namespace NTestCaseBuilder
                         else
                             continuationWorkflow
                                 {
-//                                    do printf "Down in the trenches #2:\n%A\n" (List.append (List.rev removedPartialTestVectorInReverse)
-//                                                                               queryPartialTestVectorRepresentation)
+                                    let removedMergedPartialTestVectorRepresentation =
+                                        List.append (removedPartialTestVectorInReverse
+                                                     |> LazyList.toList
+                                                     |> List.rev)
+                                                    queryPartialTestVectorRepresentation
                                     return EmptyTernarySearchTree
                                            , queryPartialTestVectorRepresentation
                                 }
@@ -1207,7 +1215,7 @@ namespace NTestCaseBuilder
             removeFromTestVectorPaths testVectorPaths
                                       queryPartialTestVectorRepresentation
                                       TreeSearchContextParameters.StartOfSearch
-                                      [] 
+                                      LazyList.empty
 
         let checkInvariant testVectorPaths =
             let rec checkInvariantOfTestVectorPaths {
