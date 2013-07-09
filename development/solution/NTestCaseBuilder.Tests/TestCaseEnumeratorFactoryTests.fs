@@ -941,17 +941,13 @@
                     |> List.forall (fun (indexOfLeftmostTestVariableCoveredByFilter
                                          , filterDelegate) ->
                                         testVariableCombination
+                                        |> Seq.filter (snd >> Option.isSome)
                                         |> Seq.map (fun (testVariableIndex
-                                                         , testVariableLevel) ->
+                                                         , (Some indexOfTestVariableLevel) as testVariableLevel) ->
                                                         testVariableIndex - indexOfLeftmostTestVariableCoveredByFilter
-                                                        , (let indexOfTestVariableLevel =
-                                                            match testVariableLevel with
-                                                                Some index ->
-                                                                    index
-                                                              | None ->
-                                                                    0
-                                                           indexOfTestVariableLevel
-                                                           , box testVariableIndex))
+                                                        , (indexOfTestVariableLevel
+                                                           , box [testVariableIndex
+                                                                  , testVariableLevel]))
                                         |> Map.ofSeq
                                         :> IDictionary<_, _>
                                         |> filterDelegate)

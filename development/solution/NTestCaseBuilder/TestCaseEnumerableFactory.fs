@@ -167,7 +167,8 @@
         /// for when two test variables share the same level and the filter is used to impose a constraint that the levels from both test variables can never be
         /// equal - comparing the indices allows a general-purpose filter to be written that avoids worrying about whether equality is defined for the level type.</remarks>
         /// <remarks>If there is are any synthesizing nodes anywhere in the subtree covered by 'this' that perform permutations, the filter is taken to apply to
-        /// the test variable indices *before* the effect of the permutation - so filters do not have to be rewritten to take permutations into account.</remarks>
+        /// the test variable indices *before* the effect of the permutation - however, the filter must be aware of the additional test variables that generate the permutations.</remarks>
+        /// <remarks>There are never any entries in the dictionary passed to a filter that correspond to singleton test variables.</remarks>
         /// <param name="filter">Delegate accepting a dictionary that describes the combination of levels being considered - each key in the dictionary is a test
         /// variable index denoting one of the test variables involved; the associated value is a pair of an index denoting the actual test level for that test
         /// variable in the combination, together with the value of the test level itself. Returns true if the combination of levels is permitted, false if the combination

@@ -203,26 +203,26 @@ namespace NTestCaseBuilder
                                                          , interleavingTestVariableIndicesFromTheLeftSiblings
                                                          , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt)
                                                         subtreeRootNode =
-                            let maximumTestVariableFromSubtree
+                            let onePastIndexForRightmostTestVariable
                                 , associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                                 walkTree subtreeRootNode
                                          indexForLeftmostTestVariable
                                          interleavingTestVariableIndicesFromTheLeftSiblings
                                          previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
                             let testVariableIndicesFromNode =
-                                List.init (maximumTestVariableFromSubtree - indexForLeftmostTestVariable)
+                                List.init (onePastIndexForRightmostTestVariable - indexForLeftmostTestVariable)
                                           (fun variableCount -> variableCount + indexForLeftmostTestVariable)
-                            maximumTestVariableFromSubtree
+                            onePastIndexForRightmostTestVariable
                             , List.append testVariableIndicesFromNode interleavingTestVariableIndicesFromTheLeftSiblings
                             , associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
-                        let maximumTestVariableFromSubtree
+                        let onePastIndexForRightmostTestVariable
                             , _
                             , associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
                             subtreeRootNodes
                             |> Seq.fold mergeAssociationFromSubtree (indexForLeftmostTestVariable
                                                                      , interleavingTestVariableIndices
                                                                      , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt)
-                        maximumTestVariableFromSubtree
+                        onePastIndexForRightmostTestVariable
                         , associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                         let mergeAssociationFromSubtree (indexForLeftmostTestVariable
@@ -267,7 +267,7 @@ namespace NTestCaseBuilder
                                                                       , previousAssociationFromTestVariableIndexToNumberOfItsLevels)
                                                                      subtreeRootNode =
                             let associationFromStrengthToTestVariableCombinationsFromSubtree
-                                , maximumTestVariableIndexFromSubtree
+                                , onePastIndexForRightmostTestVariable
                                 , associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree =
                                 walkTree subtreeRootNode maximumDesiredStrength indexForLeftmostTestVariable
                             let mergedAssociationFromStrengthToTestVariableCombinations =
@@ -281,7 +281,7 @@ namespace NTestCaseBuilder
                                 List.append associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree
                                             previousAssociationFromTestVariableIndexToNumberOfItsLevels
                             mergedAssociationFromStrengthToTestVariableCombinations
-                            , maximumTestVariableIndexFromSubtree
+                            , onePastIndexForRightmostTestVariable
                            , associationFromTestVariableIndexToNumberOfItsLevels
                         subtreeRootNodes
                         |> List.fold mergeTestVariableCombinationsFromSubtree (Map.empty, indexForLeftmostTestVariable, [])
@@ -292,7 +292,7 @@ namespace NTestCaseBuilder
                                                                        , previousAssociationFromTestVariableIndexToNumberOfItsLevels)
                                                                       subtreeRootNode =
                             let associationFromStrengthToTestVariableCombinationsFromSubtree
-                                , maximumTestVariableIndexFromSubtree
+                                , onePastIndexForRightmostTestVariable
                                 , associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree =
                                 walkTree subtreeRootNode maximumDesiredStrength indexForLeftmostTestVariable
                             let perSubtreeAssociationsFromStrengthToTestVariableCombinations =
@@ -301,7 +301,7 @@ namespace NTestCaseBuilder
                                 List.append associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree
                                             previousAssociationFromTestVariableIndexToNumberOfItsLevels
                             perSubtreeAssociationsFromStrengthToTestVariableCombinations
-                            , maximumTestVariableIndexFromSubtree
+                            , onePastIndexForRightmostTestVariable
                             , associationFromTestVariableIndexToNumberOfItsLevels
                         let subtreeNodes =
                             fixedCombinationOfSubtreeNodesForSynthesis.Nodes
