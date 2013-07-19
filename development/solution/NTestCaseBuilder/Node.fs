@@ -36,7 +36,7 @@ namespace NTestCaseBuilder
 
         abstract FinalValueCreator: Unit -> (List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase)
 
-        abstract IsNodeZeroCost: Int32 -> Boolean
+        abstract IsSubtreeZeroCost: Int32 -> Boolean
 
     and NodeKind =
         TestVariable of array<Object>
@@ -355,7 +355,7 @@ namespace NTestCaseBuilder
                                                         let indexOfSubtree =
                                                             numberOfSubtrees - (1 + indexOfSubtreeCountingFromTheRight)
                                                         let strength =
-                                                            if fixedCombinationOfSubtreeNodesForSynthesis.IsNodeZeroCost indexOfSubtree
+                                                            if fixedCombinationOfSubtreeNodesForSynthesis.IsSubtreeZeroCost indexOfSubtree
                                                             then
                                                                 (associationFromStrengthToTestVariableCombinationsForOneSubtree :> IDictionary<_, _>).Keys
                                                                 |> Seq.max      
@@ -778,7 +778,7 @@ namespace NTestCaseBuilder
                                 (synthesisDelegate: Delegate).DynamicInvoke invocationArguments
                                 |> unbox
 
-                        member this.IsNodeZeroCost _ =
+                        member this.IsSubtreeZeroCost _ =
                             false
                 }
             fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes

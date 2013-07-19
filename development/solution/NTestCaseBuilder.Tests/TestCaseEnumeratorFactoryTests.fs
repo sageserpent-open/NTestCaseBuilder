@@ -540,15 +540,15 @@
 
                         let factory =
                             factoryConstructors.SynthesizedTestCaseEnumerableFactoryFrom shuffledSubtrees
-                                                                                            undoShuffleAndConcatenateContributedLevels
-                                                                                            (permuteInputs
-                                                                                            && match allowSynthesisToPermuteInputs with
-                                                                                                No ->
-                                                                                                    false
-                                                                                              | Yes ->
-                                                                                                    true
-                                                                                              | Randomly ->
-                                                                                                    randomBehaviour.HeadsItIs ())
+                                                                                         undoShuffleAndConcatenateContributedLevels
+                                                                                         (permuteInputs
+                                                                                          && match allowSynthesisToPermuteInputs with
+                                                                                            No ->
+                                                                                                false
+                                                                                          | Yes ->
+                                                                                                true
+                                                                                          | Randomly ->
+                                                                                                randomBehaviour.HeadsItIs ())
 
                         let factory
                             , filters =
@@ -578,7 +578,7 @@
                         let whetherToAllowEmptyValueNodeChoices =
                             let halfNumberOfSubtreesRoundedDown =
                                 numberOfSubtrees / 2
-                                // Rounding down causes the next binding to favour the cause of *not* flipping 'allowEmptyValueNodes'
+                                // Rounding down causes the next binding to favour the case of *not* flipping 'allowEmptyValueNodes'
                                 // - that way, if we have a trivial interleave with just a single subtree, 'allowEmptyValueNodes' will
                                 // not be flipped.
                             Seq.append (List.replicate halfNumberOfSubtreesRoundedDown (not allowEmptyValueNodes))
@@ -1059,7 +1059,7 @@
                 let shouldBeTrue = (testCaseSequence testCaseEnumerableFactory
                                     |> bagCombinationsOfTestVariableIndicesDisregardingLevels).UnsequencedEquals
                                      (testCaseSequence testCaseEnumerableFactoryBasedOnDuplicateLevels
-                                       |> bagCombinationsOfTestVariableIndicesDisregardingLevels)
+                                      |> bagCombinationsOfTestVariableIndicesDisregardingLevels)
                 Assert.IsTrue shouldBeTrue
 
         [<Test>]

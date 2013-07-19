@@ -132,7 +132,7 @@ namespace NTestCaseBuilder
             member this.FinalValueCreator (): List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase =
                 mediateFinalValueCreatorType createFinalValueFrom
 
-            member this.IsNodeZeroCost _ =
+            member this.IsSubtreeZeroCost _ =
                 false
 
     type UnaryDelegate<'Argument, 'Result> =
@@ -377,7 +377,7 @@ namespace NTestCaseBuilder
                                     condensation.Invoke resultsFromSubtrees
                                 |> mediateFinalValueCreatorType
 
-                            member this.IsNodeZeroCost _ =
+                            member this.IsSubtreeZeroCost _ =
                                 false
                     }
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesFromExplicitFactories
@@ -495,8 +495,8 @@ namespace NTestCaseBuilder
                                     , Permutation<'Something>(List.ofSeq >> shuffle)
                                 |> mediateFinalValueCreatorType
 
-                            member this.IsNodeZeroCost testVariableIndex =
-                                0 = testVariableIndex
+                            member this.IsSubtreeZeroCost subtreeIndex =
+                                0 = subtreeIndex
                     }
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesIncludingImplicitFactoryForPermutation
 
