@@ -296,7 +296,8 @@
                                 }
 
                         let lazilyProducedMergedPartialTestVectors =
-                            lazilyProduceMergedPartialTestVectors (MergedPartialTestVectorRepresentations.Initial overallNumberOfTestVariables)
+                            lazilyProduceMergedPartialTestVectors (MergedPartialTestVectorRepresentations.Initial overallNumberOfTestVariables
+                                                                                                                  prunedNode.CombinedFilter)
                                                                   partialTestVectorsInOrderOfDecreasingStrength
 
                         let finalValueCreator =

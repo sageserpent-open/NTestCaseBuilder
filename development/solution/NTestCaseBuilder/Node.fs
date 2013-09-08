@@ -57,9 +57,15 @@ namespace NTestCaseBuilder
         member this.Filters =
             filters
 
-        member this.WithFilter filter =
+        member this.WithFilter additionalFilter =
             Node (kind,
-                  filter :: filters) 
+                  additionalFilter :: filters)
+
+        member private this.WithFilters additionalFilters =
+            Node(kind,
+                 List.append additionalFilters
+                             filters)
+                 
 
     and LevelCombinationFilter =
         delegate of IDictionary<Int32, Int32 * Object> -> Boolean   // NOTE: the test variable index keys map to pairs of the
@@ -169,42 +175,14 @@ namespace NTestCaseBuilder
                         then
                             None
                         else
-                            Some (InterleavingNode prunedSubtreeRootNodes)
+                            Some ((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters)
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                         fixedCombinationOfSubtreeNodesForSynthesis.Prune
-                        |> Option.map SynthesizingNode
+                        |> Option.map (fun fixedCombinationOfSubtreeNodesForSynthesis ->
+                                        (SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters)
             walkTree this
 
         member this.CombinedFilter =
-            // Creates a function that accepts a 'seq<int * TestVariable<int>' representing a partial or full test vector - so the
-            // keys aren't always contiguous like an array.
-
-            // Preprocessing steps:-
-
-            // 1. Create map of test variable index => array of test variable level indexed by test variable level index for all
-            // non-singleton test variables in the subtree headed by 'this'.
-
-            // 2. Walk the subtree headed by this and track the index of the leftmost test variable for the subtree headed by each node
-            // visited as well as one-past the index of the rightmost test variable in the same subtree, i.e. a [) interval. On finishing
-            // visiting a node's entire subtree (along with itself), add a triple of (lhs index, one past rhs index, list of filters contributed
-            // by the visted node itself (not including its children in the subtree) to the result built up in the walk.
-
-            // Use an optional list value - if any one of the filters from any one of the nodes is mad (i.e. will reject an empty input), then
-            // the result is just None, and the closure below will be replaced by a trivial function that always returns false.
-
-            // Closure steps:-
-
-            // 1. Take input sequence and filter out singleton test variables; convert the filtered result to an array (or something that can be binary chopped)
-            // of pairs of (test variable index, test variable level index), making sure the array is sorted by increasing test variable index.
-
-            // 2. Check that all items in the list satisfy a predicate that:-
-            
-            //  i) Slices the array from #1 to fit in the [) interval from the triple being folded through.
-            //  ii) If the sliced array is empty, the helper's result is true - as there are no mad filters at this point,
-            //  we know that all the filters in the triple will pass this empty slice.
-            //  iii) Otherwise bias the test variable indices in the slice by subtracting the lhs index bracket and combine the biased pairs with
-            //  the test variable levels taken from the map created during preprocessing. Convert to a dictionary and pass it to all the filters
-            //  from the triple again using a nested helper predicate.
             let comparisonForSlicing =
                 {
                     new IComparer<Int32 * Int32> with
@@ -786,10 +764,16 @@ namespace NTestCaseBuilder
                                                                                          |> List.sortBy fst)
                                                                                         (partialTestVectorRepresentation
                                                                                          |> Map.toList))
-                Seq.head fullTestVectorRepresentations
-                |> List.map snd
-                |> List.toArray
-                |> Some
+                optionWorkflow
+                    {
+                        let! chosenFullTestVectorRepresentation =
+                            fullTestVectorRepresentations
+                            |> Seq.tryFind (fun fullTestVectorRepresentation ->
+                                                this.CombinedFilter (fullTestVectorRepresentation :> seq<_>))
+                        return chosenFullTestVectorRepresentation
+                               |> List.map snd
+                               |> List.toArray
+                    }
 
         member this.FinalValueCreator () =
             let indicesInVectorForLeftmostTestVariableInEachSubtree subtreeRootNodes =

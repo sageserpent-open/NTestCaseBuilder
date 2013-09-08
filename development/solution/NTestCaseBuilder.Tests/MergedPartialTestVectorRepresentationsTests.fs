@@ -13,6 +13,9 @@
 
     [<TestFixture>]
     type MergedPartialTestVectorRepresentationsTestFixture () =
+        let passAllFilter _ =
+            true
+
         let randomBehaviourSeed = 23
 
         let reciprocalOfProbabilityOfTerminatingRandomlyGeneratedPartOfPartialTestVector = 10
@@ -274,7 +277,8 @@
                 let mergedPartialTestVectors
                     , setOfMergedPartialTestVectors =
                     mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap
-                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
+                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables
+                                                                                                 passAllFilter)
                                                  randomBehaviour
                                                  true
                 let shouldBeTrue =
@@ -299,7 +303,8 @@
                 let mergedPartialTestVectors
                     , _ =
                     mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap
-                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
+                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables
+                                                                                                 passAllFilter)
                                                  randomBehaviour
                                                  true
                 let mutantsOrCopiesOf partialTestVector =
@@ -381,7 +386,8 @@
                 let mergedPartialTestVectors
                     , _ =
                     mergeOrAddPartialTestVectors remappedPartialTestVectors
-                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariablesAfterRemapping)
+                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariablesAfterRemapping
+                                                                                                 passAllFilter)
                                                  randomBehaviour
                                                  true
                 let possiblyAddLevelsForIndices indicesToAdd partialTestVector =
@@ -435,7 +441,8 @@
                 let mergedPartialTestVectors
                     , setOfMergedPartialTestVectors =
                         mergeOrAddPartialTestVectors partialTestVectors
-                                                     (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
+                                                     (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables
+                                                                                                     passAllFilter)
                                                      randomBehaviour
                                                      true
                 let numberOfMergedPartialTestVectors =
@@ -469,7 +476,8 @@
                 let mergedPartialTestVectors
                     , setOfMergedPartialTestVectors =
                     mergeOrAddPartialTestVectors partialTestVectors
-                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
+                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables
+                                                                                                 passAllFilter)
                                                  randomBehaviour
                                                  true
                 let remergedPartialTestVectors
@@ -499,13 +507,15 @@
                 let mergedPartialTestVectors
                     , setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration =
                     mergeOrAddPartialTestVectors partialTestVectors
-                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
+                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables
+                                                                                                 passAllFilter)
                                                  randomBehaviourCloneOne
                                                  true
                 let mergedPartialTestVectors
                     , setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration =
                     mergeOrAddPartialTestVectors partialTestVectors
-                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables)
+                                                 (MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables
+                                                                                                 passAllFilter)
                                                  randomBehaviourCloneTwo
                                                  false
 
@@ -538,6 +548,7 @@
             for maximumNumberOfTestVariables in 0 .. maximumNumberOfTestVariables do   // NOTE: includes the boundary case of no test variables whatsover.
                 let initial =
                     MergedPartialTestVectorRepresentations.Initial maximumNumberOfTestVariables
+                                                                   passAllFilter
                 let containedPartialTestVectors =
                     initial.EnumerationOfMergedTestVectors true
                     |> List.ofSeq

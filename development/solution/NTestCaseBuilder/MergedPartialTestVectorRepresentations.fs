@@ -419,7 +419,8 @@ namespace NTestCaseBuilder
     open MergedPartialTestVectorRepresentationsDetail
 
     type MergedPartialTestVectorRepresentations<'Level when 'Level: comparison>(testVectorPaths: TestVectorPaths<'Level>,
-                                                                                maximumNumberOfTestVariables: Int32) =
+                                                                                maximumNumberOfTestVariables: Int32,
+                                                                                testVectorIsAcceptable: seq<Int32 * 'Level> -> Boolean) =
         let createPartialTestVectorSequence revealFullTestVectorsAgain =
             let rec traverseTestVectorPaths {
                                                 SharedPathPrefix = sharedPathPrefix
@@ -1123,13 +1124,34 @@ namespace NTestCaseBuilder
                         then
                             existingFullTestVectorBlockedRemovalContinuation ()
                         else
+                            let mergedPartialTestVectorRepresentation =
+                                List.append (removedPartialTestVectorInReverse
+                                             |> LazyList.toList
+                                             |> List.rev)
+                                            queryPartialTestVectorRepresentation
+                            let mergedPartialTestVector =
+                                [
+                                    for testVariableIndex
+                                        , testVariableLevel in mergedPartialTestVectorRepresentation
+                                                               |> List.mapi (fun testVariableIndex
+                                                                                 testVariableLevel ->
+                                                                                    testVariableIndex
+                                                                                    , testVariableLevel) do
+                                        match testVariableLevel with
+                                            Some testVariableLevel ->
+                                                yield testVariableIndex
+                                                      , testVariableLevel
+                                          | None ->
+                                                ()
+                                ]
                             continuationWorkflow
                                 {
-                                    return EmptyTernarySearchTree
-                                           , List.append (removedPartialTestVectorInReverse
-                                                          |> LazyList.toList
-                                                          |> List.rev)
-                                                         queryPartialTestVectorRepresentation
+                                    if testVectorIsAcceptable mergedPartialTestVector
+                                    then
+                                        return EmptyTernarySearchTree
+                                               , mergedPartialTestVectorRepresentation
+                                    else
+                                        return! continuationWorkflow.Zero ()
                                 }
                   | WildcardNode
                     {
@@ -1353,15 +1375,20 @@ namespace NTestCaseBuilder
         member this.EnumerationOfMergedTestVectors revealFullTestVectorsAgain =
             createPartialTestVectorSequence revealFullTestVectorsAgain
 
-        static member Initial maximumNumberOfTestVariablesOverall =
+        static member Initial maximumNumberOfTestVariablesOverall
+                              testVectorIsAcceptable =
             MergedPartialTestVectorRepresentations<'Level> ({
                                                                 SharedPathPrefix = Nil
                                                                 BranchingRoot = SuccessfulSearchTerminationNode
                                                             },
-                                                            maximumNumberOfTestVariablesOverall)
+                                                            maximumNumberOfTestVariablesOverall,
+                                                            testVectorIsAcceptable)
 
         member this.MergeOrAdd partialTestVectorRepresentationInExternalForm =
             if Map.isEmpty partialTestVectorRepresentationInExternalForm
+               || (testVectorIsAcceptable (partialTestVectorRepresentationInExternalForm
+                                           |> Map.toSeq)
+                   |> not)
             then
                 this
                 , None
@@ -1382,14 +1409,14 @@ namespace NTestCaseBuilder
                     then
                         None
                     else
-                        let testVariableIndicesForFullTestVector =
-                            List.init maximumNumberOfTestVariables
-                                      BargainBasement.Identity
                         let testVariableLevelsForFullTestVector =
                             partialTestVectorRepresentation
                             |> List.map Option.get
-                        List.zip testVariableIndicesForFullTestVector
-                                 testVariableLevelsForFullTestVector
+                        testVariableLevelsForFullTestVector
+                        |> List.mapi (fun testVariableIndex
+                                          testVariableLevel ->
+                                          testVariableIndex
+                                          , testVariableLevel)
                         |> Map.ofList
                         |> Some
                 let modifiedTestVectorPaths
@@ -1489,5 +1516,6 @@ namespace NTestCaseBuilder
                     // ... end of invariant check.
 
                 MergedPartialTestVectorRepresentations (modifiedTestVectorPaths,
-                                                        maximumNumberOfTestVariables)
+                                                        maximumNumberOfTestVariables,
+                                                        testVectorIsAcceptable)
                 , fullTestVectorBeingOfferedNowForEarlyAccess
