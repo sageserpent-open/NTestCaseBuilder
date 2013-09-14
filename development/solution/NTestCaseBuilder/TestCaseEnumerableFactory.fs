@@ -170,6 +170,7 @@
         /// the test variable indices *before* the effect of the permutation - furthermore, the filter will be unaware of the presence of the additional test variables
         /// that generate the permutations - the indices of the test variables passed to it will be the same as if no permutations were specified.</remarks>
         /// <remarks>There are never any entries in the dictionary passed to a filter that correspond to singleton test variables.</remarks>
+        /// <remarks>The test variables referenced by the dictionary passed to a filter can never be from alternate subtrees in an interleave, i.e. they correspond to well-formed test vectors.</remarks>
         /// <param name="filter">Delegate accepting a dictionary that describes the combination of levels being considered - each key in the dictionary is a test
         /// variable index denoting one of the test variables involved; the associated value is a pair of an index denoting the actual test level for that test
         /// variable in the combination, together with the value of the test level itself. Must return true to signify that the combination of levels is permitted, false if the combination
