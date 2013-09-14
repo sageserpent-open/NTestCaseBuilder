@@ -278,12 +278,22 @@
                                         let relevantTestVariableLevelIndices =
                                             seq
                                                 {
-                                                    for KeyValue (relativeTestVariableIndex
-                                                                    , (testVariableLevelIndex
-                                                                       , _)) in dictionary do
-                                                        if relativeTestVariableIndicesMonitoredByFilter.Contains relativeTestVariableIndex
-                                                        then
-                                                            yield testVariableLevelIndex
+                                                    for KeyValue (_
+                                                                  , (testVariableLevelIndex
+                                                                     , testVariableLevelValue)) in dictionary do
+                                                        match (unbox testVariableLevelValue): List<TestVariableLevel> with
+                                                            [testVariableIndexForNonSingletonTestVariable
+                                                             , Some _] ->
+                                                                let relativeTestVariableIndex =
+                                                                    testVariableIndexForNonSingletonTestVariable - indexForLeftmostTestVariable
+                                                                if relativeTestVariableIndicesMonitoredByFilter.Contains relativeTestVariableIndex
+                                                                then
+                                                                    yield testVariableLevelIndex
+                                                          | [testVariableIndexForNonSingletonTestVariable
+                                                             , None] ->
+                                                                Assert.Fail ("Level value is from a singleton test variable - this is not permitted.")
+                                                          | _ ->
+                                                                Assert.Fail ("Level value passed to filter is not well-formed.")
                                                 }
                                         relevantTestVariableLevelIndices
                                         |> Seq.groupBy BargainBasement.Identity
@@ -954,8 +964,7 @@
                                                          , (Some indexOfTestVariableLevel) as testVariableLevel) ->
                                                         testVariableIndex - indexOfLeftmostTestVariableCoveredByFilter
                                                         , (indexOfTestVariableLevel
-                                                           , box [testVariableIndex
-                                                                  , testVariableLevel]))
+                                                           , box [testVariableLevel]))
                                         |> Map.ofSeq
                                         :> IDictionary<_, _>
                                         |> filterDelegate)
