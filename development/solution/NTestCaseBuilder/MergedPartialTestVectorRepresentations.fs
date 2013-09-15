@@ -497,10 +497,18 @@ namespace NTestCaseBuilder
                             then
                                 raise (InternalAssertionViolationException "The test vector has more entries than the permitted maximum number of test variables.")
 
+                            let partialTestVector =
+                                partialTestVectorBeingBuilt
+                                |> Map.ofList
+
+                            if testVectorIsAcceptable (Map.toSeq partialTestVector)
+                               |> not
+                            then
+                                raise (InternalAssertionViolationException "The test vector is not acceptable to the filter - it should neither have been added nor formed by merging.")
+
                             // NOTE: as we are converting to a map, we can be cavalier about the
                             // order in which associative pairs are added to the partial test vector.
-                            Seq.singleton (partialTestVectorBeingBuilt
-                                           |> Map.ofList)
+                            Seq.singleton partialTestVector
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
@@ -1401,7 +1409,7 @@ namespace NTestCaseBuilder
                         List.length partialTestVectorRepresentation
                     if lengthOfPartialTestVectorRepresentation > maximumNumberOfTestVariables
                     then
-                        raise (InternalAssertionViolationException "The merged removed partial test vector has more entries than the permitted maximum number of test variables.")
+                        raise (InternalAssertionViolationException "The merged partial test vector has more entries than the permitted maximum number of test variables.")
 
                     if lengthOfPartialTestVectorRepresentation < maximumNumberOfTestVariables
                        || partialTestVectorRepresentation
@@ -1412,13 +1420,18 @@ namespace NTestCaseBuilder
                         let testVariableLevelsForFullTestVector =
                             partialTestVectorRepresentation
                             |> List.map Option.get
-                        testVariableLevelsForFullTestVector
-                        |> List.mapi (fun testVariableIndex
-                                          testVariableLevel ->
-                                          testVariableIndex
-                                          , testVariableLevel)
-                        |> Map.ofList
-                        |> Some
+                        let fullTestVector =
+                            testVariableLevelsForFullTestVector
+                            |> List.mapi (fun testVariableIndex
+                                              testVariableLevel ->
+                                              testVariableIndex
+                                              , testVariableLevel)
+                            |> Map.ofList
+                        if testVectorIsAcceptable (Map.toSeq fullTestVector)
+                           |> not
+                        then
+                            raise (InternalAssertionViolationException "The merged full test vector is not acceptable to the filter.")
+                        Some fullTestVector
                 let modifiedTestVectorPaths
                     , fullTestVectorBeingOfferedNowForEarlyAccess =
                     ContinuationMonad<_, _>.CallCC ((fun () ->
