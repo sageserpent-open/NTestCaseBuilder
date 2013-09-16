@@ -796,7 +796,6 @@
 
                 let expectedCombinationsOfTestLevels =
                     testVariableIndexToLevelsMappingForTestVariableCombination
-                    |> List.filter (snd >> List.isEmpty >> not)
                     |> List.map (snd >> List.head)
                     |> List.CrossProduct
                     |> Seq.map Set.ofList
