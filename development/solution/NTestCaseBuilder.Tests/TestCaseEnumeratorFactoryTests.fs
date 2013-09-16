@@ -764,7 +764,7 @@
                 let copiedRandomBehaviourTwo =
                     Random sharedSeed
                 let testCaseEnumerableFactory
-                    , testVariableCombination
+                    , _
                     , testVariableIndexToLevelsMapping
                     , Some permutationExample
                     , _ =
@@ -971,7 +971,6 @@
 
                 let combinationsOfTestLevels =
                     testVariableIndexToLevelsMappingForTestVariableCombination
-                    |> List.filter (snd >> List.isEmpty >> not)
                     |> List.map (snd >> List.head)
                     |> List.CrossProduct
                     |> Seq.map Set.ofList
@@ -1077,7 +1076,7 @@
             for _ in 1 .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumerableFactory
-                    , testVariableCombination
+                    , _
                     , testVariableIndexToLevelsMapping
                     , _
                     , _ =
