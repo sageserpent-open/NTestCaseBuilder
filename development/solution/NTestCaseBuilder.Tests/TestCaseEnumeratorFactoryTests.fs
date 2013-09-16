@@ -642,7 +642,7 @@
             for _ in 1 .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumerableFactory
-                    , testVariableCombination
+                    , _
                     , testVariableIndexToLevelsMapping
                     , Some permutationExample =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
@@ -881,7 +881,7 @@
             for _ in 1 .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
                 let testCaseEnumerableFactory
-                    , testVariableCombination
+                    , _
                     , testVariableIndexToLevelsMapping
                     , _ =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
