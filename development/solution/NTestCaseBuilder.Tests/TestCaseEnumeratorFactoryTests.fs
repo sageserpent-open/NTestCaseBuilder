@@ -240,7 +240,8 @@
         let constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations factoryConstructors
                                                                                        randomBehaviour
                                                                                        allowDuplicatedLevels
-                                                                                       allowSynthesisToPermuteInputs =
+                                                                                       allowSynthesisToPermuteInputs
+                                                                                       forbidImplicitSubtreePermutation =
             // NOTE: the logic that follows is written so that 'allowSynthesisToPermuteInputs' can be set to either true or false without changing
             // the fundamental structure of the generated tree (given all the other parameters are the same, including the underlying mutable state
             // of 'randomBehaviour'). That the tree of factories generated will have the same structure - the only differences being the presence or
@@ -278,7 +279,7 @@
                                         let relevantTestVariableLevelIndices =
                                             seq
                                                 {
-                                                    for KeyValue (_
+                                                    for KeyValue (relativeTestVariableIndexPassedExplicitlyToFilter
                                                                   , (testVariableLevelIndex
                                                                      , testVariableLevelValue)) in dictionary do
                                                         match (unbox testVariableLevelValue): List<TestVariableLevel> with
@@ -286,6 +287,12 @@
                                                              , Some _] ->
                                                                 let relativeTestVariableIndex =
                                                                     testVariableIndexForNonSingletonTestVariable - indexForLeftmostTestVariable
+                                                                if forbidImplicitSubtreePermutation
+                                                                then
+                                                                    let shouldBeTrue =
+                                                                        relativeTestVariableIndexPassedExplicitlyToFilter
+                                                                         = relativeTestVariableIndex
+                                                                    Assert.IsTrue shouldBeTrue
                                                                 if relativeTestVariableIndicesMonitoredByFilter.Contains relativeTestVariableIndex
                                                                 then
                                                                     yield testVariableLevelIndex
@@ -491,7 +498,14 @@
                                                 // more, when implicit permutations are enabled, the additional permuting activity really
                                                 // will reorder the contributions from the inputs.
                             , permutationInvertingShuffle =
-                            randomBehaviour.Shuffle (List.zip subtrees [0 .. subtrees.Length - 1])
+                            let subtreesAndLabellingIndices =
+                                List.zip subtrees [0 .. subtrees.Length - 1]
+                            (if forbidImplicitSubtreePermutation
+                                then
+                                    subtreesAndLabellingIndices
+                                    |> Array.ofList
+                                else
+                                    randomBehaviour.Shuffle subtreesAndLabellingIndices)
                             |> Array.unzip
 
                         let undoShuffleAndConcatenateContributedLevels listOfLevels =
@@ -553,12 +567,12 @@
                                                                                          undoShuffleAndConcatenateContributedLevels
                                                                                          (permuteInputs
                                                                                           && match allowSynthesisToPermuteInputs with
-                                                                                            No ->
-                                                                                                false
-                                                                                          | Yes ->
-                                                                                                true
-                                                                                          | Randomly ->
-                                                                                                randomBehaviour.HeadsItIs ())
+                                                                                                No ->
+                                                                                                    false
+                                                                                              | Yes ->
+                                                                                                    true
+                                                                                              | Randomly ->
+                                                                                                    randomBehaviour.HeadsItIs ())
 
                         let factory
                             , filters =
@@ -736,6 +750,7 @@
                                                                                                randomBehaviour
                                                                                                false
                                                                                                No
+                                                                                               false
                 let maximumStrength =
                     randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
                 let testVariableCombinationConformingToMaximumStrength =
@@ -772,6 +787,7 @@
                                                                                                copiedRandomBehaviourOne
                                                                                                false
                                                                                                Yes
+                                                                                               false
                 let unpermutedTestCaseEnumerableFactory
                     , _
                     , _
@@ -781,6 +797,7 @@
                                                                                                copiedRandomBehaviourTwo
                                                                                                false
                                                                                                No
+                                                                                               false
 
                 printf "Permutation example: %A\n" permutationExample
 
@@ -915,6 +932,7 @@
                                                                                                randomBehaviour
                                                                                                false
                                                                                                Yes
+                                                                                               false
 
                 let shouldBeTrue =
                     seq
@@ -1039,6 +1057,7 @@
                                                                                                      copiedRandomBehaviourOne
                                                                                                      false
                                                                                                      No
+                                                                                                     false
                 let testCaseEnumerableFactoryBasedOnDuplicateLevels
                     , _
                     , _
@@ -1047,6 +1066,7 @@
                                                                                                      copiedRandomBehaviourTwo
                                                                                                      true
                                                                                                      No
+                                                                                                     false
                 let maximumStrength =
                     testCaseEnumerableFactory.MaximumStrength
                 let shouldBeTrue =
@@ -1084,6 +1104,7 @@
                                                                                                randomBehaviour
                                                                                                false
                                                                                                No
+                                                                                               false
                 let maximumStrength =
                     testCaseEnumerableFactory.MaximumStrength
                 let testCaseEnumerable =
@@ -1145,6 +1166,7 @@
                                                                                                randomBehaviour
                                                                                                false
                                                                                                Randomly
+                                                                                               false
                 let randomStrength =
                     randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
                 let randomTestCase =
@@ -1201,6 +1223,25 @@
                         Assert.Fail "No other exception should have been thrown."
 
         [<Test>]
+        member this.SmokeTestFiltersIndirectly () =
+            let randomBehaviour = Random randomBehaviourSeed
+            for _ in 1 .. overallTestRepeats do
+                printf "\n\n\n******************************\n\n\n"
+                let typedTestCaseEnumerableFactory
+                    , _
+                    , _
+                    , _
+                    , _ =
+                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
+                                                                                               randomBehaviour
+                                                                                               true
+                                                                                               Randomly
+                                                                                               true
+                for strength in 0 .. typedTestCaseEnumerableFactory.MaximumStrength do
+                    for _ in typedTestCaseEnumerableFactory.CreateEnumerable strength do
+                        ()
+
+        [<Test>]
         member this.TestConsistencyOfWeaklyAndStronglyTypedApis () =
             let randomBehaviour = Random randomBehaviourSeed
             for _ in 1 .. overallTestRepeats do
@@ -1220,6 +1261,7 @@
                                                                                                copiedRandomBehaviourOne
                                                                                                false
                                                                                                No
+                                                                                               false
                 let stronglyTypedTestCaseEnumerableFactory
                     , _
                     , _
@@ -1229,6 +1271,7 @@
                                                                                                copiedRandomBehaviourTwo
                                                                                                false
                                                                                                No
+                                                                                               false
                 let shouldBeTrue =
                     weaklyTypedTestCaseEnumerableFactory.MaximumStrength = stronglyTypedTestCaseEnumerableFactory.MaximumStrength
                 for strength in 0 .. weaklyTypedTestCaseEnumerableFactory.MaximumStrength do
