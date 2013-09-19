@@ -237,6 +237,17 @@
                         InterleavedTestCaseEnumerableFactory.Create subtrees)
             }
 
+        let testVariableLevelsPass testVariableLevelIndices
+                                   numberOfTestVariablesInTargetNonSingletonTestVariableCombination =
+            Seq.length testVariableLevelIndices <> numberOfTestVariablesInTargetNonSingletonTestVariableCombination
+                // Can only exclude combinations that involve
+                // *all* the target non-singleton test variables.
+            || testVariableLevelIndices
+                |> Seq.exists (fun testVariableLevelIndex ->
+                                1 <> testVariableLevelIndex)    // Excluding a level index of one makes sure that there is at least one alternative
+                                                                // combination of levels for the target non-singleton test variables - namely all
+                                                                // the level indices being zero.
+
         let constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations factoryConstructors
                                                                                        randomBehaviour
                                                                                        allowDuplicatedLevels
@@ -257,24 +268,25 @@
                 let indexForLeftmostTestVariable =
                     (testVariableIndexToLevelsMapping: Map<_, _>).Count
                 let considerAddingFilterToFactory factory
+                                                  testVariableIndexToLevelsMapping
                                                   feasibleTestVariableCombination
-                                                  filters =
+                                                  targetNonSingletonTestVariableCombinations =
                     optionWorkflow
                         {
                             let! feasibleTestVariableCombination =
                                 feasibleTestVariableCombination
-                            let numberOfTestVariablesInFeasibleCombination =
-                                Set.count feasibleTestVariableCombination
+                            let targetNonSingletonTestVariableCombination =
+                                feasibleTestVariableCombination
+                                |> Set.filter (fun testVariableIndex ->
+                                                (testVariableIndexToLevelsMapping: Map<_, _>).[testVariableIndex]
+                                                 |> List.head
+                                                 |> List.head
+                                                 |> snd
+                                                 |> Option.isSome)
+                            let numberOfTestVariablesInTargetNonSingletonTestVariableCombination =
+                                Set.count targetNonSingletonTestVariableCombination
                             match randomBehaviour.ChooseAnyNumberFromOneTo 4 with
-                                1 when 1 < numberOfTestVariablesInFeasibleCombination ->
-                                    let relativeTestVariableIndicesMonitoredByFilter =
-                                        let numberOfTestVariablesMonitoredByFilter =
-                                            1 + randomBehaviour.ChooseAnyNumberFromOneTo (numberOfTestVariablesInFeasibleCombination - 1)
-                                        randomBehaviour.ChooseSeveralOf (feasibleTestVariableCombination,
-                                                                         numberOfTestVariablesMonitoredByFilter)
-                                        |> Array.map (fun testVariableIndex ->
-                                                        testVariableIndex - indexForLeftmostTestVariable)
-                                        |> Set.ofArray
+                                1 when 1 < numberOfTestVariablesInTargetNonSingletonTestVariableCombination ->
                                     let additionalFilterForThisFactory (dictionary: IDictionary<Int32, Int32 * Object>) =
                                         let relevantTestVariableLevelIndices =
                                             seq
@@ -285,15 +297,15 @@
                                                         match (unbox testVariableLevelValue): List<TestVariableLevel> with
                                                             [testVariableIndexForNonSingletonTestVariable
                                                              , Some _] ->
-                                                                let relativeTestVariableIndex =
-                                                                    testVariableIndexForNonSingletonTestVariable - indexForLeftmostTestVariable
                                                                 if forbidImplicitSubtreePermutation
                                                                 then
+                                                                    let relativeTestVariableIndex =
+                                                                        testVariableIndexForNonSingletonTestVariable - indexForLeftmostTestVariable
                                                                     let shouldBeTrue =
                                                                         relativeTestVariableIndexPassedExplicitlyToFilter
                                                                          = relativeTestVariableIndex
                                                                     Assert.IsTrue shouldBeTrue
-                                                                if relativeTestVariableIndicesMonitoredByFilter.Contains relativeTestVariableIndex
+                                                                if targetNonSingletonTestVariableCombination.Contains testVariableIndexForNonSingletonTestVariable
                                                                 then
                                                                     yield testVariableLevelIndex
                                                           | [testVariableIndexForNonSingletonTestVariable
@@ -302,21 +314,17 @@
                                                           | _ ->
                                                                 Assert.Fail ("Level value passed to filter is not well-formed.")
                                                 }
-                                        relevantTestVariableLevelIndices
-                                        |> Seq.groupBy BargainBasement.Identity
-                                        |> Seq.forall (function _
-                                                                , groupOfTheSameTestVariableLevelIndicesOriginatingFromDifferentTestVariables ->
-                                                                    1 = Seq.length groupOfTheSameTestVariableLevelIndicesOriginatingFromDifferentTestVariables)
+                                        testVariableLevelsPass relevantTestVariableLevelIndices
+                                                               numberOfTestVariablesInTargetNonSingletonTestVariableCombination
                                     return factoryConstructors.TestCaseEnumerableFactoryWithFilterFrom factory
                                                                                                        (LevelCombinationFilter additionalFilterForThisFactory)
-                                           , (indexForLeftmostTestVariable
-                                              , additionalFilterForThisFactory) :: filters
+                                           , targetNonSingletonTestVariableCombination :: targetNonSingletonTestVariableCombinations
                               | _ ->
                                     return! optionWorkflow.Zero ()
                             }
                         |> BargainBasement.Flip defaultArg
                                                 (factory
-                                                 , filters)
+                                                 , targetNonSingletonTestVariableCombinations)
                 match randomBehaviour.ChooseAnyNumberFromOneTo 3 with
                     1 when combinationStrength = 1
                             && not mustHavePermutingSynthesisInTree ->
@@ -457,7 +465,7 @@
                                         , testVariableCombinationFromSubtree
                                         , testVariableIndexToLevelsMappingFromSubtree
                                         , permutationExtentFromSubtree
-                                        , filtersFromSubtree =
+                                        , targetNonSingletonTestVariableCombinationsFromSubtree =
                                         constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations subtreeCombinationStrength
                                                                                                                    testVariableIndexToLevelsMapping
                                                                                                                    (numberOfAncestorFactories + 1)
@@ -469,7 +477,7 @@
                                         , testVariableCombinationsFromRemainingSubtrees
                                         , testVariableIndexToLevelsMappingFromRemainingSubtrees
                                         , permutationExtentsFromRemainingSubtrees
-                                        , filtersFromRemainingSubtrees =
+                                        , targetNonSingletonTestVariableCombinationsFromRemainingSubtrees =
                                         createSubtrees tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                        testVariableIndexToLevelsMappingFromSubtree
                                                        permutationExtentsForSubtrees
@@ -477,12 +485,12 @@
                                     , testVariableCombinationFromSubtree :: testVariableCombinationsFromRemainingSubtrees
                                     , testVariableIndexToLevelsMappingFromRemainingSubtrees
                                     , permutationExtentFromSubtree :: permutationExtentsFromRemainingSubtrees
-                                    , List.append filtersFromSubtree filtersFromRemainingSubtrees
+                                    , List.append targetNonSingletonTestVariableCombinationsFromSubtree targetNonSingletonTestVariableCombinationsFromRemainingSubtrees
                         let subtrees
                             , testVariableCombinationsFromSubtrees
                             , testVariableIndexToLevelsMappingFromSubtrees
                             , permutationExtentsForSubtrees
-                            , filtersFromSubtrees =
+                            , targetNonSingletonTestVariableCombinationsFromSubtrees =
                             createSubtrees triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                            testVariableIndexToLevelsMapping
                                            []
@@ -575,16 +583,17 @@
                                                                                                     randomBehaviour.HeadsItIs ())
 
                         let factory
-                            , filters =
+                            , targetNonSingletonTestVariableCombinations =
                             considerAddingFilterToFactory factory
+                                                          testVariableIndexToLevelsMappingFromSubtrees
                                                           testVariableCombination
-                                                          filtersFromSubtrees
+                                                          targetNonSingletonTestVariableCombinationsFromSubtrees
 
                         factory
                         , testVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
                         , chosenPermutationExample
-                        , filters
+                        , targetNonSingletonTestVariableCombinations
                     else
                         let numberOfSubtrees =
                             randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfNonZeroCombinationStrengthSubtrees
@@ -637,7 +646,7 @@
                                         , testVariableCombinationFromSubtree
                                         , testVariableIndexToLevelsMappingFromSubtree
                                         , permutationExtentFromSubtree
-                                        , filtersFromSubtree =
+                                        , targetNonSingletonTestVariableCombinationsFromSubtree =
                                         constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations subtreeCombinationStrength
                                                                                                                    testVariableIndexToLevelsMapping
                                                                                                                    (numberOfAncestorFactories + 1)
@@ -647,7 +656,7 @@
                                         , testVariableCombinationsFromRemainingSubtrees
                                         , testVariableIndexToLevelsMappingFromRemainingSubtrees
                                         , permutationExtentsFromRemainingSubtrees
-                                        , filtersFromRemainingSubtrees =
+                                        , targetNonSingletonTestVariableCombinationsFromRemainingSubtrees =
                                         createSubtrees tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                        testVariableIndexToLevelsMappingFromSubtree
                                                        permutationExtentsForSubtrees
@@ -655,12 +664,12 @@
                                     , testVariableCombinationFromSubtree :: testVariableCombinationsFromRemainingSubtrees
                                     , testVariableIndexToLevelsMappingFromRemainingSubtrees
                                     , permutationExtentFromSubtree :: permutationExtentsFromRemainingSubtrees
-                                    , List.append filtersFromSubtree filtersFromRemainingSubtrees
+                                    , List.append targetNonSingletonTestVariableCombinationsFromSubtree targetNonSingletonTestVariableCombinationsFromRemainingSubtrees
                         let subtrees
                             , testVariableCombinationsFromSubtrees
                             , testVariableIndexToLevelsMappingFromSubtrees
                             , permutationExtentsForSubtrees
-                            , filtersFromSubtrees =
+                            , targetNonSingletonTestVariableCombinationsFromSubtrees =
                             createSubtrees (List.zip3 combinationStrengths
                                                       whetherToAllowEmptyValueNodeChoices
                                                       mustHavePermutingSynthesisInTreeChoices)
@@ -693,22 +702,23 @@
                             factoryConstructors.InterleavedTestCaseEnumerableFactoryFrom subtrees
 
                         let factory
-                            , filters =
+                            , targetNonSingletonTestVariableCombinations =
                             considerAddingFilterToFactory factory
+                                                          testVariableIndexToLevelsMappingFromSubtrees
                                                           chosenTestVariableCombination
-                                                          filtersFromSubtrees
+                                                          targetNonSingletonTestVariableCombinationsFromSubtrees
 
                         factory
                         , chosenTestVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
                         , chosenPermutationExample
-                        , filtersFromSubtrees
+                        , targetNonSingletonTestVariableCombinations
 
             let testCaseEnumerableFactory
                 , testVariableCombination
                 , testVariableIndexToLevelsMapping
                 , permutationExample
-                , filters =
+                , targetNonSingletonTestVariableCombinations =
                 constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                                            Map.empty
                                                                                            0
@@ -718,7 +728,7 @@
             , testVariableCombination.Value
             , testVariableIndexToLevelsMapping
             , permutationExample
-            , filters
+            , targetNonSingletonTestVariableCombinations
 
         let randomBehaviourSeed = 23
 
@@ -745,7 +755,7 @@
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping
                     , permutationExample
-                    , filters =
+                    , targetNonSingletonTestVariableCombinations =
                     constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                randomBehaviour
                                                                                                false
@@ -763,7 +773,7 @@
                 testHandoff testCaseEnumerable
                             testVariableCombinationConformingToMaximumStrength
                             testVariableIndexToLevelsMapping
-                            filters
+                            targetNonSingletonTestVariableCombinations
                             maximumStrength
                             randomBehaviour
 
@@ -962,7 +972,7 @@
             let testHandoff (testCaseEnumerable: System.Collections.IEnumerable)
                             testVariableCombination
                             testVariableIndexToLevelsMapping
-                            filters
+                            targetNonSingletonTestVariableCombinations
                             _
                             _ =
                 let testVariableIndexToLevelsMappingForTestVariableCombination =
@@ -972,20 +982,17 @@
                                     testVariable
                                     , Map.find testVariable testVariableIndexToLevelsMapping)
 
-                let combinedFilter testVariableCombination =
-                    filters
-                    |> List.forall (fun (indexOfLeftmostTestVariableCoveredByFilter
-                                         , filterDelegate) ->
-                                        testVariableCombination
-                                        |> Seq.filter (snd >> Option.isSome)
-                                        |> Seq.map (fun (testVariableIndex
-                                                         , (Some indexOfTestVariableLevel) as testVariableLevel) ->
-                                                        testVariableIndex - indexOfLeftmostTestVariableCoveredByFilter
-                                                        , (indexOfTestVariableLevel
-                                                           , box [testVariableLevel]))
-                                        |> Map.ofSeq
-                                        :> IDictionary<_, _>
-                                        |> filterDelegate)
+                let filter testVariableCombination =
+                    targetNonSingletonTestVariableCombinations
+                    |> List.forall (fun targetNonSingletonTestVariableCombination ->
+                                        let testVariableIndices =
+                                            testVariableCombination
+                                            |> Seq.filter (fst >> (fun testVariableIndex ->
+                                                                        Set.contains testVariableIndex
+                                                                                     targetNonSingletonTestVariableCombination))
+                                            |> Seq.map (snd >> Option.get)  // NOTE: this is protected, because the test variable has a level due to the previous filter.
+                                        testVariableLevelsPass testVariableIndices
+                                                               (Set.count targetNonSingletonTestVariableCombination))
 
                 let combinationsOfTestLevels =
                     testVariableIndexToLevelsMappingForTestVariableCombination
@@ -997,7 +1004,7 @@
                 let expectedCombinationsOfTestLevels
                     , forbiddenCombinationsOfTestLevels =
                     combinationsOfTestLevels
-                    |> Set.partition combinedFilter
+                    |> Set.partition filter
 
                 let testCases =
                     seq {for testCase in testCaseEnumerable do
