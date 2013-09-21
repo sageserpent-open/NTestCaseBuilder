@@ -13,6 +13,7 @@ namespace NTestCaseBuilder
     open SageSerpent.Infrastructure.OptionExtensions
     open SageSerpent.Infrastructure.ContinuationWorkflow
     open Microsoft.FSharp.Collections
+    open System.Linq
 
     type NodeVisitOperations<'Result> =
         {
@@ -38,6 +39,8 @@ namespace NTestCaseBuilder
         abstract FinalValueCreator: Unit -> (List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase)
 
         abstract IsSubtreeZeroCost: Int32 -> Boolean
+
+        abstract IsSubtreeHiddenFromFilters: Int32 -> Boolean
 
     and NodeKind =
         TestVariable of array<Object>
@@ -185,52 +188,82 @@ namespace NTestCaseBuilder
         member this.CombinedFilter =
             let comparisonForSlicing =
                 {
-                    new IComparer<Int32 * Int32> with
+                    new IComparer<Int32 * _> with
                         member this.Compare((lhsIndex, _), (rhsIndex, _)) =
                             compare lhsIndex rhsIndex
                 }
 
             let equalityForSlicing =
                 {
-                    new IEqualityComparer<Int32 * Int32> with
+                    new IEqualityComparer<Int32 * _> with
                         member this.Equals((lhsIndex, _), (rhsIndex, _)) =
                             lhsIndex = rhsIndex
                         member this.GetHashCode((index, _)) =
                             hash index
                 }
 
-            let rec walkTree trampData
+            let rec walkTree everythingInTreeIsHiddenFromFilters
+                             trampData
                              node =
                 optionWorkflow
                     {
                         let! indexForLeftmostTestVariable
-                             , testVariableIndexToLevelsMap
+                             , adjustedIndexForLeftmostTestVariable
+                             , testVariableIndexToLevelsAndAdjustedIndexMap
                              , filtersGroupedByNodeAndTheirBracketingIndices =
                             trampData
                         let! onePastIndexForRightmostTestVariable
-                            , testVariableIndexToLevelsMap
+                            , onePastAdjustedIndexForRightmostTestVariable
+                            , testVariableIndexToLevelsAndGapCountMap
                             , filtersGroupedByNodeAndTheirBracketingIndices =
                             match node with
                                 TestVariableNode levels ->
                                     (1 + indexForLeftmostTestVariable
-                                     , Map.add indexForLeftmostTestVariable
-                                               levels
-                                               testVariableIndexToLevelsMap
+                                     , if everythingInTreeIsHiddenFromFilters
+                                       then
+                                            adjustedIndexForLeftmostTestVariable
+                                       else
+                                        1 + adjustedIndexForLeftmostTestVariable
+                                     , if everythingInTreeIsHiddenFromFilters
+                                       then
+                                        testVariableIndexToLevelsAndAdjustedIndexMap
+                                       else
+                                        Map.add indexForLeftmostTestVariable
+                                                (levels
+                                                 , adjustedIndexForLeftmostTestVariable)
+                                                testVariableIndexToLevelsAndAdjustedIndexMap
                                      , filtersGroupedByNodeAndTheirBracketingIndices)
                                     |> Some
                               | SingletonNode _ ->
                                     (1 + indexForLeftmostTestVariable
-                                     , testVariableIndexToLevelsMap
+                                     , if everythingInTreeIsHiddenFromFilters
+                                       then
+                                        adjustedIndexForLeftmostTestVariable
+                                       else
+                                        1 + adjustedIndexForLeftmostTestVariable
+                                     , testVariableIndexToLevelsAndAdjustedIndexMap
                                      , filtersGroupedByNodeAndTheirBracketingIndices)
                                     |> Some
                               | InterleavingNode subtreeRootNodes ->
-                                    List.fold walkTree
+                                    List.fold (walkTree everythingInTreeIsHiddenFromFilters)
                                               trampData
                                               subtreeRootNodes
                               | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+                                    let walkTree trampData
+                                                 (everythingInTreeIsHiddenFromFilters
+                                                  , node) =
+                                        walkTree everythingInTreeIsHiddenFromFilters
+                                                 trampData
+                                                 node
+                                    let subtreeRootNodes =
+                                        fixedCombinationOfSubtreeNodesForSynthesis.Nodes
                                     List.fold walkTree
                                               trampData
-                                              fixedCombinationOfSubtreeNodesForSynthesis.Nodes
+                                              (subtreeRootNodes
+                                               |> List.mapi (fun subtreeIndex
+                                                                 subtreeRootNode ->
+                                                                fixedCombinationOfSubtreeNodesForSynthesis.IsSubtreeHiddenFromFilters subtreeIndex
+                                                                , subtreeRootNode))
                         let filters =
                             node.Filters
                         let isInsane (filter: LevelCombinationFilter) =
@@ -242,21 +275,25 @@ namespace NTestCaseBuilder
                             return! optionWorkflow.Zero()
                         else
                             return onePastIndexForRightmostTestVariable
-                                   , testVariableIndexToLevelsMap
+                                   , onePastAdjustedIndexForRightmostTestVariable
+                                   , testVariableIndexToLevelsAndAdjustedIndexMap
                                    , if filters.IsEmpty
                                      then
                                         filtersGroupedByNodeAndTheirBracketingIndices
                                      else
                                         (filters
-                                         , indexForLeftmostTestVariable
-                                         , onePastIndexForRightmostTestVariable) :: filtersGroupedByNodeAndTheirBracketingIndices
+                                         , adjustedIndexForLeftmostTestVariable
+                                         , onePastAdjustedIndexForRightmostTestVariable) :: filtersGroupedByNodeAndTheirBracketingIndices
                    }
             optionWorkflow
                 {
-                    let! onePastIndexForRightmostTestVariable
-                         , testVariableIndexToLevelsMap
+                    let! _
+                         , _
+                         , testVariableIndexToLevelsAndAdjustedIndexMap
                          , filtersGroupedByNodeAndTheirBracketingIndices =
-                        walkTree ((0
+                        walkTree false
+                                 ((0
+                                   , 0
                                    , Map.empty
                                    , List.Empty)
                                   |> Some)
@@ -269,43 +306,49 @@ namespace NTestCaseBuilder
                                             // then the resulting trivial case is to pass all possible inputs.
                             else
                                 fun (testVariableIndexAndValuePairs: seq<Int32 * TestVariable<Int32>>) ->
-                                    let nonSingletonTestVariableIndexAndLevelPairs =
+                                    let nonSingletonAdjustedTestVariableIndexAndLevelPairs =
                                         seq
                                             {
                                                 for testVariableIndexAndValue in testVariableIndexAndValuePairs do
                                                     match testVariableIndexAndValue with
                                                         testVariableIndex
                                                         , Level levelIndex ->
-                                                            yield testVariableIndex
-                                                                  , levelIndex
+                                                            match Map.tryFind testVariableIndex
+                                                                              testVariableIndexToLevelsAndAdjustedIndexMap with
+                                                                Some (levels
+                                                                      , adjustedTestVariableIndex) ->
+                                                                    yield adjustedTestVariableIndex
+                                                                          , (levelIndex
+                                                                             , levels.[levelIndex])
+                                                              | None ->
+                                                                    ()
                                                       | _ ->
                                                             ()
                                             }
-                                    let vectorOfNonSingletonTestVariableIndexAndLevelPairs =
-                                        C5.SortedArray<_>(Seq.length nonSingletonTestVariableIndexAndLevelPairs,
+                                    let vectorOfAdjustedNonSingletonTestVariableIndexAndLevelPairs =
+                                        C5.SortedArray<_>(Seq.length nonSingletonAdjustedTestVariableIndexAndLevelPairs,
                                                           comparisonForSlicing,
                                                           equalityForSlicing)
                                         :> IIndexedSorted<_>
-                                    vectorOfNonSingletonTestVariableIndexAndLevelPairs.AddSorted(nonSingletonTestVariableIndexAndLevelPairs)
+                                    vectorOfAdjustedNonSingletonTestVariableIndexAndLevelPairs.AddSorted(nonSingletonAdjustedTestVariableIndexAndLevelPairs)
                                     let vectorIsAcceptedBy (filters
-                                                            , indexForLeftmostTestVariable
-                                                            , onePastIndexForRightmostTestVariable) =
+                                                            , adjustedIndexForLeftmostTestVariable
+                                                            , onePastAdjustedIndexForRightmostTestVariable) =
                                         let sliceOfVector =
-                                            vectorOfNonSingletonTestVariableIndexAndLevelPairs.RangeFromTo((indexForLeftmostTestVariable
-                                                                                                            , 0),
-                                                                                                           (onePastIndexForRightmostTestVariable
-                                                                                                            , 0))
+                                            vectorOfAdjustedNonSingletonTestVariableIndexAndLevelPairs.RangeFromTo((adjustedIndexForLeftmostTestVariable
+                                                                                                                    , Unchecked.defaultof<_>),
+                                                                                                                   (onePastAdjustedIndexForRightmostTestVariable
+                                                                                                                    , Unchecked.defaultof<_>))
                                         if sliceOfVector.IsEmpty
                                         then
                                             true
                                         else
                                             let filterInput =
                                                 sliceOfVector
-                                                |> Seq.map (function testVariableIndex
-                                                                     , testValueIndex ->
-                                                                        testVariableIndex - indexForLeftmostTestVariable
-                                                                        , (testValueIndex
-                                                                           , testVariableIndexToLevelsMap.[testVariableIndex].[testValueIndex]))
+                                                |> Seq.map (function adjustedTestVariableIndex
+                                                                     , level ->
+                                                                        adjustedTestVariableIndex - adjustedIndexForLeftmostTestVariable
+                                                                        , level)
                                                 |> Map.ofSeq
                                                 :> IDictionary<_, _>
                                             filters
@@ -449,7 +492,7 @@ namespace NTestCaseBuilder
                             perSubtreeAssociationsFromStrengthToTestVariableCombinations
                             , onePastIndexForRightmostTestVariable
                             , associationFromTestVariableIndexToNumberOfItsLevels
-                        let subtreeNodes =
+                        let subtreeRootNodes =
                             fixedCombinationOfSubtreeNodesForSynthesis.Nodes
                         // Using 'fold' causes 'perSubtreeAssociationsFromStrengthToTestVariableCombinations' to be built up in
                         // reverse to the subtree sequence, and this reversal propagates consistently through the code below. The
@@ -459,10 +502,10 @@ namespace NTestCaseBuilder
                         let perSubtreeAssociationsFromStrengthToTestVariableCombinations
                             , maximumTestVariableIndex
                             , associationFromTestVariableIndexToNumberOfItsLevels =
-                            subtreeNodes
+                            subtreeRootNodes
                             |> List.fold gatherTestVariableCombinationsFromSubtree ([], indexForLeftmostTestVariable, [])
                         let numberOfSubtrees =
-                            List.length subtreeNodes
+                            List.length subtreeRootNodes
                         let maximumStrengthsFromSubtrees =
                             perSubtreeAssociationsFromStrengthToTestVariableCombinations
                             |> List.map (fun associationFromStrengthToTestVariableCombinationsForOneSubtree ->
@@ -931,6 +974,9 @@ namespace NTestCaseBuilder
                                 |> unbox
 
                         member this.IsSubtreeZeroCost _ =
+                            false
+
+                        member this.IsSubtreeHiddenFromFilters _ =
                             false
                 }
             fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes

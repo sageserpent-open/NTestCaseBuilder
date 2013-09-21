@@ -135,6 +135,9 @@ namespace NTestCaseBuilder
             member this.IsSubtreeZeroCost _ =
                 false
 
+            member this.IsSubtreeHiddenFromFilters _ =
+                false
+
     type UnaryDelegate<'Argument, 'Result> =
         delegate of 'Argument -> 'Result
 
@@ -379,6 +382,9 @@ namespace NTestCaseBuilder
 
                             member this.IsSubtreeZeroCost _ =
                                 false
+
+                            member this.IsSubtreeHiddenFromFilters _ =
+                                false
                     }
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesFromExplicitFactories
             let node =
@@ -496,6 +502,9 @@ namespace NTestCaseBuilder
                                 |> mediateFinalValueCreatorType
 
                             member this.IsSubtreeZeroCost subtreeIndex =
+                                0 = subtreeIndex
+
+                            member this.IsSubtreeHiddenFromFilters subtreeIndex =
                                 0 = subtreeIndex
                     }
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesIncludingImplicitFactoryForPermutation
