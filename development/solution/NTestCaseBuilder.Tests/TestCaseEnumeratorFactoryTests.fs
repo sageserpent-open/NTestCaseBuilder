@@ -237,12 +237,12 @@
                         InterleavedTestCaseEnumerableFactory.Create subtrees)
             }
 
-        let testVariableLevelsPass testVariableLevelIndices
-                                   numberOfTestVariablesInTargetNonSingletonTestVariableCombination =
-            Seq.length testVariableLevelIndices <> numberOfTestVariablesInTargetNonSingletonTestVariableCombination
+        let testVariableEncodedIndicesPass testVariableLevelEncodedIndices
+                                           numberOfTestVariablesInTargetNonSingletonTestVariableCombination =
+            Seq.length testVariableLevelEncodedIndices <> numberOfTestVariablesInTargetNonSingletonTestVariableCombination
                 // Can only exclude combinations that involve
                 // *all* the target non-singleton test variables.
-            || testVariableLevelIndices
+            || testVariableLevelEncodedIndices
                 |> Seq.exists (fun testVariableLevelIndex ->
                                 1 <> testVariableLevelIndex)    // Excluding a level index of one makes sure that there is at least one alternative
                                                                 // combination of levels for the target non-singleton test variables - namely all
@@ -288,15 +288,15 @@
                             match randomBehaviour.ChooseAnyNumberFromOneTo 4 with
                                 1 when 1 < numberOfTestVariablesInTargetNonSingletonTestVariableCombination ->
                                     let additionalFilterForThisFactory (dictionary: IDictionary<Int32, Int32 * Object>) =
-                                        let relevantTestVariableLevelIndices =
+                                        let relevantTestVariableLevelEncodedIndices =
                                             seq
                                                 {
                                                     for KeyValue (relativeTestVariableIndexPassedExplicitlyToFilter
-                                                                  , (testVariableLevelIndex
+                                                                  , (_
                                                                      , testVariableLevelValue)) in dictionary do
                                                         match (unbox testVariableLevelValue): List<TestVariableLevel> with
                                                             [testVariableIndexForNonSingletonTestVariable
-                                                             , Some _] ->
+                                                             , Some testVariableLevelEncodedIndex] ->
                                                                 if forbidImplicitSubtreePermutation
                                                                 then
                                                                     let relativeTestVariableIndex =
@@ -307,15 +307,15 @@
                                                                     Assert.IsTrue shouldBeTrue
                                                                 if targetNonSingletonTestVariableCombination.Contains testVariableIndexForNonSingletonTestVariable
                                                                 then
-                                                                    yield testVariableLevelIndex
+                                                                    yield testVariableLevelEncodedIndex
                                                           | [testVariableIndexForNonSingletonTestVariable
                                                              , None] ->
                                                                 Assert.Fail ("Level value is from a singleton test variable - this is not permitted.")
                                                           | _ ->
                                                                 Assert.Fail ("Level value passed to filter is not well-formed.")
                                                 }
-                                        testVariableLevelsPass relevantTestVariableLevelIndices
-                                                               numberOfTestVariablesInTargetNonSingletonTestVariableCombination
+                                        testVariableEncodedIndicesPass relevantTestVariableLevelEncodedIndices
+                                                                       numberOfTestVariablesInTargetNonSingletonTestVariableCombination
                                     return factoryConstructors.TestCaseEnumerableFactoryWithFilterFrom factory
                                                                                                        (LevelCombinationFilter additionalFilterForThisFactory)
                                            , targetNonSingletonTestVariableCombination :: targetNonSingletonTestVariableCombinations
@@ -982,17 +982,17 @@
                                     testVariable
                                     , Map.find testVariable testVariableIndexToLevelsMapping)
 
-                let filter testVariableCombination =
+                let filter testLevelCombination =
                     targetNonSingletonTestVariableCombinations
                     |> List.forall (fun targetNonSingletonTestVariableCombination ->
-                                        let testVariableIndices =
-                                            testVariableCombination
+                                        let testLevelEncodedIndices =
+                                            testLevelCombination
                                             |> Seq.filter (fst >> (fun testVariableIndex ->
                                                                         Set.contains testVariableIndex
                                                                                      targetNonSingletonTestVariableCombination))
                                             |> Seq.map (snd >> Option.get)  // NOTE: this is protected, because the test variable has a level due to the previous filter.
-                                        testVariableLevelsPass testVariableIndices
-                                                               (Set.count targetNonSingletonTestVariableCombination))
+                                        testVariableEncodedIndicesPass testLevelEncodedIndices
+                                                                       (Set.count targetNonSingletonTestVariableCombination))
 
                 let combinationsOfTestLevels =
                     testVariableIndexToLevelsMappingForTestVariableCombination
