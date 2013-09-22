@@ -354,7 +354,7 @@
                                         |> List.map (fun level -> [(indexForLeftmostTestVariable, Some level)])
 
                                 else
-                                        [ for level in 1 .. levelCountForTestVariableIntroducedHere do
+                                        [ for level in Enumerable.Range(0, levelCountForTestVariableIntroducedHere) do
                                             yield [(indexForLeftmostTestVariable, Some level)] ]
                             factoryConstructors.TestVariableLevelEnumerableFactoryFrom testVariableLevels
                             , if testVariableLevels.IsEmpty
@@ -973,7 +973,7 @@
                             testVariableCombination
                             testVariableIndexToLevelsMapping
                             targetNonSingletonTestVariableCombinations
-                            _
+                            maximumStrength
                             _ =
                 let testVariableIndexToLevelsMappingForTestVariableCombination =
                     testVariableCombination
@@ -1025,6 +1025,14 @@
                 let shouldBeTrue =
                     unaccountedExpectedCombinationsOfTestLevels
                     |> Set.isEmpty
+                if not shouldBeTrue
+                then
+                    printf "Missing: %A\n" unaccountedExpectedCombinationsOfTestLevels
+                    printf "expectedCombinationsOfTestLevels: %A\n" expectedCombinationsOfTestLevels
+                    printf "forbiddenCombinationsOfTestLevels: %A\n" forbiddenCombinationsOfTestLevels
+                    printf "targetNonSingletonTestVariableCombinations: %A\n" targetNonSingletonTestVariableCombinations
+                    printf "maximumStrength: %A\n" maximumStrength
+                    printf "testVariableCombination: %A\n" testVariableCombination
                 Assert.IsTrue shouldBeTrue
 
                 let unwantedForbiddenCombinationsOfTestLevels =
