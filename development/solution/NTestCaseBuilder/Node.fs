@@ -214,7 +214,7 @@ namespace NTestCaseBuilder
                             trampData
                         let! onePastIndexForRightmostTestVariable
                             , onePastAdjustedIndexForRightmostTestVariable
-                            , testVariableIndexToLevelsAndGapCountMap
+                            , testVariableIndexToLevelsAndAdjustedIndexMap
                             , filtersGroupedByNodeAndTheirBracketingIndices =
                             match node with
                                 TestVariableNode levels ->
