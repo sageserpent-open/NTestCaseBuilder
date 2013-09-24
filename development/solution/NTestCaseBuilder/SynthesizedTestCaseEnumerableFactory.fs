@@ -364,7 +364,7 @@ namespace NTestCaseBuilder
                         new IFixedCombinationOfSubtreeNodesForSynthesis with
                             member this.Prune =
                                 Node.PruneAndCombine subtreeRootNodes
-                                                        fixedCombinationOfSubtreeNodesForSynthesis
+                                                     fixedCombinationOfSubtreeNodesForSynthesis
 
                             member this.Nodes =
                                 subtreeRootNodes
