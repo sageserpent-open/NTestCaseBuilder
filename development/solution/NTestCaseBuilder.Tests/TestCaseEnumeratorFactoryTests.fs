@@ -252,7 +252,7 @@
                                                                                        randomBehaviour
                                                                                        allowDuplicatedLevels
                                                                                        allowSynthesisToPermuteInputs
-                                                                                       forbidImplicitSubtreePermutation =
+                                                                                       ensureContiguousSortedTestVariableIndicesAfterPruning =
             // NOTE: the logic that follows is written so that 'allowSynthesisToPermuteInputs' can be set to either true or false without changing
             // the fundamental structure of the generated tree (given all the other parameters are the same, including the underlying mutable state
             // of 'randomBehaviour'). That the tree of factories generated will have the same structure - the only differences being the presence or
@@ -292,12 +292,12 @@
                                             seq
                                                 {
                                                     for KeyValue (relativeTestVariableIndexPassedExplicitlyToFilter
-                                                                  , (_
+                                                                  , (testVariableLevelIndex
                                                                      , testVariableLevelValue)) in dictionary do
                                                         match (unbox testVariableLevelValue): List<TestVariableLevel> with
                                                             [testVariableIndexForNonSingletonTestVariable
                                                              , Some testVariableLevelEncodedIndex] ->
-                                                                if forbidImplicitSubtreePermutation
+                                                                if ensureContiguousSortedTestVariableIndicesAfterPruning
                                                                 then
                                                                     let relativeTestVariableIndex =
                                                                         testVariableIndexForNonSingletonTestVariable - indexForLeftmostTestVariable
@@ -305,9 +305,14 @@
                                                                         relativeTestVariableIndexPassedExplicitlyToFilter
                                                                          = relativeTestVariableIndex
                                                                     Assert.IsTrue shouldBeTrue
+                                                                if not allowDuplicatedLevels
+                                                                then
+                                                                    let shouldBeTrue =
+                                                                        testVariableLevelIndex = testVariableLevelEncodedIndex
+                                                                    Assert.IsTrue shouldBeTrue
                                                                 if targetNonSingletonTestVariableCombination.Contains testVariableIndexForNonSingletonTestVariable
                                                                 then
-                                                                    yield testVariableLevelEncodedIndex
+                                                                    yield testVariableLevelIndex        
                                                           | [testVariableIndexForNonSingletonTestVariable
                                                              , None] ->
                                                                 Assert.Fail ("Level value is from a singleton test variable - this is not permitted.")
@@ -335,6 +340,7 @@
                                    && not mustHavePermutingSynthesisInTree
                                    // NOTE: the second part of the conjunction ensures that if a permutation
                                    // example is needed, then recursion will eventually make one.
+                                   && not ensureContiguousSortedTestVariableIndicesAfterPruning
                                 then
                                     randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (1 + maximumNumberOfTestLevels)
                                 else
@@ -344,13 +350,15 @@
                                     Random (randomBehaviour.Next())
                                 if allowDuplicatedLevels
                                 then
-                                        List.replicate levelCountForTestVariableIntroducedHere ()
-                                        |> List.scan (fun previousLevel _ ->
+                                        (Array.init levelCountForTestVariableIntroducedHere
+                                                    (fun _ ->
                                                         if privateRandomBehaviourThatDoesNotPerturbTheMainOne.HeadsItIs ()
-                                                        then previousLevel
-                                                        else 1 + previousLevel)
-                                                     0
-                                        |> List.tail
+                                                        then
+                                                            0
+                                                        else
+                                                            1)
+                                        |> Array.scan (+) 0).[0 .. levelCountForTestVariableIntroducedHere - 1]
+                                        |> List.ofArray
                                         |> List.map (fun level -> [(indexForLeftmostTestVariable, Some level)])
 
                                 else
@@ -365,6 +373,8 @@
                                 |> Some
                             , if testVariableLevels.IsEmpty
                               then
+                                // Omitting the entry for this test variable simulates the effect of pruning.
+                                // TODO - do we need this still. Hmmm?
                                 testVariableIndexToLevelsMapping
                               else
                                 Map.add indexForLeftmostTestVariable
@@ -508,7 +518,7 @@
                             , permutationInvertingShuffle =
                             let subtreesAndLabellingIndices =
                                 List.zip subtrees [0 .. subtrees.Length - 1]
-                            (if forbidImplicitSubtreePermutation
+                            (if ensureContiguousSortedTestVariableIndicesAfterPruning
                                 then
                                     subtreesAndLabellingIndices
                                     |> Array.ofList
