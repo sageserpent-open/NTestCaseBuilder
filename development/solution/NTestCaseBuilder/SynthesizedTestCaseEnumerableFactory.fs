@@ -7,6 +7,7 @@ namespace NTestCaseBuilder
     open SageSerpent.Infrastructure.OptionWorkflow
     open SageSerpent.Infrastructure.CombinatoricUtilities
     open BargainBasement
+    open NodeExtensions
 
     module SynthesizedTestCaseEnumerableFactoryDetail =
         let mediateFinalValueCreatorType (createFinalValueFrom: List<FullTestVector> -> 'CreatorViewOfSynthesizedTestCase) =
@@ -130,6 +131,12 @@ namespace NTestCaseBuilder
 
             member this.FinalValueCreator (): List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase =
                 mediateFinalValueCreatorType createFinalValueFrom
+
+            member this.IsSubtreeZeroCost _ =
+                false
+
+            member this.IsSubtreeHiddenFromFilters _ =
+                false
 
     type UnaryDelegate<'Argument, 'Result> =
         delegate of 'Argument -> 'Result
@@ -357,7 +364,7 @@ namespace NTestCaseBuilder
                         new IFixedCombinationOfSubtreeNodesForSynthesis with
                             member this.Prune =
                                 Node.PruneAndCombine subtreeRootNodes
-                                                        fixedCombinationOfSubtreeNodesForSynthesis
+                                                     fixedCombinationOfSubtreeNodesForSynthesis
 
                             member this.Nodes =
                                 subtreeRootNodes
@@ -372,6 +379,12 @@ namespace NTestCaseBuilder
                                                         subtreeRootNode.FinalValueCreator () sliceOfFullTestVectorCorrespondingToSubtree)
                                     condensation.Invoke resultsFromSubtrees
                                 |> mediateFinalValueCreatorType
+
+                            member this.IsSubtreeZeroCost _ =
+                                false
+
+                            member this.IsSubtreeHiddenFromFilters _ =
+                                false
                     }
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesFromExplicitFactories
             let node =
@@ -391,7 +404,9 @@ namespace NTestCaseBuilder
         /// <remarks>There is an option to apply a permutation to the input test cases before they are submitted to
         /// the condensation delegate, in other words, the input tests cases are reordered before being processed. The
         /// choice of permutation that is used to generate each output test case is systematically varied as another
-        /// implicit test variable that contributes to the synthesis; it is therefore subject to the strength guarantees
+        /// implicit test variable that contributes to the synthesis; this is dealt with by locally increasing the
+        /// strength for the synthesizing factory (but not for its child factories), so that the implicit variable does
+        /// not have to compete with the explicitly supplied test variable level factories for the strength guarantees
         /// documented for TestCaseEnumerableFactory.</remarks>
         /// <remarks>There is another overload that does almost exactly the same thing; that overload does
         /// not permit the option of applying permutations across the inputs.</remarks>
@@ -457,7 +472,7 @@ namespace NTestCaseBuilder
                         new IFixedCombinationOfSubtreeNodesForSynthesis with
                             member this.Prune =
                                 Node.PruneAndCombine subtreeRootNodes
-                                                        fixedCombinationOfSubtreeNodesForSynthesis
+                                                     fixedCombinationOfSubtreeNodesForSynthesis
 
                             member this.Nodes =
                                 subtreeRootNodes
@@ -485,6 +500,12 @@ namespace NTestCaseBuilder
                                     unshuffledResultsFromSubtrees
                                     , Permutation<'Something>(List.ofSeq >> shuffle)
                                 |> mediateFinalValueCreatorType
+
+                            member this.IsSubtreeZeroCost subtreeIndex =
+                                0 = subtreeIndex
+
+                            member this.IsSubtreeHiddenFromFilters subtreeIndex =
+                                0 = subtreeIndex
                     }
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesIncludingImplicitFactoryForPermutation
 

@@ -2,6 +2,7 @@ namespace NTestCaseBuilder
 
     open System.Collections
     open System
+    open NodeExtensions
 
     type TestVariableLevelEnumerableFactory =
         /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'TestCase&gt;.</summary>
@@ -15,5 +16,5 @@ namespace NTestCaseBuilder
                 |> Seq.map (fun level -> box level)
                 |> Array.ofSeq
             let node =
-                NTestCaseBuilder.TestVariableNode weaklyTypedLevels
+                TestVariableNode weaklyTypedLevels
             TypedTestCaseEnumerableFactory<'TestCase> node

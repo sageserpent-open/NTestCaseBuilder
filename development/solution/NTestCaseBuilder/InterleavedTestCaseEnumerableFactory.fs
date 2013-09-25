@@ -3,6 +3,7 @@ namespace NTestCaseBuilder
     open System.Collections
     open System
     open SageSerpent.Infrastructure
+    open NodeExtensions
 
     type InterleavedTestCaseEnumerableFactory =
         /// <summary>Constructor function that creates an instance of TestCaseEnumerableFactory.</summary>

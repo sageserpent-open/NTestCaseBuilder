@@ -419,7 +419,8 @@ namespace NTestCaseBuilder
     open MergedPartialTestVectorRepresentationsDetail
 
     type MergedPartialTestVectorRepresentations<'Level when 'Level: comparison>(testVectorPaths: TestVectorPaths<'Level>,
-                                                                                maximumNumberOfTestVariables: Int32) =
+                                                                                maximumNumberOfTestVariables: Int32,
+                                                                                testVectorIsAcceptable: seq<Int32 * 'Level> -> Boolean) =
         let createPartialTestVectorSequence revealFullTestVectorsAgain =
             let rec traverseTestVectorPaths {
                                                 SharedPathPrefix = sharedPathPrefix
@@ -496,10 +497,18 @@ namespace NTestCaseBuilder
                             then
                                 raise (InternalAssertionViolationException "The test vector has more entries than the permitted maximum number of test variables.")
 
+                            let partialTestVector =
+                                partialTestVectorBeingBuilt
+                                |> Map.ofList
+
+                            if testVectorIsAcceptable (Map.toSeq partialTestVector)
+                               |> not
+                            then
+                                raise (InternalAssertionViolationException "The test vector is not acceptable to the filter - it should neither have been added nor formed by merging.")
+
                             // NOTE: as we are converting to a map, we can be cavalier about the
                             // order in which associative pairs are added to the partial test vector.
-                            Seq.singleton (partialTestVectorBeingBuilt
-                                           |> Map.ofList)
+                            Seq.singleton partialTestVector
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
@@ -887,7 +896,8 @@ namespace NTestCaseBuilder
                                                 BranchingRoot = branchingRoot
                                               }
                                               queryPartialTestVectorRepresentation
-                                              treeSearchContextParameters =
+                                              treeSearchContextParameters
+                                              removedPartialTestVectorInReverse =
                 let treeSearchContextParametersAfter sharedPathPrefix =
                     sharedPathPrefix
                     |> ChunkedList.fold (fun (treeSearchContextParameters: TreeSearchContextParameters)
@@ -900,20 +910,25 @@ namespace NTestCaseBuilder
                                         treeSearchContextParameters
                 let removeWhenSharedPathPrefixAgreesWithQuery agreeingPrefixOfQueryPartialTestVectorRepresentation
                                                               remainderOfQueryPartialTestVectorRepresentation =
-                    continuationWorkflow
-                        {
-                            let! modifiedBranchingRoot
-                                 , removedPartialTestVectorFromBranchingRoot =
-                                removeFromTernarySearchTree branchingRoot
-                                                            remainderOfQueryPartialTestVectorRepresentation
-                                                            (treeSearchContextParametersAfter sharedPathPrefix)
+                    let removedPartialTestVectorSharedPathPrefixInReverse =
+                        fun () ->
                             let mergedSharedPathPrefix =
                                 merge agreeingPrefixOfQueryPartialTestVectorRepresentation
                                       sharedPathPrefix
                                 |> ChunkedList.toList
-                            let removedPartialTestVector =
-                                List.append mergedSharedPathPrefix
-                                            removedPartialTestVectorFromBranchingRoot
+                            LazyList.append (mergedSharedPathPrefix
+                                             |> List.rev
+                                             |> LazyList.ofList)
+                                            removedPartialTestVectorInReverse
+                        |> LazyList.delayed
+                    continuationWorkflow
+                        {
+                            let! modifiedBranchingRoot
+                                 , removedPartialTestVector =
+                                removeFromTernarySearchTree branchingRoot
+                                                            remainderOfQueryPartialTestVectorRepresentation
+                                                            (treeSearchContextParametersAfter sharedPathPrefix)
+                                                            removedPartialTestVectorSharedPathPrefixInReverse
                             match modifiedBranchingRoot with
                                 EmptyTernarySearchTree ->
                                     return NoTestVectorPaths
@@ -971,12 +986,16 @@ namespace NTestCaseBuilder
                     }
             and removeFromTernarySearchTree ternarySearchTree
                                             queryPartialTestVectorRepresentation
-                                            (treeSearchContextParameters: TreeSearchContextParameters) =
+                                            (treeSearchContextParameters: TreeSearchContextParameters)
+                                            removedPartialTestVectorInReverse =
                 let buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices tailFromQueryPartialTestVectorRepresentation
                                                                                                levelForTestVariableIndex
                                                                                                subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                testVectorPathsForFollowingIndices =
+                    let removedPartialTestVectorWithNewLevelInReverse =
+                        LazyList.cons (Some levelForTestVariableIndex)
+                                      removedPartialTestVectorInReverse
                     continuationWorkflow
                         {
                             let! modifiedSubtreeForFollowingTestVariableIndices
@@ -984,19 +1003,23 @@ namespace NTestCaseBuilder
                                 removeFromTestVectorPaths testVectorPathsForFollowingIndices
                                                           tailFromQueryPartialTestVectorRepresentation
                                                           treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
+                                                          removedPartialTestVectorWithNewLevelInReverse
                             let modifiedBinarySearchTree =
                                 buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
                                                                                                         subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                         subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                         modifiedSubtreeForFollowingTestVariableIndices
                             return modifiedBinarySearchTree
-                                   , (Some levelForTestVariableIndex :: removedPartialTestVector)
+                                   , removedPartialTestVector
 
                         }
                 let buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
                                                                                                tailFromQueryPartialTestVectorRepresentation
                                                                                                subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                testVectorPathsForFollowingIndices =
+                    let removedPartialTestVectorWithNewLevelInReverse =
+                        LazyList.cons headFromQueryPartialTestVectorRepresentation
+                                      removedPartialTestVectorInReverse
                     continuationWorkflow
                         {
                             let! modifiedSubtreeForFollowingTestVariableIndices
@@ -1004,16 +1027,17 @@ namespace NTestCaseBuilder
                                 removeFromTestVectorPaths testVectorPathsForFollowingIndices
                                                           tailFromQueryPartialTestVectorRepresentation
                                                           treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
+                                                          removedPartialTestVectorWithNewLevelInReverse
                             let modifiedTernarySearchTree =
                                 buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                         modifiedSubtreeForFollowingTestVariableIndices
                             return modifiedTernarySearchTree
-                                   , headFromQueryPartialTestVectorRepresentation :: removedPartialTestVector
+                                   , removedPartialTestVector
                         }
 
-                let rec removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                                                                         levelFromQueryPartialTestVectorRepresentation
-                                                                         tailFromQueryPartialTestVectorRepresentation =
+                let removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                                                                     levelFromQueryPartialTestVectorRepresentation
+                                                                     tailFromQueryPartialTestVectorRepresentation =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
                             if maximumNumberOfTestVariables <= treeSearchContextParameters.TestVariableIndex
@@ -1041,8 +1065,8 @@ namespace NTestCaseBuilder
                                                                                                                splayedTestVectorPathsForFollowingIndices
                               | _ ->
                                     continuationWorkflow.Zero ()
-                and removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                                                                             tailFromQueryPartialTestVectorRepresentation =
+                let rec removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                                                                                 tailFromQueryPartialTestVectorRepresentation =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
                             if maximumNumberOfTestVariables <= treeSearchContextParameters.TestVariableIndex
@@ -1108,10 +1132,34 @@ namespace NTestCaseBuilder
                         then
                             existingFullTestVectorBlockedRemovalContinuation ()
                         else
+                            let mergedPartialTestVectorRepresentation =
+                                List.append (removedPartialTestVectorInReverse
+                                             |> LazyList.toList
+                                             |> List.rev)
+                                            queryPartialTestVectorRepresentation
+                            let mergedPartialTestVector =
+                                [
+                                    for testVariableIndex
+                                        , testVariableLevel in mergedPartialTestVectorRepresentation
+                                                               |> List.mapi (fun testVariableIndex
+                                                                                 testVariableLevel ->
+                                                                                    testVariableIndex
+                                                                                    , testVariableLevel) do
+                                        match testVariableLevel with
+                                            Some testVariableLevel ->
+                                                yield testVariableIndex
+                                                      , testVariableLevel
+                                          | None ->
+                                                ()
+                                ]
                             continuationWorkflow
                                 {
-                                    return EmptyTernarySearchTree
-                                           , queryPartialTestVectorRepresentation
+                                    if testVectorIsAcceptable mergedPartialTestVector
+                                    then
+                                        return EmptyTernarySearchTree
+                                               , mergedPartialTestVectorRepresentation
+                                    else
+                                        return! continuationWorkflow.Zero ()
                                 }
                   | WildcardNode
                     {
@@ -1188,9 +1236,11 @@ namespace NTestCaseBuilder
                         removeFromTernarySearchTree ternarySearchTree
                                                     [None]
                                                     treeSearchContextParameters
+                                                    removedPartialTestVectorInReverse
             removeFromTestVectorPaths testVectorPaths
                                       queryPartialTestVectorRepresentation
                                       TreeSearchContextParameters.StartOfSearch
+                                      LazyList.empty
 
         let checkInvariant testVectorPaths =
             let rec checkInvariantOfTestVectorPaths {
@@ -1333,15 +1383,20 @@ namespace NTestCaseBuilder
         member this.EnumerationOfMergedTestVectors revealFullTestVectorsAgain =
             createPartialTestVectorSequence revealFullTestVectorsAgain
 
-        static member Initial maximumNumberOfTestVariablesOverall =
+        static member Initial maximumNumberOfTestVariablesOverall
+                              testVectorIsAcceptable =
             MergedPartialTestVectorRepresentations<'Level> ({
                                                                 SharedPathPrefix = Nil
                                                                 BranchingRoot = SuccessfulSearchTerminationNode
                                                             },
-                                                            maximumNumberOfTestVariablesOverall)
+                                                            maximumNumberOfTestVariablesOverall,
+                                                            testVectorIsAcceptable)
 
         member this.MergeOrAdd partialTestVectorRepresentationInExternalForm =
             if Map.isEmpty partialTestVectorRepresentationInExternalForm
+               || (testVectorIsAcceptable (partialTestVectorRepresentationInExternalForm
+                                           |> Map.toSeq)
+                   |> not)
             then
                 this
                 , None
@@ -1354,7 +1409,7 @@ namespace NTestCaseBuilder
                         List.length partialTestVectorRepresentation
                     if lengthOfPartialTestVectorRepresentation > maximumNumberOfTestVariables
                     then
-                        raise (InternalAssertionViolationException "The merged removed partial test vector has more entries than the permitted maximum number of test variables.")
+                        raise (InternalAssertionViolationException "The merged partial test vector has more entries than the permitted maximum number of test variables.")
 
                     if lengthOfPartialTestVectorRepresentation < maximumNumberOfTestVariables
                        || partialTestVectorRepresentation
@@ -1362,16 +1417,21 @@ namespace NTestCaseBuilder
                     then
                         None
                     else
-                        let testVariableIndicesForFullTestVector =
-                            List.init maximumNumberOfTestVariables
-                                      BargainBasement.Identity
                         let testVariableLevelsForFullTestVector =
                             partialTestVectorRepresentation
                             |> List.map Option.get
-                        List.zip testVariableIndicesForFullTestVector
-                                 testVariableLevelsForFullTestVector
-                        |> Map.ofList
-                        |> Some
+                        let fullTestVector =
+                            testVariableLevelsForFullTestVector
+                            |> List.mapi (fun testVariableIndex
+                                              testVariableLevel ->
+                                              testVariableIndex
+                                              , testVariableLevel)
+                            |> Map.ofList
+                        if testVectorIsAcceptable (Map.toSeq fullTestVector)
+                           |> not
+                        then
+                            raise (InternalAssertionViolationException "The merged full test vector is not acceptable to the filter.")
+                        Some fullTestVector
                 let modifiedTestVectorPaths
                     , fullTestVectorBeingOfferedNowForEarlyAccess =
                     ContinuationMonad<_, _>.CallCC ((fun () ->
@@ -1469,5 +1529,6 @@ namespace NTestCaseBuilder
                     // ... end of invariant check.
 
                 MergedPartialTestVectorRepresentations (modifiedTestVectorPaths,
-                                                        maximumNumberOfTestVariables)
+                                                        maximumNumberOfTestVariables,
+                                                        testVectorIsAcceptable)
                 , fullTestVectorBeingOfferedNowForEarlyAccess

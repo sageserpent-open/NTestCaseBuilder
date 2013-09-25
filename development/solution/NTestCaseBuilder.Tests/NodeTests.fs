@@ -7,6 +7,7 @@
     open SageSerpent.Infrastructure.RandomExtensions
     open SageSerpent.Infrastructure.OptionExtensions
     open NTestCaseBuilder
+    open NodeExtensions
     open System
     open System.Windows.Forms
     open System.Collections.Generic
