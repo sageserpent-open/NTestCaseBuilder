@@ -1065,6 +1065,21 @@ namespace NTestCaseBuilder
                                                                                                                splayedTestVectorPathsForFollowingIndices
                               | _ ->
                                     continuationWorkflow.Zero ()
+                let dictionaryFrom mergedPartialTestVectorRepresentation =
+                    [
+                        for testVariableIndex
+                            , testVariableLevel in mergedPartialTestVectorRepresentation
+                                                    |> List.mapi (fun testVariableIndex
+                                                                        testVariableLevel ->
+                                                                        testVariableIndex
+                                                                        , testVariableLevel) do
+                            match testVariableLevel with
+                                Some testVariableLevel ->
+                                    yield testVariableIndex
+                                            , testVariableLevel
+                                | None ->
+                                    ()
+                    ]
                 let rec removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                                                                                  tailFromQueryPartialTestVectorRepresentation =
                     match binaryTreeOfLevelsForTestVariable with
@@ -1137,24 +1152,11 @@ namespace NTestCaseBuilder
                                              |> LazyList.toList
                                              |> List.rev)
                                             queryPartialTestVectorRepresentation
-                            let mergedPartialTestVector =
-                                [
-                                    for testVariableIndex
-                                        , testVariableLevel in mergedPartialTestVectorRepresentation
-                                                               |> List.mapi (fun testVariableIndex
-                                                                                 testVariableLevel ->
-                                                                                    testVariableIndex
-                                                                                    , testVariableLevel) do
-                                        match testVariableLevel with
-                                            Some testVariableLevel ->
-                                                yield testVariableIndex
-                                                      , testVariableLevel
-                                          | None ->
-                                                ()
-                                ]
                             continuationWorkflow
                                 {
-                                    if testVectorIsAcceptable mergedPartialTestVector
+                                    if mergedPartialTestVectorRepresentation
+                                       |> dictionaryFrom
+                                       |> testVectorIsAcceptable
                                     then
                                         return EmptyTernarySearchTree
                                                , mergedPartialTestVectorRepresentation
@@ -1180,10 +1182,19 @@ namespace NTestCaseBuilder
                                 return modifiedTernarySearchTree
                                        , removedPartialTestVector
                             }
-                        + buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
-                                                                                                     tailFromQueryPartialTestVectorRepresentation
-                                                                                                     subtreeWithAllLevelsForSameTestVariableIndex
-                                                                                                     testVectorPathsForFollowingIndices
+                        + continuationWorkflow
+                            {
+                                if removedPartialTestVectorInReverse
+                                   |> LazyList.toList
+                                   |> List.rev
+                                   |> dictionaryFrom
+                                   |> testVectorIsAcceptable
+                                then
+                                    return! buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices headFromQueryPartialTestVectorRepresentation
+                                                                                                                       tailFromQueryPartialTestVectorRepresentation
+                                                                                                                       subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                                       testVectorPathsForFollowingIndices
+                            }
                   | WildcardNode
                     {
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
@@ -1202,10 +1213,19 @@ namespace NTestCaseBuilder
                                 return modifiedTernarySearchTree
                                        , removedPartialTestVector
                             }
-                        + buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices None
-                                                                                                     tailFromQueryPartialTestVectorRepresentation
-                                                                                                     subtreeWithAllLevelsForSameTestVariableIndex
-                                                                                                     testVectorPathsForFollowingIndices
+                        + continuationWorkflow
+                            {
+                                if removedPartialTestVectorInReverse
+                                   |> LazyList.toList
+                                   |> List.rev
+                                   |> dictionaryFrom
+                                   |> testVectorIsAcceptable
+                                then
+                                    return! buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices None
+                                                                                                                       tailFromQueryPartialTestVectorRepresentation
+                                                                                                                       subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                                       testVectorPathsForFollowingIndices
+                            }
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
                     , Some levelFromQueryPartialTestVectorRepresentation :: tailFromQueryPartialTestVectorRepresentation ->
                         continuationWorkflow
