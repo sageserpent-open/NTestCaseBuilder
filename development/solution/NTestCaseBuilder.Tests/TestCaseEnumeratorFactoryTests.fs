@@ -371,15 +371,9 @@
                               else
                                 Set.singleton indexForLeftmostTestVariable
                                 |> Some
-                            , if testVariableLevels.IsEmpty
-                              then
-                                // Omitting the entry for this test variable simulates the effect of pruning.
-                                // TODO - do we need this still. Hmmm?
-                                testVariableIndexToLevelsMapping
-                              else
-                                Map.add indexForLeftmostTestVariable
-                                        testVariableLevels
-                                        testVariableIndexToLevelsMapping
+                            , Map.add indexForLeftmostTestVariable
+                                      testVariableLevels
+                                      testVariableIndexToLevelsMapping
                             , None
                             , []
                         else
