@@ -48,8 +48,8 @@
     <zoom:ZoomControl  Grid.Row="1"  Zoom="0.2" 
         ZoomBoxOpacity="0.5" Background="#ff656565">
         <local:GraphLayout x:Name="graphLayout" Margin="10"
-        Graph="{Binding Path=Graph}"
-        LayoutAlgorithmType="{Binding Path=LayoutAlgorithmType, Mode=OneWay}"
+        Graph="{Binding}"
+        LayoutAlgorithmType="ISOM"
         OverlapRemovalAlgorithmType="FSA"
         HighlightAlgorithmType="Simple" />
 
