@@ -36,9 +36,11 @@ namespace NTestCaseBuilder.Examples
             }
         }
 
+
+
         private static IEnumerable<Tuple<Int32, Int32>> EnumerateConnections(IEnumerable<Boolean> connectionSwitches, Int32 numberOfVertices)
         {
-            if (numberOfVertices * numberOfVertices != connectionSwitches.Count())
+            if (NumberOfPotentialUniqueConnectionsWithoutSelfLoops(numberOfVertices) != connectionSwitches.Count())
             {
                 throw new SageSerpent.Infrastructure.LogicErrorException(
                     "Number of vertices does not correspond to the maximum number of connections possible.");
@@ -50,8 +52,13 @@ namespace NTestCaseBuilder.Examples
 
             while(connectionIterator.MoveNext())
             {
-                var sourceIndex = counter / numberOfVertices;
-                var targetIndex = counter % numberOfVertices;
+                var sourceIndex = counter / (numberOfVertices - 1);
+                var targetIndex = counter % (numberOfVertices - 1);
+
+                if (targetIndex == sourceIndex)
+                {
+                    targetIndex = (targetIndex + 1) % numberOfVertices;
+                }
 
                 if (connectionIterator.Current)
                     yield return Tuple.Create(sourceIndex, targetIndex);
@@ -60,14 +67,20 @@ namespace NTestCaseBuilder.Examples
             }
         }
 
+        private static int NumberOfPotentialUniqueConnectionsWithoutSelfLoops(int numberOfVertices)
+        // Ban self-loops, as Graph# can't render them right now.
+        {
+            return numberOfVertices * (numberOfVertices - 1);
+        }
+
         private static TypedTestCaseEnumerableFactory<IEnumerable<Tuple<Int32, Int32>>> BuildConnectionsFactory(
             Int32 numberOfVertices)
         {
-            var maximumNumberOfConnections = numberOfVertices * numberOfVertices;
+            var numberOfPotentialUniqueConnectionsWithoutSelfLoops = NumberOfPotentialUniqueConnectionsWithoutSelfLoops(numberOfVertices);
 
             var connectionSwitchFactory = TestVariableLevelEnumerableFactory.Create(new[] {false, true});
 
-            return SynthesizedTestCaseEnumerableFactory.Create(Enumerable.Repeat(connectionSwitchFactory, maximumNumberOfConnections), (SequenceCondensation<Boolean, IEnumerable<Tuple<Int32, Int32>>>)(connectionSwitches => EnumerateConnections(connectionSwitches, numberOfVertices)));
+            return SynthesizedTestCaseEnumerableFactory.Create(Enumerable.Repeat(connectionSwitchFactory, numberOfPotentialUniqueConnectionsWithoutSelfLoops), (SequenceCondensation<Boolean, IEnumerable<Tuple<Int32, Int32>>>)(connectionSwitches => EnumerateConnections(connectionSwitches, numberOfVertices)));
         }
 
         private static TypedTestCaseEnumerableFactory<TestCase> BuildTestCaseFactory(Int32 maximumNumberOfVertices)
