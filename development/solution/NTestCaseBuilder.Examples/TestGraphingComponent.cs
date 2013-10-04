@@ -163,28 +163,21 @@ namespace NTestCaseBuilder.Examples
 
             const int maximumStrengthRequired = 2;
 
-            var horribleCounter = 0;
-
             factory.ExecuteParameterisedUnitTestForAllTypedTestCases(maximumStrengthRequired, testCase =>
                                                                                                   {
-                                                                                                      //var windowToPopUp
-                                                                                                      //    =
-                                                                                                      //    new GraphDisplayWindow
-                                                                                                      //        {
-                                                                                                      //            DataContext
-                                                                                                      //                =
-                                                                                                      //                testCase
-                                                                                                      //                .
-                                                                                                      //                MakeGraph
-                                                                                                      //                ()
-                                                                                                      //        };
-                                                                                                      //windowToPopUp.
-                                                                                                      //    ShowDialog();
-
-                                                                                                      ++horribleCounter;
-
-                                                                                                      if (horribleCounter % 5 == 0)
-                                                                                                          System.Console.Out.WriteLine("Have generated {0} dag graphs.", horribleCounter);
+                                                                                                      var windowToPopUp
+                                                                                                          =
+                                                                                                          new GraphDisplayWindow
+                                                                                                              {
+                                                                                                                  DataContext
+                                                                                                                      =
+                                                                                                                      testCase
+                                                                                                                      .
+                                                                                                                      MakeGraph
+                                                                                                                      ()
+                                                                                                              };
+                                                                                                      windowToPopUp.
+                                                                                                          ShowDialog();
                                                                                                   });
         }
     }
