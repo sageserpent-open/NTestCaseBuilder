@@ -37,8 +37,8 @@ namespace NTestCaseBuilder.Examples
         }
 
 
-
-        private static IEnumerable<Tuple<Int32, Int32>> EnumerateConnections(IEnumerable<Boolean> connectionSwitches, Int32 numberOfVertices)
+        private static IEnumerable<Tuple<Int32, Int32>> EnumerateConnections(IEnumerable<Boolean> connectionSwitches,
+                                                                             Int32 numberOfVertices)
         {
             if (NumberOfPotentialUniqueConnectionsWithoutSelfLoops(numberOfVertices) != connectionSwitches.Count())
             {
@@ -50,15 +50,12 @@ namespace NTestCaseBuilder.Examples
 
             var counter = 0;
 
-            while(connectionIterator.MoveNext())
+            while (connectionIterator.MoveNext())
             {
-                var sourceIndex = counter / (numberOfVertices - 1);
-                var targetIndex = counter % (numberOfVertices - 1);
-
-                if (targetIndex == sourceIndex)
-                {
-                    targetIndex = (targetIndex + 1) % numberOfVertices;
-                }
+                // Have to avoid creating potential connections that are self-loops - see comment for 'NumberOfPotentialUniqueConnectionsWithoutSelfLoops'.
+                int targetIndex;
+                int sourceIndex;
+                GetSourceAndTargetIndices(numberOfVertices, counter, out targetIndex, out sourceIndex);
 
                 if (connectionIterator.Current)
                     yield return Tuple.Create(sourceIndex, targetIndex);
@@ -67,8 +64,20 @@ namespace NTestCaseBuilder.Examples
             }
         }
 
-        private static int NumberOfPotentialUniqueConnectionsWithoutSelfLoops(int numberOfVertices)
-        // Ban self-loops, as Graph# can't render them right now.
+        private static void GetSourceAndTargetIndices(Int32 numberOfVertices, Int32 masterIndex, out Int32 targetIndex,
+                                                      out Int32 sourceIndex)
+        {
+            sourceIndex = masterIndex / (numberOfVertices - 1);
+            targetIndex = masterIndex % (numberOfVertices - 1);
+
+            if (targetIndex == sourceIndex)
+            {
+                targetIndex = (targetIndex + 1) % numberOfVertices;
+            }
+        }
+
+        private static int NumberOfPotentialUniqueConnectionsWithoutSelfLoops(Int32 numberOfVertices)
+            // Ban self-loops, as Graph# can't render them right now.
         {
             return numberOfVertices * (numberOfVertices - 1);
         }
@@ -76,11 +85,45 @@ namespace NTestCaseBuilder.Examples
         private static TypedTestCaseEnumerableFactory<IEnumerable<Tuple<Int32, Int32>>> BuildConnectionsFactory(
             Int32 numberOfVertices)
         {
-            var numberOfPotentialUniqueConnectionsWithoutSelfLoops = NumberOfPotentialUniqueConnectionsWithoutSelfLoops(numberOfVertices);
+            var numberOfPotentialUniqueConnectionsWithoutSelfLoops =
+                NumberOfPotentialUniqueConnectionsWithoutSelfLoops(numberOfVertices);
 
             var connectionSwitchFactory = TestVariableLevelEnumerableFactory.Create(new[] {false, true});
 
-            return SynthesizedTestCaseEnumerableFactory.Create(Enumerable.Repeat(connectionSwitchFactory, numberOfPotentialUniqueConnectionsWithoutSelfLoops), (SequenceCondensation<Boolean, IEnumerable<Tuple<Int32, Int32>>>)(connectionSwitches => EnumerateConnections(connectionSwitches, numberOfVertices)));
+            return
+                SynthesizedTestCaseEnumerableFactory.Create(
+                    Enumerable.Repeat(connectionSwitchFactory, numberOfPotentialUniqueConnectionsWithoutSelfLoops),
+                    (SequenceCondensation<Boolean, IEnumerable<Tuple<Int32, Int32>>>)
+                    (connectionSwitches => EnumerateConnections(connectionSwitches, numberOfVertices)));
+        }
+
+        private static Boolean FilterOutNonDagCases(
+            IEnumerable<KeyValuePair<int, Tuple<int, object>>> testVariableIndexToLevelNumberAndValueMap,
+            Int32 numberOfVertices)
+        {
+            return
+                Enumerable.Range(0, numberOfVertices).Any(
+                    frozenRootingIndexToCloseOver =>
+                    testVariableIndexToLevelNumberAndValueMap.All(testVariableIndexToLevelNumberAndValuePair =>
+                                                                      {
+                                                                          Int32 sourceIndex;
+                                                                          Int32 targetIndex;
+                                                                          GetSourceAndTargetIndices(numberOfVertices,
+                                                                                                    testVariableIndexToLevelNumberAndValuePair
+                                                                                                        .Key,
+                                                                                                    out sourceIndex,
+                                                                                                    out targetIndex);
+                                                                          return
+                                                                              !(Boolean)
+                                                                               testVariableIndexToLevelNumberAndValuePair
+                                                                                   .Value.Item2 ||
+                                                                              (sourceIndex -
+                                                                               frozenRootingIndexToCloseOver) %
+                                                                              numberOfVertices <
+                                                                              (targetIndex -
+                                                                               frozenRootingIndexToCloseOver) %
+                                                                              numberOfVertices;
+                                                                      }));
         }
 
         private static TypedTestCaseEnumerableFactory<TestCase> BuildTestCaseFactory(Int32 maximumNumberOfVertices)
@@ -97,11 +140,14 @@ namespace NTestCaseBuilder.Examples
                                                                                       Connections = connections
                                                                                   });
 
+            var testCaseFactoryWithFilter =
+                testCaseFactory.WithFilterTyped(dictionary => FilterOutNonDagCases(dictionary, numberOfVertices));
+
             return 0 == maximumNumberOfVertices
                        ? testCaseFactory
                        : InterleavedTestCaseEnumerableFactory.Create(new[]
                                                                          {
-                                                                             testCaseFactory,
+                                                                             testCaseFactoryWithFilter,
                                                                              BuildTestCaseFactory(maximumNumberOfVertices -
                                                                                                   1)
                                                                          });
@@ -113,25 +159,32 @@ namespace NTestCaseBuilder.Examples
         [Ignore]
         public void ShowSomeGraphs()
         {
-            var factory = BuildTestCaseFactory(5);
+            var factory = BuildTestCaseFactory(12);
 
             const int maximumStrengthRequired = 2;
 
+            var horribleCounter = 0;
+
             factory.ExecuteParameterisedUnitTestForAllTypedTestCases(maximumStrengthRequired, testCase =>
                                                                                                   {
-                                                                                                      var windowToPopUp
-                                                                                                          =
-                                                                                                          new GraphDisplayWindow
-                                                                                                              {
-                                                                                                                  DataContext
-                                                                                                                      =
-                                                                                                                      testCase
-                                                                                                                      .
-                                                                                                                      MakeGraph
-                                                                                                                      ()
-                                                                                                              };
-                                                                                                      windowToPopUp.
-                                                                                                          ShowDialog();
+                                                                                                      //var windowToPopUp
+                                                                                                      //    =
+                                                                                                      //    new GraphDisplayWindow
+                                                                                                      //        {
+                                                                                                      //            DataContext
+                                                                                                      //                =
+                                                                                                      //                testCase
+                                                                                                      //                .
+                                                                                                      //                MakeGraph
+                                                                                                      //                ()
+                                                                                                      //        };
+                                                                                                      //windowToPopUp.
+                                                                                                      //    ShowDialog();
+
+                                                                                                      ++horribleCounter;
+
+                                                                                                      if (horribleCounter % 5 == 0)
+                                                                                                          System.Console.Out.WriteLine("Have generated {0} dag graphs.", horribleCounter);
                                                                                                   });
         }
     }
