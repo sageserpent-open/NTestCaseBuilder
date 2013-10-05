@@ -45,11 +45,11 @@
     <Compile Include="AssemblyInformation.fs" />
     <Compile Include="Node.fs" />
     <Compile Include="MergedPartialTestVectorRepresentations.fs" />
-    <Compile Include="TestCaseEnumerableFactory.fs" />
-    <Compile Include="InterleavedTestCaseEnumerableFactory.fs" />
-    <Compile Include="TestVariableLevelEnumerableFactory.fs" />
-    <Compile Include="SynthesizedTestCaseEnumerableFactory.fs" />
-    <Compile Include="SingletonTestCaseEnumerableFactory.fs" />
+    <Compile Include="Factory.fs" />
+    <Compile Include="Interleaving.fs" />
+    <Compile Include="TestVariable.fs" />
+    <Compile Include="Synthesis.fs" />
+    <Compile Include="Singleton.fs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

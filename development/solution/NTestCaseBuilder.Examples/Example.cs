@@ -26,10 +26,10 @@ namespace NTestCaseBuilder.Examples
         [Test]
         public void TakeEnumeratorOutForTestDrive()
         {
-            var a = TestVariableLevelEnumerableFactory.Create(LevelsOne);
-            var b = TestVariableLevelEnumerableFactory.Create(LevelsTwo);
+            var a = TestVariable.Create(LevelsOne);
+            var b = TestVariable.Create(LevelsTwo);
 
-            var c = SynthesizedTestCaseEnumerableFactory.Create(a, b,
+            var c = Synthesis.Create(a, b,
                                                                 ((resultOne,
                                                                   resultTwo) =>
                                                                  string.Format(
@@ -42,13 +42,13 @@ namespace NTestCaseBuilder.Examples
                                                                          ())));
 
             var d =
-                SynthesizedTestCaseEnumerableFactory.Create(
-                    TestVariableLevelEnumerableFactory.Create(LevelsOne), input => input.ToString());
+                Synthesis.Create(
+                    TestVariable.Create(LevelsOne), input => input.ToString());
 
-            var dWithATwist = SynthesizedTestCaseEnumerableFactory.Create(
-                new List<TestCaseEnumerableFactory> {d}, (Converter<Object, Object>) (thing => thing));
+            var dWithATwist = Synthesis.Create(
+                new List<Factory> {d}, (Converter<Object, Object>) (thing => thing));
 
-            var e = InterleavedTestCaseEnumerableFactory.Create(new List<TestCaseEnumerableFactory> {dWithATwist, c});
+            var e = Interleaving.Create(new List<Factory> {dWithATwist, c});
 
             var strength = e.MaximumStrength;
 
@@ -355,7 +355,7 @@ namespace NTestCaseBuilder.Examples
             ((IList<Int32>) Enum.GetValues(typeof (OperationKind))).Select(constant => (OperationKind) constant);
 
 
-        private static TypedTestCaseEnumerableFactory<PlacementOfOperationsIntoFinalOrder> MakeTestCaseEnumerableFactory
+        private static TypedFactory<PlacementOfOperationsIntoFinalOrder> MakeFactory
             (Random randomBehaviour,
              Int32 sequenceLength,
              C5.IList<Key> keys)
@@ -376,7 +376,7 @@ namespace NTestCaseBuilder.Examples
             var testVariableLevelFactoryForIndexCombinationEnumerable =
                 MakeTestVariableLevelFactoryForIndexCombinationEnumerable(numberOfCombinations);
 
-            var factoryDealingWithRemainingKeys = MakeTestCaseEnumerableFactory
+            var factoryDealingWithRemainingKeys = MakeFactory
                 (randomBehaviour, sequenceLength, keys.View(1, keys.Count - 1));
 
             return MakeRecursionInductiveCaseFactory
@@ -385,7 +385,7 @@ namespace NTestCaseBuilder.Examples
                  factoryDealingWithRemainingKeys);
         }
 
-        private static TypedTestCaseEnumerableFactory<Int32> MakeTestVariableLevelFactoryForIndexCombinationEnumerable
+        private static TypedFactory<Int32> MakeTestVariableLevelFactoryForIndexCombinationEnumerable
             (Int32 numberOfCombinations)
         {
             var combinationSelector = numberOfCombinations;
@@ -396,39 +396,39 @@ namespace NTestCaseBuilder.Examples
             {
                 combinationSelectors.Add(combinationSelector);
             }
-            return TestVariableLevelEnumerableFactory.Create(combinationSelectors);
+            return TestVariable.Create(combinationSelectors);
         }
 
-        private static TypedTestCaseEnumerableFactory<PlacementOfOperationsIntoFinalOrder>
+        private static TypedFactory<PlacementOfOperationsIntoFinalOrder>
             MakeRecursionInductiveCaseFactory
-            (TypedTestCaseEnumerableFactory<IList<Operation>> synthesizingFactoryForOperationSequence,
-             TypedTestCaseEnumerableFactory<Int32> testVariableLevelFactoryForFinalOperationsListIndexCombinations,
-             TypedTestCaseEnumerableFactory<PlacementOfOperationsIntoFinalOrder> factoryDealingWithRemainingKeys)
+            (TypedFactory<IList<Operation>> synthesizingFactoryForOperationSequence,
+             TypedFactory<Int32> testVariableLevelFactoryForFinalOperationsListIndexCombinations,
+             TypedFactory<PlacementOfOperationsIntoFinalOrder> factoryDealingWithRemainingKeys)
         {
             return
-                SynthesizedTestCaseEnumerableFactory.Create(synthesizingFactoryForOperationSequence,
+                Synthesis.Create(synthesizingFactoryForOperationSequence,
                      testVariableLevelFactoryForFinalOperationsListIndexCombinations,
                      factoryDealingWithRemainingKeys,
                      BuildInductiveCaseForPlacementOfOperationsIntoFinalOrder);
         }
 
-        private static TypedTestCaseEnumerableFactory<PlacementOfOperationsIntoFinalOrder> MakeRecursionBaseFactory()
+        private static TypedFactory<PlacementOfOperationsIntoFinalOrder> MakeRecursionBaseFactory()
         {
-            return SingletonTestCaseEnumerableFactory.Create
+            return Singleton.Create
                 ((PlacementOfOperationsIntoFinalOrder) BaseCaseForPlacementOfOperationsIntoFinalOrder);
         }
 
-        private static TypedTestCaseEnumerableFactory<IList<Operation>>
+        private static TypedFactory<IList<Operation>>
             MakeSynthesizingFactoryForOperationSequenceEnumerable
             (Key key,
              Random randomBehaviour)
         {
-            return SynthesizedTestCaseEnumerableFactory.Create(
-                TestVariableLevelEnumerableFactory.Create(OperationKinds),
-                TestVariableLevelEnumerableFactory.Create(OperationKinds),
-                TestVariableLevelEnumerableFactory.Create(OperationKinds),
-                TestVariableLevelEnumerableFactory.Create(OperationKinds),
-                TestVariableLevelEnumerableFactory.Create(OperationKinds),
+            return Synthesis.Create(
+                TestVariable.Create(OperationKinds),
+                TestVariable.Create(OperationKinds),
+                TestVariable.Create(OperationKinds),
+                TestVariable.Create(OperationKinds),
+                TestVariable.Create(OperationKinds),
                 ((operationKindOne,
                   operationKindTwo,
                   operationKindThree,
@@ -458,7 +458,7 @@ namespace NTestCaseBuilder.Examples
 
             var totalNumberOfOperations = numberOfKeys * SequenceLength;
 
-            var testCasesEnumerableFactory = MakeTestCaseEnumerableFactory(randomBehaviour, SequenceLength, Keys);
+            var testCasesEnumerableFactory = MakeFactory(randomBehaviour, SequenceLength, Keys);
 
             var operations = new Operation[totalNumberOfOperations];
 
@@ -486,7 +486,7 @@ namespace NTestCaseBuilder.Examples
 
             var totalNumberOfOperations = numberOfKeys * SequenceLength;
 
-            var testCasesEnumerableFactory = MakeTestCaseEnumerableFactory(randomBehaviour, SequenceLength, Keys);
+            var testCasesEnumerableFactory = MakeFactory(randomBehaviour, SequenceLength, Keys);
 
             var operations = new Operation[totalNumberOfOperations];
 

@@ -5,8 +5,8 @@ namespace NTestCaseBuilder
     open SageSerpent.Infrastructure
     open NodeExtensions
 
-    type InterleavedTestCaseEnumerableFactory =
-        /// <summary>Constructor function that creates an instance of TestCaseEnumerableFactory.</summary>
+    type Interleaving =
+        /// <summary>Constructor function that creates an instance of Factory.</summary>
         /// <remarks>The resulting factory yields a sequence of test cases contributed by all of the subsequences that would
         /// be yielded by the child factories used to construct it. These subsequences are not actually interleaved in a systematic
         /// order such as round-robin: rather the name denotes that the contributed test cases are mixed up from different
@@ -14,8 +14,8 @@ namespace NTestCaseBuilder
         /// <param name="sequenceOfFactoriesProvidingSubsequencesToInterleave">A sequence of factories whose test cases are interleaved
         /// into the sequence yielded by the constructed factory.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="TestCaseEnumerableFactory">Type of constructed factory.</seealso>
-        static member Create (sequenceOfFactoriesProvidingSubsequencesToInterleave: seq<TestCaseEnumerableFactory>) =
+        /// <seealso cref="Factory">Type of constructed factory.</seealso>
+        static member Create (sequenceOfFactoriesProvidingSubsequencesToInterleave: seq<Factory>) =
             if Seq.isEmpty sequenceOfFactoriesProvidingSubsequencesToInterleave
             then
                 raise (PreconditionViolationException "Must provide at least one alternative.")
@@ -24,10 +24,10 @@ namespace NTestCaseBuilder
                                   |> List.ofSeq
                                   |> List.map (fun factory
                                                 -> factory.Node))
-            TypedTestCaseEnumerableFactory<_> node
-            :> TestCaseEnumerableFactory
+            TypedFactory<_> node
+            :> Factory
 
-        /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'TestCase&gt;.</summary>
+        /// <summary>Constructor function that creates an instance of TypedFactory&lt;'TestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of test cases contributed by all of the subsequences that would
         /// be yielded by the child factories used to construct it. These subsequences are not actually interleaved in a systematic
         /// order such as round-robin: rather the name denotes that the contributed test cases are mixed up from different
@@ -35,8 +35,8 @@ namespace NTestCaseBuilder
         /// <param name="sequenceOfFactoriesProvidingSubsequencesToInterleave">A sequence of factories whose test cases are interleaved
         /// into the sequence yielded by the constructed factory.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'TestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (sequenceOfFactoriesProvidingSubsequencesToInterleave: seq<TypedTestCaseEnumerableFactory<'TestCase>>) =
+        /// <seealso cref="TypedFactory&lt;'TestCase&gt;">Type of constructed factory.</seealso>
+        static member Create (sequenceOfFactoriesProvidingSubsequencesToInterleave: seq<TypedFactory<'TestCase>>) =
             if Seq.isEmpty sequenceOfFactoriesProvidingSubsequencesToInterleave
             then
                 raise (PreconditionViolationException "Must provide at least one alternative.")
@@ -45,4 +45,4 @@ namespace NTestCaseBuilder
                                   |> List.ofSeq
                                   |> List.map (fun factory
                                                 -> factory.Node))
-            TypedTestCaseEnumerableFactory<'TestCase> node
+            TypedFactory<'TestCase> node

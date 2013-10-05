@@ -4,7 +4,7 @@ namespace NTestCaseBuilder
     open System
     open NodeExtensions
 
-    type TestVariableLevelEnumerableFactory =
+    type TestVariable =
         /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'TestCase&gt;.</summary>
         /// <remarks>The resulting factory represents a single test variable.</remarks>
         /// <param name="levels">A sequence of test variable levels that can either be yielded in their
@@ -17,4 +17,4 @@ namespace NTestCaseBuilder
                 |> Array.ofSeq
             let node =
                 TestVariableNode weaklyTypedLevels
-            TypedTestCaseEnumerableFactory<'TestCase> node
+            TypedFactory<'TestCase> node

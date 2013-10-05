@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.FSharp.Collections;
 using NUnit.Framework;
 
 namespace NTestCaseBuilder.Examples
@@ -82,16 +80,16 @@ namespace NTestCaseBuilder.Examples
             return numberOfVertices * (numberOfVertices - 1);
         }
 
-        private static TypedTestCaseEnumerableFactory<IEnumerable<Tuple<Int32, Int32>>> BuildConnectionsFactory(
+        private static TypedFactory<IEnumerable<Tuple<Int32, Int32>>> BuildConnectionsFactory(
             Int32 numberOfVertices)
         {
             var numberOfPotentialUniqueConnectionsWithoutSelfLoops =
                 NumberOfPotentialUniqueConnectionsWithoutSelfLoops(numberOfVertices);
 
-            var connectionSwitchFactory = TestVariableLevelEnumerableFactory.Create(new[] {false, true});
+            var connectionSwitchFactory = TestVariable.Create(new[] {false, true});
 
             return
-                SynthesizedTestCaseEnumerableFactory.Create(
+                Synthesis.Create(
                     Enumerable.Repeat(connectionSwitchFactory, numberOfPotentialUniqueConnectionsWithoutSelfLoops),
                     (SequenceCondensation<Boolean, IEnumerable<Tuple<Int32, Int32>>>)
                     (connectionSwitches => EnumerateConnections(connectionSwitches, numberOfVertices)));
@@ -126,13 +124,13 @@ namespace NTestCaseBuilder.Examples
                                                                       }));
         }
 
-        private static TypedTestCaseEnumerableFactory<TestCase> BuildTestCaseFactory(Int32 maximumNumberOfVertices)
+        private static TypedFactory<TestCase> BuildTestCaseFactory(Int32 maximumNumberOfVertices)
         {
             var numberOfVertices = maximumNumberOfVertices;
 
             var connectionsFactory = BuildConnectionsFactory(numberOfVertices);
 
-            var testCaseFactory = SynthesizedTestCaseEnumerableFactory.Create(connectionsFactory,
+            var testCaseFactory = Synthesis.Create(connectionsFactory,
                                                                               connections =>
                                                                               new TestCase()
                                                                                   {
@@ -145,7 +143,7 @@ namespace NTestCaseBuilder.Examples
 
             return 0 == maximumNumberOfVertices
                        ? testCaseFactory
-                       : InterleavedTestCaseEnumerableFactory.Create(new[]
+                       : Interleaving.Create(new[]
                                                                          {
                                                                              testCaseFactoryWithFilter,
                                                                              BuildTestCaseFactory(maximumNumberOfVertices -

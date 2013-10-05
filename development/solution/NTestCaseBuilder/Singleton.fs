@@ -1,4 +1,4 @@
-﻿module NTestCaseBuilder.SingletonTestCaseEnumerableFactory
+﻿module NTestCaseBuilder.Singleton
 
     open System.Collections
     open System
@@ -8,4 +8,4 @@
     let Create (singletonTestCase: 'SingletonTestCase) =
         let node =
             SingletonNode singletonTestCase
-        TypedTestCaseEnumerableFactory<'SingletonTestCase> node
+        TypedFactory<'SingletonTestCase> node

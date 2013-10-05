@@ -10,7 +10,7 @@
     open SageSerpent.Infrastructure.RandomExtensions
     open SageSerpent.Infrastructure.IEnumerableExtensions
 
-    module TestCaseEnumerableFactoryDetail =
+    module FactoryDetail =
         let baseSize =
             bigint (int32 Byte.MaxValue) + 1I
 
@@ -50,7 +50,7 @@
         let makeDescriptionOfReproductionString fullTestVector =
             String.Format ("Encoded text for reproduction of test case follows on next line as C# string:\n\"{0}\"",
                            (serialize fullTestVector).ToString())
-    open TestCaseEnumerableFactoryDetail
+    open FactoryDetail
 
     type TestCaseReproductionException (fullTestVector
                                         , innerException) =
@@ -62,9 +62,9 @@
     /// cases are configured in terms of 'test variables', each of which can be set a particular 'level'; a given
     /// assignment of a level to each test variable then determines the composition of a test case.</summary>
 
-    /// <seealso cref="TestVariableLevelEnumerableFactory.Create">Construction method.</seealso>
-    /// <seealso cref="SynthesizedTestCaseEnumerableFactory.Create">Construction method.</seealso>
-    /// <seealso cref="InterleavedTestCaseEnumerableFactory.Create">Construction method.</seealso>
+    /// <seealso cref="TestVariable.Create">Construction method.</seealso>
+    /// <seealso cref="Synthesis.Create">Construction method.</seealso>
+    /// <seealso cref="Interleaving.Create">Construction method.</seealso>
 
     /// <remarks>Test case enumerable factories form a composite data structure, where a factory is the root
     /// of a tree of simpler factories, and can itself be part of a larger tree (or even part of several trees,
@@ -115,7 +115,7 @@
     /// attempt will be made to work around this behaviour and try alternative combinations that satisfy the
     /// strength requirements but create fewer collisions.</remarks>
     [<AbstractClass>]
-    type TestCaseEnumerableFactory (node: Node) =
+    type Factory (node: Node) =
         member internal this.Node = node
 
         /// <summary>Creates an enumerable sequence of test cases during execution and repeatedly executes
@@ -176,13 +176,13 @@
         /// variable in the combination, together with the value of the test level itself. Must return true to signify that the combination of levels is permitted, false if the combination
         /// must be excluded.</param>
         /// <returns>A new factory that is a copy of 'this' but with the additional filter included.</returns>
-        abstract WithFilter: LevelCombinationFilter -> TestCaseEnumerableFactory
+        abstract WithFilter: LevelCombinationFilter -> Factory
 
-    /// <summary>This extends the API provided by TestCaseEnumerableFactory to deal with test cases of a specific type given
+    /// <summary>This extends the API provided by Factory to deal with test cases of a specific type given
     /// by the type parameter TestCase.</summary>
-    /// <seealso cref="TestCaseEnumerableFactory">The core API provided by the baseclass.</seealso>
-    type TypedTestCaseEnumerableFactory<'TestCase> (node: Node) =
-        inherit TestCaseEnumerableFactory (node)
+    /// <seealso cref="Factory">The core API provided by the baseclass.</seealso>
+    type TypedFactory<'TestCase> (node: Node) =
+        inherit Factory (node)
 
         default this.ExecuteParameterisedUnitTestForAllTestCases (maximumDesiredStrength
                                                                   , parameterisedUnitTest: Action<Object>) =
@@ -207,7 +207,7 @@
 
         default this.WithFilter filter =
             this.WithFilterTyped filter
-            :> TestCaseEnumerableFactory
+            :> Factory
 
         member this.CreateTypedEnumerable maximumDesiredStrength =
             this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
@@ -319,5 +319,5 @@
               | None ->
                     Seq.empty
 
-        member this.WithFilterTyped (filter: LevelCombinationFilter): TypedTestCaseEnumerableFactory<'TestCase> =
-            TypedTestCaseEnumerableFactory<'TestCase> (this.Node.WithFilter filter)
+        member this.WithFilterTyped (filter: LevelCombinationFilter): TypedFactory<'TestCase> =
+            TypedFactory<'TestCase> (this.Node.WithFilter filter)

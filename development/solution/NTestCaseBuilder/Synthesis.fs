@@ -9,7 +9,7 @@ namespace NTestCaseBuilder
     open BargainBasement
     open NodeExtensions
 
-    module SynthesizedTestCaseEnumerableFactoryDetail =
+    module SynthesisDetail =
         let mediateFinalValueCreatorType (createFinalValueFrom: List<FullTestVector> -> 'CreatorViewOfSynthesizedTestCase) =
             match createFinalValueFrom
                     |> box with
@@ -29,10 +29,10 @@ namespace NTestCaseBuilder
                         // 'Object'. In practice the desired type will turn out to be 'Object' anyway,
                         // so the unbox operation will be trivial.
 
-    open SynthesizedTestCaseEnumerableFactoryDetail
+    open SynthesisDetail
 
-    /// <summary>Low-level F#-specific API for collecting together child factories to construct a synthesized TestCaseEnumerableFactory.</summary>
-    /// <seealso cref="SynthesizedTestCaseEnumerableFactory">Higher-level facade API that encapsulates usage of this class: try this first.</seealso>
+    /// <summary>Low-level F#-specific API for collecting together child factories to construct a synthesized Factory.</summary>
+    /// <seealso cref="Synthesis">Higher-level facade API that encapsulates usage of this class: try this first.</seealso>
     /// <seealso cref="FixedCombinationOfFactoriesForSynthesis">Cooperating class from low-level F#-specific API</seealso>
     type SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase> =
         {
@@ -41,7 +41,7 @@ namespace NTestCaseBuilder
             NodesInRightToLeftOrder: List<Node>
         }
 
-        static member StartWithLeftmostFactory (leftmostFactory: TypedTestCaseEnumerableFactory<'TestCaseFromLeftmostFactory>) =
+        static member StartWithLeftmostFactory (leftmostFactory: TypedFactory<'TestCaseFromLeftmostFactory>) =
             let nodeFromLeftmostFactory =
                 leftmostFactory.Node
             let rec createSingletonCombination (nodeFromLeftmostFactory: Node) =
@@ -66,7 +66,7 @@ namespace NTestCaseBuilder
             createSingletonCombination nodeFromLeftmostFactory
 
         static member AddFactoryToTheRight (combinationOfAllOtherFactories,
-                                            rightmostFactory: TypedTestCaseEnumerableFactory<'TestCaseFromRightmostFactory>) =
+                                            rightmostFactory: TypedFactory<'TestCaseFromRightmostFactory>) =
             let nodeFromRightmostFactory =
                 rightmostFactory.Node
             let rec createCombinationWithExtraRightmostNode (nodeFromRightmostFactory: Node)
@@ -102,8 +102,8 @@ namespace NTestCaseBuilder
             createCombinationWithExtraRightmostNode nodeFromRightmostFactory
                                                     combinationOfAllOtherFactories
 
-    /// <summary>Low-level F#-specific API for bundling together a collection of child factories and a synthesis function to construct a synthesized TestCaseEnumerableFactory.</summary>
-    /// <seealso cref="SynthesizedTestCaseEnumerableFactory">Higher-level facade API that encapsulates usage of this class: try this first.</seealso>
+    /// <summary>Low-level F#-specific API for bundling together a collection of child factories and a synthesis function to construct a synthesized Factory.</summary>
+    /// <seealso cref="Synthesis">Higher-level facade API that encapsulates usage of this class: try this first.</seealso>
     /// <seealso cref="SynthesisInputs">Cooperating class from low-level F#-specific API</seealso>
     and FixedCombinationOfFactoriesForSynthesis<'SynthesisFunction, 'SynthesizedTestCase>
             (heterogenousCombinationOfFactoriesForSynthesis: SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase>
@@ -159,8 +159,8 @@ namespace NTestCaseBuilder
     type Permutation<'Item> =
         delegate of seq<'Item> -> List<'Item>
 
-    type SynthesizedTestCaseEnumerableFactory =
-        /// <summary>Constructor function that creates an instance of TestCaseEnumerableFactory.</summary>
+    type Synthesis =
+        /// <summary>Constructor function that creates an instance of Factory.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined by means of a delegate
@@ -168,13 +168,13 @@ namespace NTestCaseBuilder
         /// <remarks>The synthesis delegate is passed in weakly-typed form to allow synthesis functions of various
         /// arities and type signatures to be used with the same construction function: consistency is checked at runtime;
         /// any violations result in an exception being thrown. This approach is consistent with the use of the weakly-typed
-        /// factory API of TestCaseEnumerableFactory used for the child factories.</remarks>
+        /// factory API of Factory used for the child factories.</remarks>
         /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases form inputs
         /// for synthesis.</param>
         /// <param name="synthesisDelegate">Delegate in weakly-typed form used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="TestCaseEnumerableFactory">Type of constructed factory.</seealso>
-        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TestCaseEnumerableFactory>,
+        /// <seealso cref="Factory">Type of constructed factory.</seealso>
+        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<Factory>,
                               synthesisDelegate: Delegate) =
             if Seq.isEmpty sequenceOfFactoriesProvidingInputsToSynthesis
             then
@@ -187,52 +187,52 @@ namespace NTestCaseBuilder
                                     -> factory.Node)
                 Node.CreateSynthesizingNode subtreeRootNodes
                                             synthesisDelegate
-            TypedTestCaseEnumerableFactory<_> node
-            :> TestCaseEnumerableFactory
+            TypedFactory<_> node
+            :> Factory
 
-        /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <summary>Constructor function that creates an instance of TypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined by means of a curried synthesis function
         /// that takes them as parameters and synthesises an output test case.</remarks>
         /// <param name="fixedCombinationOfFactoriesForSynthesis">Parameter object from low-level F#-specific API that bundles together the child factories and synthesis function.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
+        /// <seealso cref="TypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
         /// <seealso cref="FixedCombinationOfFactoriesForSynthesis">Cooperating class from low-level F#-specific API.</seealso>
         static member inline Create (fixedCombinationOfFactoriesForSynthesis: FixedCombinationOfFactoriesForSynthesis<_, 'SynthesizedTestCase>) =
-            TypedTestCaseEnumerableFactory<'SynthesizedTestCase> (fixedCombinationOfFactoriesForSynthesis
+            TypedFactory<'SynthesizedTestCase> (fixedCombinationOfFactoriesForSynthesis
                                                                   :> IFixedCombinationOfSubtreeNodesForSynthesis
                                                                   |> SynthesizingNode)
 
         // TODO: re-implement with special-case implementations of 'IFixedCombinationOfSubtreeNodesForSynthesis';
         // we don't need the full API using 'SynthesisInputs<_, _>' to do these tuple cases.
 
-        /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <summary>Constructor function that creates an instance of TypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
         /// out of an input test case taken from the sequence yielded by the the child factory used to construct the factory.
         /// The input test case is converted by means of a delegate that takes it as a parameter and synthesises an output test case.</remarks>
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factory: TypedTestCaseEnumerableFactory<_>,
+        /// <seealso cref="TypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
+        static member Create (factory: TypedFactory<_>,
                               synthesisDelegate: UnaryDelegate<_, 'SynthesizedTestCase>) =
             let singletonCombinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.StartWithLeftmostFactory factory
             let fixedCombinationOfFactoriesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (singletonCombinationOfFactoriesForSynthesis
                                                          , synthesisDelegate.Invoke)
-            SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfFactoriesForSynthesis
+            Synthesis.Create fixedCombinationOfFactoriesForSynthesis
 
-        /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <summary>Constructor function that creates an instance of TypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined by means of a delegate
         /// that takes them as parameters and synthesises an output test case.</remarks>
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factoryOne: TypedTestCaseEnumerableFactory<_>,
-                              factoryTwo: TypedTestCaseEnumerableFactory<_>,
+        /// <seealso cref="TypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
+        static member Create (factoryOne: TypedFactory<_>,
+                              factoryTwo: TypedFactory<_>,
                               synthesisDelegate: BinaryDelegate<_, _, _>) =
             let singletonCombinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.StartWithLeftmostFactory factoryOne
@@ -242,19 +242,19 @@ namespace NTestCaseBuilder
             let fixedCombinationOfFactoriesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
-            SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfFactoriesForSynthesis
+            Synthesis.Create fixedCombinationOfFactoriesForSynthesis
 
-        /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <summary>Constructor function that creates an instance of TypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined by means of a delegate
         /// that takes them as parameters and synthesises an output test case.</remarks>
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factoryOne: TypedTestCaseEnumerableFactory<_>,
-                              factoryTwo: TypedTestCaseEnumerableFactory<_>,
-                              factoryThree: TypedTestCaseEnumerableFactory<_>,
+        /// <seealso cref="TypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
+        static member Create (factoryOne: TypedFactory<_>,
+                              factoryTwo: TypedFactory<_>,
+                              factoryThree: TypedFactory<_>,
                               synthesisDelegate: TernaryDelegate<_, _, _, _>) =
             let singletonCombinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.StartWithLeftmostFactory factoryOne
@@ -267,20 +267,20 @@ namespace NTestCaseBuilder
             let fixedCombinationOfFactoriesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
-            SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfFactoriesForSynthesis
+            Synthesis.Create fixedCombinationOfFactoriesForSynthesis
 
-        /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <summary>Constructor function that creates an instance of TypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined by means of a delegate
         /// that takes them as parameters and synthesises an output test case.</remarks>
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factoryOne: TypedTestCaseEnumerableFactory<_>,
-                              factoryTwo: TypedTestCaseEnumerableFactory<_>,
-                              factoryThree: TypedTestCaseEnumerableFactory<_>,
-                              factoryFour: TypedTestCaseEnumerableFactory<_>,
+        /// <seealso cref="TypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
+        static member Create (factoryOne: TypedFactory<_>,
+                              factoryTwo: TypedFactory<_>,
+                              factoryThree: TypedFactory<_>,
+                              factoryFour: TypedFactory<_>,
                               synthesisDelegate: QuatenaryDelegate<_, _, _, _, _>) =
             let singletonCombinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.StartWithLeftmostFactory factoryOne
@@ -296,21 +296,21 @@ namespace NTestCaseBuilder
             let fixedCombinationOfFactoriesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
-            SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfFactoriesForSynthesis
+            Synthesis.Create fixedCombinationOfFactoriesForSynthesis
 
-        /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <summary>Constructor function that creates an instance of TypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined by means of a delegate
         /// that takes them as parameters and synthesises an output test case.</remarks>
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factoryOne: TypedTestCaseEnumerableFactory<_>,
-                              factoryTwo: TypedTestCaseEnumerableFactory<_>,
-                              factoryThree: TypedTestCaseEnumerableFactory<_>,
-                              factoryFour: TypedTestCaseEnumerableFactory<_>,
-                              factoryFive: TypedTestCaseEnumerableFactory<_>,
+        /// <seealso cref="TypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
+        static member Create (factoryOne: TypedFactory<_>,
+                              factoryTwo: TypedFactory<_>,
+                              factoryThree: TypedFactory<_>,
+                              factoryFour: TypedFactory<_>,
+                              factoryFive: TypedFactory<_>,
                               synthesisDelegate: QuintenaryDelegate<_, _, _, _, _, _>) =
             let singletonCombinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.StartWithLeftmostFactory factoryOne
@@ -329,9 +329,9 @@ namespace NTestCaseBuilder
             let fixedCombinationOfFactoriesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, _, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
-            SynthesizedTestCaseEnumerableFactory.Create fixedCombinationOfFactoriesForSynthesis
+            Synthesis.Create fixedCombinationOfFactoriesForSynthesis
 
-        /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <summary>Constructor function that creates an instance of TypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined by means of a delegate
@@ -350,8 +350,8 @@ namespace NTestCaseBuilder
         /// <param name="condensation">Delegate in strongly-typed form used to synthesize the output test cases from the input
         /// test cases passed together to it as a list.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TypedTestCaseEnumerableFactory<'TestCaseListElement>>,
+        /// <seealso cref="TypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
+        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TypedFactory<'TestCaseListElement>>,
                               condensation: SequenceCondensation<'TestCaseListElement, 'SynthesizedTestCase>) =
             let subtreeRootNodesFromExplicitFactories =
                 sequenceOfFactoriesProvidingInputsToSynthesis
@@ -390,9 +390,9 @@ namespace NTestCaseBuilder
             let node =
                 fixedCombinationOfSubtreeNodesForSynthesis
                 |> SynthesizingNode
-            TypedTestCaseEnumerableFactory<'SynthesizedTestCase> node
+            TypedFactory<'SynthesizedTestCase> node
 
-        /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <summary>Constructor function that creates an instance of TypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined by means of a delegate
@@ -407,7 +407,7 @@ namespace NTestCaseBuilder
         /// implicit test variable that contributes to the synthesis; this is dealt with by locally increasing the
         /// strength for the synthesizing factory (but not for its child factories), so that the implicit variable does
         /// not have to compete with the explicitly supplied test variable level factories for the strength guarantees
-        /// documented for TestCaseEnumerableFactory.</remarks>
+        /// documented for Factory.</remarks>
         /// <remarks>There is another overload that does almost exactly the same thing; that overload does
         /// not permit the option of applying permutations across the inputs.</remarks>
         /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases form inputs
@@ -416,26 +416,26 @@ namespace NTestCaseBuilder
         /// test cases passed together to it as a list.</param>
         /// <param name="permuteInputs">Whether to permute the input test cases prior to submitting them to the condensation delegate.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TypedTestCaseEnumerableFactory<'TestCaseListElement>>,
+        /// <seealso cref="TypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
+        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<TypedFactory<'TestCaseListElement>>,
                               condensation: SequenceCondensation<'TestCaseListElement, 'SynthesizedTestCase>,
                               permuteInputs: Boolean) =
             if permuteInputs
             then
                 let intermediateFactory =
-                    SynthesizedTestCaseEnumerableFactory.CreateWithPermutation sequenceOfFactoriesProvidingInputsToSynthesis
+                    Synthesis.CreateWithPermutation sequenceOfFactoriesProvidingInputsToSynthesis
                 let permuteAndCondense (unshuffledResultsFromSubtrees
                                         , shuffle: Permutation<'TestCaseListElement>) =
                     shuffle.Invoke unshuffledResultsFromSubtrees
                     |> condensation.Invoke
 
-                SynthesizedTestCaseEnumerableFactory.Create (intermediateFactory,
+                Synthesis.Create (intermediateFactory,
                                                              UnaryDelegate(permuteAndCondense))
             else
-                SynthesizedTestCaseEnumerableFactory.Create (sequenceOfFactoriesProvidingInputsToSynthesis,
+                Synthesis.Create (sequenceOfFactoriesProvidingInputsToSynthesis,
                                                              condensation)
 
-        /// <summary>Constructor function that creates an instance of TypedTestCaseEnumerableFactory&lt;List&lt;'TestCaseListElement&gt; * Permutation&lt;'Something&gt;&gt;.</summary>
+        /// <summary>Constructor function that creates an instance of TypedFactory&lt;List&lt;'TestCaseListElement&gt; * Permutation&lt;'Something&gt;&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined into a sequence that forms
@@ -444,12 +444,12 @@ namespace NTestCaseBuilder
         /// item-by-item followed by applying the permutations to shuffle the transformed test cases.</remarks>
         /// <remarks>The choice of permutation that is used to generate each output test case is systematically varied
         /// as another implicit test variable that contributes to the synthesis; it is therefore subject to the strength
-        /// guarantees documented for TestCaseEnumerableFactory.</remarks>
+        /// guarantees documented for Factory.</remarks>
         /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases form inputs
         /// for synthesis.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="TypedTestCaseEnumerableFactory&lt;Tuple&lt;List&lt;'TestCaseListElement&gt;, Permutation&lt;'Something&gt;&gt;&gt;">Type of constructed factory.</seealso>
-        static member CreateWithPermutation<'TestCaseListElement, 'Something> (sequenceOfFactoriesProvidingInputsToSynthesis: seq<TypedTestCaseEnumerableFactory<'TestCaseListElement>>): TypedTestCaseEnumerableFactory<List<'TestCaseListElement> * Permutation<'Something>> =
+        /// <seealso cref="TypedFactory&lt;Tuple&lt;List&lt;'TestCaseListElement&gt;, Permutation&lt;'Something&gt;&gt;&gt;">Type of constructed factory.</seealso>
+        static member CreateWithPermutation<'TestCaseListElement, 'Something> (sequenceOfFactoriesProvidingInputsToSynthesis: seq<TypedFactory<'TestCaseListElement>>): TypedFactory<List<'TestCaseListElement> * Permutation<'Something>> =
             let subtreeRootNodesFromExplicitFactories =
                 sequenceOfFactoriesProvidingInputsToSynthesis
                 |> List.ofSeq
@@ -462,7 +462,7 @@ namespace NTestCaseBuilder
                     let numberOfPermutations =
                         BargainBasement.Factorial numberOfExplicitlySuppliedFactories
                     let additionalFactoryForPermutations =
-                        TestVariableLevelEnumerableFactory.Create [0 .. numberOfPermutations - 1]
+                        TestVariable.Create [0 .. numberOfPermutations - 1]
                     [
                         yield additionalFactoryForPermutations.Node
                         yield! subtreeRootNodesFromExplicitFactories
@@ -512,4 +512,4 @@ namespace NTestCaseBuilder
             let node =
                 fixedCombinationOfSubtreeNodesForSynthesis
                 |> SynthesizingNode
-            TypedTestCaseEnumerableFactory<List<'TestCaseListElement> * Permutation<'Something>> node
+            TypedFactory<List<'TestCaseListElement> * Permutation<'Something>> node

@@ -145,11 +145,11 @@
 
     type FactoryConstructors<'Factory, 'TestCase> =
         {
-            TestCaseEnumerableFactoryWithFilterFrom: 'Factory -> LevelCombinationFilter -> 'Factory
-            TestVariableLevelEnumerableFactoryFrom: List<'TestCase> -> 'Factory
-            SingletonTestCaseEnumerableFactoryFrom: 'TestCase -> 'Factory
-            SynthesizedTestCaseEnumerableFactoryFrom: 'Factory [] -> (List<'TestCase> -> 'TestCase) -> Boolean -> 'Factory
-            InterleavedTestCaseEnumerableFactoryFrom: List<'Factory> -> 'Factory
+            FactoryWithFilterFrom: 'Factory -> LevelCombinationFilter -> 'Factory
+            TestVariableFrom: List<'TestCase> -> 'Factory
+            SingletonFrom: 'TestCase -> 'Factory
+            SynthesisFrom: 'Factory [] -> (List<'TestCase> -> 'TestCase) -> Boolean -> 'Factory
+            InterleavingFrom: List<'Factory> -> 'Factory
         }
 
     type PermutationCreation =
@@ -159,7 +159,7 @@
 
 
     [<TestFixture>]
-    type TestCaseEnumerableFactoryTestFixture () =
+    type FactoryTestFixture () =
         let maximumCombinationStrength = 5
         let maximumNumberOfNonZeroCombinationStrengthSubtrees = 4
         let maximumNumberOfTestLevels = 3
@@ -170,19 +170,19 @@
 
         let weaklyTypedFactoryConstructors =
             {
-                TestCaseEnumerableFactoryWithFilterFrom =
-                    (fun (factory: TestCaseEnumerableFactory)
+                FactoryWithFilterFrom =
+                    (fun (factory: Factory)
                          filter ->
                          factory.WithFilter filter)
-                TestVariableLevelEnumerableFactoryFrom =
+                TestVariableFrom =
                     (fun testVariableLevels ->
-                        TestVariableLevelEnumerableFactory.Create testVariableLevels
-                        :> TestCaseEnumerableFactory)
-                SingletonTestCaseEnumerableFactoryFrom =
+                        TestVariable.Create testVariableLevels
+                        :> Factory)
+                SingletonFrom =
                     (fun testVariableLevel ->
-                        SingletonTestCaseEnumerableFactory.Create testVariableLevel
-                            :> TestCaseEnumerableFactory)
-                SynthesizedTestCaseEnumerableFactoryFrom =
+                        Singleton.Create testVariableLevel
+                            :> Factory)
+                SynthesisFrom =
                     (fun permutedSubtrees
                          undoShuffleAndConcatenateContributedLevels
                          permuteInputs ->
@@ -194,47 +194,47 @@
                                                                            delegateTypeBuilder
                                                                            (undoShuffleAndConcatenateContributedLevels: List<List<TestVariableLevel>> -> List<TestVariableLevel>)
 
-                        SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees,
+                        Synthesis.Create (permutedSubtrees,
                                                                      nAryCondensationDelegate))
-                InterleavedTestCaseEnumerableFactoryFrom =
+                InterleavingFrom =
                     (fun subtrees ->
-                        InterleavedTestCaseEnumerableFactory.Create subtrees)
+                        Interleaving.Create subtrees)
             }
 
         let stronglyTypedFactoryConstructors =
             {
-                TestCaseEnumerableFactoryWithFilterFrom =
-                    (fun (factory: TypedTestCaseEnumerableFactory<_>)
+                FactoryWithFilterFrom =
+                    (fun (factory: TypedFactory<_>)
                          filter ->
                          factory.WithFilterTyped filter)
-                TestVariableLevelEnumerableFactoryFrom =
+                TestVariableFrom =
                     (fun testVariableLevels ->
-                        TestVariableLevelEnumerableFactory.Create testVariableLevels)
-                SingletonTestCaseEnumerableFactoryFrom =
+                        TestVariable.Create testVariableLevels)
+                SingletonFrom =
                     (fun testVariableLevel ->
-                        SingletonTestCaseEnumerableFactory.Create testVariableLevel)
-                SynthesizedTestCaseEnumerableFactoryFrom =
+                        Singleton.Create testVariableLevel)
+                SynthesisFrom =
                     (fun permutedSubtrees
                          undoShuffleAndConcatenateContributedLevels
                          permuteInputs ->
                         match Array.length permutedSubtrees with
                             1 when not permuteInputs ->
-                                SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees.[0],
+                                Synthesis.Create (permutedSubtrees.[0],
                                                                              UnaryDelegate(fun inputTestCase ->
                                                                                             undoShuffleAndConcatenateContributedLevels [inputTestCase]))
                           | 2 when not permuteInputs ->
-                                SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees.[0],
+                                Synthesis.Create (permutedSubtrees.[0],
                                                                              permutedSubtrees.[1],
                                                                              BinaryDelegate(fun firstInputTestCase
                                                                                                 secondInputTestCase ->
                                                                                                 undoShuffleAndConcatenateContributedLevels [firstInputTestCase; secondInputTestCase]))
                           | _ ->
-                                SynthesizedTestCaseEnumerableFactory.Create (permutedSubtrees,
+                                Synthesis.Create (permutedSubtrees,
                                                                              SequenceCondensation(List.ofSeq >> undoShuffleAndConcatenateContributedLevels),
                                                                              permuteInputs))
-                InterleavedTestCaseEnumerableFactoryFrom =
+                InterleavingFrom =
                     (fun subtrees ->
-                        InterleavedTestCaseEnumerableFactory.Create subtrees)
+                        Interleaving.Create subtrees)
             }
 
         let testVariableEncodedIndicesPass testVariableLevelEncodedIndices
@@ -248,7 +248,7 @@
                                                                 // combination of levels for the target non-singleton test variables - namely all
                                                                 // the level indices being zero.
 
-        let constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations factoryConstructors
+        let constructFactoryWithAccompanyingTestVariableCombinations factoryConstructors
                                                                                        randomBehaviour
                                                                                        allowDuplicatedLevels
                                                                                        allowSynthesisToPermuteInputs
@@ -260,7 +260,7 @@
             // factories are simply related by permutation - the tests have to take that statement into account.
             let combinationStrength =
                 (randomBehaviour: Random).ChooseAnyNumberFromOneTo maximumCombinationStrength
-            let rec constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
+            let rec constructFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                                                testVariableIndexToLevelsMapping
                                                                                                numberOfAncestorFactories
                                                                                                allowEmptyValueNodes
@@ -321,7 +321,7 @@
                                                 }
                                         testVariableEncodedIndicesPass relevantTestVariableLevelEncodedIndices
                                                                        numberOfTestVariablesInTargetNonSingletonTestVariableCombination
-                                    return factoryConstructors.TestCaseEnumerableFactoryWithFilterFrom factory
+                                    return factoryConstructors.FactoryWithFilterFrom factory
                                                                                                        (LevelCombinationFilter additionalFilterForThisFactory)
                                            , targetNonSingletonTestVariableCombination :: targetNonSingletonTestVariableCombinations
                               | _ ->
@@ -364,7 +364,7 @@
                                 else
                                         [ for level in Enumerable.Range(0, levelCountForTestVariableIntroducedHere) do
                                             yield [(indexForLeftmostTestVariable, Some level)] ]
-                            factoryConstructors.TestVariableLevelEnumerableFactoryFrom testVariableLevels
+                            factoryConstructors.TestVariableFrom testVariableLevels
                             , if testVariableLevels.IsEmpty
                               then
                                 None
@@ -381,7 +381,7 @@
                                 [(indexForLeftmostTestVariable, None)]: List<TestVariableLevel>
                             let testVariableLevels =
                                 [ testVariableLevel ]
-                            factoryConstructors.SingletonTestCaseEnumerableFactoryFrom testVariableLevel
+                            factoryConstructors.SingletonFrom testVariableLevel
                             , Set.singleton indexForLeftmostTestVariable
                               |> Some
                             , Map.add indexForLeftmostTestVariable
@@ -470,7 +470,7 @@
                                         , testVariableIndexToLevelsMappingFromSubtree
                                         , permutationExtentFromSubtree
                                         , targetNonSingletonTestVariableCombinationsFromSubtree =
-                                        constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations subtreeCombinationStrength
+                                        constructFactoryWithAccompanyingTestVariableCombinations subtreeCombinationStrength
                                                                                                                    testVariableIndexToLevelsMapping
                                                                                                                    (numberOfAncestorFactories + 1)
                                                                                                                    (allowEmptyValueNodeInSubtree
@@ -575,7 +575,7 @@
                                 |> Some
 
                         let factory =
-                            factoryConstructors.SynthesizedTestCaseEnumerableFactoryFrom shuffledSubtrees
+                            factoryConstructors.SynthesisFrom shuffledSubtrees
                                                                                          undoShuffleAndConcatenateContributedLevels
                                                                                          (permuteInputs
                                                                                           && match allowSynthesisToPermuteInputs with
@@ -651,7 +651,7 @@
                                         , testVariableIndexToLevelsMappingFromSubtree
                                         , permutationExtentFromSubtree
                                         , targetNonSingletonTestVariableCombinationsFromSubtree =
-                                        constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations subtreeCombinationStrength
+                                        constructFactoryWithAccompanyingTestVariableCombinations subtreeCombinationStrength
                                                                                                                    testVariableIndexToLevelsMapping
                                                                                                                    (numberOfAncestorFactories + 1)
                                                                                                                    allowEmptyValueNodeInSubtree
@@ -703,7 +703,7 @@
                                 |> Some
 
                         let factory =
-                            factoryConstructors.InterleavedTestCaseEnumerableFactoryFrom subtrees
+                            factoryConstructors.InterleavingFrom subtrees
 
                         let factory
                             , targetNonSingletonTestVariableCombinations =
@@ -718,17 +718,17 @@
                         , chosenPermutationExample
                         , targetNonSingletonTestVariableCombinations
 
-            let testCaseEnumerableFactory
+            let factory
                 , testVariableCombination
                 , testVariableIndexToLevelsMapping
                 , permutationExample
                 , targetNonSingletonTestVariableCombinations =
-                constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations combinationStrength
+                constructFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                                            Map.empty
                                                                                            0
                                                                                            false
                                                                                            true
-            testCaseEnumerableFactory
+            factory
             , testVariableCombination.Value
             , testVariableIndexToLevelsMapping
             , permutationExample
@@ -755,25 +755,25 @@
             let randomBehaviour = Random randomBehaviourSeed
             for _ in 1 .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
-                let testCaseEnumerableFactory
+                let factory
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping
                     , permutationExample
                     , targetNonSingletonTestVariableCombinations =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                    constructFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                randomBehaviour
                                                                                                false
                                                                                                No
                                                                                                false
                 let maximumStrength =
-                    randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
+                    randomBehaviour.ChooseAnyNumberFromOneTo factory.MaximumStrength
                 let testVariableCombinationConformingToMaximumStrength =
                     if testVariableCombination.Count <= maximumStrength
                     then testVariableCombination
                     else randomBehaviour.ChooseSeveralOf (testVariableCombination, maximumStrength)
                          |> Set.ofArray
                 let testCaseEnumerable =
-                    testCaseEnumerableFactory.CreateEnumerable maximumStrength
+                    factory.CreateEnumerable maximumStrength
                 testHandoff testCaseEnumerable
                             testVariableCombinationConformingToMaximumStrength
                             testVariableIndexToLevelsMapping
@@ -792,22 +792,22 @@
                     Random sharedSeed
                 let copiedRandomBehaviourTwo =
                     Random sharedSeed
-                let testCaseEnumerableFactory
+                let factory
                     , _
                     , testVariableIndexToLevelsMapping
                     , Some permutationExample
                     , _ =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
+                    constructFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
                                                                                                copiedRandomBehaviourOne
                                                                                                false
                                                                                                Yes
                                                                                                false
-                let unpermutedTestCaseEnumerableFactory
+                let unpermutedFactory
                     , _
                     , _
                     , _
                     , _ =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
+                    constructFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
                                                                                                copiedRandomBehaviourTwo
                                                                                                false
                                                                                                No
@@ -816,16 +816,16 @@
                 printf "Permutation example: %A\n" permutationExample
 
                 let maximumStrength =
-                    randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
+                    randomBehaviour.ChooseAnyNumberFromOneTo factory.MaximumStrength
                 let testCaseEnumerable =
-                    testCaseEnumerableFactory.CreateEnumerable maximumStrength
+                    factory.CreateEnumerable maximumStrength
 
 
                 let testCases =
-                    testCaseEnumerableFactory.CreateTypedEnumerable maximumStrength
+                    factory.CreateTypedEnumerable maximumStrength
 
                 let unpermutedTestCases =
-                    unpermutedTestCaseEnumerableFactory.CreateTypedEnumerable maximumStrength
+                    unpermutedFactory.CreateTypedEnumerable maximumStrength
 
                 let slice testCases =
                     testCases
@@ -937,12 +937,12 @@
                 printf "\n\n\n******************************\n\n\n"
                 let sharedSeed =
                     randomBehaviour.Next()
-                let testCaseEnumerableFactory
+                let factory
                     , _
                     , _
                     , _
                     , _ =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
+                    constructFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
                                                                                                randomBehaviour
                                                                                                false
                                                                                                Yes
@@ -951,7 +951,7 @@
                 let shouldBeTrue =
                     seq
                         {
-                            for testCase in testCaseEnumerableFactory.CreateEnumerable 0 do
+                            for testCase in factory.CreateEnumerable 0 do
                                 yield testCase :?> IComparable
                         }
                     |> Seq.length = 0
@@ -1068,28 +1068,28 @@
                     Random sharedSeed
                 let copiedRandomBehaviourTwo =
                     Random sharedSeed
-                let testCaseEnumerableFactory
+                let factory
                     , _
                     , _
                     , _
-                    , _ = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                    , _ = constructFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                      copiedRandomBehaviourOne
                                                                                                      false
                                                                                                      No
                                                                                                      false
-                let testCaseEnumerableFactoryBasedOnDuplicateLevels
+                let factoryBasedOnDuplicateLevels
                     , _
                     , _
                     , _
-                    , _ = constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                    , _ = constructFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                      copiedRandomBehaviourTwo
                                                                                                      true
                                                                                                      No
                                                                                                      false
                 let maximumStrength =
-                    testCaseEnumerableFactory.MaximumStrength
+                    factory.MaximumStrength
                 let shouldBeTrue =
-                    maximumStrength = testCaseEnumerableFactoryBasedOnDuplicateLevels.MaximumStrength
+                    maximumStrength = factoryBasedOnDuplicateLevels.MaximumStrength
                 Assert.IsTrue shouldBeTrue
                 let comparer = HashIdentity.Structural<_>
                 let bagCombinationsOfTestVariableIndicesDisregardingLevels testCases =
@@ -1100,12 +1100,12 @@
                         C5.HashBag<_>(comparer)
                     result.AddAll combinationsOfTestVariableIndices
                     result
-                let testCaseSequence (testCaseEnumerableFactory: TestCaseEnumerableFactory) =
-                    seq {for testCase in testCaseEnumerableFactory.CreateEnumerable(maximumStrength) do
+                let testCaseSequence (factory: Factory) =
+                    seq {for testCase in factory.CreateEnumerable(maximumStrength) do
                             yield unbox<List<TestVariableLevel>> testCase}
-                let shouldBeTrue = (testCaseSequence testCaseEnumerableFactory
+                let shouldBeTrue = (testCaseSequence factory
                                     |> bagCombinationsOfTestVariableIndicesDisregardingLevels).UnsequencedEquals
-                                     (testCaseSequence testCaseEnumerableFactoryBasedOnDuplicateLevels
+                                     (testCaseSequence factoryBasedOnDuplicateLevels
                                       |> bagCombinationsOfTestVariableIndicesDisregardingLevels)
                 Assert.IsTrue shouldBeTrue
 
@@ -1114,20 +1114,20 @@
             let randomBehaviour = Random randomBehaviourSeed
             for _ in 1 .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
-                let testCaseEnumerableFactory
+                let factory
                     , _
                     , testVariableIndexToLevelsMapping
                     , _
                     , _ =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                    constructFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                randomBehaviour
                                                                                                false
                                                                                                No
                                                                                                false
                 let maximumStrength =
-                    testCaseEnumerableFactory.MaximumStrength
+                    factory.MaximumStrength
                 let testCaseEnumerable =
-                    testCaseEnumerableFactory.CreateEnumerable maximumStrength
+                    factory.CreateEnumerable maximumStrength
                 let testCasesOfMaximumStrength =
                     [for testCase in testCaseEnumerable do
                         let testCase =
@@ -1176,22 +1176,22 @@
             let randomBehaviour = Random randomBehaviourSeed
             for _ in 1 .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
-                let testCaseEnumerableFactory
+                let factory
                     , _
                     , _
                     , _
                     , _ =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
+                    constructFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
                                                                                                randomBehaviour
                                                                                                false
                                                                                                Randomly
                                                                                                false
                 let randomStrength =
-                    randomBehaviour.ChooseAnyNumberFromOneTo testCaseEnumerableFactory.MaximumStrength
+                    randomBehaviour.ChooseAnyNumberFromOneTo factory.MaximumStrength
                 let randomTestCase =
                     seq
                         {
-                            for testCase in testCaseEnumerableFactory.CreateEnumerable randomStrength do
+                            for testCase in factory.CreateEnumerable randomStrength do
                                 yield testCase
                         }
                     |> randomBehaviour.ChooseOneOf
@@ -1200,7 +1200,7 @@
                     then
                         raise (LogicErrorException (testCase.ToString ()))
                 let shouldBeNone =
-                    try testCaseEnumerableFactory.ExecuteParameterisedUnitTestForAllTestCases (randomStrength
+                    try factory.ExecuteParameterisedUnitTestForAllTestCases (randomStrength
                                                                                                , Action<Object>(failOnSpecificTestCase))
                         |> Some with
                         :? TestCaseReproductionException as testCaseReproductionException ->
@@ -1217,7 +1217,7 @@
                                                  , groupsFromMatch.Count)
                                 groupsFromMatch.[1].Value
                             let shouldBeNone =
-                                try testCaseEnumerableFactory.ExecuteParameterisedUnitTestForReproducedTestCase (Action<Object>(failOnSpecificTestCase)
+                                try factory.ExecuteParameterisedUnitTestForReproducedTestCase (Action<Object>(failOnSpecificTestCase)
                                                                                                                  , reproductionString)
                                     |> Some with
                                     reproducedException ->
@@ -1233,7 +1233,7 @@
                 Assert.IsTrue shouldBeNone.IsNone
                 let neverFail =
                     ignore
-                try testCaseEnumerableFactory.ExecuteParameterisedUnitTestForAllTestCases (randomStrength
+                try factory.ExecuteParameterisedUnitTestForAllTestCases (randomStrength
                                                                                            , Action<Object>(neverFail))
                     |> ignore with
                     :? TestCaseReproductionException as testCaseReproductionException ->
@@ -1246,18 +1246,18 @@
             let randomBehaviour = Random randomBehaviourSeed
             for _ in 1 .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
-                let typedTestCaseEnumerableFactory
+                let typedFactory
                     , _
                     , _
                     , _
                     , _ =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
+                    constructFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
                                                                                                randomBehaviour
                                                                                                true
                                                                                                Randomly
                                                                                                true
-                for strength in 0 .. typedTestCaseEnumerableFactory.MaximumStrength do
-                    for _ in typedTestCaseEnumerableFactory.CreateEnumerable strength do
+                for strength in 0 .. typedFactory.MaximumStrength do
+                    for _ in typedFactory.CreateEnumerable strength do
                         ()
 
         [<Test>]
@@ -1271,34 +1271,34 @@
                     Random sharedSeed
                 let copiedRandomBehaviourTwo =
                     Random sharedSeed
-                let weaklyTypedTestCaseEnumerableFactory
+                let weaklyTypedFactory
                     , _
                     , _
                     , _
                     , _ =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
+                    constructFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
                                                                                                copiedRandomBehaviourOne
                                                                                                false
                                                                                                No
                                                                                                false
-                let stronglyTypedTestCaseEnumerableFactory
+                let stronglyTypedFactory
                     , _
                     , _
                     , _
                     , _ =
-                    constructTestCaseEnumerableFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
+                    constructFactoryWithAccompanyingTestVariableCombinations stronglyTypedFactoryConstructors
                                                                                                copiedRandomBehaviourTwo
                                                                                                false
                                                                                                No
                                                                                                false
                 let shouldBeTrue =
-                    weaklyTypedTestCaseEnumerableFactory.MaximumStrength = stronglyTypedTestCaseEnumerableFactory.MaximumStrength
-                for strength in 0 .. weaklyTypedTestCaseEnumerableFactory.MaximumStrength do
+                    weaklyTypedFactory.MaximumStrength = stronglyTypedFactory.MaximumStrength
+                for strength in 0 .. weaklyTypedFactory.MaximumStrength do
                     let testCasesFromWeaklyTypedFactory =
-                        [for testCase in weaklyTypedTestCaseEnumerableFactory.CreateEnumerable strength do
+                        [for testCase in weaklyTypedFactory.CreateEnumerable strength do
                             yield testCase]
                     let testCasesFromStronglyTypedFactory =
-                        stronglyTypedTestCaseEnumerableFactory.CreateTypedEnumerable strength
+                        stronglyTypedFactory.CreateTypedEnumerable strength
                         |> List.ofSeq
                     let shouldBeTrue =
                         List.zip testCasesFromWeaklyTypedFactory
@@ -1323,10 +1323,10 @@
                                                                        (condensation: List<'HasAddition> -> 'HasAddition)
                 let testVariableFactories =
                     Seq.map (fun levelGroup ->
-                                TestVariableLevelEnumerableFactory.Create levelGroup
-                                :> TestCaseEnumerableFactory)
+                                TestVariable.Create levelGroup
+                                :> Factory)
                             levelGroupsForEachOfTheTestVariables
-                SynthesizedTestCaseEnumerableFactory.Create (testVariableFactories,
+                Synthesis.Create (testVariableFactories,
                                                              nAryCondensationDelegate)
             let numberOfStringVariables = 3
             let stringSynthesizer = // Progressive Rock, yeah!
@@ -1347,7 +1347,7 @@
                                                     yield Enumerable.Range(0, numberOfIntegerLevels)
                                             })
             let interleavingSynthesizer =
-                InterleavedTestCaseEnumerableFactory.Create [stringSynthesizer; integerSynthesizer]
+                Interleaving.Create [stringSynthesizer; integerSynthesizer]
             for combinationStrength in 1 .. max numberOfStringVariables numberOfIntegerVariables do
                 let numberOfCases =
                     Seq.length (interleavingSynthesizer.CreateEnumerable combinationStrength
@@ -1359,7 +1359,7 @@
             let numberOfLevels =
                 10
             let testVariableFactory =
-                TestVariableLevelEnumerableFactory.Create (seq {
+                TestVariable.Create (seq {
                                                                 for item in 1 .. numberOfLevels do
                                                                     yield item
                                                                })
@@ -1371,12 +1371,12 @@
             let factoriesWithIncreasingNumberOfTestVariables =
                 List.scan (fun factoryWithSeveralTestVariables
                                testVariableFactory ->
-                            SynthesizedTestCaseEnumerableFactory.Create (testVariableFactory,
+                            Synthesis.Create (testVariableFactory,
                                                                          factoryWithSeveralTestVariables,
                                                                          (fun head
                                                                              tail ->
                                                                              head :: tail)))
-                          (SingletonTestCaseEnumerableFactory.Create [])
+                          (Singleton.Create [])
                           testVariableFactories
             let combinationStrength =
                 2
@@ -1395,7 +1395,7 @@
             let numberOfLevels =
                 1
             let testVariableFactory =
-                TestVariableLevelEnumerableFactory.Create (seq {
+                TestVariable.Create (seq {
                                                                 for item in 1 .. numberOfLevels do
                                                                     yield item
                                                                })
@@ -1407,16 +1407,16 @@
             let groupOfTestVariableFactories =
                 List.fold (fun factoryWithSeveralTestVariables
                                testVariableFactory ->
-                            SynthesizedTestCaseEnumerableFactory.Create (testVariableFactory,
+                            Synthesis.Create (testVariableFactory,
                                                                          factoryWithSeveralTestVariables,
                                                                          (fun head
                                                                              tail ->
                                                                              head :: tail)))
-                          (SingletonTestCaseEnumerableFactory.Create [])
+                          (Singleton.Create [])
                           testVariableFactories
             let numberOfInterleaves = 4
             let groupInterleaveFactory =
-                InterleavedTestCaseEnumerableFactory.Create (seq {
+                Interleaving.Create (seq {
                                                                     for _ in 1 .. numberOfInterleaves do
                                                                         yield groupOfTestVariableFactories
                                                                  })
@@ -1428,12 +1428,12 @@
             let factoriesWithIncreasingNumberOfGroupInterleaves =
                 List.scan (fun factoryWithGroupInterleaves
                                testVariableFactory ->
-                            SynthesizedTestCaseEnumerableFactory.Create (groupInterleaveFactory,
+                            Synthesis.Create (groupInterleaveFactory,
                                                                          factoryWithGroupInterleaves,
                                                                          (fun head
                                                                              tail ->
                                                                              head :: tail)))
-                          (SingletonTestCaseEnumerableFactory.Create [])
+                          (Singleton.Create [])
                           interleavedFactories
             let combinationStrength =
                 2
@@ -1455,7 +1455,7 @@
                                       expectSuccess =
                 let trivialCaseFactory =
                     expectSuccess.ToString ()
-                    |> SingletonTestCaseEnumerableFactory.Create
+                    |> Singleton.Create
 
                 if 1 = maximumSubexpressionNesting
                 then
@@ -1471,7 +1471,7 @@
                         irrefutableSubexpressionFactory false
 
                     let refutableSubexpressionFactory =
-                        InterleavedTestCaseEnumerableFactory.Create [alwaysSucceedsFactory; alwaysFailsFactory]
+                        Interleaving.Create [alwaysSucceedsFactory; alwaysFailsFactory]
 
                     let rec conjunctionOperandsFactory maximumNumberOfOperands =
                         let reduction leadingOperand
@@ -1485,10 +1485,10 @@
                                 [(alwaysFailsFactory, alwaysFailsFactory); (alwaysFailsFactory, alwaysSucceedsFactory); (alwaysSucceedsFactory, alwaysFailsFactory)])
                             |> List.map (fun (lhsOperandFactory
                                               , rhsOperandFactory) ->
-                                              SynthesizedTestCaseEnumerableFactory.Create(lhsOperandFactory,
+                                              Synthesis.Create(lhsOperandFactory,
                                                                                           rhsOperandFactory,
                                                                                           reduction))
-                            |> InterleavedTestCaseEnumerableFactory.Create
+                            |> Interleaving.Create
                         if 2 < maximumNumberOfOperands
                         then
                             let remainingOperandsFactory =
@@ -1496,14 +1496,14 @@
                             let moreThanTwoOperandsFactory =
                                 if expectSuccess
                                 then
-                                    SynthesizedTestCaseEnumerableFactory.Create (alwaysSucceedsFactory,
+                                    Synthesis.Create (alwaysSucceedsFactory,
                                                                                  remainingOperandsFactory,
                                                                                  reduction)
                                 else
-                                    SynthesizedTestCaseEnumerableFactory.Create (refutableSubexpressionFactory,
+                                    Synthesis.Create (refutableSubexpressionFactory,
                                                                                  remainingOperandsFactory,
                                                                                  reduction)
-                            InterleavedTestCaseEnumerableFactory.Create [lastOperandPairFactory; moreThanTwoOperandsFactory]
+                            Interleaving.Create [lastOperandPairFactory; moreThanTwoOperandsFactory]
                         else
                             lastOperandPairFactory
 
@@ -1519,10 +1519,10 @@
                                 [(alwaysFailsFactory, alwaysFailsFactory)])
                             |> List.map (fun (lhsOperandFactory
                                               , rhsOperandFactory) ->
-                                              SynthesizedTestCaseEnumerableFactory.Create(lhsOperandFactory,
+                                              Synthesis.Create(lhsOperandFactory,
                                                                                           rhsOperandFactory,
                                                                                           reduction))
-                            |> InterleavedTestCaseEnumerableFactory.Create
+                            |> Interleaving.Create
                         if 2 < maximumNumberOfOperands
                         then
                             let remainingOperandsFactory =
@@ -1530,24 +1530,24 @@
                             let moreThanTwoOperandsFactory =
                                 if expectSuccess
                                 then
-                                    SynthesizedTestCaseEnumerableFactory.Create (refutableSubexpressionFactory,
+                                    Synthesis.Create (refutableSubexpressionFactory,
                                                                                  remainingOperandsFactory,
                                                                                  reduction)
                                 else
-                                    SynthesizedTestCaseEnumerableFactory.Create (alwaysFailsFactory,
+                                    Synthesis.Create (alwaysFailsFactory,
                                                                                  remainingOperandsFactory,
                                                                                  reduction)
-                            InterleavedTestCaseEnumerableFactory.Create [lastOperandPairFactory; moreThanTwoOperandsFactory]
+                            Interleaving.Create [lastOperandPairFactory; moreThanTwoOperandsFactory]
                         else
                             lastOperandPairFactory
 
                     let negationOperandFactory =
-                        SynthesizedTestCaseEnumerableFactory.Create (irrefutableSubexpressionFactory (not expectSuccess),
+                        Synthesis.Create (irrefutableSubexpressionFactory (not expectSuccess),
                                                                      fun negativeExpression ->
                                                                        "NOT " + negativeExpression)
 
                     let bracket subexpressionsFactory =
-                        SynthesizedTestCaseEnumerableFactory.Create (subexpressionsFactory,
+                        Synthesis.Create (subexpressionsFactory,
                                                                      fun logicalOperatorWithPluralOperands ->
                                                                         "(" + logicalOperatorWithPluralOperands + ")")
 
@@ -1573,7 +1573,7 @@
                                     pluralSubexpressionCases
                      else
                         singularSubexpressionCases)
-                    |> InterleavedTestCaseEnumerableFactory.Create
+                    |> Interleaving.Create
 
             let maximumSubexpressionNesting =
                 3
@@ -1584,14 +1584,14 @@
                                 let expressionFactory =
                                     expressionFactory maximumSubexpressionNesting
                                                       expectSuccess
-                                SynthesizedTestCaseEnumerableFactory.Create (expressionFactory,
+                                Synthesis.Create (expressionFactory,
                                                                              (fun expression ->
                                                                                 (if expectSuccess
                                                                                  then
                                                                                     "Expect success: "
                                                                                  else
                                                                                     "Expect failure: ") + expression)))
-                |> InterleavedTestCaseEnumerableFactory.Create
+                |> Interleaving.Create
 
             let combinationStrength =
                 2

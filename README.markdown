@@ -137,43 +137,43 @@ OK, great. Now for the test:-
             public IEnumerable<Int32> OriginalMonotonicIncreasingSequence { get; set; }
         }
 
-        private static TypedTestCaseEnumerableFactory<TestCase> BuildTestCaseFactory()
+        private static TypedFactory<TestCase> BuildTestCaseFactory()
         {
-            var factoryForLeastItemInSequence = TestVariableLevelEnumerableFactory.Create(Enumerable.Range(-3, 10));
+            var factoryForLeastItemInSequence = TestVariable.Create(Enumerable.Range(-3, 10));
 
             const int maximumNumberOfDeltas = 5;
 
             var factoryForNonNegativeDeltasAndPermutation =
-                InterleavedTestCaseEnumerableFactory.Create(
+                Interleaving.Create(
                     from numberOfDeltas in Enumerable.Range(0, 1 + maximumNumberOfDeltas)
                     select BuildNonNegativeDeltasAndPermutationFactory(numberOfDeltas));
 
-            var testCaseFactoryForTrivialCase = SingletonTestCaseEnumerableFactory.Create(new TestCase());
+            var testCaseFactoryForTrivialCase = Singleton.Create(new TestCase());
 
             var testCaseFactoryForNonTrivialCases =
-                SynthesizedTestCaseEnumerableFactory.Create(factoryForLeastItemInSequence,
-                                                            factoryForNonNegativeDeltasAndPermutation,
-                                                            (leastItemInSequence, nonNegativeDeltasAndItsPermutation) =>
-                                                            new TestCase(leastItemInSequence,
-                                                                         nonNegativeDeltasAndItsPermutation.Item1,
-                                                                         nonNegativeDeltasAndItsPermutation.Item2));
+                Synthesis.Create(factoryForLeastItemInSequence,
+                                 factoryForNonNegativeDeltasAndPermutation,
+                                 leastItemInSequence, nonNegativeDeltasAndItsPermutation) =>
+									new TestCase(leastItemInSequence,
+												 nonNegativeDeltasAndItsPermutation.Item1,
+												 nonNegativeDeltasAndItsPermutation.Item2));
 
             return
-                InterleavedTestCaseEnumerableFactory.Create(new[]
-                                                                {
-                                                                    testCaseFactoryForTrivialCase,
-                                                                    testCaseFactoryForNonTrivialCases
-                                                                });
+                Interleaving.Create(new[]
+										{
+											testCaseFactoryForTrivialCase,
+											testCaseFactoryForNonTrivialCases
+										});
         }
 
-        private static TypedTestCaseEnumerableFactory<Tuple<FSharpList<UInt32>, Permutation<Int32>>>
+        private static TypedFactory<Tuple<FSharpList<UInt32>, Permutation<Int32>>>
             BuildNonNegativeDeltasAndPermutationFactory(int numberOfDeltas)
         {
             var factoryForNonNegativeDelta =
-                TestVariableLevelEnumerableFactory.Create(from signedDelta in Enumerable.Range(0, 5)
-                                                          select (UInt32) signedDelta);
+                TestVariable.Create(from signedDelta in Enumerable.Range(0, 5)
+										select (UInt32) signedDelta);
             return
-                SynthesizedTestCaseEnumerableFactory.CreateWithPermutation<UInt32, Int32>(
+                Synthesis.CreateWithPermutation<UInt32, Int32>(
                     Enumerable.Repeat(factoryForNonNegativeDelta, numberOfDeltas));
         }
 
@@ -778,7 +778,7 @@ First things first - let's introduce NTestCaseBuilder to the test driver. Like t
 	[Test]
 	public void TestEncodingAndDecodingRoundtripStage2()
 	{
-		var factory = SingletonTestCaseEnumerableFactory.Create(String.Empty);
+		var factory = Singleton.Create(String.Empty);
 		const Int32 strength = 3;
 
 		factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength, ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
@@ -851,19 +851,19 @@ To wire up the factories, we can stand the inductive process on its head, giving
 		Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
 	}
 
-	public TypedTestCaseEnumerableFactory<String> BuildFactoryRecursively(Int32 maximumStringLength)
+	public TypedFactory<String> BuildFactoryRecursively(Int32 maximumStringLength)
 	{
 		if (0 == maximumStringLength)
 		{
-			return _singletonFactoryForEmptyString;
+			return _emptyStringFactory;
 		}
 
 		var simplerFactoryForShorterStrings = BuildFactoryRecursively(maximumStringLength - 1);
 
-		var factoryForNonEmptyStrings = SynthesizedTestCaseEnumerableFactory.Create(
+		var factoryForNonEmptyStrings = Synthesis.Create(
 			_factoryForSingleCharacters, simplerFactoryForShorterStrings, (leftmostCharacterToPrepend, shorterString) => leftmostCharacterToPrepend + shorterString);
 
-		return InterleavedTestCaseEnumerableFactory.Create(new[] { _singletonFactoryForEmptyString, factoryForNonEmptyStrings });
+		return Interleaving.Create(new[] { _emptyStringFactory, factoryForNonEmptyStrings });
 	}
 
 Notice how I'm now using the return value of the call to 'ExecuteParameterisedUnitTestForAllTypedTestCases' - it tells me how many test cases I got through *if the parameterised unit test succeeded for each test case made by NTestCaseBuilder*.
