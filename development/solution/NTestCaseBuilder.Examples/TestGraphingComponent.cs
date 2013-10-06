@@ -80,8 +80,7 @@ namespace NTestCaseBuilder.Examples
             return numberOfVertices * (numberOfVertices - 1);
         }
 
-        private static TypedFactory<IEnumerable<Tuple<Int32, Int32>>> BuildConnectionsFactory(
-            Int32 numberOfVertices)
+        private static TypedFactory<IEnumerable<Tuple<Int32, Int32>>> BuildConnectionsFactory(Int32 numberOfVertices)
         {
             var numberOfPotentialUniqueConnectionsWithoutSelfLoops =
                 NumberOfPotentialUniqueConnectionsWithoutSelfLoops(numberOfVertices);
@@ -131,12 +130,9 @@ namespace NTestCaseBuilder.Examples
             var connectionsFactory = BuildConnectionsFactory(numberOfVertices);
 
             var testCaseFactory = Synthesis.Create(connectionsFactory,
-                                                                              connections =>
-                                                                              new TestCase()
-                                                                                  {
-                                                                                      NumberOfVertices = numberOfVertices,
-                                                                                      Connections = connections
-                                                                                  });
+                                                   connections =>
+                                                   new TestCase()
+                                                       {NumberOfVertices = numberOfVertices, Connections = connections});
 
             var testCaseFactoryWithFilter =
                 testCaseFactory.WithFilterTyped(dictionary => FilterOutNonDagCases(dictionary, numberOfVertices));
@@ -144,11 +140,10 @@ namespace NTestCaseBuilder.Examples
             return 0 == maximumNumberOfVertices
                        ? testCaseFactory
                        : Interleaving.Create(new[]
-                                                                         {
-                                                                             testCaseFactoryWithFilter,
-                                                                             BuildTestCaseFactory(maximumNumberOfVertices -
-                                                                                                  1)
-                                                                         });
+                                                 {
+                                                     testCaseFactoryWithFilter,
+                                                     BuildTestCaseFactory(maximumNumberOfVertices - 1)
+                                                 });
         }
 
         [Test]

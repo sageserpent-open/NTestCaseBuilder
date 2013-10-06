@@ -77,37 +77,32 @@ namespace NTestCaseBuilder.Examples
             const int maximumNumberOfDeltas = 4;
 
             var factoryForNonNegativeDeltasAndPermutation =
-                Interleaving.Create(
-                    from numberOfDeltas in Enumerable.Range(0, 1 + maximumNumberOfDeltas)
-                    select BuildNonNegativeDeltasAndPermutationFactory(numberOfDeltas));
+                Interleaving.Create(from numberOfDeltas in Enumerable.Range(0, 1 + maximumNumberOfDeltas)
+                                    select BuildNonNegativeDeltasAndPermutationFactory(numberOfDeltas));
 
             var testCaseFactoryForTrivialCase = Singleton.Create(new TestCase());
 
-            var testCaseFactoryForNonTrivialCases =
-                Synthesis.Create(factoryForLeastItemInSequence,
-                                                            factoryForNonNegativeDeltasAndPermutation,
-                                                            (leastItemInSequence, nonNegativeDeltasAndItsPermutation) =>
-                                                            new TestCase(leastItemInSequence,
-                                                                         nonNegativeDeltasAndItsPermutation.Item1,
-                                                                         nonNegativeDeltasAndItsPermutation.Item2));
+            var testCaseFactoryForNonTrivialCases = Synthesis.Create(factoryForLeastItemInSequence,
+                                                                     factoryForNonNegativeDeltasAndPermutation,
+                                                                     (leastItemInSequence,
+                                                                      nonNegativeDeltasAndItsPermutation) =>
+                                                                     new TestCase(leastItemInSequence,
+                                                                                  nonNegativeDeltasAndItsPermutation.
+                                                                                      Item1,
+                                                                                  nonNegativeDeltasAndItsPermutation.
+                                                                                      Item2));
 
-            return
-                Interleaving.Create(new[]
-                                                                {
-                                                                    testCaseFactoryForTrivialCase,
-                                                                    testCaseFactoryForNonTrivialCases
-                                                                });
+            return Interleaving.Create(new[] {testCaseFactoryForTrivialCase, testCaseFactoryForNonTrivialCases});
         }
 
         private static TypedFactory<Tuple<FSharpList<Int32>, Permutation<Int32>>>
             BuildNonNegativeDeltasAndPermutationFactory(int numberOfDeltas)
         {
             var factoryForNonNegativeDelta =
-                TestVariable.Create(from signedDelta in Enumerable.Range(0, 5)
-                                                          select (Int32) signedDelta);
+                TestVariable.Create(from signedDelta in Enumerable.Range(0, 5) select (Int32) signedDelta);
             return
-                Synthesis.CreateWithPermutation<Int32, Int32>(
-                    Enumerable.Repeat(factoryForNonNegativeDelta, numberOfDeltas));
+                Synthesis.CreateWithPermutation<Int32, Int32>(Enumerable.Repeat(factoryForNonNegativeDelta,
+                                                                                numberOfDeltas));
         }
 
         ///<summary>

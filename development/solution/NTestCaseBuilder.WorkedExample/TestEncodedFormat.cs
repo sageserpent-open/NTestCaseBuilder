@@ -13,7 +13,10 @@ namespace NTestCaseBuilder.WorkedExample
         private const Char MaximumLevel = 'z';
 
         private readonly TypedFactory<String> _emptyStringFactory = Singleton.Create(String.Empty);
-        private readonly TypedFactory<Char> _factoryForSingleCharacters = TestVariable.Create(Enumerable.Range(0, 1 + MaximumLevel - MinimumLevel).Select(index => (Char)(MinimumLevel + index)));
+
+        private readonly TypedFactory<Char> _factoryForSingleCharacters =
+            TestVariable.Create(
+                Enumerable.Range(0, 1 + MaximumLevel - MinimumLevel).Select(index => (Char) (MinimumLevel + index)));
 
         [Test]
         public void TestEncodingAndDecodingRoundtripStage1()
@@ -27,7 +30,8 @@ namespace NTestCaseBuilder.WorkedExample
             var factory = Singleton.Create(String.Empty);
             const Int32 strength = 3;
 
-            factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength, ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+            factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength,
+                                                                     ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
         }
 
         [Test]
@@ -38,7 +42,8 @@ namespace NTestCaseBuilder.WorkedExample
             var factory = BuildFactoryRecursively(maximumStringLength);
             const Int32 strength = 3;
 
-            var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength, ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+            var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength,
+                                                                                             ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
 
             Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
         }
@@ -52,10 +57,12 @@ namespace NTestCaseBuilder.WorkedExample
 
             var simplerFactoryForShorterStrings = BuildFactoryRecursively(maximumStringLength - 1);
 
-            var factoryForNonEmptyStrings = Synthesis.Create(
-                _factoryForSingleCharacters, simplerFactoryForShorterStrings, (leftmostCharacterToPrepend, shorterString) => leftmostCharacterToPrepend + shorterString);
+            var factoryForNonEmptyStrings = Synthesis.Create(_factoryForSingleCharacters,
+                                                             simplerFactoryForShorterStrings,
+                                                             (leftmostCharacterToPrepend, shorterString) =>
+                                                             leftmostCharacterToPrepend + shorterString);
 
-            return Interleaving.Create(new[] { _emptyStringFactory, factoryForNonEmptyStrings });
+            return Interleaving.Create(new[] {_emptyStringFactory, factoryForNonEmptyStrings});
         }
 
         public void ParameterisedUnitTestForEncodingAndDecodingRoundtrip(String testCase)

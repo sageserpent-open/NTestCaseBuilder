@@ -1010,7 +1010,7 @@ Tasks:
 
 8. Extend merged partial test vectors into full test vectors either some or all of the time to give even more early-access full test vectors.
 
-9. Implement exclusions for combinations of specific test levels from across several test variables - sometimes one wants to test combinations of test variables, but there are some levels from separate variables that shouldn't go together, although one would still want to see the other combinations involving these levels. This can be done by filtering, but it would be better to avoid generating the forbidden combinations in the first place - this would open up other possibilities for packing combinations together. This is good for weeding out test cases that are infeasible because of precondition failures.
+9. Implement exclusions for combinations of specific test levels from across several test variables - sometimes one wants to test combinations of test variables, but there are some levels from separate variables that shouldn't go together, although one would still want to see the other combinations involving these levels. This can be done by filtering, but it would be better to avoid generating the forbidden combinations in the first place - this would open up other possibilities for packing combinations together. This is good for weeding out test cases that are infeasible because of precondition failures. *** DONE ***
 
 10. Extend #9 so that once a reproducible failing test case is obtained, its signature can be used to set the exclusion - so one can see if that test case is the only one that causes the failure. Doing this iteratively can isolate the specific test levels that are interacting to create the failure.
 
