@@ -5,25 +5,44 @@ using NTestCaseBuilder;
 
 namespace SageSerpent.SamplesInAction.Samples.NTestCaseBuilder
 {
-    internal class IndexedSortedDictionary<TKey, TValue>: IDictionary<TKey, TValue> where TKey: IComparable<TKey>
+    internal class IndexedSortedDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKey : IComparable<TKey>
     {
         #region IDictionary<TKey,TValue> Members
 
-        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() { throw new NotImplementedException(); }
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
 
-        IEnumerator IEnumerable.GetEnumerator() { return GetEnumerator(); }
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
 
-        public void Add(KeyValuePair<TKey, TValue> item) { throw new NotImplementedException(); }
+        public void Add(KeyValuePair<TKey, TValue> item)
+        {
+            throw new NotImplementedException();
+        }
 
-        public void Clear() { throw new NotImplementedException(); }
+        public void Clear()
+        {
+            throw new NotImplementedException();
+        }
 
-        public bool Contains(KeyValuePair<TKey, TValue> item) { throw new NotImplementedException(); }
+        public bool Contains(KeyValuePair<TKey, TValue> item)
+        {
+            throw new NotImplementedException();
+        }
 
-        public void CopyTo
-            (KeyValuePair<TKey, TValue>[] array,
-             int arrayIndex) { throw new NotImplementedException(); }
+        public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+        {
+            throw new NotImplementedException();
+        }
 
-        public bool Remove(KeyValuePair<TKey, TValue> item) { throw new NotImplementedException(); }
+        public bool Remove(KeyValuePair<TKey, TValue> item)
+        {
+            throw new NotImplementedException();
+        }
 
         public int Count
         {
@@ -35,17 +54,25 @@ namespace SageSerpent.SamplesInAction.Samples.NTestCaseBuilder
             get { throw new NotImplementedException(); }
         }
 
-        public bool ContainsKey(TKey key) { throw new NotImplementedException(); }
+        public bool ContainsKey(TKey key)
+        {
+            throw new NotImplementedException();
+        }
 
-        public void Add
-            (TKey key,
-             TValue value) { throw new NotImplementedException(); }
+        public void Add(TKey key, TValue value)
+        {
+            throw new NotImplementedException();
+        }
 
-        public bool Remove(TKey key) { throw new NotImplementedException(); }
+        public bool Remove(TKey key)
+        {
+            throw new NotImplementedException();
+        }
 
-        public bool TryGetValue
-            (TKey key,
-             out TValue value) { throw new NotImplementedException(); }
+        public bool TryGetValue(TKey key, out TValue value)
+        {
+            throw new NotImplementedException();
+        }
 
         public TValue this[TKey key]
         {
@@ -67,7 +94,7 @@ namespace SageSerpent.SamplesInAction.Samples.NTestCaseBuilder
 
         public TValue this[int index]
         {
-            get { throw new NotImplementedException();}
+            get { throw new NotImplementedException(); }
         }
     }
 }

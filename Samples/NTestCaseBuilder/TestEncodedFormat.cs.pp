@@ -13,8 +13,11 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
         private const Char MinimumLevel = 'a';
         private const Char MaximumLevel = 'z';
 
-        private readonly TypedTestCaseEnumerableFactory<String> _singletonFactoryForEmptyString = SingletonTestCaseEnumerableFactory.Create(String.Empty);
-        private readonly TypedTestCaseEnumerableFactory<Char> _factoryForSingleCharacters = TestVariableLevelEnumerableFactory.Create(Enumerable.Range(0, 1 + MaximumLevel - MinimumLevel).Select(index => (Char)(MinimumLevel + index)));
+        private readonly TypedFactory<String> _emptyStringFactory = Singleton.Create(String.Empty);
+
+        private readonly TypedFactory<Char> _factoryForSingleCharacters =
+            TestVariable.Create(
+                Enumerable.Range(0, 1 + MaximumLevel - MinimumLevel).Select(index => (Char) (MinimumLevel + index)));
 
         [Test]
         public void TestEncodingAndDecodingRoundtripStage1()
@@ -25,10 +28,11 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
         [Test]
         public void TestEncodingAndDecodingRoundtripStage2()
         {
-            var factory = SingletonTestCaseEnumerableFactory.Create(String.Empty);
+            var factory = Singleton.Create(String.Empty);
             const Int32 strength = 3;
 
-            factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength, ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+            factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength,
+                                                                     ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
         }
 
         [Test]
@@ -39,24 +43,27 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
             var factory = BuildFactoryRecursively(maximumStringLength);
             const Int32 strength = 3;
 
-            var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength, ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+            var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength,
+                                                                                             ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
 
             Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
         }
 
-        public TypedTestCaseEnumerableFactory<String> BuildFactoryRecursively(Int32 maximumStringLength)
+        public TypedFactory<String> BuildFactoryRecursively(Int32 maximumStringLength)
         {
             if (0 == maximumStringLength)
             {
-                return _singletonFactoryForEmptyString;
+                return _emptyStringFactory;
             }
 
             var simplerFactoryForShorterStrings = BuildFactoryRecursively(maximumStringLength - 1);
 
-            var factoryForNonEmptyStrings = SynthesizedTestCaseEnumerableFactory.Create(
-                _factoryForSingleCharacters, simplerFactoryForShorterStrings, (leftmostCharacterToPrepend, shorterString) => leftmostCharacterToPrepend + shorterString);
+            var factoryForNonEmptyStrings = Synthesis.Create(_factoryForSingleCharacters,
+                                                             simplerFactoryForShorterStrings,
+                                                             (leftmostCharacterToPrepend, shorterString) =>
+                                                             leftmostCharacterToPrepend + shorterString);
 
-            return InterleavedTestCaseEnumerableFactory.Create(new[] { _singletonFactoryForEmptyString, factoryForNonEmptyStrings });
+            return Interleaving.Create(new[] {_emptyStringFactory, factoryForNonEmptyStrings});
         }
 
         public void ParameterisedUnitTestForEncodingAndDecodingRoundtrip(String testCase)

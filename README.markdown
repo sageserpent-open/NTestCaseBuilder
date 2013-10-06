@@ -1,8 +1,6 @@
 NTestCaseBuilder, for .NET Testing
 ==================================
 
-**WARNING: LIVING DOCUMENT - WORK VERY MUCH IN PROGRESS**
-
 This is a .NET library that generates sets of test cases, for use by parameterised tests.
 
 Each test case is built up progressively from smaller pieces of data that are combined together.
@@ -19,6 +17,19 @@ The sources are written in F#, but the API can be used just as comfortably from 
 
 
 Some background and a full worked example are given below after the following sample. A note on a related .NET utility, Pex, is also provided at the towards the end along with a link to a thought-provoking article relevant to this library.
+
+Use It
+------
+
+NTestCaseBuilder is available as NuGet binary package over at:  [NTestCaseBuilder](http://www.nuget.org/packages/NTestCaseBuilder/ "NTestCaseBuilder")
+
+Install it at project level - it will add references to the NTestCaseBuilder assembly and its dependencies.
+
+NTestCaseBuilder.Samples is a standard NuGet source samples package at: [NTestCaseBuilder.Samples](http://www.nuget.org/packages/NTestCaseBuilder.Samples/ "NTestCaseBuilder.Samples")
+
+Install it at project level - it will create (if necessary) a Samples\NTestCaseBuilder directory and solution folder for some snippets of source code that can be built and run.
+
+**NOTE:** for both NuGet packages, C5 is installed as a dependency of NTestCaseBuilder; you will need to remove either the C5.Mono.dll or the C5.dll assembly before you can build your project, as the C5 NuGet package installs both by default.
 
 Sample
 ------
@@ -126,43 +137,43 @@ OK, great. Now for the test:-
             public IEnumerable<Int32> OriginalMonotonicIncreasingSequence { get; set; }
         }
 
-        private static TypedTestCaseEnumerableFactory<TestCase> BuildTestCaseFactory()
+        private static TypedFactory<TestCase> BuildTestCaseFactory()
         {
-            var factoryForLeastItemInSequence = TestVariableLevelEnumerableFactory.Create(Enumerable.Range(-3, 10));
+            var factoryForLeastItemInSequence = TestVariable.Create(Enumerable.Range(-3, 10));
 
             const int maximumNumberOfDeltas = 5;
 
             var factoryForNonNegativeDeltasAndPermutation =
-                InterleavedTestCaseEnumerableFactory.Create(
+                Interleaving.Create(
                     from numberOfDeltas in Enumerable.Range(0, 1 + maximumNumberOfDeltas)
                     select BuildNonNegativeDeltasAndPermutationFactory(numberOfDeltas));
 
-            var testCaseFactoryForTrivialCase = SingletonTestCaseEnumerableFactory.Create(new TestCase());
+            var testCaseFactoryForTrivialCase = Singleton.Create(new TestCase());
 
             var testCaseFactoryForNonTrivialCases =
-                SynthesizedTestCaseEnumerableFactory.Create(factoryForLeastItemInSequence,
-                                                            factoryForNonNegativeDeltasAndPermutation,
-                                                            (leastItemInSequence, nonNegativeDeltasAndItsPermutation) =>
-                                                            new TestCase(leastItemInSequence,
-                                                                         nonNegativeDeltasAndItsPermutation.Item1,
-                                                                         nonNegativeDeltasAndItsPermutation.Item2));
+                Synthesis.Create(factoryForLeastItemInSequence,
+                                 factoryForNonNegativeDeltasAndPermutation,
+                                 leastItemInSequence, nonNegativeDeltasAndItsPermutation) =>
+									new TestCase(leastItemInSequence,
+												 nonNegativeDeltasAndItsPermutation.Item1,
+												 nonNegativeDeltasAndItsPermutation.Item2));
 
             return
-                InterleavedTestCaseEnumerableFactory.Create(new[]
-                                                                {
-                                                                    testCaseFactoryForTrivialCase,
-                                                                    testCaseFactoryForNonTrivialCases
-                                                                });
+                Interleaving.Create(new[]
+										{
+											testCaseFactoryForTrivialCase,
+											testCaseFactoryForNonTrivialCases
+										});
         }
 
-        private static TypedTestCaseEnumerableFactory<Tuple<FSharpList<UInt32>, Permutation<Int32>>>
+        private static TypedFactory<Tuple<FSharpList<UInt32>, Permutation<Int32>>>
             BuildNonNegativeDeltasAndPermutationFactory(int numberOfDeltas)
         {
             var factoryForNonNegativeDelta =
-                TestVariableLevelEnumerableFactory.Create(from signedDelta in Enumerable.Range(0, 5)
-                                                          select (UInt32) signedDelta);
+                TestVariable.Create(from signedDelta in Enumerable.Range(0, 5)
+										select (UInt32) signedDelta);
             return
-                SynthesizedTestCaseEnumerableFactory.CreateWithPermutation<UInt32, Int32>(
+                Synthesis.CreateWithPermutation<UInt32, Int32>(
                     Enumerable.Repeat(factoryForNonNegativeDelta, numberOfDeltas));
         }
 
@@ -767,7 +778,7 @@ First things first - let's introduce NTestCaseBuilder to the test driver. Like t
 	[Test]
 	public void TestEncodingAndDecodingRoundtripStage2()
 	{
-		var factory = SingletonTestCaseEnumerableFactory.Create(String.Empty);
+		var factory = Singleton.Create(String.Empty);
 		const Int32 strength = 3;
 
 		factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength, ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
@@ -840,19 +851,19 @@ To wire up the factories, we can stand the inductive process on its head, giving
 		Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
 	}
 
-	public TypedTestCaseEnumerableFactory<String> BuildFactoryRecursively(Int32 maximumStringLength)
+	public TypedFactory<String> BuildFactoryRecursively(Int32 maximumStringLength)
 	{
 		if (0 == maximumStringLength)
 		{
-			return _singletonFactoryForEmptyString;
+			return _emptyStringFactory;
 		}
 
 		var simplerFactoryForShorterStrings = BuildFactoryRecursively(maximumStringLength - 1);
 
-		var factoryForNonEmptyStrings = SynthesizedTestCaseEnumerableFactory.Create(
+		var factoryForNonEmptyStrings = Synthesis.Create(
 			_factoryForSingleCharacters, simplerFactoryForShorterStrings, (leftmostCharacterToPrepend, shorterString) => leftmostCharacterToPrepend + shorterString);
 
-		return InterleavedTestCaseEnumerableFactory.Create(new[] { _singletonFactoryForEmptyString, factoryForNonEmptyStrings });
+		return Interleaving.Create(new[] { _emptyStringFactory, factoryForNonEmptyStrings });
 	}
 
 Notice how I'm now using the return value of the call to 'ExecuteParameterisedUnitTestForAllTypedTestCases' - it tells me how many test cases I got through *if the parameterised unit test succeeded for each test case made by NTestCaseBuilder*.
@@ -999,10 +1010,12 @@ Tasks:
 
 8. Extend merged partial test vectors into full test vectors either some or all of the time to give even more early-access full test vectors.
 
-9. Implement exclusions for combinations of specific test levels from across several test variables - sometimes one wants to test combinations of test variables, but there are some levels from separate variables that shouldn't go together, although one would still want to see the other combinations involving these levels. This can be done by filtering, but it would be better to avoid generating the forbidden combinations in the first place - this would open up other possibilities for packing combinations together. This is good for weeding out test cases that are infeasible because of precondition failures.
+9. Implement exclusions for combinations of specific test levels from across several test variables - sometimes one wants to test combinations of test variables, but there are some levels from separate variables that shouldn't go together, although one would still want to see the other combinations involving these levels. This can be done by filtering, but it would be better to avoid generating the forbidden combinations in the first place - this would open up other possibilities for packing combinations together. This is good for weeding out test cases that are infeasible because of precondition failures. *** DONE ***
 
 10. Extend #9 so that once a reproducible failing test case is obtained, its signature can be used to set the exclusion - so one can see if that test case is the only one that causes the failure. Doing this iteratively can isolate the specific test levels that are interacting to create the failure.
 
 11. Extend the functionality in #5 to allow splicing of an ordered sequence of operations into varying points within a larger sequence, while preserving the order of the spliced sub-sequence. This is motivated by the example shown in the repository - look for test 'ComplexExample' in project 'NTestCaseBuilder.Examples'.
 
-12. Produce an examples NuGet feed based on the examples in the NTestCaseBuilder repository. *** COMING SOON ***
+12. Produce an examples NuGet feed based on the examples in the NTestCaseBuilder repository. *** DONE ***
+
+13. Produce either an applicative functor or a monad to make test case building more declarative and concise.

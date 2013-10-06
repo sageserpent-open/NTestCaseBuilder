@@ -71,43 +71,43 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
             public IEnumerable<Int32> OriginalMonotonicIncreasingSequence { get; set; }
         }
 
-        private static TypedTestCaseEnumerableFactory<TestCase> BuildTestCaseFactory()
+        private static TypedFactory<TestCase> BuildTestCaseFactory()
         {
-            var factoryForLeastItemInSequence = TestVariableLevelEnumerableFactory.Create(Enumerable.Range(-3, 10));
+            var factoryForLeastItemInSequence = TestVariable.Create(Enumerable.Range(-3, 10));
 
             const int maximumNumberOfDeltas = 5;
 
             var factoryForNonNegativeDeltasAndPermutation =
-                InterleavedTestCaseEnumerableFactory.Create(
+                Interleaving.Create(
                     from numberOfDeltas in Enumerable.Range(0, 1 + maximumNumberOfDeltas)
                     select BuildNonNegativeDeltasAndPermutationFactory(numberOfDeltas));
 
-            var testCaseFactoryForTrivialCase = SingletonTestCaseEnumerableFactory.Create(new TestCase());
+            var testCaseFactoryForTrivialCase = Singleton.Create(new TestCase());
 
             var testCaseFactoryForNonTrivialCases =
-                SynthesizedTestCaseEnumerableFactory.Create(factoryForLeastItemInSequence,
-                                                            factoryForNonNegativeDeltasAndPermutation,
-                                                            (leastItemInSequence, nonNegativeDeltasAndItsPermutation) =>
-                                                            new TestCase(leastItemInSequence,
-                                                                         nonNegativeDeltasAndItsPermutation.Item1,
-                                                                         nonNegativeDeltasAndItsPermutation.Item2));
+                Synthesis.Create(factoryForLeastItemInSequence,
+                                 factoryForNonNegativeDeltasAndPermutation,
+									(leastItemInSequence, nonNegativeDeltasAndItsPermutation) =>
+										new TestCase(leastItemInSequence,
+													 nonNegativeDeltasAndItsPermutation.Item1,
+													 nonNegativeDeltasAndItsPermutation.Item2));
 
             return
-                InterleavedTestCaseEnumerableFactory.Create(new[]
-                                                                {
-                                                                    testCaseFactoryForTrivialCase,
-                                                                    testCaseFactoryForNonTrivialCases
-                                                                });
+                Interleaving.Create(new[]
+										{
+											testCaseFactoryForTrivialCase,
+											testCaseFactoryForNonTrivialCases
+										});
         }
 
-        private static TypedTestCaseEnumerableFactory<Tuple<FSharpList<UInt32>, Permutation<Int32>>>
+        private static TypedFactory<Tuple<FSharpList<UInt32>, Permutation<Int32>>>
             BuildNonNegativeDeltasAndPermutationFactory(int numberOfDeltas)
         {
             var factoryForNonNegativeDelta =
-                TestVariableLevelEnumerableFactory.Create(from signedDelta in Enumerable.Range(0, 5)
-                                                          select (UInt32) signedDelta);
+                TestVariable.Create(from signedDelta in Enumerable.Range(0, 5)
+									select (UInt32) signedDelta);
             return
-                SynthesizedTestCaseEnumerableFactory.CreateWithPermutation<UInt32, Int32>(
+                Synthesis.CreateWithPermutation<UInt32, Int32>(
                     Enumerable.Repeat(factoryForNonNegativeDelta, numberOfDeltas));
         }
 
