@@ -36,11 +36,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="C5, Version=2.1.4492.18132, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\C5.2.1.4492.18142\lib\net40\C5.dll</HintPath>
-    </Reference>
-    <Reference Include="C5.Mono">
-      <HintPath>..\packages\C5.2.1.4492.18142\lib\net40\C5.Mono.dll</HintPath>
+    <Reference Include="C5">
+      <HintPath>..\packages\C5.2.2.4881.16939\lib\portable-win+net40+sl40+wp+Xbox40\C5.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.PowerPack, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809, processorArchitecture=MSIL">
       <Private>True</Private>
@@ -57,13 +54,11 @@
     <Reference Include="FSharp.PowerPack.Parallel.Seq, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809, processorArchitecture=MSIL">
       <HintPath>..\packages\FSPowerPack.Community.2.1.3.1\lib\Net40\FSharp.PowerPack.Parallel.Seq.dll</HintPath>
     </Reference>
-    <Reference Include="NTestCaseBuilder, Version=1.3.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NTestCaseBuilder.1.3.1.0\lib\net40\NTestCaseBuilder.dll</HintPath>
+    <Reference Include="NTestCaseBuilder">
+      <HintPath>..\packages\NTestCaseBuilder.2.0.0.0\lib\net40\NTestCaseBuilder.dll</HintPath>
     </Reference>
-    <Reference Include="SageSerpent.Infrastructure, Version=1.3.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NTestCaseBuilder.1.3.1.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
+    <Reference Include="SageSerpent.Infrastructure">
+      <HintPath>..\packages\NTestCaseBuilder.2.0.0.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
