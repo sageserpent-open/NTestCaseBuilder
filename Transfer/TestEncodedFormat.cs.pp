@@ -4,7 +4,9 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 
-namespace NTestCaseBuilder.WorkedExample
+using NTestCaseBuilder;
+
+namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
     [TestFixture]
     public class TestEncodedFormat

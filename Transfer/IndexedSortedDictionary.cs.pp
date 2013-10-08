@@ -2,7 +2,9 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace NTestCaseBuilder.Examples
+using NTestCaseBuilder;
+
+namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
     internal class IndexedSortedDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKey : IComparable<TKey>
     {

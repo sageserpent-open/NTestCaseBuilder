@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using GraphSharp.Controls;
 
-namespace NTestCaseBuilder.Examples
+namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
     internal class GraphLayout : GraphLayout<Vertex, Edge, Graph>
     {

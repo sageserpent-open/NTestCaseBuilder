@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace NTestCaseBuilder.Examples
+using NTestCaseBuilder;
+
+namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
     ///<summary>
     ///  Module for holding static methods used to do sorting.

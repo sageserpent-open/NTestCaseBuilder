@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using NTestCaseBuilder;
 using NUnit.Framework;
 
-namespace NTestCaseBuilder.Examples
+namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
     [TestFixture]
     public class TestGraphingComponent

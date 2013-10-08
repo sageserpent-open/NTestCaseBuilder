@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace NTestCaseBuilder.Examples
+namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
     [DebuggerDisplay("Id: {Id}")]
     public class Vertex

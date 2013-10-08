@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Text;
 
-namespace NTestCaseBuilder.WorkedExample
+using NTestCaseBuilder;
+
+namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
     public class EncodedFormatStage1
     {

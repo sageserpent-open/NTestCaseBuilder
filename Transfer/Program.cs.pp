@@ -1,6 +1,8 @@
 ﻿using System;
 
-namespace NTestCaseBuilder.MinimalClient
+using NTestCaseBuilder;
+
+namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
     internal class Program
     {

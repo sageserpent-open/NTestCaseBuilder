@@ -1,8 +1,8 @@
-﻿<Window x:Class="NTestCaseBuilder.Examples.GraphDisplayWindow"
+﻿<Window x:Class="$rootnamespace$.Samples.NTestCaseBuilder.GraphDisplayWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:graphsharp="clr-namespace:GraphSharp.Controls;assembly=GraphSharp.Controls"
-        xmlns:local="clr-namespace:NTestCaseBuilder.Examples"
+        xmlns:local="clr-namespace:$rootnamespace$.Samples.NTestCaseBuilder"
         xmlns:zoom="clr-namespace:WPFExtensions.Controls;assembly=WPFExtensions"        
         Title="A graph made by NTestCaseBuilder, implemented by Quick Graph and rendered by Graph Sharp..." Height="350" Width="596">
 

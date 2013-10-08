@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace NTestCaseBuilder.Examples
+namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
     [DebuggerDisplay("Source: {Source.Id}, Destination: {Target.Id}")]
     public class Edge : QuickGraph.Edge<Vertex>

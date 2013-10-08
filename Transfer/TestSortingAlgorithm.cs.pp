@@ -4,7 +4,9 @@ using System.Linq;
 using Microsoft.FSharp.Collections;
 using NUnit.Framework;
 
-namespace NTestCaseBuilder.Examples
+using NTestCaseBuilder;
+
+namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
     ///<summary>
     ///  Test fixture for class 'SortingAlgorithmModule'.

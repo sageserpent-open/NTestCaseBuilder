@@ -4,12 +4,13 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using SageSerpent.Infrastructure;
+using NTestCaseBuilder;
 using Key = System.Int32;
 using Value = System.String;
 using Operation = System.Action<System.Collections.Generic.IDictionary<System.Int32, System.String>>;
 
 
-namespace NTestCaseBuilder.Examples
+namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
     ///<summary>
     ///</summary>
