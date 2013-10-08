@@ -1,4 +1,5 @@
 ﻿using System;
+
 using NTestCaseBuilder;
 
 namespace $rootnamespace$.Samples.NTestCaseBuilder

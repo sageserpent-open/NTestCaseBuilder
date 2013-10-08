@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+
 using NTestCaseBuilder;
 
 namespace $rootnamespace$.Samples.NTestCaseBuilder

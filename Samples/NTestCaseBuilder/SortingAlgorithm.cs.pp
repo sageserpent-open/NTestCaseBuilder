@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using NTestCaseBuilder;
 
 namespace $rootnamespace$.Samples.NTestCaseBuilder
@@ -7,7 +8,7 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
     ///<summary>
     ///  Module for holding static methods used to do sorting.
     ///</summary>
-    public class SortingAlgorithmModule
+    public static class SortingAlgorithmModule
     {
         /// <summary>
         ///   Sorts a sequence of items into ascending order, using the intrinsic ordering of the TItem type.
