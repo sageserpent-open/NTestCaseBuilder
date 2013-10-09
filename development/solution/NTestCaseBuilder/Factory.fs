@@ -178,6 +178,10 @@
         /// <returns>A new factory that is a copy of 'this' but with the additional filter included.</returns>
         abstract WithFilter: LevelCombinationFilter -> Factory
 
+        abstract WithMaximumStrength: Int32 -> Factory
+
+        abstract WithZeroStrengthCost: unit -> Factory
+
     /// <summary>This extends the API provided by Factory to deal with test cases of a specific type given
     /// by the type parameter TestCase.</summary>
     /// <seealso cref="Factory">The core API provided by the baseclass.</seealso>
@@ -207,6 +211,14 @@
 
         default this.WithFilter filter =
             this.WithFilterTyped filter
+            :> Factory
+
+        default this.WithMaximumStrength maximumStrength =
+            this.WithMaximumStrengthTyped maximumStrength
+            :> Factory
+
+        default this.WithZeroStrengthCost () =
+            this.WithZeroStrengthCostTyped ()
             :> Factory
 
         member this.CreateTypedEnumerable maximumDesiredStrength =
@@ -321,3 +333,9 @@
 
         member this.WithFilterTyped (filter: LevelCombinationFilter): TypedFactory<'TestCase> =
             TypedFactory<'TestCase> (this.Node.WithFilter filter)
+
+        member this.WithMaximumStrengthTyped maximumStrength =
+            TypedFactory<'TestCase> (this.Node.WithMaximumStrength (Some maximumStrength))
+
+        member this.WithZeroStrengthCostTyped () =
+            this

@@ -19,8 +19,8 @@ namespace NTestCaseBuilder
         {
             TestVariableNodeResult: array<Object> -> 'Result
             SingletonNodeResult: unit -> 'Result
-            CombineResultsFromInterleavingNodeSubtrees: seq<'Result> -> 'Result
-            CombineResultsFromSynthesizingNodeSubtrees: seq<'Result> -> 'Result
+            CombineResultsFromInterleavingNodeSubtrees: List<'Result> -> 'Result
+            CombineResultsFromSynthesizingNodeSubtrees: List<'Result> -> 'Result
         }
 
     type TestVariable<'Data> =
@@ -49,10 +49,12 @@ namespace NTestCaseBuilder
       | Synthesizing of IFixedCombinationOfSubtreeNodesForSynthesis
 
     and Node (kind: NodeKind,
-              filters: List<LevelCombinationFilter>) =
+              filters: List<LevelCombinationFilter>,
+              maximumStrength: Option<Int32>) =
         new kind =
             Node (kind,
-                  List.empty)
+                  List.empty,
+                  None)
 
         member this.Kind =
             kind
@@ -60,14 +62,24 @@ namespace NTestCaseBuilder
         member this.Filters =
             filters
 
+        member this.MaximumStrength =
+            maximumStrength
+
         member this.WithFilter additionalFilter =
             Node (kind,
-                  additionalFilter :: filters)
+                  additionalFilter :: filters,
+                  maximumStrength)
 
         member private this.WithFilters additionalFilters =
             Node(kind,
                  List.append additionalFilters
-                             filters)
+                             filters,
+                 maximumStrength)
+
+        member this.WithMaximumStrength maximumStrength =
+            Node (kind,
+                  filters,
+                  maximumStrength)
                  
 
     and LevelCombinationFilter =
@@ -114,11 +126,11 @@ namespace NTestCaseBuilder
                                                     nodeOperations.SingletonNodeResult ()
                                               | InterleavingNode subtreeRootNodes ->
                                                     subtreeRootNodes
-                                                    |> Seq.map (fun subtreeHead -> memoizedCalculation subtreeHead)
+                                                    |> List.map (fun subtreeHead -> memoizedCalculation subtreeHead)
                                                     |> nodeOperations.CombineResultsFromInterleavingNodeSubtrees
                                               | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                                                     fixedCombinationOfSubtreeNodesForSynthesis.Nodes
-                                                    |> Seq.map (fun subtreeHead -> memoizedCalculation subtreeHead)
+                                                    |> List.map (fun subtreeHead -> memoizedCalculation subtreeHead)
                                                     |> nodeOperations.CombineResultsFromSynthesizingNodeSubtrees)
             memoizedCalculation
 
@@ -126,24 +138,16 @@ namespace NTestCaseBuilder
             traverseTree    {
                                 TestVariableNodeResult = fun _ -> 1
                                 SingletonNodeResult = fun () -> 1
-                                CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
-                                CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
+                                CombineResultsFromInterleavingNodeSubtrees = List.reduce (+)
+                                CombineResultsFromSynthesizingNodeSubtrees = List.reduce (+)
                             }
 
         let sumLevelCountsFromAllTestVariables =
             traverseTree    {
                                 TestVariableNodeResult = fun levels -> Seq.length levels
                                 SingletonNodeResult = fun () -> 0
-                                CombineResultsFromInterleavingNodeSubtrees = Seq.reduce (+)
-                                CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
-                            }
-
-        let maximumStrengthOfTestVariableCombination =
-            traverseTree    {
-                                TestVariableNodeResult = fun _ -> 1
-                                SingletonNodeResult = fun () -> 1
-                                CombineResultsFromInterleavingNodeSubtrees = Seq.max
-                                CombineResultsFromSynthesizingNodeSubtrees = Seq.reduce (+)
+                                CombineResultsFromInterleavingNodeSubtrees = List.reduce (+)
+                                CombineResultsFromSynthesizingNodeSubtrees = List.reduce (+)
                             }
 
     open NodeDetail
@@ -156,7 +160,28 @@ namespace NTestCaseBuilder
             sumLevelCountsFromAllTestVariables this
 
         member this.MaximumStrengthOfTestVariableCombination =
-            maximumStrengthOfTestVariableCombination this
+            let rec walkTree node =
+                let maximumPossibleStrength =
+                    match node with
+                        TestVariableNode _ ->
+                            1
+                      | SingletonNode _ ->
+                            1
+                      | InterleavingNode subtreeRootNodes ->
+                            subtreeRootNodes
+                            |> List.map walkTree
+                            |> List.max
+                      | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+                            fixedCombinationOfSubtreeNodesForSynthesis.Nodes
+                            |> List.map walkTree
+                            |> List.reduce (+)
+                match node.MaximumStrength with
+                    Some maximumStrength ->
+                        min maximumPossibleStrength
+                            maximumStrength
+                    | _ ->
+                        maximumPossibleStrength
+            walkTree this
 
         member this.PruneTree =
             let rec walkTree node =
@@ -178,11 +203,11 @@ namespace NTestCaseBuilder
                         then
                             None
                         else
-                            Some ((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters)
+                            Some (((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                         fixedCombinationOfSubtreeNodesForSynthesis.Prune
                         |> Option.map (fun fixedCombinationOfSubtreeNodesForSynthesis ->
-                                        (SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters)
+                                        ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
             walkTree this
 
         member this.CombinedFilter =
@@ -425,6 +450,13 @@ namespace NTestCaseBuilder
             let randomBehaviour =
                 Random 6739
             let rec walkTree node maximumDesiredStrength indexForLeftmostTestVariable =
+                let maximumDesiredStrength =
+                    match (node: Node).MaximumStrength with
+                        Some maximumStrength ->
+                            min maximumDesiredStrength
+                                maximumStrength
+                      | _ ->
+                            maximumDesiredStrength
                 match node with
                     TestVariableNode levels ->
                         if 0 = maximumDesiredStrength
