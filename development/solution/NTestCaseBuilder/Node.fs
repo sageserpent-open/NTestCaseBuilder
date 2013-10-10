@@ -20,7 +20,7 @@ namespace NTestCaseBuilder
             TestVariableNodeResult: array<Object> -> 'Result
             SingletonNodeResult: unit -> 'Result
             CombineResultsFromInterleavingNodeSubtrees: List<'Result> -> 'Result
-            CombineResultsFromSynthesizingNodeSubtrees: List<'Result> -> 'Result
+            CombineResultsFromSynthesizingNodeSubtrees: array<'Result> -> 'Result
         }
 
     type TestVariable<'Data> =
@@ -34,7 +34,7 @@ namespace NTestCaseBuilder
     type IFixedCombinationOfSubtreeNodesForSynthesis =
         abstract Prune: Option<IFixedCombinationOfSubtreeNodesForSynthesis>
 
-        abstract Nodes: List<Node>
+        abstract Nodes: array<Node>
 
         abstract FinalValueCreator: Unit -> (List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase)
 
@@ -50,11 +50,13 @@ namespace NTestCaseBuilder
 
     and Node (kind: NodeKind,
               filters: List<LevelCombinationFilter>,
-              maximumStrength: Option<Int32>) =
+              maximumStrength: Option<Int32>,
+              isZeroCost: Boolean) =
         new kind =
             Node (kind,
                   List.empty,
-                  None)
+                  None,
+                  false)
 
         member this.Kind =
             kind
@@ -65,22 +67,33 @@ namespace NTestCaseBuilder
         member this.MaximumStrength =
             maximumStrength
 
+        member this.IsZeroCost =
+            isZeroCost
+
         member this.WithFilter additionalFilter =
             Node (kind,
                   additionalFilter :: filters,
-                  maximumStrength)
+                  maximumStrength,
+                  isZeroCost)
 
         member private this.WithFilters additionalFilters =
             Node(kind,
                  List.append additionalFilters
                              filters,
-                 maximumStrength)
+                 maximumStrength,
+                 isZeroCost)
 
         member this.WithMaximumStrength maximumStrength =
             Node (kind,
                   filters,
-                  maximumStrength)
-                 
+                  maximumStrength,
+                  isZeroCost)
+
+        member this.WithZeroCost () =
+            Node (kind,
+                  filters,
+                  maximumStrength,
+                  true)
 
     and LevelCombinationFilter =
         delegate of IDictionary<Int32, Int32 * Object> -> Boolean   // NOTE: the test variable index keys map to pairs of the
@@ -130,7 +143,7 @@ namespace NTestCaseBuilder
                                                     |> nodeOperations.CombineResultsFromInterleavingNodeSubtrees
                                               | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                                                     fixedCombinationOfSubtreeNodesForSynthesis.Nodes
-                                                    |> List.map (fun subtreeHead -> memoizedCalculation subtreeHead)
+                                                    |> Array.map (fun subtreeHead -> memoizedCalculation subtreeHead)
                                                     |> nodeOperations.CombineResultsFromSynthesizingNodeSubtrees)
             memoizedCalculation
 
@@ -139,7 +152,7 @@ namespace NTestCaseBuilder
                                 TestVariableNodeResult = fun _ -> 1
                                 SingletonNodeResult = fun () -> 1
                                 CombineResultsFromInterleavingNodeSubtrees = List.reduce (+)
-                                CombineResultsFromSynthesizingNodeSubtrees = List.reduce (+)
+                                CombineResultsFromSynthesizingNodeSubtrees = Array.reduce (+)
                             }
 
         let sumLevelCountsFromAllTestVariables =
@@ -147,7 +160,7 @@ namespace NTestCaseBuilder
                                 TestVariableNodeResult = fun levels -> Seq.length levels
                                 SingletonNodeResult = fun () -> 0
                                 CombineResultsFromInterleavingNodeSubtrees = List.reduce (+)
-                                CombineResultsFromSynthesizingNodeSubtrees = List.reduce (+)
+                                CombineResultsFromSynthesizingNodeSubtrees = Array.reduce (+)
                             }
 
     open NodeDetail
@@ -173,8 +186,8 @@ namespace NTestCaseBuilder
                             |> List.max
                       | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                             fixedCombinationOfSubtreeNodesForSynthesis.Nodes
-                            |> List.map walkTree
-                            |> List.reduce (+)
+                            |> Array.map walkTree
+                            |> Array.reduce (+)
                 match node.MaximumStrength with
                     Some maximumStrength ->
                         min maximumPossibleStrength
@@ -277,13 +290,13 @@ namespace NTestCaseBuilder
                                                      node
                                         let subtreeRootNodes =
                                             fixedCombinationOfSubtreeNodesForSynthesis.Nodes
-                                        List.fold walkTree
-                                                  trampData
-                                                  (subtreeRootNodes
-                                                   |> List.mapi (fun subtreeIndex
-                                                                     subtreeRootNode ->
-                                                                    fixedCombinationOfSubtreeNodesForSynthesis.IsSubtreeHiddenFromFilters subtreeIndex
-                                                                    , subtreeRootNode))
+                                        Array.fold walkTree
+                                                   trampData
+                                                   (subtreeRootNodes
+                                                    |> Array.mapi (fun subtreeIndex
+                                                                    subtreeRootNode ->
+                                                                        fixedCombinationOfSubtreeNodesForSynthesis.IsSubtreeHiddenFromFilters subtreeIndex
+                                                                        , subtreeRootNode))
                             let filters =
                                 node.Filters
                             let isInsane (filter: LevelCombinationFilter) =
@@ -530,9 +543,9 @@ namespace NTestCaseBuilder
                             , maximumTestVariableIndex
                             , associationFromTestVariableIndexToNumberOfItsLevels =
                             subtreeRootNodes
-                            |> List.fold gatherTestVariableCombinationsFromSubtree ([], indexForLeftmostTestVariable, [])
+                            |> Array.fold gatherTestVariableCombinationsFromSubtree ([], indexForLeftmostTestVariable, [])
                         let numberOfSubtrees =
-                            List.length subtreeRootNodes
+                            Array.length subtreeRootNodes
                         let maximumStrengthsFromSubtrees =
                             perSubtreeAssociationsFromStrengthToTestVariableCombinations
                             |> List.map (fun associationFromStrengthToTestVariableCombinationsForOneSubtree ->
@@ -570,8 +583,11 @@ namespace NTestCaseBuilder
                                                        , associationFromStrengthToTestVariableCombinationsForOneSubtree) ->
                                                         let indexOfSubtree =
                                                             numberOfSubtrees - (1 + indexOfSubtreeCountingFromTheRight)
+                                                        let subtreeIsZeroCost =
+                                                            fixedCombinationOfSubtreeNodesForSynthesis.IsSubtreeZeroCost indexOfSubtree
+                                                            || subtreeRootNodes.[indexOfSubtree].IsZeroCost
                                                         let strength =
-                                                            if fixedCombinationOfSubtreeNodesForSynthesis.IsSubtreeZeroCost indexOfSubtree
+                                                            if subtreeIsZeroCost
                                                             then
                                                                 (associationFromStrengthToTestVariableCombinationsForOneSubtree :> IDictionary<_, _>).Keys
                                                                 |> Seq.max      
@@ -776,7 +792,7 @@ namespace NTestCaseBuilder
                             let subtreeRootNodes =
                                 fixedCombinationOfSubtreeNodesForSynthesis.Nodes
                             let chunks =
-                                chunksForRelevantNodes subtreeRootNodes
+                                chunksForRelevantNodes (subtreeRootNodes |> List.ofArray)
                             let perChunkCombinationsForEachChunk =
                                 chunks
                                 |> List.map (function indexForLeftmostTestVariableInSubtree
@@ -936,7 +952,6 @@ namespace NTestCaseBuilder
               | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                     let subtreeRootNodes =
                         fixedCombinationOfSubtreeNodesForSynthesis.Nodes
-                        |> Array.ofList
                     let indicesInVectorForLeftmostTestVariableInEachSubtree =
                         indicesInVectorForLeftmostTestVariableInEachSubtree subtreeRootNodes
                     let numberOfSubtrees =
@@ -985,6 +1000,7 @@ namespace NTestCaseBuilder
 
                         member this.Nodes =
                             subtreeRootNodes
+                            |> Array.ofList
 
                         member this.FinalValueCreator () =
                             fun slicesOfFullTestVector ->

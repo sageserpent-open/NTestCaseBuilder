@@ -338,4 +338,4 @@
             TypedFactory<'TestCase> (this.Node.WithMaximumStrength (Some maximumStrength))
 
         member this.WithZeroStrengthCostTyped () =
-            this
+            TypedFactory<'TestCase> (this.Node.WithZeroCost ())

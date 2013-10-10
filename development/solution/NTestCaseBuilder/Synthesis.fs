@@ -128,6 +128,7 @@ namespace NTestCaseBuilder
 
             member this.Nodes =
                 nodes
+                |> Array.ofList
 
             member this.FinalValueCreator (): List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase =
                 mediateFinalValueCreatorType createFinalValueFrom
@@ -368,6 +369,7 @@ namespace NTestCaseBuilder
 
                             member this.Nodes =
                                 subtreeRootNodes
+                                |> Array.ofList
 
                             member this.FinalValueCreator () =
                                 fun slicesOfFullTestVector ->
@@ -476,6 +478,7 @@ namespace NTestCaseBuilder
 
                             member this.Nodes =
                                 subtreeRootNodes
+                                |> Array.ofList
 
                             member this.FinalValueCreator () =
                                 fun slicesOfFullTestVector ->
