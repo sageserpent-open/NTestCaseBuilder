@@ -150,8 +150,8 @@ namespace NTestCaseBuilder.Examples
             var factory = BuildTestCaseFactory();
             const Int32 strength = 3;
 
-            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength,
-                                                                                                        ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm);
+            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                                                   ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm);
 
             Console.WriteLine("Executed {0} test cases successfully.", howManyTestCasesWereExecuted);
         }
@@ -165,8 +165,8 @@ namespace NTestCaseBuilder.Examples
             var factory = BuildTestCaseFactory();
             const Int32 strength = 3;
 
-            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength,
-                                                                                                        ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm);
+            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                                                   ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm);
 
             Console.WriteLine("Executed {0} test cases successfully.", howManyTestCasesWereExecuted);
         }
@@ -183,7 +183,7 @@ namespace NTestCaseBuilder.Examples
 
             var factory = BuildTestCaseFactory();
 
-            factory.ExecuteParameterisedUnitTestForReproducedTypedTestCase(
+            factory.ExecuteParameterisedUnitTestForReproducedTestCase(
                 ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm,
                 reproduction);
         }

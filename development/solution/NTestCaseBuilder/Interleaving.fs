@@ -24,7 +24,7 @@ namespace NTestCaseBuilder
                                   |> List.ofSeq
                                   |> List.map (fun factory
                                                 -> factory.Node))
-            TypedFactory<_> node
+            TypedFactoryImplementation<_> node
             :> Factory
 
         /// <summary>Constructor function that creates an instance of TypedFactory&lt;'TestCase&gt;.</summary>
@@ -44,5 +44,6 @@ namespace NTestCaseBuilder
                 InterleavingNode (sequenceOfFactoriesProvidingSubsequencesToInterleave
                                   |> List.ofSeq
                                   |> List.map (fun factory
-                                                -> factory.Node))
-            TypedFactory<'TestCase> node
+                                                -> (factory :> Factory).Node))
+            TypedFactoryImplementation<'TestCase> node
+            :> TypedFactory<_>

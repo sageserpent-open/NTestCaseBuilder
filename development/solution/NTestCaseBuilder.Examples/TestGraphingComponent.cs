@@ -135,7 +135,7 @@ namespace NTestCaseBuilder.Examples
                                                        {NumberOfVertices = numberOfVertices, Connections = connections});
 
             var testCaseFactoryWithFilter =
-                testCaseFactory.WithFilterTyped(dictionary => FilterOutNonDagCases(dictionary, numberOfVertices));
+                testCaseFactory.WithFilter(dictionary => FilterOutNonDagCases(dictionary, numberOfVertices));
 
             return 0 == maximumNumberOfVertices
                        ? testCaseFactory
@@ -156,7 +156,7 @@ namespace NTestCaseBuilder.Examples
 
             const int maximumStrengthRequired = 2;
 
-            factory.ExecuteParameterisedUnitTestForAllTypedTestCases(maximumStrengthRequired, testCase =>
+            factory.ExecuteParameterisedUnitTestForAllTestCases(maximumStrengthRequired, testCase =>
                                                                                                   {
                                                                                                       var windowToPopUp
                                                                                                           =

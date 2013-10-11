@@ -30,8 +30,8 @@ namespace NTestCaseBuilder.WorkedExample
             var factory = Singleton.Create(String.Empty);
             const Int32 strength = 3;
 
-            factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength,
-                                                                     ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+            factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
         }
 
         [Test]
@@ -42,8 +42,8 @@ namespace NTestCaseBuilder.WorkedExample
             var factory = BuildFactoryRecursively(maximumStringLength);
             const Int32 strength = 3;
 
-            var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength,
-                                                                                             ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+            var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                                        ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
 
             Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
         }

@@ -114,9 +114,8 @@
     /// whereby several distinct combinations of simpler test cases all create the same output test case, then no
     /// attempt will be made to work around this behaviour and try alternative combinations that satisfy the
     /// strength requirements but create fewer collisions.</remarks>
-    [<AbstractClass>]
-    type Factory (node: Node) =
-        member internal this.Node = node
+    type Factory =
+        abstract Node: Node
 
         /// <summary>Creates an enumerable sequence of test cases during execution and repeatedly executes
         /// a parameterised unit test for each test case in the sequence.</summary>
@@ -185,45 +184,84 @@
     /// <summary>This extends the API provided by Factory to deal with test cases of a specific type given
     /// by the type parameter TestCase.</summary>
     /// <seealso cref="Factory">The core API provided by the baseclass.</seealso>
-    type TypedFactory<'TestCase> (node: Node) =
-        inherit Factory (node)
+    type TypedFactory<'TestCase> =
+        inherit Factory
 
-        default this.ExecuteParameterisedUnitTestForAllTestCases (maximumDesiredStrength
-                                                                  , parameterisedUnitTest: Action<Object>) =
-            this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
-                                                                                                     , parameterisedUnitTest.Invoke)
+        abstract ExecuteParameterisedUnitTestForAllTestCases: Int32 * Action<'TestCase> -> Int32
 
-        default this.ExecuteParameterisedUnitTestForReproducedTestCase (parameterisedUnitTest: Action<Object>
-                                                                        , reproductionString) =
-            this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest.Invoke
-                                                                                                           , reproductionString)
+        abstract ExecuteParameterisedUnitTestForReproducedTestCase: Action<'TestCase> * String -> unit
 
-        default this.CreateEnumerable maximumDesiredStrength =
-            this.CreateTypedEnumerable maximumDesiredStrength
-            :> IEnumerable
+        abstract CreateEnumerable: Int32 -> IEnumerable<'TestCase>
 
-        default this.MaximumStrength =
-            match this.Node.PruneTree with
-                Some prunedNode ->
-                    prunedNode.MaximumStrengthOfTestVariableCombination
-              | None ->
-                    0
+        abstract WithFilter: LevelCombinationFilter -> TypedFactory<'TestCase>
 
-        default this.WithFilter filter =
-            this.WithFilterTyped filter
-            :> Factory
+        abstract WithMaximumStrength: Int32 -> TypedFactory<'TestCase>
 
-        default this.WithMaximumStrength maximumStrength =
-            this.WithMaximumStrengthTyped maximumStrength
-            :> Factory
+        abstract WithZeroStrengthCost: unit -> TypedFactory<'TestCase>
 
-        default this.WithZeroStrengthCost () =
-            this.WithZeroStrengthCostTyped ()
-            :> Factory
+    type TypedFactoryImplementation<'TestCase> (node: Node) =
+        interface Factory with
+            member this.Node = node
 
-        member this.CreateTypedEnumerable maximumDesiredStrength =
-            this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
-            |> Seq.map fst
+            member this.CreateEnumerable maximumDesiredStrength =
+                (this :> TypedFactory<'TestCase>).CreateEnumerable maximumDesiredStrength
+                :> IEnumerable
+
+            member this.MaximumStrength =
+                match (this :> Factory).Node.PruneTree with
+                    Some prunedNode ->
+                        prunedNode.MaximumStrengthOfTestVariableCombination
+                  | None ->
+                        0
+
+            member this.WithFilter filter =
+                (this :> TypedFactory<'TestCase>).WithFilter filter
+                :> Factory
+
+            member this.WithMaximumStrength maximumStrength =
+                (this :> TypedFactory<'TestCase>).WithMaximumStrength maximumStrength
+                :> Factory
+
+            member this.WithZeroStrengthCost () =
+                (this :> TypedFactory<'TestCase>).WithZeroStrengthCost ()
+                :> Factory
+
+            member this.ExecuteParameterisedUnitTestForAllTestCases (maximumDesiredStrength
+                                                                     , parameterisedUnitTest: Action<Object>) =
+                this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
+                                                                                                         , parameterisedUnitTest.Invoke)
+
+            member this.ExecuteParameterisedUnitTestForReproducedTestCase (parameterisedUnitTest: Action<Object>
+                                                                           , reproductionString) =
+                this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest.Invoke
+                                                                                                               , reproductionString)
+
+        interface TypedFactory<'TestCase> with
+            member this.CreateEnumerable maximumDesiredStrength =
+                this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
+                |> Seq.map fst
+
+            member this.ExecuteParameterisedUnitTestForAllTestCases (maximumDesiredStrength
+                                                                     , parameterisedUnitTest: Action<'TestCase>) =
+                this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
+                                                                                                         , parameterisedUnitTest.Invoke)
+
+            member this.ExecuteParameterisedUnitTestForReproducedTestCase (parameterisedUnitTest: Action<'TestCase>
+                                                                           , reproductionString) =
+                this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest.Invoke
+                                                                                                               , reproductionString)
+
+            member this.WithFilter (filter: LevelCombinationFilter): TypedFactory<'TestCase> =
+                TypedFactoryImplementation<'TestCase> ((this :> Factory).Node.WithFilter filter)
+                :> TypedFactory<'TestCase>
+
+            member this.WithMaximumStrength maximumStrength =
+                TypedFactoryImplementation<'TestCase> ((this :> Factory).Node.WithMaximumStrength (Some maximumStrength))
+                :> TypedFactory<'TestCase>
+
+            member this.WithZeroStrengthCost () =
+                TypedFactoryImplementation<'TestCase> ((this :> Factory).Node.WithZeroCost ())
+                :> TypedFactory<'TestCase>
 
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
                                                                                                                 , parameterisedUnitTest) =
@@ -239,14 +277,9 @@
                                                               , anyException))
             count
 
-        member this.ExecuteParameterisedUnitTestForAllTypedTestCases (maximumDesiredStrength
-                                                                      , parameterisedUnitTest: Action<'TestCase>) =
-            this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
-                                                                                                     , parameterisedUnitTest.Invoke)
-
         member private this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest
                                                                                                                       , reproductionString) =
-            match this.Node.PruneTree with
+            match (this :> Factory).Node.PruneTree with
                 Some prunedNode ->
                     let fullTestVector =
                         BigInteger.Parse reproductionString
@@ -259,13 +292,8 @@
               | None ->
                     ()
 
-        member this.ExecuteParameterisedUnitTestForReproducedTypedTestCase (parameterisedUnitTest: Action<'TestCase>
-                                                                            , reproductionString) =
-            this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest.Invoke
-                                                                                                           , reproductionString)
-
         member private this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength =
-            match this.Node.PruneTree with
+            match (this :> Factory).Node.PruneTree with
                 Some prunedNode ->
                     let associationFromStrengthToPartialTestVectorRepresentations
                         , associationFromTestVariableIndexToNumberOfItsLevels =
@@ -330,12 +358,3 @@
 
               | None ->
                     Seq.empty
-
-        member this.WithFilterTyped (filter: LevelCombinationFilter): TypedFactory<'TestCase> =
-            TypedFactory<'TestCase> (this.Node.WithFilter filter)
-
-        member this.WithMaximumStrengthTyped maximumStrength =
-            TypedFactory<'TestCase> (this.Node.WithMaximumStrength (Some maximumStrength))
-
-        member this.WithZeroStrengthCostTyped () =
-            TypedFactory<'TestCase> (this.Node.WithZeroCost ())

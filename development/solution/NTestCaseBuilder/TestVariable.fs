@@ -17,4 +17,5 @@ namespace NTestCaseBuilder
                 |> Array.ofSeq
             let node =
                 TestVariableNode weaklyTypedLevels
-            TypedFactory<'TestCase> node
+            TypedFactoryImplementation<'TestCase> node
+            :> TypedFactory<_>
