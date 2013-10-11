@@ -43,7 +43,7 @@ namespace NTestCaseBuilder
 
         static member StartWithLeftmostFactory (leftmostFactory: TypedFactory<'TestCaseFromLeftmostFactory>) =
             let nodeFromLeftmostFactory =
-                (leftmostFactory :> Factory).Node
+                (leftmostFactory :?> NodeWrapper).Node
             let rec createSingletonCombination (nodeFromLeftmostFactory: Node) =
                 {
                     Prune =
@@ -68,7 +68,7 @@ namespace NTestCaseBuilder
         static member AddFactoryToTheRight (combinationOfAllOtherFactories,
                                             rightmostFactory: TypedFactory<'TestCaseFromRightmostFactory>) =
             let nodeFromRightmostFactory =
-                (rightmostFactory :> Factory).Node
+                (rightmostFactory :?> NodeWrapper).Node
             let rec createCombinationWithExtraRightmostNode (nodeFromRightmostFactory: Node)
                                                              combinationOfAllOtherFactories =
                 {
@@ -185,7 +185,7 @@ namespace NTestCaseBuilder
                     sequenceOfFactoriesProvidingInputsToSynthesis
                     |> List.ofSeq
                     |> List.map (fun factory
-                                    -> factory.Node)
+                                    -> (factory :?> NodeWrapper).Node)
                 Node.CreateSynthesizingNode subtreeRootNodes
                                             synthesisDelegate
             TypedFactoryImplementation<_> node
@@ -364,7 +364,7 @@ namespace NTestCaseBuilder
                 sequenceOfFactoriesProvidingInputsToSynthesis
                 |> List.ofSeq
                 |> List.map (fun factory
-                                -> (factory :> Factory).Node)
+                                -> (factory :?> NodeWrapper).Node)
             let fixedCombinationOfSubtreeNodesForSynthesis =
                 let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
                     {
@@ -464,7 +464,7 @@ namespace NTestCaseBuilder
                 sequenceOfFactoriesProvidingInputsToSynthesis
                 |> List.ofSeq
                 |> List.map (fun factory
-                                -> (factory :> Factory).Node)
+                                -> (factory :?> NodeWrapper).Node)
             let fixedCombinationOfSubtreeNodesForSynthesis =
                 let subtreeRootNodesIncludingImplicitFactoryForPermutation =
                     let numberOfExplicitlySuppliedFactories =
@@ -474,7 +474,7 @@ namespace NTestCaseBuilder
                     let additionalFactoryForPermutations =
                         TestVariable.Create [0 .. numberOfPermutations - 1]
                     [
-                        yield (additionalFactoryForPermutations :> Factory).Node
+                        yield (additionalFactoryForPermutations :?> NodeWrapper).Node
                         yield! subtreeRootNodesFromExplicitFactories
                     ]
                 let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =

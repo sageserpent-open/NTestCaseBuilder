@@ -23,7 +23,7 @@ namespace NTestCaseBuilder
                 InterleavingNode (sequenceOfFactoriesProvidingSubsequencesToInterleave
                                   |> List.ofSeq
                                   |> List.map (fun factory
-                                                -> factory.Node))
+                                                -> (factory :?> NodeWrapper).Node))
             TypedFactoryImplementation<_> node
             :> Factory
 
@@ -44,6 +44,6 @@ namespace NTestCaseBuilder
                 InterleavingNode (sequenceOfFactoriesProvidingSubsequencesToInterleave
                                   |> List.ofSeq
                                   |> List.map (fun factory
-                                                -> (factory :> Factory).Node))
+                                                -> (factory :?> NodeWrapper).Node))
             TypedFactoryImplementation<'TestCase> node
             :> TypedFactory<_>
