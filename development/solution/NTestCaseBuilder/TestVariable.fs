@@ -18,4 +18,4 @@ namespace NTestCaseBuilder
             let node =
                 TestVariableNode weaklyTypedLevels
             TypedFactoryImplementation<'TestCase> node
-            :> TypedFactory<_>
+            :> ITypedFactory<_>

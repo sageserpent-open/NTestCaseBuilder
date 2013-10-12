@@ -9,4 +9,4 @@
         let node =
             SingletonNode singletonTestCase
         TypedFactoryImplementation<'SingletonTestCase> node
-        :> TypedFactory<_>
+        :> ITypedFactory<_>

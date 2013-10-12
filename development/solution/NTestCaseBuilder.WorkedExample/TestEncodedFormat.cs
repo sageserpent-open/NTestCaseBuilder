@@ -12,9 +12,9 @@ namespace NTestCaseBuilder.WorkedExample
         private const Char MinimumLevel = 'a';
         private const Char MaximumLevel = 'z';
 
-        private readonly TypedFactory<String> _emptyStringFactory = Singleton.Create(String.Empty);
+        private readonly ITypedFactory<String> _emptyStringFactory = Singleton.Create(String.Empty);
 
-        private readonly TypedFactory<Char> _factoryForSingleCharacters =
+        private readonly ITypedFactory<Char> _factoryForSingleCharacters =
             TestVariable.Create(
                 Enumerable.Range(0, 1 + MaximumLevel - MinimumLevel).Select(index => (Char) (MinimumLevel + index)));
 
@@ -48,7 +48,7 @@ namespace NTestCaseBuilder.WorkedExample
             Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
         }
 
-        public TypedFactory<String> BuildFactoryRecursively(Int32 maximumStringLength)
+        public ITypedFactory<String> BuildFactoryRecursively(Int32 maximumStringLength)
         {
             if (0 == maximumStringLength)
             {

@@ -171,17 +171,17 @@
         let weaklyTypedFactoryConstructors =
             {
                 FactoryWithFilterFrom =
-                    (fun (factory: Factory)
+                    (fun (factory: IFactory)
                          filter ->
                          factory.WithFilter filter)
                 TestVariableFrom =
                     (fun testVariableLevels ->
                         TestVariable.Create testVariableLevels
-                        :> Factory)
+                        :> IFactory)
                 SingletonFrom =
                     (fun testVariableLevel ->
                         Singleton.Create testVariableLevel
-                        :> Factory)
+                        :> IFactory)
                 SynthesisFrom =
                     (fun permutedSubtrees
                          undoShuffleAndConcatenateContributedLevels
@@ -204,7 +204,7 @@
         let stronglyTypedFactoryConstructors =
             {
                 FactoryWithFilterFrom =
-                    (fun (factory: TypedFactory<_>)
+                    (fun (factory: ITypedFactory<_>)
                          filter ->
                          factory.WithFilter filter)
                 TestVariableFrom =
@@ -1100,7 +1100,7 @@
                         C5.HashBag<_>(comparer)
                     result.AddAll combinationsOfTestVariableIndices
                     result
-                let testCaseSequence (factory: Factory) =
+                let testCaseSequence (factory: IFactory) =
                     seq {for testCase in factory.CreateEnumerable(maximumStrength) do
                             yield unbox<List<TestVariableLevel>> testCase}
                 let shouldBeTrue = (testCaseSequence factory
@@ -1324,7 +1324,7 @@
                 let testVariableFactories =
                     Seq.map (fun levelGroup ->
                                 TestVariable.Create levelGroup
-                                :> Factory)
+                                :> IFactory)
                             levelGroupsForEachOfTheTestVariables
                 Synthesis.Create (testVariableFactories,
                                   nAryCondensationDelegate)

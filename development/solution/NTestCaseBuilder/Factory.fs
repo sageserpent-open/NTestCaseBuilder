@@ -114,7 +114,7 @@
     /// whereby several distinct combinations of simpler test cases all create the same output test case, then no
     /// attempt will be made to work around this behaviour and try alternative combinations that satisfy the
     /// strength requirements but create fewer collisions.</remarks>
-    type Factory =
+    type IFactory =
         /// <summary>Creates an enumerable sequence of test cases during execution and repeatedly executes
         /// a parameterised unit test for each test case in the sequence.</summary>
         /// <remarks>If an exception is thrown during execution of the unit test for some test case in the sequence, then this is
@@ -173,17 +173,17 @@
         /// variable in the combination, together with the value of the test level itself. Must return true to signify that the combination of levels is permitted, false if the combination
         /// must be excluded.</param>
         /// <returns>A new factory that is a copy of 'this' but with the additional filter included.</returns>
-        abstract WithFilter: LevelCombinationFilter -> Factory
+        abstract WithFilter: LevelCombinationFilter -> IFactory
 
-        abstract WithMaximumStrength: Int32 -> Factory
+        abstract WithMaximumStrength: Int32 -> IFactory
 
-        abstract WithZeroStrengthCost: unit -> Factory
+        abstract WithZeroStrengthCost: unit -> IFactory
 
-    /// <summary>This extends the API provided by Factory to deal with test cases of a specific type given
+    /// <summary>This extends the API provided by IFactory to deal with test cases of a specific type given
     /// by the type parameter TestCase.</summary>
-    /// <seealso cref="Factory">The core API provided by the baseclass.</seealso>
-    type TypedFactory<'TestCase> =
-        inherit Factory
+    /// <seealso cref="IFactory">The core API provided by the baseclass.</seealso>
+    type ITypedFactory<'TestCase> =
+        inherit IFactory
 
         abstract ExecuteParameterisedUnitTestForAllTestCases: Int32 * Action<'TestCase> -> Int32
 
@@ -191,43 +191,43 @@
 
         abstract CreateEnumerable: Int32 -> IEnumerable<'TestCase>
 
-        abstract WithFilter: LevelCombinationFilter -> TypedFactory<'TestCase>
+        abstract WithFilter: LevelCombinationFilter -> ITypedFactory<'TestCase>
 
-        abstract WithMaximumStrength: Int32 -> TypedFactory<'TestCase>
+        abstract WithMaximumStrength: Int32 -> ITypedFactory<'TestCase>
 
-        abstract WithZeroStrengthCost: unit -> TypedFactory<'TestCase>
+        abstract WithZeroStrengthCost: unit -> ITypedFactory<'TestCase>
 
-    type internal NodeWrapper =
+    type internal INodeWrapper =
         abstract Node: Node
 
     type TypedFactoryImplementation<'TestCase> (node: Node) =
-        interface NodeWrapper with
+        interface INodeWrapper with
             member this.Node = node
 
-        interface Factory with
+        interface IFactory with
 
             member this.CreateEnumerable maximumDesiredStrength =
-                (this :> TypedFactory<'TestCase>).CreateEnumerable maximumDesiredStrength
+                (this :> ITypedFactory<'TestCase>).CreateEnumerable maximumDesiredStrength
                 :> IEnumerable
 
             member this.MaximumStrength =
-                match (this :> NodeWrapper).Node.PruneTree with
+                match (this :> INodeWrapper).Node.PruneTree with
                     Some prunedNode ->
                         prunedNode.MaximumStrengthOfTestVariableCombination
                   | None ->
                         0
 
             member this.WithFilter filter =
-                (this :> TypedFactory<'TestCase>).WithFilter filter
-                :> Factory
+                (this :> ITypedFactory<'TestCase>).WithFilter filter
+                :> IFactory
 
             member this.WithMaximumStrength maximumStrength =
-                (this :> TypedFactory<'TestCase>).WithMaximumStrength maximumStrength
-                :> Factory
+                (this :> ITypedFactory<'TestCase>).WithMaximumStrength maximumStrength
+                :> IFactory
 
             member this.WithZeroStrengthCost () =
-                (this :> TypedFactory<'TestCase>).WithZeroStrengthCost ()
-                :> Factory
+                (this :> ITypedFactory<'TestCase>).WithZeroStrengthCost ()
+                :> IFactory
 
             member this.ExecuteParameterisedUnitTestForAllTestCases (maximumDesiredStrength
                                                                      , parameterisedUnitTest: Action<Object>) =
@@ -239,7 +239,7 @@
                 this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest.Invoke
                                                                                                                , reproductionString)
 
-        interface TypedFactory<'TestCase> with
+        interface ITypedFactory<'TestCase> with
             member this.CreateEnumerable maximumDesiredStrength =
                 this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
                 |> Seq.map fst
@@ -254,17 +254,17 @@
                 this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest.Invoke
                                                                                                                , reproductionString)
 
-            member this.WithFilter (filter: LevelCombinationFilter): TypedFactory<'TestCase> =
-                TypedFactoryImplementation<'TestCase> ((this :> NodeWrapper).Node.WithFilter filter)
-                :> TypedFactory<'TestCase>
+            member this.WithFilter (filter: LevelCombinationFilter): ITypedFactory<'TestCase> =
+                TypedFactoryImplementation<'TestCase> ((this :> INodeWrapper).Node.WithFilter filter)
+                :> ITypedFactory<'TestCase>
 
             member this.WithMaximumStrength maximumStrength =
-                TypedFactoryImplementation<'TestCase> ((this :> NodeWrapper).Node.WithMaximumStrength (Some maximumStrength))
-                :> TypedFactory<'TestCase>
+                TypedFactoryImplementation<'TestCase> ((this :> INodeWrapper).Node.WithMaximumStrength (Some maximumStrength))
+                :> ITypedFactory<'TestCase>
 
             member this.WithZeroStrengthCost () =
-                TypedFactoryImplementation<'TestCase> ((this :> NodeWrapper).Node.WithZeroCost ())
-                :> TypedFactory<'TestCase>
+                TypedFactoryImplementation<'TestCase> ((this :> INodeWrapper).Node.WithZeroCost ())
+                :> ITypedFactory<'TestCase>
 
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
                                                                                                                 , parameterisedUnitTest) =
@@ -282,7 +282,7 @@
 
         member private this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest
                                                                                                                       , reproductionString) =
-            match (this :> NodeWrapper).Node.PruneTree with
+            match (this :> INodeWrapper).Node.PruneTree with
                 Some prunedNode ->
                     let fullTestVector =
                         BigInteger.Parse reproductionString
@@ -296,7 +296,7 @@
                     ()
 
         member private this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength =
-            match (this :> NodeWrapper).Node.PruneTree with
+            match (this :> INodeWrapper).Node.PruneTree with
                 Some prunedNode ->
                     let associationFromStrengthToPartialTestVectorRepresentations
                         , associationFromTestVariableIndexToNumberOfItsLevels =

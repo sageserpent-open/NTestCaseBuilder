@@ -33,9 +33,9 @@ namespace NTestCaseBuilder.Examples
 
             var d = Synthesis.Create(TestVariable.Create(LevelsOne), input => input.ToString());
 
-            var dWithATwist = Synthesis.Create(new List<Factory> {d}, (Converter<Object, Object>) (thing => thing));
+            var dWithATwist = Synthesis.Create(new List<IFactory> {d}, (Converter<Object, Object>) (thing => thing));
 
-            var e = Interleaving.Create(new List<Factory> {dWithATwist, c});
+            var e = Interleaving.Create(new List<IFactory> {dWithATwist, c});
 
             var strength = e.MaximumStrength;
 
@@ -319,7 +319,7 @@ namespace NTestCaseBuilder.Examples
             ((IList<Int32>) Enum.GetValues(typeof (OperationKind))).Select(constant => (OperationKind) constant);
 
 
-        private static TypedFactory<PlacementOfOperationsIntoFinalOrder> MakeFactory(Random randomBehaviour,
+        private static ITypedFactory<PlacementOfOperationsIntoFinalOrder> MakeFactory(Random randomBehaviour,
                                                                                      Int32 sequenceLength,
                                                                                      C5.IList<Key> keys)
         {
@@ -346,7 +346,7 @@ namespace NTestCaseBuilder.Examples
                                                      factoryDealingWithRemainingKeys);
         }
 
-        private static TypedFactory<Int32> MakeTestVariableLevelFactoryForIndexCombinationEnumerable(
+        private static ITypedFactory<Int32> MakeTestVariableLevelFactoryForIndexCombinationEnumerable(
             Int32 numberOfCombinations)
         {
             var combinationSelector = numberOfCombinations;
@@ -360,10 +360,10 @@ namespace NTestCaseBuilder.Examples
             return TestVariable.Create(combinationSelectors);
         }
 
-        private static TypedFactory<PlacementOfOperationsIntoFinalOrder> MakeRecursionInductiveCaseFactory(
-            TypedFactory<IList<Operation>> synthesizingFactoryForOperationSequence,
-            TypedFactory<Int32> testVariableLevelFactoryForFinalOperationsListIndexCombinations,
-            TypedFactory<PlacementOfOperationsIntoFinalOrder> factoryDealingWithRemainingKeys)
+        private static ITypedFactory<PlacementOfOperationsIntoFinalOrder> MakeRecursionInductiveCaseFactory(
+            ITypedFactory<IList<Operation>> synthesizingFactoryForOperationSequence,
+            ITypedFactory<Int32> testVariableLevelFactoryForFinalOperationsListIndexCombinations,
+            ITypedFactory<PlacementOfOperationsIntoFinalOrder> factoryDealingWithRemainingKeys)
         {
             return Synthesis.Create(synthesizingFactoryForOperationSequence,
                                     testVariableLevelFactoryForFinalOperationsListIndexCombinations,
@@ -371,12 +371,12 @@ namespace NTestCaseBuilder.Examples
                                     BuildInductiveCaseForPlacementOfOperationsIntoFinalOrder);
         }
 
-        private static TypedFactory<PlacementOfOperationsIntoFinalOrder> MakeRecursionBaseFactory()
+        private static ITypedFactory<PlacementOfOperationsIntoFinalOrder> MakeRecursionBaseFactory()
         {
             return Singleton.Create((PlacementOfOperationsIntoFinalOrder) BaseCaseForPlacementOfOperationsIntoFinalOrder);
         }
 
-        private static TypedFactory<IList<Operation>> MakeSynthesizingFactoryForOperationSequenceEnumerable(Key key,
+        private static ITypedFactory<IList<Operation>> MakeSynthesizingFactoryForOperationSequenceEnumerable(Key key,
                                                                                                             Random
                                                                                                                 randomBehaviour)
         {

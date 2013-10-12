@@ -38,7 +38,7 @@
   <ItemGroup>
     <Compile Include="NodeTests.fs" />
     <Compile Include="MergedPartialTestVectorRepresentationsTests.fs" />
-    <Compile Include="TestCaseEnumeratorFactoryTests.fs" />
+    <Compile Include="FactoryTests.fs" />
     <Compile Include="Driver.fs" />
     <None Include="App.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
