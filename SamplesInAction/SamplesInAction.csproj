@@ -62,8 +62,8 @@
     <Reference Include="GraphSharp.Controls, Version=1.1.0.0, Culture=neutral, PublicKeyToken=f9c24778325a6b82, processorArchitecture=MSIL">
       <HintPath>packages\GraphSharp.1.1.0.0\lib\net40\GraphSharp.Controls.dll</HintPath>
     </Reference>
-    <Reference Include="NTestCaseBuilder">
-      <HintPath>packages\NTestCaseBuilder.2.1.0.0\lib\net40\NTestCaseBuilder.dll</HintPath>
+    <Reference Include="NTestCaseBuilder, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\NTestCaseBuilder.2.1.1.0\lib\net40\NTestCaseBuilder.dll</HintPath>
     </Reference>
     <Reference Include="nunit.framework">
       <HintPath>packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
@@ -82,8 +82,8 @@
     <Reference Include="QuickGraph.Serialization, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\QuickGraph.3.6.61119.7\lib\net4\QuickGraph.Serialization.dll</HintPath>
     </Reference>
-    <Reference Include="SageSerpent.Infrastructure">
-      <HintPath>packages\NTestCaseBuilder.2.1.0.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
+    <Reference Include="SageSerpent.Infrastructure, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\NTestCaseBuilder.2.1.1.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
