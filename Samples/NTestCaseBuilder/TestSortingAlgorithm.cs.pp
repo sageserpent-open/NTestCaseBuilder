@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.FSharp.Collections;
-using NUnit.Framework;
-
 using NTestCaseBuilder;
+using NUnit.Framework;
 
 namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
@@ -72,7 +71,7 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
             public IEnumerable<Int32> OriginalMonotonicIncreasingSequence { get; set; }
         }
 
-        private static TypedFactory<TestCase> BuildTestCaseFactory()
+        private static ITypedFactory<TestCase> BuildTestCaseFactory()
         {
             var factoryForLeastItemInSequence = TestVariable.Create(Enumerable.Range(-3, 10));
 
@@ -97,7 +96,7 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
             return Interleaving.Create(new[] {testCaseFactoryForTrivialCase, testCaseFactoryForNonTrivialCases});
         }
 
-        private static TypedFactory<Tuple<FSharpList<Int32>, Permutation<Int32>>>
+        private static ITypedFactory<Tuple<FSharpList<Int32>, Permutation<Int32>>>
             BuildNonNegativeDeltasAndPermutationFactory(int numberOfDeltas)
         {
             var factoryForNonNegativeDelta =
@@ -152,8 +151,8 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
             var factory = BuildTestCaseFactory();
             const Int32 strength = 3;
 
-            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength,
-                                                                                                        ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm);
+            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                                                   ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm);
 
             Console.WriteLine("Executed {0} test cases successfully.", howManyTestCasesWereExecuted);
         }
@@ -167,8 +166,8 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
             var factory = BuildTestCaseFactory();
             const Int32 strength = 3;
 
-            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength,
-                                                                                                        ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm);
+            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                                                   ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm);
 
             Console.WriteLine("Executed {0} test cases successfully.", howManyTestCasesWereExecuted);
         }
@@ -185,7 +184,7 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
 
             var factory = BuildTestCaseFactory();
 
-            factory.ExecuteParameterisedUnitTestForReproducedTypedTestCase(
+            factory.ExecuteParameterisedUnitTestForReproducedTestCase(
                 ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm,
                 reproduction);
         }

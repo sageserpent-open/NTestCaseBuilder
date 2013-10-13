@@ -66,22 +66,22 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
         private static void GetSourceAndTargetIndices(Int32 numberOfVertices, Int32 masterIndex, out Int32 targetIndex,
                                                       out Int32 sourceIndex)
         {
-            sourceIndex = masterIndex / (numberOfVertices - 1);
-            targetIndex = masterIndex % (numberOfVertices - 1);
+            sourceIndex = masterIndex/(numberOfVertices - 1);
+            targetIndex = masterIndex%(numberOfVertices - 1);
 
             if (targetIndex == sourceIndex)
             {
-                targetIndex = (targetIndex + 1) % numberOfVertices;
+                targetIndex = (targetIndex + 1)%numberOfVertices;
             }
         }
 
         private static int NumberOfPotentialUniqueConnectionsWithoutSelfLoops(Int32 numberOfVertices)
             // Ban self-loops, as Graph# can't render them right now.
         {
-            return numberOfVertices * (numberOfVertices - 1);
+            return numberOfVertices*(numberOfVertices - 1);
         }
 
-        private static TypedFactory<IEnumerable<Tuple<Int32, Int32>>> BuildConnectionsFactory(Int32 numberOfVertices)
+        private static ITypedFactory<IEnumerable<Tuple<Int32, Int32>>> BuildConnectionsFactory(Int32 numberOfVertices)
         {
             var numberOfPotentialUniqueConnectionsWithoutSelfLoops =
                 NumberOfPotentialUniqueConnectionsWithoutSelfLoops(numberOfVertices);
@@ -116,15 +116,15 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
                                                                                testVariableIndexToLevelNumberAndValuePair
                                                                                    .Value.Item2 ||
                                                                               (sourceIndex -
-                                                                               frozenRootingIndexToCloseOver) %
+                                                                               frozenRootingIndexToCloseOver)%
                                                                               numberOfVertices <
                                                                               (targetIndex -
-                                                                               frozenRootingIndexToCloseOver) %
+                                                                               frozenRootingIndexToCloseOver)%
                                                                               numberOfVertices;
                                                                       }));
         }
 
-        private static TypedFactory<TestCase> BuildTestCaseFactory(Int32 maximumNumberOfVertices)
+        private static ITypedFactory<TestCase> BuildTestCaseFactory(Int32 maximumNumberOfVertices)
         {
             var numberOfVertices = maximumNumberOfVertices;
 
@@ -136,7 +136,7 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
                                                        {NumberOfVertices = numberOfVertices, Connections = connections});
 
             var testCaseFactoryWithFilter =
-                testCaseFactory.WithFilterTyped(dictionary => FilterOutNonDagCases(dictionary, numberOfVertices));
+                testCaseFactory.WithFilter(dictionary => FilterOutNonDagCases(dictionary, numberOfVertices));
 
             return 0 == maximumNumberOfVertices
                        ? testCaseFactory
@@ -157,22 +157,22 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
 
             const int maximumStrengthRequired = 2;
 
-            factory.ExecuteParameterisedUnitTestForAllTypedTestCases(maximumStrengthRequired, testCase =>
-                                                                                                  {
-                                                                                                      var windowToPopUp
-                                                                                                          =
-                                                                                                          new GraphDisplayWindow
-                                                                                                              {
-                                                                                                                  DataContext
-                                                                                                                      =
-                                                                                                                      testCase
-                                                                                                                      .
-                                                                                                                      MakeGraph
-                                                                                                                      ()
-                                                                                                              };
-                                                                                                      windowToPopUp.
-                                                                                                          ShowDialog();
-                                                                                                  });
+            factory.ExecuteParameterisedUnitTestForAllTestCases(maximumStrengthRequired, testCase =>
+                                                                                             {
+                                                                                                 var windowToPopUp
+                                                                                                     =
+                                                                                                     new GraphDisplayWindow
+                                                                                                         {
+                                                                                                             DataContext
+                                                                                                                 =
+                                                                                                                 testCase
+                                                                                                                 .
+                                                                                                                 MakeGraph
+                                                                                                                 ()
+                                                                                                         };
+                                                                                                 windowToPopUp.
+                                                                                                     ShowDialog();
+                                                                                             });
         }
     }
 }
