@@ -332,7 +332,7 @@ namespace NTestCaseBuilder.Examples
             var synthesizingFactoryForOperationSequenceEnumerable =
                 MakeSynthesizingFactoryForOperationSequenceEnumerable(key, randomBehaviour);
 
-            var numberOfCombinations = BargainBasement.NumberOfCombinations(sequenceLength*keys.Count, sequenceLength);
+            var numberOfCombinations = BargainBasement.NumberOfCombinations(sequenceLength * keys.Count, sequenceLength);
 
             var testVariableLevelFactoryForIndexCombinationEnumerable =
                 MakeTestVariableLevelFactoryForIndexCombinationEnumerable(numberOfCombinations);
@@ -405,21 +405,21 @@ namespace NTestCaseBuilder.Examples
             var numberOfKeys = Keys.Count;
             var randomBehaviour = new Random(892893767);
 
-            var totalNumberOfOperations = numberOfKeys*SequenceLength;
+            var totalNumberOfOperations = numberOfKeys * SequenceLength;
 
-            var testCasesEnumerableFactory = MakeFactory(randomBehaviour, SequenceLength, Keys);
+            var factory = MakeFactory(randomBehaviour, SequenceLength, Keys);
 
             var operations = new Operation[totalNumberOfOperations];
 
             var numberOfTestCases = 0ul;
 
-            testCasesEnumerableFactory.ExecuteParameterisedUnitTestForAllTestCases(CombinationStrength,
-                                                                                   testCase =>
-                                                                                   ExerciseTestCase(testCase,
-                                                                                                    totalNumberOfOperations,
-                                                                                                    operations,
-                                                                                                    ref
-                                                                                                        numberOfTestCases));
+            factory.ExecuteParameterisedUnitTestForAllTestCases(CombinationStrength,
+                                                                testCase =>
+                                                                ExerciseTestCase(testCase,
+                                                                                 totalNumberOfOperations,
+                                                                                 operations,
+                                                                                 ref
+                                                                                     numberOfTestCases));
 
             System.Diagnostics.Debug.Print("Number of test cases: {0}.\n", numberOfTestCases);
         }
@@ -432,7 +432,7 @@ namespace NTestCaseBuilder.Examples
             var numberOfKeys = Keys.Count;
             var randomBehaviour = new Random(892893767);
 
-            var totalNumberOfOperations = numberOfKeys*SequenceLength;
+            var totalNumberOfOperations = numberOfKeys * SequenceLength;
 
             var testCasesEnumerableFactory = MakeFactory(randomBehaviour, SequenceLength, Keys);
 

@@ -68,18 +68,16 @@
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="NTestCaseBuilder">
-      <HintPath>..\packages\NTestCaseBuilder.2.1.0.0\lib\net40\NTestCaseBuilder.dll</HintPath>
+      <HintPath>..\packages\NTestCaseBuilder.2.1.1.0\lib\net40\NTestCaseBuilder.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="NTestCaseBuilder" />
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="SageSerpent.Infrastructure">
-      <HintPath>..\packages\NTestCaseBuilder.2.1.0.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
+      <HintPath>..\packages\NTestCaseBuilder.2.1.1.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="SageSerpent.Infrastructure" />
     <Reference Include="System" />
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
