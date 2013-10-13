@@ -404,6 +404,26 @@ namespace NTestCaseBuilder
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
+        /// factories used to construct the factory. An output test case is the concatenation of the input
+        /// test cases it is synthesized from.</remarks>
+        /// <remarks>This is strongly typed - and as the output is the concatenation of input test cases,
+        /// it also imposes homogenity of the nominal type across the input test cases used in the
+        /// synthesis.</remarks>
+        /// <remarks>There is another overload that does almost exactly the same thing; that overload
+        /// adds the choice of whether to apply permutations across the inputs. This overload is provided as an
+        /// alternative to implementing an optional parameter whose default switches the permutation
+        /// behaviour off; doing it this way means that C# clients don't require a reference to 'FSharp.Core.dll'
+        /// that would have been caused if we used the "?parameter" form.</remarks>
+        /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases are concatenated.</param>
+        /// <returns>The constructed factory.</returns>
+        /// <seealso cref="ITypedFactory&lt;'TestCaseListElement&gt;">Type of constructed factory.</seealso>
+        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<ITypedFactory<'TestCaseListElement>>) =
+            Synthesis.Create (sequenceOfFactoriesProvidingInputsToSynthesis,
+                              SequenceCondensation(BargainBasement.Identity))
+
+        /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
+        /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined by means of a delegate
         /// that takes them a sequence and synthesises an output test case.</remarks>
         /// <remarks>This is strongly typed - and as the condensation delegate takes a single sequence that bundles up the
@@ -444,6 +464,32 @@ namespace NTestCaseBuilder
                 Synthesis.Create (sequenceOfFactoriesProvidingInputsToSynthesis,
                                   condensation))
             :> ITypedFactory<_>
+
+        /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
+        /// out of a combination of input test cases taken from across the sequences yielded by the the child
+        /// factories used to construct the factory. An output test case is the concatenation of the input
+        /// test cases it is synthesized from.</remarks>
+        /// <remarks>This is strongly typed - and as the output is the concatenation of input test cases,
+        /// it also imposes homogenity of the nominal type across the input test cases used in the
+        /// synthesis.</remarks>
+        /// <remarks>There is an option to apply a permutation to the input test cases before they are concatenated,
+        /// in other words, the input tests cases are reordered before being processed. The choice of permutation
+        /// that is used to generate each output test case is systematically varied as another implicit test variable
+        /// that contributes to the synthesis; this is dealt with by locally increasing the strength for the
+        /// synthesizing factory (but not for its child factories), so that the implicit variable does not have to
+        /// compete with the explicitly supplied test variable level factories for the strength guarantees
+        /// documented for IFactory.</remarks>
+        /// <remarks>There is another overload that does almost exactly the same thing; that overload does
+        /// not permit the option of applying permutations across the inputs.</remarks>
+        /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases are concatenated.</param>
+        /// <returns>The constructed factory.</returns>
+        /// <seealso cref="ITypedFactory&lt;'TestCaseListElement&gt;">Type of constructed factory.</seealso>
+        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<ITypedFactory<'TestCaseListElement>>,
+                              permuteInputs: Boolean) =
+            Synthesis.Create (sequenceOfFactoriesProvidingInputsToSynthesis,
+                              SequenceCondensation(BargainBasement.Identity),
+                              permuteInputs)
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;List&lt;'TestCaseListElement&gt; * Permutation&lt;'Something&gt;&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized

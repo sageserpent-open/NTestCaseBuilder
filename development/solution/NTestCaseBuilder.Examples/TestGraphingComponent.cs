@@ -157,21 +157,21 @@ namespace NTestCaseBuilder.Examples
             const int maximumStrengthRequired = 2;
 
             factory.ExecuteParameterisedUnitTestForAllTestCases(maximumStrengthRequired, testCase =>
-                                                                                                  {
-                                                                                                      var windowToPopUp
-                                                                                                          =
-                                                                                                          new GraphDisplayWindow
-                                                                                                              {
-                                                                                                                  DataContext
-                                                                                                                      =
-                                                                                                                      testCase
-                                                                                                                      .
-                                                                                                                      MakeGraph
-                                                                                                                      ()
-                                                                                                              };
-                                                                                                      windowToPopUp.
-                                                                                                          ShowDialog();
-                                                                                                  });
+                                                                                             {
+                                                                                                 var windowToPopUp
+                                                                                                     =
+                                                                                                     new GraphDisplayWindow
+                                                                                                         {
+                                                                                                             DataContext
+                                                                                                                 =
+                                                                                                                 testCase
+                                                                                                                 .
+                                                                                                                 MakeGraph
+                                                                                                                 ()
+                                                                                                         };
+                                                                                                 windowToPopUp.
+                                                                                                     ShowDialog();
+                                                                                             });
         }
     }
 }
