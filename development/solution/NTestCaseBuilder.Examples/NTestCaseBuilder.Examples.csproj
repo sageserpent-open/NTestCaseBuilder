@@ -81,12 +81,12 @@
       <Private>True</Private>
       <HintPath>..\packages\FSharp.Core.4.0.0\lib\FSharp.Core.dll</HintPath>
     </Reference>
-    <Reference Include="NTestCaseBuilder, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\NTestCaseBuilder.2.0.0.0\lib\net40\NTestCaseBuilder.dll</HintPath>
+    <Reference Include="NTestCaseBuilder">
+      <HintPath>..\packages\NTestCaseBuilder.2.1.0.0\lib\net40\NTestCaseBuilder.dll</HintPath>
     </Reference>
-    <Reference Include="nunit.framework, Version=2.6.2.12296, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+    <Reference Include="nunit.framework, Version=2.6.3.13283, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NUnit.2.6.2\lib\nunit.framework.dll</HintPath>
+      <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -102,8 +102,8 @@
     <Reference Include="QuickGraph.Serialization">
       <HintPath>..\packages\QuickGraph.3.6.61119.7\lib\net4\QuickGraph.Serialization.dll</HintPath>
     </Reference>
-    <Reference Include="SageSerpent.Infrastructure, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\NTestCaseBuilder.2.0.0.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
+    <Reference Include="SageSerpent.Infrastructure">
+      <HintPath>..\packages\NTestCaseBuilder.2.1.0.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
