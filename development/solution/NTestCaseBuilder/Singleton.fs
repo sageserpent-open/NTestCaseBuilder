@@ -8,4 +8,5 @@
     let Create (singletonTestCase: 'SingletonTestCase) =
         let node =
             SingletonNode singletonTestCase
-        TypedFactory<'SingletonTestCase> node
+        TypedFactoryImplementation<'SingletonTestCase> node
+        :> ITypedFactory<_>

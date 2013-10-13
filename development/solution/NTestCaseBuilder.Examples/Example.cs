@@ -33,9 +33,9 @@ namespace NTestCaseBuilder.Examples
 
             var d = Synthesis.Create(TestVariable.Create(LevelsOne), input => input.ToString());
 
-            var dWithATwist = Synthesis.Create(new List<Factory> {d}, (Converter<Object, Object>) (thing => thing));
+            var dWithATwist = Synthesis.Create(new List<IFactory> {d}, (Converter<Object, Object>) (thing => thing));
 
-            var e = Interleaving.Create(new List<Factory> {dWithATwist, c});
+            var e = Interleaving.Create(new List<IFactory> {dWithATwist, c});
 
             var strength = e.MaximumStrength;
 
@@ -319,7 +319,7 @@ namespace NTestCaseBuilder.Examples
             ((IList<Int32>) Enum.GetValues(typeof (OperationKind))).Select(constant => (OperationKind) constant);
 
 
-        private static TypedFactory<PlacementOfOperationsIntoFinalOrder> MakeFactory(Random randomBehaviour,
+        private static ITypedFactory<PlacementOfOperationsIntoFinalOrder> MakeFactory(Random randomBehaviour,
                                                                                      Int32 sequenceLength,
                                                                                      C5.IList<Key> keys)
         {
@@ -333,7 +333,7 @@ namespace NTestCaseBuilder.Examples
             var synthesizingFactoryForOperationSequenceEnumerable =
                 MakeSynthesizingFactoryForOperationSequenceEnumerable(key, randomBehaviour);
 
-            var numberOfCombinations = BargainBasement.NumberOfCombinations(sequenceLength * keys.Count, sequenceLength);
+            var numberOfCombinations = BargainBasement.NumberOfCombinations(sequenceLength*keys.Count, sequenceLength);
 
             var testVariableLevelFactoryForIndexCombinationEnumerable =
                 MakeTestVariableLevelFactoryForIndexCombinationEnumerable(numberOfCombinations);
@@ -346,7 +346,7 @@ namespace NTestCaseBuilder.Examples
                                                      factoryDealingWithRemainingKeys);
         }
 
-        private static TypedFactory<Int32> MakeTestVariableLevelFactoryForIndexCombinationEnumerable(
+        private static ITypedFactory<Int32> MakeTestVariableLevelFactoryForIndexCombinationEnumerable(
             Int32 numberOfCombinations)
         {
             var combinationSelector = numberOfCombinations;
@@ -360,10 +360,10 @@ namespace NTestCaseBuilder.Examples
             return TestVariable.Create(combinationSelectors);
         }
 
-        private static TypedFactory<PlacementOfOperationsIntoFinalOrder> MakeRecursionInductiveCaseFactory(
-            TypedFactory<IList<Operation>> synthesizingFactoryForOperationSequence,
-            TypedFactory<Int32> testVariableLevelFactoryForFinalOperationsListIndexCombinations,
-            TypedFactory<PlacementOfOperationsIntoFinalOrder> factoryDealingWithRemainingKeys)
+        private static ITypedFactory<PlacementOfOperationsIntoFinalOrder> MakeRecursionInductiveCaseFactory(
+            ITypedFactory<IList<Operation>> synthesizingFactoryForOperationSequence,
+            ITypedFactory<Int32> testVariableLevelFactoryForFinalOperationsListIndexCombinations,
+            ITypedFactory<PlacementOfOperationsIntoFinalOrder> factoryDealingWithRemainingKeys)
         {
             return Synthesis.Create(synthesizingFactoryForOperationSequence,
                                     testVariableLevelFactoryForFinalOperationsListIndexCombinations,
@@ -371,12 +371,12 @@ namespace NTestCaseBuilder.Examples
                                     BuildInductiveCaseForPlacementOfOperationsIntoFinalOrder);
         }
 
-        private static TypedFactory<PlacementOfOperationsIntoFinalOrder> MakeRecursionBaseFactory()
+        private static ITypedFactory<PlacementOfOperationsIntoFinalOrder> MakeRecursionBaseFactory()
         {
             return Singleton.Create((PlacementOfOperationsIntoFinalOrder) BaseCaseForPlacementOfOperationsIntoFinalOrder);
         }
 
-        private static TypedFactory<IList<Operation>> MakeSynthesizingFactoryForOperationSequenceEnumerable(Key key,
+        private static ITypedFactory<IList<Operation>> MakeSynthesizingFactoryForOperationSequenceEnumerable(Key key,
                                                                                                             Random
                                                                                                                 randomBehaviour)
         {
@@ -388,7 +388,8 @@ namespace NTestCaseBuilder.Examples
                                      CreateOperationsAccordingToSequenceOfKinds(
                                          new[]
                                              {
-                                                 operationKindOne, operationKindTwo, operationKindThree, operationKindFour,
+                                                 operationKindOne, operationKindTwo, operationKindThree,
+                                                 operationKindFour,
                                                  operationKindFive
                                              }, key, randomBehaviour)));
         }
@@ -405,7 +406,7 @@ namespace NTestCaseBuilder.Examples
             var numberOfKeys = Keys.Count;
             var randomBehaviour = new Random(892893767);
 
-            var totalNumberOfOperations = numberOfKeys * SequenceLength;
+            var totalNumberOfOperations = numberOfKeys*SequenceLength;
 
             var testCasesEnumerableFactory = MakeFactory(randomBehaviour, SequenceLength, Keys);
 
@@ -413,13 +414,13 @@ namespace NTestCaseBuilder.Examples
 
             var numberOfTestCases = 0ul;
 
-            testCasesEnumerableFactory.ExecuteParameterisedUnitTestForAllTypedTestCases(CombinationStrength,
-                                                                                        testCase =>
-                                                                                        ExerciseTestCase(testCase,
-                                                                                                         totalNumberOfOperations,
-                                                                                                         operations,
-                                                                                                         ref
-                                                                                                             numberOfTestCases));
+            testCasesEnumerableFactory.ExecuteParameterisedUnitTestForAllTestCases(CombinationStrength,
+                                                                                   testCase =>
+                                                                                   ExerciseTestCase(testCase,
+                                                                                                    totalNumberOfOperations,
+                                                                                                    operations,
+                                                                                                    ref
+                                                                                                        numberOfTestCases));
 
             System.Diagnostics.Debug.Print("Number of test cases: {0}.\n", numberOfTestCases);
         }
@@ -432,7 +433,7 @@ namespace NTestCaseBuilder.Examples
             var numberOfKeys = Keys.Count;
             var randomBehaviour = new Random(892893767);
 
-            var totalNumberOfOperations = numberOfKeys * SequenceLength;
+            var totalNumberOfOperations = numberOfKeys*SequenceLength;
 
             var testCasesEnumerableFactory = MakeFactory(randomBehaviour, SequenceLength, Keys);
 
@@ -443,7 +444,7 @@ namespace NTestCaseBuilder.Examples
             const string reproductionString =
                 "1090764779116129690923515858308014520222336185700694896976936400046940578111983112055989629000774433035533486068550533022050434118313487168281935739867417093859214666702622185680854690920792366308346801502341102104791669567068489846501138965598186388213004543697669795062454808628218854975401499294582299660019848783083937284842433875698992003869361173950368049939283422201283431500534314646405123093902572611305574975273253618404214436035332972904429107025527812924016143091522120111065405814720119831860702440964097642207233000861251447303137353773334074755528281991379172351571133523536155122143514512522383976701375986937228871803364271167562885534758744817339903091811910512739823187208506998747503060178100613962060360444772404024313739493297927858396240721030140492470103357047936834346132464036182437087170078501000684109986471279861917999591896108862562390012971951057050012075432713193683803876796197084280258336654918894800363034021269058378795720392390578650187065164540156994402244927110261562540259941947112035193302179458312579762656161886005839413204573285998582929202183055517423806152053711536672660710286311473872993764902751137075153515040308513410335851141018398956648431259553343117355097715103380069001848844134945111727805289923909566198141698885942046212828772382281233607388430521341291288749480420005289750948127596302248886450488346351194724726406359454567530950204893548438810296165819635671013870819998039900637698919336112584536603278238351651506699334362357470012971977314027054319976080930112017145037780575224655789108248709042322056855343967628440283369435484324673083658025858328083400735766763942389746704985223746546997365576000593138187854360290689007537973251142762840999432884894358083285521586072459421877752684016784827019217046294951759187261946302369751970154054761479564538898022435827825534772610734542189908947402889635366737805737144972576893718528050290391267672480275214334163703582188746586995496270938203644679193688129434102383381736534990452158190702968883951610080513324923606579060719935390474279719336648791089582686686083958958040855218963172888629694739957177302287360225125498508350037906763485416542524021814083097114549316290605257317417730876321368941382473034150289234129964670435403742355755299046922759543343132785257922101460982138759307022490864160851181451734277030111231600949027333911546177597073424304399689149654353831050380247495002720234833866803715973080927654375613256989752730830805925888";
 
-            testCasesEnumerableFactory.ExecuteParameterisedUnitTestForReproducedTypedTestCase(
+            testCasesEnumerableFactory.ExecuteParameterisedUnitTestForReproducedTestCase(
                 testCase => ExerciseTestCase(testCase, totalNumberOfOperations, operations, ref numberOfTestCases),
                 reproductionString);
         }

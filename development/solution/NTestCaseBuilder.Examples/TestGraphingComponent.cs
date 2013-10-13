@@ -80,7 +80,7 @@ namespace NTestCaseBuilder.Examples
             return numberOfVertices * (numberOfVertices - 1);
         }
 
-        private static TypedFactory<IEnumerable<Tuple<Int32, Int32>>> BuildConnectionsFactory(Int32 numberOfVertices)
+        private static ITypedFactory<IEnumerable<Tuple<Int32, Int32>>> BuildConnectionsFactory(Int32 numberOfVertices)
         {
             var numberOfPotentialUniqueConnectionsWithoutSelfLoops =
                 NumberOfPotentialUniqueConnectionsWithoutSelfLoops(numberOfVertices);
@@ -123,7 +123,7 @@ namespace NTestCaseBuilder.Examples
                                                                       }));
         }
 
-        private static TypedFactory<TestCase> BuildTestCaseFactory(Int32 maximumNumberOfVertices)
+        private static ITypedFactory<TestCase> BuildTestCaseFactory(Int32 maximumNumberOfVertices)
         {
             var numberOfVertices = maximumNumberOfVertices;
 
@@ -135,7 +135,7 @@ namespace NTestCaseBuilder.Examples
                                                        {NumberOfVertices = numberOfVertices, Connections = connections});
 
             var testCaseFactoryWithFilter =
-                testCaseFactory.WithFilterTyped(dictionary => FilterOutNonDagCases(dictionary, numberOfVertices));
+                testCaseFactory.WithFilter(dictionary => FilterOutNonDagCases(dictionary, numberOfVertices));
 
             return 0 == maximumNumberOfVertices
                        ? testCaseFactory
@@ -156,7 +156,7 @@ namespace NTestCaseBuilder.Examples
 
             const int maximumStrengthRequired = 2;
 
-            factory.ExecuteParameterisedUnitTestForAllTypedTestCases(maximumStrengthRequired, testCase =>
+            factory.ExecuteParameterisedUnitTestForAllTestCases(maximumStrengthRequired, testCase =>
                                                                                                   {
                                                                                                       var windowToPopUp
                                                                                                           =
