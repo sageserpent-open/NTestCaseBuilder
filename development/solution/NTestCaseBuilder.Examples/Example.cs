@@ -320,8 +320,8 @@ namespace NTestCaseBuilder.Examples
 
 
         private static ITypedFactory<PlacementOfOperationsIntoFinalOrder> MakeFactory(Random randomBehaviour,
-                                                                                     Int32 sequenceLength,
-                                                                                     C5.IList<Key> keys)
+                                                                                      Int32 sequenceLength,
+                                                                                      C5.IList<Key> keys)
         {
             if (0 == keys.Count)
             {
@@ -333,7 +333,7 @@ namespace NTestCaseBuilder.Examples
             var synthesizingFactoryForOperationSequenceEnumerable =
                 MakeSynthesizingFactoryForOperationSequenceEnumerable(key, randomBehaviour);
 
-            var numberOfCombinations = BargainBasement.NumberOfCombinations(sequenceLength*keys.Count, sequenceLength);
+            var numberOfCombinations = BargainBasement.NumberOfCombinations(sequenceLength * keys.Count, sequenceLength);
 
             var testVariableLevelFactoryForIndexCombinationEnumerable =
                 MakeTestVariableLevelFactoryForIndexCombinationEnumerable(numberOfCombinations);
@@ -377,8 +377,8 @@ namespace NTestCaseBuilder.Examples
         }
 
         private static ITypedFactory<IList<Operation>> MakeSynthesizingFactoryForOperationSequenceEnumerable(Key key,
-                                                                                                            Random
-                                                                                                                randomBehaviour)
+                                                                                                             Random
+                                                                                                                 randomBehaviour)
         {
             return Synthesis.Create(TestVariable.Create(OperationKinds), TestVariable.Create(OperationKinds),
                                     TestVariable.Create(OperationKinds), TestVariable.Create(OperationKinds),
@@ -406,21 +406,21 @@ namespace NTestCaseBuilder.Examples
             var numberOfKeys = Keys.Count;
             var randomBehaviour = new Random(892893767);
 
-            var totalNumberOfOperations = numberOfKeys*SequenceLength;
+            var totalNumberOfOperations = numberOfKeys * SequenceLength;
 
-            var testCasesEnumerableFactory = MakeFactory(randomBehaviour, SequenceLength, Keys);
+            var factory = MakeFactory(randomBehaviour, SequenceLength, Keys);
 
             var operations = new Operation[totalNumberOfOperations];
 
             var numberOfTestCases = 0ul;
 
-            testCasesEnumerableFactory.ExecuteParameterisedUnitTestForAllTestCases(CombinationStrength,
-                                                                                   testCase =>
-                                                                                   ExerciseTestCase(testCase,
-                                                                                                    totalNumberOfOperations,
-                                                                                                    operations,
-                                                                                                    ref
-                                                                                                        numberOfTestCases));
+            factory.ExecuteParameterisedUnitTestForAllTestCases(CombinationStrength,
+                                                                testCase =>
+                                                                ExerciseTestCase(testCase,
+                                                                                 totalNumberOfOperations,
+                                                                                 operations,
+                                                                                 ref
+                                                                                     numberOfTestCases));
 
             System.Diagnostics.Debug.Print("Number of test cases: {0}.\n", numberOfTestCases);
         }
@@ -433,7 +433,7 @@ namespace NTestCaseBuilder.Examples
             var numberOfKeys = Keys.Count;
             var randomBehaviour = new Random(892893767);
 
-            var totalNumberOfOperations = numberOfKeys*SequenceLength;
+            var totalNumberOfOperations = numberOfKeys * SequenceLength;
 
             var testCasesEnumerableFactory = MakeFactory(randomBehaviour, SequenceLength, Keys);
 
