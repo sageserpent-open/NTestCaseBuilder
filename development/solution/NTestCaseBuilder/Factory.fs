@@ -305,59 +305,56 @@
                         prunedNode.CountTestVariables
                     let randomBehaviour =
                         Random 0
-                    let sequenceOfFinalValues =
-                        let partialTestVectorsInOrderOfDecreasingStrength = // Order by decreasing strength so that high strength vectors get in there
-                                                                            // first. Hopefully the lesser strength vectors should have a greater chance
-                                                                            // of finding an earlier, larger vector to merge with this way.
-                            (seq
-                                {
-                                    for partialTestVectorsAtTheSameStrength in associationFromStrengthToPartialTestVectorRepresentations
-                                                                               |> Seq.sortBy (fun keyValuePair -> - keyValuePair.Key)
-                                                                               |> Seq.map (fun keyValuePair -> keyValuePair.Value) do
-                                        yield! partialTestVectorsAtTheSameStrength
-                                })
+                    let partialTestVectorsInOrderOfDecreasingStrength = // Order by decreasing strength so that high strength vectors get in there
+                                                                        // first. Hopefully the lesser strength vectors should have a greater chance
+                                                                        // of finding an earlier, larger vector to merge with this way.
+                        (seq
+                            {
+                                for partialTestVectorsAtTheSameStrength in associationFromStrengthToPartialTestVectorRepresentations
+                                                                            |> Seq.sortBy (fun keyValuePair -> - keyValuePair.Key)
+                                                                            |> Seq.map (fun keyValuePair -> keyValuePair.Value) do
+                                    yield! partialTestVectorsAtTheSameStrength
+                            })
 
-                        let lazilyProduceMergedPartialTestVectors mergedPartialTestVectorRepresentations
-                                                                  partialTestVectors =
-                            // TODO: use 'Seq.unfold' here!
-                            seq
-                                {
-                                    let locallyModifiedMergedPartialTestVectorRepresentations =
-                                        ref mergedPartialTestVectorRepresentations
-
-                                    for partialTestVector in partialTestVectors do
-                                        match (!locallyModifiedMergedPartialTestVectorRepresentations: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector with
-                                            updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
-                                            , Some resultingFullTestCaseVector ->
-                                                yield resultingFullTestCaseVector
-
-                                                locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
-                                          | updatedMergedPartialTestVectorRepresentations
-                                            , None ->
-                                                locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentations
-
-                                    yield! (!locallyModifiedMergedPartialTestVectorRepresentations).EnumerationOfMergedTestVectors false
-                                }
-
-                        let lazilyProducedMergedPartialTestVectors =
-                            lazilyProduceMergedPartialTestVectors (MergedPartialTestVectorRepresentations.Initial overallNumberOfTestVariables
-                                                                                                                  prunedNode.CombinedFilter)
-                                                                  partialTestVectorsInOrderOfDecreasingStrength
-
-                        let finalValueCreator =
-                            prunedNode.FinalValueCreator ()
+                    let lazilyProduceMergedPartialTestVectors mergedPartialTestVectorRepresentations
+                                                              partialTestVectors =
+                        // TODO: use 'Seq.unfold' here!
                         seq
                             {
-                                for mergedPartialTestVector in lazilyProducedMergedPartialTestVectors  do
-                                    match prunedNode.FillOutPartialTestVectorRepresentation mergedPartialTestVector
-                                                                                            randomBehaviour with
-                                        Some fullTestVector ->
-                                            yield (finalValueCreator fullTestVector: 'TestCase)
-                                                   , fullTestVector
-                                      | None ->
-                                            ()
-                            }
-                    sequenceOfFinalValues
+                                let locallyModifiedMergedPartialTestVectorRepresentations =
+                                    ref mergedPartialTestVectorRepresentations
 
+                                for partialTestVector in partialTestVectors do
+                                    match (!locallyModifiedMergedPartialTestVectorRepresentations: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector with
+                                        updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
+                                        , Some resultingFullTestCaseVector ->
+                                            yield resultingFullTestCaseVector
+
+                                            locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
+                                      | updatedMergedPartialTestVectorRepresentations
+                                        , None ->
+                                            locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentations
+
+                                yield! (!locallyModifiedMergedPartialTestVectorRepresentations).EnumerationOfMergedTestVectors false
+                            }
+
+                    let lazilyProducedMergedPartialTestVectors =
+                        lazilyProduceMergedPartialTestVectors (MergedPartialTestVectorRepresentations.Initial overallNumberOfTestVariables
+                                                                                                              prunedNode.CombinedFilter)
+                                                              partialTestVectorsInOrderOfDecreasingStrength
+
+                    let finalValueCreator =
+                        prunedNode.FinalValueCreator ()
+                    seq
+                        {
+                            for mergedPartialTestVector in lazilyProducedMergedPartialTestVectors  do
+                                match prunedNode.FillOutPartialTestVectorRepresentation mergedPartialTestVector
+                                                                                        randomBehaviour with
+                                    Some fullTestVector ->
+                                        yield (finalValueCreator fullTestVector: 'TestCase)
+                                              , fullTestVector
+                                   | None ->
+                                        ()
+                        }
               | None ->
                     Seq.empty
