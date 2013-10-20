@@ -179,6 +179,9 @@
 
         abstract WithZeroStrengthCost: unit -> IFactory
 
+        abstract WithDeferralBudgetOf: Int32 -> IFactory
+        // By default, the deferral budget is zero - no deferred factories are taken into consideration at all.
+
     /// <summary>This extends the API provided by IFactory to deal with test cases of a specific type given
     /// by the type parameter TestCase.</summary>
     /// <seealso cref="IFactory">The core API provided by the baseclass.</seealso>
@@ -238,6 +241,10 @@
                                                                            , reproductionString) =
                 this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest.Invoke
                                                                                                                , reproductionString)
+
+            member this.WithDeferralBudgetOf deferralBudget =
+                this
+                :> IFactory
 
         interface ITypedFactory<'TestCase> with
             member this.CreateEnumerable maximumDesiredStrength =
@@ -311,8 +318,8 @@
                         (seq
                             {
                                 for partialTestVectorsAtTheSameStrength in associationFromStrengthToPartialTestVectorRepresentations
-                                                                            |> Seq.sortBy (fun keyValuePair -> - keyValuePair.Key)
-                                                                            |> Seq.map (fun keyValuePair -> keyValuePair.Value) do
+                                                                           |> Seq.sortBy (fun keyValuePair -> - keyValuePair.Key)
+                                                                           |> Seq.map (fun keyValuePair -> keyValuePair.Value) do
                                     yield! partialTestVectorsAtTheSameStrength
                             })
 
