@@ -203,7 +203,11 @@
     type internal INodeWrapper =
         abstract Node: Node
 
-    type TypedFactoryImplementation<'TestCase> (node: Node) =
+    type TypedFactoryImplementation<'TestCase> (node: Node,
+                                                deferralBudget: Int32) =
+        new (node: Node) =
+            TypedFactoryImplementation(node, 0)
+
         interface INodeWrapper with
             member this.Node = node
 
@@ -214,7 +218,7 @@
                 :> IEnumerable
 
             member this.MaximumStrength =
-                match (this :> INodeWrapper).Node.PruneTree with
+                match node.PruneTree deferralBudget with
                     Some prunedNode ->
                         prunedNode.MaximumStrengthOfTestVariableCombination
                   | None ->
@@ -243,7 +247,7 @@
                                                                                                                , reproductionString)
 
             member this.WithDeferralBudgetOf deferralBudget =
-                this
+                TypedFactoryImplementation<'TestCase>(node, deferralBudget)
                 :> IFactory
 
         interface ITypedFactory<'TestCase> with
@@ -262,15 +266,15 @@
                                                                                                                , reproductionString)
 
             member this.WithFilter (filter: LevelCombinationFilter): ITypedFactory<'TestCase> =
-                TypedFactoryImplementation<'TestCase> ((this :> INodeWrapper).Node.WithFilter filter)
+                TypedFactoryImplementation<'TestCase> (node.WithFilter filter)
                 :> ITypedFactory<'TestCase>
 
             member this.WithMaximumStrength maximumStrength =
-                TypedFactoryImplementation<'TestCase> ((this :> INodeWrapper).Node.WithMaximumStrength (Some maximumStrength))
+                TypedFactoryImplementation<'TestCase> (node.WithMaximumStrength (Some maximumStrength))
                 :> ITypedFactory<'TestCase>
 
             member this.WithZeroStrengthCost () =
-                TypedFactoryImplementation<'TestCase> ((this :> INodeWrapper).Node.WithZeroCost ())
+                TypedFactoryImplementation<'TestCase> (node.WithZeroCost ())
                 :> ITypedFactory<'TestCase>
 
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
@@ -289,7 +293,7 @@
 
         member private this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest
                                                                                                                       , reproductionString) =
-            match (this :> INodeWrapper).Node.PruneTree with
+            match node.PruneTree deferralBudget with
                 Some prunedNode ->
                     let fullTestVector =
                         BigInteger.Parse reproductionString
@@ -303,7 +307,7 @@
                     ()
 
         member private this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength =
-            match (this :> INodeWrapper).Node.PruneTree with
+            match node.PruneTree deferralBudget with
                 Some prunedNode ->
                     let associationFromStrengthToPartialTestVectorRepresentations
                         , associationFromTestVariableIndexToNumberOfItsLevels =

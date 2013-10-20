@@ -32,7 +32,7 @@ namespace NTestCaseBuilder
         array<TestVariable<Int32>>
 
     type IFixedCombinationOfSubtreeNodesForSynthesis =
-        abstract Prune: Option<IFixedCombinationOfSubtreeNodesForSynthesis>
+        abstract Prune: Int32 -> Option<IFixedCombinationOfSubtreeNodesForSynthesis>
 
         abstract Nodes: array<Node>
 
@@ -196,7 +196,7 @@ namespace NTestCaseBuilder
                         maximumPossibleStrength
             walkTree this
 
-        member this.PruneTree =
+        member this.PruneTree deferralBudget =
             let rec walkTree node =
                 match node with
                     TestVariableNode levels ->
@@ -218,7 +218,7 @@ namespace NTestCaseBuilder
                         else
                             Some (((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
-                        fixedCombinationOfSubtreeNodesForSynthesis.Prune
+                        fixedCombinationOfSubtreeNodesForSynthesis.Prune deferralBudget
                         |> Option.map (fun fixedCombinationOfSubtreeNodesForSynthesis ->
                                         ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
             walkTree this
@@ -973,11 +973,12 @@ namespace NTestCaseBuilder
                         finalValueCreator slicesOfFullTestVectorCorrespondingToSubtrees
 
         static member PruneAndCombine subtreeRootNodes
-                                      combinePrunedSubtrees =
+                                      combinePrunedSubtrees
+                                      deferralBudget =
             let prunedSubtreeRootNodes =
                 subtreeRootNodes
                 |> List.map (fun (node: Node) ->
-                                node.PruneTree)
+                                node.PruneTree deferralBudget)
                 |> Option<_>.GetFromMany
             if not (Seq.isEmpty prunedSubtreeRootNodes)
                 && Seq.length prunedSubtreeRootNodes
@@ -994,9 +995,10 @@ namespace NTestCaseBuilder
             let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
                 {
                     new IFixedCombinationOfSubtreeNodesForSynthesis with
-                        member this.Prune =
+                        member this.Prune deferralBudget =
                             Node.PruneAndCombine subtreeRootNodes
                                                  fixedCombinationOfSubtreeNodesForSynthesis
+                                                 deferralBudget
 
                         member this.Nodes =
                             subtreeRootNodes
