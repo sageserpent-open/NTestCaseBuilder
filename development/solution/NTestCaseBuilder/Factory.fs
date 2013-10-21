@@ -6,6 +6,7 @@
     open System.Runtime.Serialization.Formatters.Binary
     open System.IO
     open System.Numerics
+    open System.Text.RegularExpressions
     open SageSerpent.Infrastructure
     open SageSerpent.Infrastructure.RandomExtensions
     open SageSerpent.Infrastructure.IEnumerableExtensions
@@ -47,14 +48,28 @@
             |> unbox
             : FullTestVector
 
-        let makeDescriptionOfReproductionString fullTestVector =
+        let deferralBudgetSeparatorInReproductionString =
+            "@deferred budget of: "
+
+        let makeDescriptionOfReproductionString fullTestVector
+                                                deferralBudget =
+            let fullTestVectorString =
+                (serialize fullTestVector).ToString()
+            let reproductionString =
+                if 0 = deferralBudget
+                then
+                    fullTestVectorString
+                else
+                    fullTestVectorString + deferralBudgetSeparatorInReproductionString + deferralBudget.ToString()
             String.Format ("Encoded text for reproduction of test case follows on next line as C# string:\n\"{0}\"",
-                           (serialize fullTestVector).ToString())
+                           reproductionString)
     open FactoryDetail
 
     type TestCaseReproductionException (fullTestVector
+                                        , deferralBudget
                                         , innerException) =
         inherit Exception (makeDescriptionOfReproductionString fullTestVector
+                                                               deferralBudget
                            , innerException)
 
     /// <summary>A factory that can create an enumerable sequence of test cases used in turn to drive a parameterised
@@ -218,11 +233,16 @@
                 :> IEnumerable
 
             member this.MaximumStrength =
-                match node.PruneTree deferralBudget with
-                    Some prunedNode ->
-                        prunedNode.MaximumStrengthOfTestVariableCombination
-                  | None ->
-                        0
+                seq
+                    {
+                        for steppedDeferralBudget in 0 .. deferralBudget do
+                            yield match node.PruneTree steppedDeferralBudget with
+                                    Some prunedNode ->
+                                        prunedNode.MaximumStrengthOfTestVariableCombination
+                                  | None ->
+                                        0
+                    }
+                |> Seq.max
 
             member this.WithFilter filter =
                 (this :> ITypedFactory<'TestCase>).WithFilter filter
@@ -252,8 +272,13 @@
 
         interface ITypedFactory<'TestCase> with
             member this.CreateEnumerable maximumDesiredStrength =
-                this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
-                |> Seq.map fst
+                seq
+                    {
+                        for steppedDeferralBudget in 0 .. deferralBudget do
+                            yield! this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
+                                                                                            steppedDeferralBudget
+                                   |> Seq.map fst
+                    }
 
             member this.ExecuteParameterisedUnitTestForAllTestCases (maximumDesiredStrength
                                                                      , parameterisedUnitTest: Action<'TestCase>) =
@@ -280,34 +305,62 @@
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
                                                                                                                 , parameterisedUnitTest) =
             let mutable count = 0
-            for testCase
-                , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength do
-                try
-                    parameterisedUnitTest testCase
-                    count <- count + 1
-                with
-                    anyException ->
-                        raise (TestCaseReproductionException (fullTestVector
-                                                              , anyException))
+            for steppedDeferralBudget in 0 .. deferralBudget do
+                for testCase
+                    , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
+                                                                                                 steppedDeferralBudget do
+                    try
+                        parameterisedUnitTest testCase
+                        count <- count + 1
+                    with
+                        anyException ->
+                            raise (TestCaseReproductionException (fullTestVector
+                                                                  , steppedDeferralBudget
+                                                                  , anyException))
             count
+
+        static member private ReproductionStringRegex =
+            Regex (String.Format(@"^(\d+)(?:{0}(\d+))?$",
+                                 Regex.Escape(deferralBudgetSeparatorInReproductionString)))
 
         member private this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest
                                                                                                                       , reproductionString) =
-            match node.PruneTree deferralBudget with
-                Some prunedNode ->
-                    let fullTestVector =
-                        BigInteger.Parse reproductionString
-                        |> deserialize
-                    let finalValueCreator =
-                        prunedNode.FinalValueCreator ()
-                    let testCase =
-                        finalValueCreator fullTestVector: 'TestCase
-                    parameterisedUnitTest testCase
-              | None ->
-                    ()
+            let regexMatch =
+                TypedFactoryImplementation<_>.ReproductionStringRegex.Match reproductionString
+            if regexMatch.Success
+            then
+                let groups =
+                    regexMatch.Groups
+                let deferralBudget =
+                    let deferralBudgetGroup =
+                        groups.[2]
+                    if deferralBudgetGroup.Success
+                    then
+                        Int32.Parse deferralBudgetGroup.Value
+                    else
+                        0
+                match node.PruneTree deferralBudget with
+                    Some prunedNode ->
+                        let fullTestVector =
+                            let fullTestVectorString =
+                                let fullTestVectorStringGroup =
+                                    groups.[1]
+                                fullTestVectorStringGroup.Value
+                            BigInteger.Parse fullTestVectorString
+                            |> deserialize
+                        let finalValueCreator =
+                            prunedNode.FinalValueCreator ()
+                        let testCase =
+                            finalValueCreator fullTestVector: 'TestCase
+                        parameterisedUnitTest testCase
+                  | None ->
+                        ()
+            else
+                raise (AdmissibleFailureException "Reproduction string is invalid.")
 
-        member private this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength =
-            match node.PruneTree deferralBudget with
+        member private this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
+                                                                                steppedDeferralBudget =
+            match node.PruneTree steppedDeferralBudget with
                 Some prunedNode ->
                     let associationFromStrengthToPartialTestVectorRepresentations
                         , associationFromTestVariableIndexToNumberOfItsLevels =
