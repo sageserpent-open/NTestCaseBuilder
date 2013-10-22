@@ -207,6 +207,7 @@ namespace NTestCaseBuilder
                 match node with
                     TestVariableNode levels ->
                         if Array.isEmpty levels
+                           || 0 < deferralBudget
                         then
                             Map.empty
                         else
@@ -215,6 +216,10 @@ namespace NTestCaseBuilder
                             |> Seq.singleton
                             |> Map.ofSeq
                   | SingletonNode _ as node ->
+                        if 0 < deferralBudget
+                        then
+                            Map.empty
+                        else
                             (deferralBudget
                              , node)
                             |> Seq.singleton
@@ -233,6 +238,12 @@ namespace NTestCaseBuilder
                         |> Map.map (fun deferralBudget
                                         fixedCombinationOfSubtreeNodesForSynthesis ->
                                         ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
+                  | DeferralNode deferredNode ->
+                        if 0 = deferralBudget
+                        then
+                            Map.empty
+                        else
+                            (deferredNode ()).PruneTree (deferralBudget - 1)
             walkTree this
 
         member this.CombinedFilter =
