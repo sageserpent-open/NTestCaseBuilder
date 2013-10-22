@@ -215,6 +215,8 @@
 
         abstract WithZeroStrengthCost: unit -> ITypedFactory<'TestCase>
 
+        abstract WithDeferralBudgetOf: Int32 -> ITypedFactory<'TestCase>
+
     type internal INodeWrapper =
         abstract Node: Node
 
@@ -264,7 +266,7 @@
                                                                                                                , reproductionString)
 
             member this.WithDeferralBudgetOf deferralBudget =
-                TypedFactoryImplementation<'TestCase>(node, deferralBudget)
+                (this :> ITypedFactory<'TestCase>).WithDeferralBudgetOf deferralBudget
                 :> IFactory
 
         interface ITypedFactory<'TestCase> with
@@ -298,6 +300,10 @@
 
             member this.WithZeroStrengthCost () =
                 TypedFactoryImplementation<'TestCase> (node.WithZeroCost ())
+                :> ITypedFactory<'TestCase>
+
+            member this.WithDeferralBudgetOf deferralBudget =
+                TypedFactoryImplementation<'TestCase>(node, deferralBudget)
                 :> ITypedFactory<'TestCase>
 
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
