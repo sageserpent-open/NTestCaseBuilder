@@ -177,22 +177,21 @@
         MergeSortedAssociationLists joinAtSameKey (Map.toList lhs) (Map.toList rhs)
         |> Map.ofList
 
-    let CollectAcrossMaps maps =
+    let CollectAcrossSortedAssociationLists associationLists =
         let result =
-            if maps
+            if associationLists
                |> List.isEmpty
             then
-                Map.empty
+                List.empty
             else
-                maps
-                |> List.map (Map.map (fun _
-                                          associatedItem ->
-                                        [associatedItem]))
-                |> List.reduce (MergeMaps List.append)
+                associationLists
+                |> List.map (List.map (fun (key
+                                            , associatedItem) ->
+                                        key
+                                        , [associatedItem]))
+                |> List.reduce (MergeSortedAssociationLists List.append)
         if result
-           |> Map.exists (fun _
-                              associatedList ->
-                            List.isEmpty associatedList)
+           |> List.exists (snd >> List.isEmpty)
         then
             raise (InternalAssertionViolationException "The associated lists should always have a contribution from at least one map.")
         result

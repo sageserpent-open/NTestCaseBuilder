@@ -32,7 +32,7 @@ namespace NTestCaseBuilder
         array<TestVariable<Int32>>
 
     type IFixedCombinationOfSubtreeNodesForSynthesis =
-        abstract Prune: Int32 -> Map<Int32, IFixedCombinationOfSubtreeNodesForSynthesis>
+        abstract Prune: Int32 -> List<Int32 * IFixedCombinationOfSubtreeNodesForSynthesis>
 
         abstract Nodes: array<Node>
 
@@ -209,39 +209,37 @@ namespace NTestCaseBuilder
                         if Array.isEmpty levels
                            || 0 < deferralBudget
                         then
-                            Map.empty
+                            List.empty
                         else
-                            (deferralBudget
-                             , node)
-                            |> Seq.singleton
-                            |> Map.ofSeq
+                            [(deferralBudget
+                             , node)]
                   | SingletonNode _ as node ->
                         if 0 < deferralBudget
                         then
-                            Map.empty
+                            List.empty
                         else
-                            (deferralBudget
-                             , node)
-                            |> Seq.singleton
-                            |> Map.ofSeq
+                            [(deferralBudget
+                             , node)]
                   | InterleavingNode subtreeRootNodes ->
-                        let mapFromDeferralBudgetToPrunedSubtreeRootNodes =
+                        let associationListFromDeferralBudgetToPrunedSubtreeRootNodes =
                             subtreeRootNodes
                             |> List.map walkTree
-                            |> BargainBasement.CollectAcrossMaps
-                        mapFromDeferralBudgetToPrunedSubtreeRootNodes
-                        |> Map.map (fun _
-                                        prunedSubtreeRootNodes ->
-                                        ((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
+                            |> BargainBasement.CollectAcrossSortedAssociationLists
+                        associationListFromDeferralBudgetToPrunedSubtreeRootNodes
+                        |> List.map (fun (deferralBudget
+                                          , prunedSubtreeRootNodes) ->
+                                        deferralBudget
+                                        , ((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                         fixedCombinationOfSubtreeNodesForSynthesis.Prune deferralBudget
-                        |> Map.map (fun deferralBudget
-                                        fixedCombinationOfSubtreeNodesForSynthesis ->
-                                        ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
+                        |> List.map (fun (deferralBudget
+                                          , fixedCombinationOfSubtreeNodesForSynthesis) ->
+                                        deferralBudget
+                                        , ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
                   | DeferralNode deferredNode ->
                         if 0 = deferralBudget
                         then
-                            Map.empty
+                            List.empty
                         else
                             (deferredNode ()).PruneTree (deferralBudget - 1)
             walkTree this
@@ -998,23 +996,21 @@ namespace NTestCaseBuilder
         static member PruneAndCombine subtreeRootNodes
                                       combinePrunedSubtrees
                                       deferralBudget =
-            let mapFromDeferralBudgetToPrunedSubtreeRootNodes =
+            let associationListFromDeferralBudgetToPrunedSubtreeRootNodes =
                 subtreeRootNodes
                 |> List.map (fun (node: Node) ->
                                 node.PruneTree deferralBudget)
-                |> BargainBasement.CollectAcrossMaps
-            seq
-                {
-                    for KeyValue (deferralBudget
-                                  , prunedSubtreeRootNodes) in mapFromDeferralBudgetToPrunedSubtreeRootNodes do
-                        if Seq.length prunedSubtreeRootNodes
-                           = Seq.length subtreeRootNodes
-                        then
-                            yield deferralBudget
-                                  , prunedSubtreeRootNodes
-                                    |> combinePrunedSubtrees
-                }
-            |> Map.ofSeq
+                |> BargainBasement.CollectAcrossSortedAssociationLists
+            [
+                for deferralBudget
+                    , prunedSubtreeRootNodes in associationListFromDeferralBudgetToPrunedSubtreeRootNodes do
+                    if Seq.length prunedSubtreeRootNodes
+                       = Seq.length subtreeRootNodes
+                    then
+                        yield deferralBudget
+                              , prunedSubtreeRootNodes
+                                |> combinePrunedSubtrees
+            ]
 
         static member CreateSynthesizingNode subtreeRootNodes
                                              synthesisDelegate =

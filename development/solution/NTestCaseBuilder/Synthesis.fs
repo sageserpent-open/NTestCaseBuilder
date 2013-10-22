@@ -36,7 +36,7 @@ namespace NTestCaseBuilder
     /// <seealso cref="FixedCombinationOfFactoriesForSynthesis">Cooperating class from low-level F#-specific API</seealso>
     type SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase> =
         {
-            Prune: Int32 -> Map<Int32, SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase>>
+            Prune: Int32 -> List<Int32 * SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase>>
             ContinuationToApplyResultsFromAllButRightmostFactory: 'SynthesisFunction -> List<FullTestVector> -> 'SynthesizedTestCase
             NodesInRightToLeftOrder: List<Node>
         }
@@ -49,9 +49,10 @@ namespace NTestCaseBuilder
                     Prune =
                         fun deferralBudget ->
                             nodeFromLeftmostFactory.PruneTree deferralBudget
-                            |> Map.map (fun _
-                                            prunedNodeFromLeftmostFactory ->
-                                            createSingletonCombination prunedNodeFromLeftmostFactory)
+                            |> List.map (fun (deferralBudget
+                                              , prunedNodeFromLeftmostFactory) ->
+                                            deferralBudget
+                                            , createSingletonCombination prunedNodeFromLeftmostFactory)
                     ContinuationToApplyResultsFromAllButRightmostFactory =
                         fun synthesisFunction
                             slicesOfFullTestVectorInRightToLeftOrder ->
@@ -76,13 +77,14 @@ namespace NTestCaseBuilder
                 {
                     Prune =
                         fun deferralBudget ->
-                            BargainBasement.ZipMaps (nodeFromRightmostFactory.PruneTree deferralBudget)
-                                                    (combinationOfAllOtherFactories.Prune deferralBudget)
-                            |> Map.map (fun _
-                                            (prunedNodeFromRightmostFactory
-                                             , prunedCombinationOfAllOtherFactories) ->
-                                            createCombinationWithExtraRightmostNode prunedNodeFromRightmostFactory
-                                                                                    prunedCombinationOfAllOtherFactories)
+                            BargainBasement.ZipAssociationLists (nodeFromRightmostFactory.PruneTree deferralBudget)
+                                                                (combinationOfAllOtherFactories.Prune deferralBudget)
+                            |> List.map (fun (deferralBudget
+                                             , (prunedNodeFromRightmostFactory
+                                                , prunedCombinationOfAllOtherFactories)) ->
+                                            deferralBudget
+                                            , createCombinationWithExtraRightmostNode prunedNodeFromRightmostFactory
+                                                                                      prunedCombinationOfAllOtherFactories)
                     ContinuationToApplyResultsFromAllButRightmostFactory =
                         fun synthesisFunction
                             slicesOfFullTestVectorInRightToLeftOrder ->
@@ -118,11 +120,12 @@ namespace NTestCaseBuilder
         interface IFixedCombinationOfSubtreeNodesForSynthesis with
             member this.Prune deferralBudget =
                 heterogenousCombinationOfFactoriesForSynthesis.Prune deferralBudget
-                |> Map.map (fun _
-                                prunedHeterogenousCombinationOfFactoriesForSynthesis ->
-                                FixedCombinationOfFactoriesForSynthesis (prunedHeterogenousCombinationOfFactoriesForSynthesis,
-                                                                        synthesisFunction)
-                                :> IFixedCombinationOfSubtreeNodesForSynthesis)
+                |> List.map (fun (deferralBudget
+                                  , prunedHeterogenousCombinationOfFactoriesForSynthesis) ->
+                                deferralBudget
+                                , FixedCombinationOfFactoriesForSynthesis (prunedHeterogenousCombinationOfFactoriesForSynthesis,
+                                                                           synthesisFunction)
+                                  :> IFixedCombinationOfSubtreeNodesForSynthesis)
 
             member this.Nodes =
                 nodes

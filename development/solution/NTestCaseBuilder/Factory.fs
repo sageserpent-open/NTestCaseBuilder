@@ -235,8 +235,8 @@
             member this.MaximumStrength =
                 seq
                     {
-                        for KeyValue (_
-                                      , prunedNode) in node.PruneTree deferralBudget do
+                        for _
+                            , prunedNode in node.PruneTree deferralBudget do
                             yield prunedNode.MaximumStrengthOfTestVariableCombination
                     }
                 |> Seq.max
@@ -271,8 +271,8 @@
             member this.CreateEnumerable maximumDesiredStrength =
                 seq
                     {
-                        for KeyValue (_
-                                      , prunedNode) in node.PruneTree deferralBudget do
+                        for _
+                            , prunedNode in node.PruneTree deferralBudget do
                             yield! this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector prunedNode
                                                                                             maximumDesiredStrength
                                    |> Seq.map fst
@@ -303,8 +303,8 @@
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
                                                                                                                 , parameterisedUnitTest) =
             let mutable count = 0
-            for KeyValue (deferralBudget
-                          , prunedNode) in node.PruneTree deferralBudget do
+            for deferralBudget
+                , prunedNode in node.PruneTree deferralBudget do
                 for testCase
                     , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector prunedNode
                                                                                                  maximumDesiredStrength do
@@ -339,8 +339,14 @@
                     else
                         0
                 match node.PruneTree deferralBudget
-                      |> Map.tryFind deferralBudget with
-                    Some prunedNode ->
+                      |> List.tryFind (fun (keyDeferralBudget
+                                            , _) ->
+                                            deferralBudget = keyDeferralBudget) with    // Ugly linear search, but it's OK - would
+                                                                                        // need to convert to a more efficient data
+                                                                                        // structure: that would take at least linear
+                                                                                        // time as well.
+                    Some (_
+                         , prunedNode) ->
                         let fullTestVector =
                             let fullTestVectorString =
                                 let fullTestVectorStringGroup =
