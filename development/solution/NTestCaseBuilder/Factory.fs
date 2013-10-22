@@ -235,12 +235,9 @@
             member this.MaximumStrength =
                 seq
                     {
-                        for steppedDeferralBudget in 0 .. deferralBudget do
-                            yield match node.PruneTree steppedDeferralBudget with
-                                    Some prunedNode ->
-                                        prunedNode.MaximumStrengthOfTestVariableCombination
-                                  | None ->
-                                        0
+                        for KeyValue (_
+                                      , prunedNode) in node.PruneTree deferralBudget do
+                            yield prunedNode.MaximumStrengthOfTestVariableCombination
                     }
                 |> Seq.max
 
@@ -274,9 +271,10 @@
             member this.CreateEnumerable maximumDesiredStrength =
                 seq
                     {
-                        for steppedDeferralBudget in 0 .. deferralBudget do
-                            yield! this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
-                                                                                            steppedDeferralBudget
+                        for KeyValue (_
+                                      , prunedNode) in node.PruneTree deferralBudget do
+                            yield! this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector prunedNode
+                                                                                            maximumDesiredStrength
                                    |> Seq.map fst
                     }
 
@@ -305,17 +303,18 @@
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
                                                                                                                 , parameterisedUnitTest) =
             let mutable count = 0
-            for steppedDeferralBudget in 0 .. deferralBudget do
+            for KeyValue (deferralBudget
+                          , prunedNode) in node.PruneTree deferralBudget do
                 for testCase
-                    , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
-                                                                                                 steppedDeferralBudget do
+                    , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector prunedNode
+                                                                                                 maximumDesiredStrength do
                     try
                         parameterisedUnitTest testCase
                         count <- count + 1
                     with
                         anyException ->
                             raise (TestCaseReproductionException (fullTestVector
-                                                                  , steppedDeferralBudget
+                                                                  , deferralBudget
                                                                   , anyException))
             count
 
@@ -339,7 +338,8 @@
                         Int32.Parse deferralBudgetGroup.Value
                     else
                         0
-                match node.PruneTree deferralBudget with
+                match node.PruneTree deferralBudget
+                      |> Map.tryFind deferralBudget with
                     Some prunedNode ->
                         let fullTestVector =
                             let fullTestVectorString =
@@ -354,71 +354,68 @@
                             finalValueCreator fullTestVector: 'TestCase
                         parameterisedUnitTest testCase
                   | None ->
-                        ()
+                        raise (AdmissibleFailureException "No factory remains after pruning at the budget implied or given by the reproduction string.")
             else
                 raise (AdmissibleFailureException "Reproduction string is invalid.")
 
-        member private this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
-                                                                                steppedDeferralBudget =
-            match node.PruneTree steppedDeferralBudget with
-                Some prunedNode ->
-                    let associationFromStrengthToPartialTestVectorRepresentations
-                        , associationFromTestVariableIndexToNumberOfItsLevels =
-                        prunedNode.AssociationFromStrengthToPartialTestVectorRepresentations maximumDesiredStrength
-                    let overallNumberOfTestVariables =
-                        prunedNode.CountTestVariables
-                    let randomBehaviour =
-                        Random 0
-                    let partialTestVectorsInOrderOfDecreasingStrength = // Order by decreasing strength so that high strength vectors get in there
-                                                                        // first. Hopefully the lesser strength vectors should have a greater chance
-                                                                        // of finding an earlier, larger vector to merge with this way.
-                        (seq
-                            {
-                                for partialTestVectorsAtTheSameStrength in associationFromStrengthToPartialTestVectorRepresentations
-                                                                           |> Seq.sortBy (fun keyValuePair -> - keyValuePair.Key)
-                                                                           |> Seq.map (fun keyValuePair -> keyValuePair.Value) do
-                                    yield! partialTestVectorsAtTheSameStrength
-                            })
+        member private this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector prunedNode
+                                                                                maximumDesiredStrength =
+            let associationFromStrengthToPartialTestVectorRepresentations
+                , associationFromTestVariableIndexToNumberOfItsLevels =
+                prunedNode.AssociationFromStrengthToPartialTestVectorRepresentations maximumDesiredStrength
+            let overallNumberOfTestVariables =
+                prunedNode.CountTestVariables
+            let randomBehaviour =
+                Random 0
+            let partialTestVectorsInOrderOfDecreasingStrength = // Order by decreasing strength so that high strength vectors get in there
+                                                                // first. Hopefully the lesser strength vectors should have a greater chance
+                                                                // of finding an earlier, larger vector to merge with this way.
+                (seq
+                    {
+                        for partialTestVectorsAtTheSameStrength in associationFromStrengthToPartialTestVectorRepresentations
+                                                                   |> Seq.sortBy (fun keyValuePair -> - keyValuePair.Key)
+                                                                   |> Seq.map (fun keyValuePair -> keyValuePair.Value) do
+                            yield! partialTestVectorsAtTheSameStrength
+                    })
 
-                    let lazilyProduceMergedPartialTestVectors mergedPartialTestVectorRepresentations
-                                                              partialTestVectors =
-                        // TODO: use 'Seq.unfold' here!
-                        seq
-                            {
-                                let locallyModifiedMergedPartialTestVectorRepresentations =
-                                    ref mergedPartialTestVectorRepresentations
+            let lazilyProduceMergedPartialTestVectors mergedPartialTestVectorRepresentations
+                                                      partialTestVectors =
+                // TODO: use 'Seq.unfold' here!
+                seq
+                    {
+                        let locallyModifiedMergedPartialTestVectorRepresentations =
+                            ref mergedPartialTestVectorRepresentations
 
-                                for partialTestVector in partialTestVectors do
-                                    match (!locallyModifiedMergedPartialTestVectorRepresentations: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector with
-                                        updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
-                                        , Some resultingFullTestCaseVector ->
-                                            yield resultingFullTestCaseVector
+                        for partialTestVector in partialTestVectors do
+                            match (!locallyModifiedMergedPartialTestVectorRepresentations: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector with
+                                updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
+                                , Some resultingFullTestCaseVector ->
+                                    yield resultingFullTestCaseVector
 
-                                            locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
-                                      | updatedMergedPartialTestVectorRepresentations
-                                        , None ->
-                                            locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentations
+                                    locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
+                              | updatedMergedPartialTestVectorRepresentations
+                                , None ->
+                                    locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentations
 
-                                yield! (!locallyModifiedMergedPartialTestVectorRepresentations).EnumerationOfMergedTestVectors false
-                            }
+                        yield! (!locallyModifiedMergedPartialTestVectorRepresentations).EnumerationOfMergedTestVectors false
+                    }
 
-                    let lazilyProducedMergedPartialTestVectors =
-                        lazilyProduceMergedPartialTestVectors (MergedPartialTestVectorRepresentations.Initial overallNumberOfTestVariables
-                                                                                                              prunedNode.CombinedFilter)
-                                                              partialTestVectorsInOrderOfDecreasingStrength
+            let lazilyProducedMergedPartialTestVectors =
+                lazilyProduceMergedPartialTestVectors (MergedPartialTestVectorRepresentations.Initial overallNumberOfTestVariables
+                                                                                                      prunedNode.CombinedFilter)
+                                                      partialTestVectorsInOrderOfDecreasingStrength
 
-                    let finalValueCreator =
-                        prunedNode.FinalValueCreator ()
-                    seq
-                        {
-                            for mergedPartialTestVector in lazilyProducedMergedPartialTestVectors  do
-                                match prunedNode.FillOutPartialTestVectorRepresentation mergedPartialTestVector
-                                                                                        randomBehaviour with
-                                    Some fullTestVector ->
-                                        yield (finalValueCreator fullTestVector: 'TestCase)
-                                              , fullTestVector
-                                   | None ->
-                                        ()
-                        }
-              | None ->
-                    Seq.empty
+            let finalValueCreator =
+                prunedNode.FinalValueCreator ()
+            seq
+                {
+                    for mergedPartialTestVector in lazilyProducedMergedPartialTestVectors  do
+                        match prunedNode.FillOutPartialTestVectorRepresentation mergedPartialTestVector
+                                                                                randomBehaviour with
+                            Some fullTestVector ->
+                                yield (finalValueCreator fullTestVector: 'TestCase)
+                                        , fullTestVector
+                          | None ->
+                                ()
+                }
+

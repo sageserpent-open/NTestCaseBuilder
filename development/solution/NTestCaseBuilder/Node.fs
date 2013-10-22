@@ -32,7 +32,7 @@ namespace NTestCaseBuilder
         array<TestVariable<Int32>>
 
     type IFixedCombinationOfSubtreeNodesForSynthesis =
-        abstract Prune: Int32 -> Option<IFixedCombinationOfSubtreeNodesForSynthesis>
+        abstract Prune: Int32 -> Map<Int32, IFixedCombinationOfSubtreeNodesForSynthesis>
 
         abstract Nodes: array<Node>
 
@@ -208,24 +208,30 @@ namespace NTestCaseBuilder
                     TestVariableNode levels ->
                         if Array.isEmpty levels
                         then
-                            None
+                            Map.empty
                         else
-                            Some node
+                            (deferralBudget
+                             , node)
+                            |> Seq.singleton
+                            |> Map.ofSeq
                   | SingletonNode _ as node ->
-                        Some node
+                            (deferralBudget
+                             , node)
+                            |> Seq.singleton
+                            |> Map.ofSeq
                   | InterleavingNode subtreeRootNodes ->
-                        let prunedSubtreeRootNodes =
+                        let mapFromDeferralBudgetToPrunedSubtreeRootNodes =
                             subtreeRootNodes
                             |> List.map walkTree
-                            |> Option<_>.GetFromMany
-                        if Seq.isEmpty prunedSubtreeRootNodes
-                        then
-                            None
-                        else
-                            Some (((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
+                            |> BargainBasement.CollectAcrossMaps
+                        mapFromDeferralBudgetToPrunedSubtreeRootNodes
+                        |> Map.map (fun _
+                                        prunedSubtreeRootNodes ->
+                                        ((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                         fixedCombinationOfSubtreeNodesForSynthesis.Prune deferralBudget
-                        |> Option.map (fun fixedCombinationOfSubtreeNodesForSynthesis ->
+                        |> Map.map (fun deferralBudget
+                                        fixedCombinationOfSubtreeNodesForSynthesis ->
                                         ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
             walkTree this
 
@@ -509,9 +515,9 @@ namespace NTestCaseBuilder
                                 let interleaveTestVariableCombinations firstSequence
                                                                        secondSequence =
                                     randomBehaviour.PickAlternatelyFrom [firstSequence; secondSequence]
-                                BargainBasement.MergeAssociations interleaveTestVariableCombinations
-                                                                  previousAssociationFromStrengthToTestVariableCombinations
-                                                                  associationFromStrengthToTestVariableCombinationsFromSubtree
+                                BargainBasement.MergeMaps interleaveTestVariableCombinations
+                                                          previousAssociationFromStrengthToTestVariableCombinations
+                                                          associationFromStrengthToTestVariableCombinationsFromSubtree
                             let associationFromTestVariableIndexToNumberOfItsLevels =
                                 List.append associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree
                                             previousAssociationFromTestVariableIndexToNumberOfItsLevels
@@ -981,20 +987,23 @@ namespace NTestCaseBuilder
         static member PruneAndCombine subtreeRootNodes
                                       combinePrunedSubtrees
                                       deferralBudget =
-            let prunedSubtreeRootNodes =
+            let mapFromDeferralBudgetToPrunedSubtreeRootNodes =
                 subtreeRootNodes
                 |> List.map (fun (node: Node) ->
                                 node.PruneTree deferralBudget)
-                |> Option<_>.GetFromMany
-            if not (Seq.isEmpty prunedSubtreeRootNodes)
-                && Seq.length prunedSubtreeRootNodes
-                    = Seq.length subtreeRootNodes
-            then
-                prunedSubtreeRootNodes
-                |> combinePrunedSubtrees
-                |> Some
-            else
-                None
+                |> BargainBasement.CollectAcrossMaps
+            seq
+                {
+                    for KeyValue (deferralBudget
+                                  , prunedSubtreeRootNodes) in mapFromDeferralBudgetToPrunedSubtreeRootNodes do
+                        if Seq.length prunedSubtreeRootNodes
+                           = Seq.length subtreeRootNodes
+                        then
+                            yield deferralBudget
+                                  , prunedSubtreeRootNodes
+                                    |> combinePrunedSubtrees
+                }
+            |> Map.ofSeq
 
         static member CreateSynthesizingNode subtreeRootNodes
                                              synthesisDelegate =
