@@ -202,6 +202,19 @@ namespace NTestCaseBuilder
                         maximumPossibleStrength
             walkTree this
 
+        member internal this.PruneTreeForBudgetsUpTo deferralBudget =
+            seq
+                {
+                    for progressiveDeferralBudget in 0 .. deferralBudget do
+                        match this.PruneTree progressiveDeferralBudget with
+                            Some prunedTree ->
+                                yield progressiveDeferralBudget
+                                      , prunedTree
+                          | None ->
+                                ()
+                }
+            |> Map.ofSeq
+
         member this.PruneTree deferralBudget =
             let rec walkTree node =
                 match node with
@@ -224,9 +237,12 @@ namespace NTestCaseBuilder
                         else
                             Some (((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
-                        fixedCombinationOfSubtreeNodesForSynthesis.Prune deferralBudget
-                        |> Option.map (fun fixedCombinationOfSubtreeNodesForSynthesis ->
-                                        ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
+                        optionWorkflow
+                            {
+                                let! fixedCombinationOfSubtreeNodesForSynthesis =
+                                    fixedCombinationOfSubtreeNodesForSynthesis.Prune (deferralBudget - 1)
+                                return ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength
+                            }
             walkTree this
 
         member this.CombinedFilter =
@@ -509,9 +525,9 @@ namespace NTestCaseBuilder
                                 let interleaveTestVariableCombinations firstSequence
                                                                        secondSequence =
                                     randomBehaviour.PickAlternatelyFrom [firstSequence; secondSequence]
-                                BargainBasement.MergeAssociations interleaveTestVariableCombinations
-                                                                  previousAssociationFromStrengthToTestVariableCombinations
-                                                                  associationFromStrengthToTestVariableCombinationsFromSubtree
+                                BargainBasement.MergeMaps interleaveTestVariableCombinations
+                                                          previousAssociationFromStrengthToTestVariableCombinations
+                                                          associationFromStrengthToTestVariableCombinationsFromSubtree
                             let associationFromTestVariableIndexToNumberOfItsLevels =
                                 List.append associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree
                                             previousAssociationFromTestVariableIndexToNumberOfItsLevels
