@@ -47,6 +47,7 @@ namespace NTestCaseBuilder
       | Singleton of Object
       | Interleaving of List<Node>
       | Synthesizing of IFixedCombinationOfSubtreeNodesForSynthesis
+      | Deferral of (unit -> Node)
 
     and Node (kind: NodeKind,
               filters: List<LevelCombinationFilter>,
@@ -100,19 +101,21 @@ namespace NTestCaseBuilder
                                                                     // test variable level index and the corresponding
                                                                     // test variable level for the key's test variable.
     module NodeExtensions =
-        let inline (|TestVariableNode|SingletonNode|InterleavingNode|SynthesizingNode|) (node: Node) =
+        let inline (|TestVariableNode|SingletonNode|InterleavingNode|SynthesizingNode|DeferralNode|) (node: Node) =
             // NASTY HACK: I wish this was written in Scala! There, I said it.
             // Just whingeing about the inability to extend a discriminated union
             // with additional state in F#, which necessitates this hack.
             match node.Kind with
                 TestVariable levels ->
-                    Choice1Of4 levels
+                    Choice1Of5 levels
               | Singleton singletonTestCase ->
-                    Choice2Of4 singletonTestCase
+                    Choice2Of5 singletonTestCase
               | Interleaving subtreeRootNodes ->
-                    Choice3Of4 subtreeRootNodes
+                    Choice3Of5 subtreeRootNodes
               | Synthesizing fixedCombinationOfSubtreeNodesForSynthesis ->
-                    Choice4Of4 fixedCombinationOfSubtreeNodesForSynthesis
+                    Choice4Of5 fixedCombinationOfSubtreeNodesForSynthesis
+              | Deferral deferredNode ->
+                    Choice5Of5 deferredNode
 
         let inline TestVariableNode levels =
             Node (TestVariable levels)
@@ -125,6 +128,9 @@ namespace NTestCaseBuilder
 
         let inline SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis =
             Node (Synthesizing fixedCombinationOfSubtreeNodesForSynthesis)
+
+        let inline DeferralNode deferredNode =
+            Node (Deferral deferredNode)
 
     open NodeExtensions
 
