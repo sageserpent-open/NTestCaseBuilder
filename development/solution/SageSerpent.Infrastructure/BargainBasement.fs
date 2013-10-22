@@ -179,11 +179,16 @@
 
     let CollectAcrossMaps maps =
         let result =
-            maps
-            |> List.map (Map.map (fun _
-                                      associatedItem ->
-                                     [associatedItem]))
-            |> List.reduce (MergeMaps List.append)
+            if maps
+               |> List.isEmpty
+            then
+                Map.empty
+            else
+                maps
+                |> List.map (Map.map (fun _
+                                          associatedItem ->
+                                        [associatedItem]))
+                |> List.reduce (MergeMaps List.append)
         if result
            |> Map.exists (fun _
                               associatedList ->
