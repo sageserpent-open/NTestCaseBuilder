@@ -243,6 +243,13 @@ namespace NTestCaseBuilder
                                     fixedCombinationOfSubtreeNodesForSynthesis.Prune (deferralBudget - 1)
                                 return ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength
                             }
+                  | DeferralNode deferredNode ->
+                        optionWorkflow
+                            {
+                                if 0 < deferralBudget
+                                then
+                                    return! (deferredNode ()).PruneTree (deferralBudget - 1)
+                            }
             walkTree this
 
         member this.CombinedFilter =
