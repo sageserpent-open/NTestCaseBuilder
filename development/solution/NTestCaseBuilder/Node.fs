@@ -1007,37 +1007,42 @@ namespace NTestCaseBuilder
                                       combinePrunedSubtrees
                                       deferralBudget
                                       numberOfDeferralsSpent =
-            let associationListFromDeferralBudgetToGroupOfAlternateListsOfSubtreesWhoseSynthesisConformsToTheBudget =
-                // Think that just about says it all. Might need a bit more descriptive name.
-                let maximumNumberOfDeferralsSpent =
-                    List.maxBy fst
-                    >> fst
-                subtreeRootNodes
-                |> List.map (fun (node: Node) ->
-                                node.PruneTree (deferralBudget,
-                                                numberOfDeferralsSpent))
-                |> List.CrossProduct
-                |> Seq.groupBy maximumNumberOfDeferralsSpent
-                |> Seq.map (fun (maximumNumberOfDeferralsSpent
-                                 , crossProductTerms) ->
-                                maximumNumberOfDeferralsSpent
-                                , crossProductTerms
-                                  |> Seq.map (List.map snd))
-            [
-                for maximumNumberOfDeferralsSpent
-                    , groupOfAlternateListsOfPrunedSubtreeRootNodes in associationListFromDeferralBudgetToGroupOfAlternateListsOfSubtreesWhoseSynthesisConformsToTheBudget do
-                    let alternateSynthesesConformingToBudget =
-                        [
-                            for prunedSubtreeRootNodes in groupOfAlternateListsOfPrunedSubtreeRootNodes do
-                                if Seq.length prunedSubtreeRootNodes
-                                   = Seq.length subtreeRootNodes
-                                then
-                                    yield prunedSubtreeRootNodes
-                                          |> combinePrunedSubtrees
-                        ]
-                    yield maximumNumberOfDeferralsSpent
-                          , alternateSynthesesConformingToBudget
-            ]
+            if subtreeRootNodes
+               |> List.isEmpty
+            then
+                List.empty
+            else
+                let associationListFromDeferralBudgetToGroupOfAlternateListsOfSubtreesWhoseSynthesisConformsToTheBudget =
+                    // Think that just about says it all. Might need a bit more descriptive name.
+                    let maximumNumberOfDeferralsSpent =
+                        List.maxBy fst
+                        >> fst
+                    subtreeRootNodes
+                    |> List.map (fun (node: Node) ->
+                                    node.PruneTree (deferralBudget,
+                                                    numberOfDeferralsSpent))
+                    |> List.CrossProduct
+                    |> Seq.groupBy maximumNumberOfDeferralsSpent
+                    |> Seq.map (fun (maximumNumberOfDeferralsSpent
+                                     , crossProductTerms) ->
+                                    maximumNumberOfDeferralsSpent
+                                    , crossProductTerms
+                                      |> Seq.map (List.map snd))
+                [
+                    for maximumNumberOfDeferralsSpent
+                        , groupOfAlternateListsOfPrunedSubtreeRootNodes in associationListFromDeferralBudgetToGroupOfAlternateListsOfSubtreesWhoseSynthesisConformsToTheBudget do
+                        let alternateSynthesesConformingToBudget =
+                            [
+                                for prunedSubtreeRootNodes in groupOfAlternateListsOfPrunedSubtreeRootNodes do
+                                    if Seq.length prunedSubtreeRootNodes
+                                       = Seq.length subtreeRootNodes
+                                    then
+                                        yield prunedSubtreeRootNodes
+                                              |> combinePrunedSubtrees
+                            ]
+                        yield maximumNumberOfDeferralsSpent
+                              , alternateSynthesesConformingToBudget
+                ]
         static member CreateSynthesizingNode subtreeRootNodes
                                              synthesisDelegate =
             let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
