@@ -123,9 +123,9 @@ namespace NTestCaseBuilder
                 |> List.map (fun (deferralBudget
                                   , prunedHeterogenousCombinationOfFactoriesForSynthesis) ->
                                 deferralBudget
-                                , FixedCombinationOfFactoriesForSynthesis (prunedHeterogenousCombinationOfFactoriesForSynthesis,
+                                , [FixedCombinationOfFactoriesForSynthesis (prunedHeterogenousCombinationOfFactoriesForSynthesis,
                                                                            synthesisFunction)
-                                  :> IFixedCombinationOfSubtreeNodesForSynthesis)
+                                   :> IFixedCombinationOfSubtreeNodesForSynthesis])
 
             member this.Nodes =
                 nodes

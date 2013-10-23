@@ -32,7 +32,7 @@ namespace NTestCaseBuilder
         array<TestVariable<Int32>>
 
     type IFixedCombinationOfSubtreeNodesForSynthesis =
-        abstract Prune: Int32 -> List<Int32 * IFixedCombinationOfSubtreeNodesForSynthesis>
+        abstract Prune: Int32 -> List<Int32 * List<IFixedCombinationOfSubtreeNodesForSynthesis>>
 
         abstract Nodes: array<Node>
 
@@ -233,9 +233,17 @@ namespace NTestCaseBuilder
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
                         fixedCombinationOfSubtreeNodesForSynthesis.Prune deferralBudget
                         |> List.map (fun (deferralBudget
-                                          , fixedCombinationOfSubtreeNodesForSynthesis) ->
+                                          , fixedCombinationsOfSubtreeNodesForSynthesisConformingToThatBudget) ->
+                                        let alternateSynthesesConformingToThatBudget =
+                                            fixedCombinationsOfSubtreeNodesForSynthesisConformingToThatBudget
+                                            |> List.map (fun fixedCombinationOfSubtreeNodesForSynthesis ->
+                                                            ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
                                         deferralBudget
-                                        , ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
+                                        , match alternateSynthesesConformingToThatBudget with
+                                            [uniqueSynthesis] ->
+                                                uniqueSynthesis
+                                          | _ ->
+                                            InterleavingNode alternateSynthesesConformingToThatBudget)
                   | DeferralNode deferredNode ->
                         if 0 = deferralBudget
                         then
@@ -996,22 +1004,36 @@ namespace NTestCaseBuilder
         static member PruneAndCombine subtreeRootNodes
                                       combinePrunedSubtrees
                                       deferralBudget =
-            let associationListFromDeferralBudgetToPrunedSubtreeRootNodes =
+            let associationListFromDeferralBudgetToGroupOfAlternateListsOfSubtreesWhoseSynthesisConformsToTheBudget =
+                // Think that just about says it all. Might need a bit more descriptive name.
+                let maximumNumberOfDeferralsSpent =
+                    List.maxBy fst
+                    >> fst
                 subtreeRootNodes
                 |> List.map (fun (node: Node) ->
                                 node.PruneTree deferralBudget)
-                |> BargainBasement.CollectAcrossSortedAssociationLists
+                |> List.CrossProduct
+                |> Seq.groupBy maximumNumberOfDeferralsSpent
+                |> Seq.map (fun (maximumNumberOfDeferralsSpent
+                                 , crossProductTerms) ->
+                                maximumNumberOfDeferralsSpent
+                                , crossProductTerms
+                                  |> Seq.map (List.map snd))
             [
-                for deferralBudget
-                    , prunedSubtreeRootNodes in associationListFromDeferralBudgetToPrunedSubtreeRootNodes do
-                    if Seq.length prunedSubtreeRootNodes
-                       = Seq.length subtreeRootNodes
-                    then
-                        yield deferralBudget
-                              , prunedSubtreeRootNodes
-                                |> combinePrunedSubtrees
+                for maximumNumberOfDeferralsSpent
+                    , groupOfAlternateListsOfPrunedSubtreeRootNodes in associationListFromDeferralBudgetToGroupOfAlternateListsOfSubtreesWhoseSynthesisConformsToTheBudget do
+                    let alternateSynthesesConformingToBudget =
+                        [
+                            for prunedSubtreeRootNodes in groupOfAlternateListsOfPrunedSubtreeRootNodes do
+                                if Seq.length prunedSubtreeRootNodes
+                                   = Seq.length subtreeRootNodes
+                                then
+                                    yield prunedSubtreeRootNodes
+                                          |> combinePrunedSubtrees
+                        ]
+                    yield maximumNumberOfDeferralsSpent
+                          , alternateSynthesesConformingToBudget
             ]
-
         static member CreateSynthesizingNode subtreeRootNodes
                                              synthesisDelegate =
             let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
