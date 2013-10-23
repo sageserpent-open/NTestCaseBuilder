@@ -36,7 +36,7 @@ namespace NTestCaseBuilder
     /// <seealso cref="FixedCombinationOfFactoriesForSynthesis">Cooperating class from low-level F#-specific API</seealso>
     type SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase> =
         {
-            Prune: Int32 -> Option<SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase>>
+            Prune: Int32 * Int32 -> Option<SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase>>
             ContinuationToApplyResultsFromAllButRightmostFactory: 'SynthesisFunction -> List<FullTestVector> -> 'SynthesizedTestCase
             NodesInRightToLeftOrder: List<Node>
         }
@@ -47,8 +47,10 @@ namespace NTestCaseBuilder
             let rec createSingletonCombination (nodeFromLeftmostFactory: Node) =
                 {
                     Prune =
-                        fun deferralBudget ->
-                            nodeFromLeftmostFactory.PruneTree deferralBudget
+                        fun (deferralBudget
+                             , numberOfDeferralsSpent) ->
+                            nodeFromLeftmostFactory.PruneTree (deferralBudget,
+                                                               numberOfDeferralsSpent)
                             |> Option.map createSingletonCombination
                     ContinuationToApplyResultsFromAllButRightmostFactory =
                         fun synthesisFunction
@@ -73,13 +75,16 @@ namespace NTestCaseBuilder
                                                              combinationOfAllOtherFactories =
                 {
                     Prune =
-                        fun deferralBudget ->
+                        fun (deferralBudget
+                             , numberOfDeferralsSpent) ->
                             optionWorkflow
                                 {
                                     let! prunedNodeFromRightmostFactory =
-                                        nodeFromRightmostFactory.PruneTree deferralBudget
+                                        nodeFromRightmostFactory.PruneTree (deferralBudget
+                                                                            , numberOfDeferralsSpent)
                                     let! prunedCombinationOfAllOtherFactories =
-                                        combinationOfAllOtherFactories.Prune deferralBudget
+                                        combinationOfAllOtherFactories.Prune (deferralBudget
+                                                                              , numberOfDeferralsSpent)
                                     return createCombinationWithExtraRightmostNode prunedNodeFromRightmostFactory
                                                                                    prunedCombinationOfAllOtherFactories
                                 }
@@ -116,11 +121,13 @@ namespace NTestCaseBuilder
             >> heterogenousCombinationOfFactoriesForSynthesis.ContinuationToApplyResultsFromAllButRightmostFactory synthesisFunction
 
         interface IFixedCombinationOfSubtreeNodesForSynthesis with
-            member this.Prune deferralBudget =
+            member this.Prune (deferralBudget
+                               , numberOfDeferralsSpent) =
                 optionWorkflow
                     {
                         let! prunedHeterogenousCombinationOfFactoriesForSynthesis =
-                            heterogenousCombinationOfFactoriesForSynthesis.Prune deferralBudget
+                            heterogenousCombinationOfFactoriesForSynthesis.Prune (deferralBudget
+                                                                                  , numberOfDeferralsSpent)
                         return FixedCombinationOfFactoriesForSynthesis (prunedHeterogenousCombinationOfFactoriesForSynthesis,
                                                                         synthesisFunction)
                                :> IFixedCombinationOfSubtreeNodesForSynthesis
@@ -369,10 +376,12 @@ namespace NTestCaseBuilder
                 let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
                     {
                         new IFixedCombinationOfSubtreeNodesForSynthesis with
-                            member this.Prune deferralBudget =
+                            member this.Prune (deferralBudget,
+                                               numberOfDeferralsSpent) =
                                 Node.PruneAndCombine subtreeRootNodes
                                                      fixedCombinationOfSubtreeNodesForSynthesis
                                                      deferralBudget
+                                                     numberOfDeferralsSpent
 
                             member this.Nodes =
                                 subtreeRootNodes
@@ -527,10 +536,12 @@ namespace NTestCaseBuilder
                 let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
                     {
                         new IFixedCombinationOfSubtreeNodesForSynthesis with
-                            member this.Prune deferralBudget =
+                            member this.Prune (deferralBudget,
+                                               numberOfDeferralsSpent) =
                                 Node.PruneAndCombine subtreeRootNodes
                                                      fixedCombinationOfSubtreeNodesForSynthesis
                                                      deferralBudget
+                                                     numberOfDeferralsSpent
 
                             member this.Nodes =
                                 subtreeRootNodes

@@ -32,7 +32,7 @@ namespace NTestCaseBuilder
         array<TestVariable<Int32>>
 
     type IFixedCombinationOfSubtreeNodesForSynthesis =
-        abstract Prune: Int32 -> Option<IFixedCombinationOfSubtreeNodesForSynthesis>
+        abstract Prune: Int32 * Int32 -> Option<IFixedCombinationOfSubtreeNodesForSynthesis>
 
         abstract Nodes: array<Node>
 
@@ -216,6 +216,11 @@ namespace NTestCaseBuilder
             |> Map.ofSeq
 
         member this.PruneTree deferralBudget =
+            this.PruneTree (deferralBudget
+                            , 0)
+
+        member internal this.PruneTree (deferralBudget,
+                                        numberOfDeferralsSpent) =
             let rec walkTree node =
                 match node with
                     TestVariableNode levels ->
@@ -240,15 +245,17 @@ namespace NTestCaseBuilder
                         optionWorkflow
                             {
                                 let! fixedCombinationOfSubtreeNodesForSynthesis =
-                                    fixedCombinationOfSubtreeNodesForSynthesis.Prune (deferralBudget - 1)
+                                    fixedCombinationOfSubtreeNodesForSynthesis.Prune (deferralBudget,
+                                                                                      numberOfDeferralsSpent)
                                 return ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength
                             }
                   | DeferralNode deferredNode ->
                         optionWorkflow
                             {
-                                if 0 < deferralBudget
+                                if numberOfDeferralsSpent < deferralBudget
                                 then
-                                    return! (deferredNode ()).PruneTree (deferralBudget - 1)
+                                    return! (deferredNode ()).PruneTree (deferralBudget,
+                                                                         1 + numberOfDeferralsSpent)
                             }
             walkTree this
 
@@ -1003,11 +1010,13 @@ namespace NTestCaseBuilder
 
         static member PruneAndCombine subtreeRootNodes
                                       combinePrunedSubtrees
-                                      deferralBudget =
+                                      deferralBudget
+                                      numberOfDeferralsSpent =
             let prunedSubtreeRootNodes =
                 subtreeRootNodes
                 |> List.map (fun (node: Node) ->
-                                node.PruneTree deferralBudget)
+                                node.PruneTree (deferralBudget,
+                                                numberOfDeferralsSpent))
                 |> Option<_>.GetFromMany
             if not (Seq.isEmpty prunedSubtreeRootNodes)
                 && Seq.length prunedSubtreeRootNodes
@@ -1024,10 +1033,12 @@ namespace NTestCaseBuilder
             let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
                 {
                     new IFixedCombinationOfSubtreeNodesForSynthesis with
-                        member this.Prune deferralBudget =
+                        member this.Prune (deferralBudget,
+                                           numberOfDeferralsSpent) =
                             Node.PruneAndCombine subtreeRootNodes
                                                  fixedCombinationOfSubtreeNodesForSynthesis
                                                  deferralBudget
+                                                 numberOfDeferralsSpent
 
                         member this.Nodes =
                             subtreeRootNodes
