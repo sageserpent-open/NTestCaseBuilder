@@ -224,9 +224,19 @@ namespace NTestCaseBuilder
                         else
                             Some (((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
-                        fixedCombinationOfSubtreeNodesForSynthesis.Prune deferralBudget
-                        |> Option.map (fun fixedCombinationOfSubtreeNodesForSynthesis ->
-                                        ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
+                        optionWorkflow
+                            {
+                                let! fixedCombinationOfSubtreeNodesForSynthesis =
+                                    fixedCombinationOfSubtreeNodesForSynthesis.Prune deferralBudget
+                                return ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength
+                            }
+                  | DeferralNode deferredNode ->
+                        optionWorkflow
+                            {
+                                if 0 < deferralBudget
+                                then
+                                    return! (deferredNode ()).PruneTree (deferralBudget - 1)
+                            }
             walkTree this
 
         member this.CombinedFilter =
