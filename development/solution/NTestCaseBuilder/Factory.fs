@@ -235,12 +235,11 @@
             member this.MaximumStrength =
                 seq
                     {
-                        for steppedDeferralBudget in 0 .. deferralBudget do
-                            yield match node.PruneTree steppedDeferralBudget with
-                                    Some prunedNode ->
-                                        prunedNode.MaximumStrengthOfTestVariableCombination
-                                  | None ->
-                                        0
+                        yield match node.PruneTree deferralBudget with
+                                Some prunedNode ->
+                                    prunedNode.MaximumStrengthOfTestVariableCombination
+                              | None ->
+                                    0
                     }
                 |> Seq.max
 
@@ -272,13 +271,8 @@
 
         interface ITypedFactory<'TestCase> with
             member this.CreateEnumerable maximumDesiredStrength =
-                seq
-                    {
-                        for steppedDeferralBudget in 0 .. deferralBudget do
-                            yield! this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
-                                                                                            steppedDeferralBudget
-                                   |> Seq.map fst
-                    }
+                this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
+                |> Seq.map fst
 
             member this.ExecuteParameterisedUnitTestForAllTestCases (maximumDesiredStrength
                                                                      , parameterisedUnitTest: Action<'TestCase>) =
@@ -305,18 +299,16 @@
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
                                                                                                                 , parameterisedUnitTest) =
             let mutable count = 0
-            for steppedDeferralBudget in 0 .. deferralBudget do
-                for testCase
-                    , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
-                                                                                                 steppedDeferralBudget do
-                    try
-                        parameterisedUnitTest testCase
-                        count <- count + 1
-                    with
-                        anyException ->
-                            raise (TestCaseReproductionException (fullTestVector
-                                                                  , steppedDeferralBudget
-                                                                  , anyException))
+            for testCase
+                , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength do
+                try
+                    parameterisedUnitTest testCase
+                    count <- count + 1
+                with
+                    anyException ->
+                        raise (TestCaseReproductionException (fullTestVector
+                                                              , deferralBudget
+                                                              , anyException))
             count
 
         static member private ReproductionStringRegex =
@@ -358,9 +350,8 @@
             else
                 raise (AdmissibleFailureException "Reproduction string is invalid.")
 
-        member private this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
-                                                                                steppedDeferralBudget =
-            match node.PruneTree steppedDeferralBudget with
+        member private this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength =
+            match node.PruneTree deferralBudget with
                 Some prunedNode ->
                     let associationFromStrengthToPartialTestVectorRepresentations
                         , associationFromTestVariableIndexToNumberOfItsLevels =
