@@ -240,7 +240,7 @@ namespace NTestCaseBuilder
                         optionWorkflow
                             {
                                 let! fixedCombinationOfSubtreeNodesForSynthesis =
-                                    fixedCombinationOfSubtreeNodesForSynthesis.Prune (deferralBudget - 1)
+                                    fixedCombinationOfSubtreeNodesForSynthesis.Prune deferralBudget
                                 return ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength
                             }
                   | DeferralNode deferredNode ->
