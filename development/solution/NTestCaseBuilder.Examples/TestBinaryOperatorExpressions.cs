@@ -7,28 +7,30 @@ namespace NTestCaseBuilder.Examples
     [TestFixture]
     internal class TestBinaryOperatorExpressions
     {
-        private static readonly ITypedFactory<Char> OperatorFactory = TestVariable.Create(new[] {'+', '-', '*', '/'});
+        private static readonly ITypedFactory<Char> BinaryOperatorFactory =
+            TestVariable.Create(new[] {'+', '-', '*', '/'});
 
         private static readonly ITypedFactory<String> ConstantFactory = TestVariable.Create(new[] {"0", "1", "2"});
 
-        private static ITypedFactory<String> BuildFactoryRecursively()
+        private static ITypedFactory<String> BuildExpressionFactoryRecursively()
         {
-            var binaryOperatorFactory = Synthesis.Create(Deferral.Create<String>(BuildFactoryRecursively),
-                                                         OperatorFactory,
-                                                         Deferral.Create<String>(BuildFactoryRecursively),
-                                                         (lhsOperand, binaryOperator, rhsOperand) =>
-                                                         String.Format("({0}) {1} ({2})", lhsOperand, binaryOperator,
-                                                                       rhsOperand));
+            var binaryOperatorExpressionFactory =
+                Synthesis.Create(Deferral.Create<String>(BuildExpressionFactoryRecursively),
+                                 BinaryOperatorFactory,
+                                 Deferral.Create<String>(BuildExpressionFactoryRecursively),
+                                 (lhsOperand, binaryOperator, rhsOperand) =>
+                                 String.Format("({0}) {1} ({2})", lhsOperand, binaryOperator,
+                                               rhsOperand));
 
-            return Interleaving.Create(new[] {ConstantFactory, binaryOperatorFactory});
+            return Interleaving.Create(new[] {ConstantFactory, binaryOperatorExpressionFactory});
         }
 
         [Test]
         public void FireUpBinaryOperatorExpressions()
         {
-            const Int32 maximumDepth = 6;
+            const Int32 maximumDepth = 3;
 
-            var expressionFactory = BuildFactoryRecursively().WithDeferralBudgetOf(maximumDepth);
+            var expressionFactory = BuildExpressionFactoryRecursively().WithDeferralBudgetOf(maximumDepth);
 
             const Int32 strength = 3;
 
