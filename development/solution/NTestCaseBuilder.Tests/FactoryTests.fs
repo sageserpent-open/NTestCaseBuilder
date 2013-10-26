@@ -1667,10 +1667,10 @@
 
         [<Test>]
         member this.AdaptedFsCheckExample() =
-            let rec factory (): ITypedFactory<_> =
+            let rec createFactory (): ITypedFactory<_> =
                 Interleaving.Create [
                                         Synthesis.Create(TestVariable.Create [0 .. 3], Leaf);
-                                        Synthesis.Create(Deferral.Create factory, Deferral.Create factory, BinaryDelegate(fun x y -> Branch (x,y)))
+                                        Synthesis.Create(Deferral.Create createFactory, Deferral.Create createFactory, BinaryDelegate(fun x y -> Branch (x,y)))
                                     ]
 
             let maximumDepthOfTree =
@@ -1679,6 +1679,6 @@
             let combinationStrength = 2
 
             let numberOfTestCasesGenerated =
-                (factory().WithDeferralBudgetOf maximumDepthOfTree).ExecuteParameterisedUnitTestForAllTestCases(combinationStrength, Action<Tree>(fun tree -> printf "Tree: %A\n" tree))
+                (createFactory().WithDeferralBudgetOf maximumDepthOfTree).ExecuteParameterisedUnitTestForAllTestCases(combinationStrength, Action<Tree>(fun tree -> printf "Tree: %A\n" tree))
 
             printf "Exercised %A test cases." numberOfTestCasesGenerated
