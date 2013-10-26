@@ -36,34 +36,36 @@ namespace NTestCaseBuilder
     /// <seealso cref="FixedCombinationOfFactoriesForSynthesis">Cooperating class from low-level F#-specific API</seealso>
     type SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase> =
         {
-            ContinuationToApplyResultsFromAllButRightmostFactory: 'SynthesisFunction -> List<FullTestVector> -> List<Node> -> 'SynthesizedTestCase
+            ContinuationToApplyResultsFromAllButRightmostFactory: 'SynthesisFunction -> List<FullTestVector> -> List<Node> -> 'SynthesizedTestCase * List<FullTestVector> * List<Node>
             NodesInRightToLeftOrder: List<Node>
         }
 
-        static member StartWithLeftmostFactory (leftmostFactory: ITypedFactory<'TestCaseFromLeftmostFactory>) =
+        static member StartWithLeftmostFactory (leftmostFactory: ITypedFactory<'TestCaseFromThisFactory>) =
             let nodeFromLeftmostFactory =
                 (leftmostFactory :?> INodeWrapper).Node
             let rec createSingletonCombination (nodeFromLeftmostFactory: Node) =
                 {
                     ContinuationToApplyResultsFromAllButRightmostFactory =
                         fun synthesisFunction
-                            slicesOfFullTestVectorInRightToLeftOrder
-                            nodesInRightToLeftOrder ->
-                                match slicesOfFullTestVectorInRightToLeftOrder
-                                      , nodesInRightToLeftOrder with
-                                    [ sliceOfFullTestVector ]
-                                    , [ node ] ->
-                                        (node.FinalValueCreator () sliceOfFullTestVector: 'TestCaseFromLeftmostFactory)
+                            slicesOfFullTestVector
+                            nodes ->
+                                match slicesOfFullTestVector
+                                      , nodes with
+                                    sliceOfFullTestVectorForThisFactory :: slicesOfFullTestVectorForFactoriesToTheRight
+                                    , nodeFromThisFactory :: nodesFromFactoriesToTheRight ->
+                                        (nodeFromThisFactory.FinalValueCreator () sliceOfFullTestVectorForThisFactory: 'TestCaseFromThisFactory)
                                         |> synthesisFunction
+                                        , slicesOfFullTestVectorForFactoriesToTheRight
+                                        , nodesFromFactoriesToTheRight
                                   | _ ->
-                                        raise (PreconditionViolationException "The rightmost factory expects a single slice of the full test vector in the list of slices.")
+                                        raise (PreconditionViolationException "Must have at least one slice of the full test vector and one node to create a value from it.")
                     NodesInRightToLeftOrder =
                         [ nodeFromLeftmostFactory ]
                 }
             createSingletonCombination nodeFromLeftmostFactory
 
         static member AddFactoryToTheRight (combinationOfAllOtherFactories,
-                                            rightmostFactory: ITypedFactory<'TestCaseFromRightmostFactory>) =
+                                            rightmostFactory: ITypedFactory<'TestCaseFromThisFactory>) =
             let nodeFromRightmostFactory =
                 (rightmostFactory :?> INodeWrapper).Node
             let rec createCombinationWithExtraRightmostNode (nodeFromRightmostFactory: Node)
@@ -71,20 +73,25 @@ namespace NTestCaseBuilder
                 {
                     ContinuationToApplyResultsFromAllButRightmostFactory =
                         fun synthesisFunction
-                            slicesOfFullTestVectorInRightToLeftOrder
-                            nodesInRightToLeftOrder ->
-                                match slicesOfFullTestVectorInRightToLeftOrder
-                                      , nodesInRightToLeftOrder with
-                                    sliceOfFullTestVectorForRightmostFactory :: remainingSlicesOfFullTestVectorForAllButRightmostFactory
-                                    , headNode :: tailNodes ->
-                                        let synthesisFunctionPartiallyAppliedToResultsFromAllButRightmostFactory =
-                                            combinationOfAllOtherFactories.ContinuationToApplyResultsFromAllButRightmostFactory synthesisFunction
-                                                                                                                                remainingSlicesOfFullTestVectorForAllButRightmostFactory
-                                                                                                                                tailNodes
-                                        (headNode.FinalValueCreator () sliceOfFullTestVectorForRightmostFactory: 'TestCaseFromRightmostFactory)
-                                        |> synthesisFunctionPartiallyAppliedToResultsFromAllButRightmostFactory
+                            slicesOfFullTestVector
+                            nodes ->
+                                let synthesisFunctionPartiallyAppliedToResultsFromAllFactoriesToTheLeft
+                                    , remainingSlicesOfFullTestVectorForThisAndFactoriesToTheRight
+                                    , remainingNodesFromThisAndFactoriesToTheRight =
+                                    combinationOfAllOtherFactories.ContinuationToApplyResultsFromAllButRightmostFactory synthesisFunction
+                                                                                                                        slicesOfFullTestVector
+                                                                                                                        nodes
+
+                                match remainingSlicesOfFullTestVectorForThisAndFactoriesToTheRight
+                                      , remainingNodesFromThisAndFactoriesToTheRight with
+                                    sliceOfFullTestVectorForThisFactory :: slicesOfFullTestVectorForFactoriesToTheRight
+                                    , nodeFromThisFactory :: nodesFromFactoriesToTheRight ->
+                                        (nodeFromThisFactory.FinalValueCreator () sliceOfFullTestVectorForThisFactory: 'TestCaseFromThisFactory)
+                                        |> synthesisFunctionPartiallyAppliedToResultsFromAllFactoriesToTheLeft
+                                        , slicesOfFullTestVectorForFactoriesToTheRight
+                                        , nodesFromFactoriesToTheRight
                                   | _ ->
-                                        raise (PreconditionViolationException "The rightmost factory expects a head slice of the full test vector in the list of slices.")
+                                        raise (PreconditionViolationException "Missing at least one slice of the full test vector and one node to create a value from it on the right.")
                     NodesInRightToLeftOrder =
                         nodeFromRightmostFactory :: combinationOfAllOtherFactories.NodesInRightToLeftOrder
                 }
@@ -100,9 +107,13 @@ namespace NTestCaseBuilder
              synthesisFunction) =
 
         let createFinalValueFrom fullTestVector =
-            (fullTestVector
-            |> List.rev
-            |> continuationToApplyResultsFromAllButRightmostFactory synthesisFunction) nodesInRightToLeftOrder
+            let finalValue
+                , _
+                , _ =
+                (continuationToApplyResultsFromAllButRightmostFactory synthesisFunction
+                                                                      fullTestVector) (nodesInRightToLeftOrder
+                                                                                       |> List.rev)
+            finalValue
 
         new (heterogenousCombinationOfFactoriesForSynthesis: SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase>,
              synthesisFunction) =
