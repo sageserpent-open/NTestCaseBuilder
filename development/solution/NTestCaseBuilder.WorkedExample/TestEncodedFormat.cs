@@ -93,9 +93,6 @@ namespace NTestCaseBuilder.WorkedExample
 
         public void ParameterisedUnitTestForEncodingAndDecodingRoundtrip(String testCase)
         {
-            Console.Out.WriteLine(testCase);
-            return;
-
             IDictionary<Char, Int32> histogramFromTestCase = BuildHistogramOfCharacterFrequencies(testCase);
 
             var encodedFormat = new EncodedFormatStage1(testCase);
