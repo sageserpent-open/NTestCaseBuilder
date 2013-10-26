@@ -173,6 +173,47 @@
                                     lhs
                                     rhs
 
-    let MergeAssociations joinAtSameKey lhs rhs =
+    let MergeMaps joinAtSameKey lhs rhs =
         MergeSortedAssociationLists joinAtSameKey (Map.toList lhs) (Map.toList rhs)
+        |> Map.ofList
+
+    let CollectAcrossSortedAssociationLists associationLists =
+        let result =
+            if associationLists
+               |> List.isEmpty
+            then
+                List.empty
+            else
+                associationLists
+                |> List.map (List.map (fun (key
+                                            , associatedItem) ->
+                                        key
+                                        , [associatedItem]))
+                |> List.reduce (MergeSortedAssociationLists List.append)
+        if result
+           |> List.exists (snd >> List.isEmpty)
+        then
+            raise (InternalAssertionViolationException "The associated lists should always have a contribution from at least one map.")
+        result
+
+    let ZipAssociationLists lhs rhs =
+        let rec zipAssociationLists lhs rhs =
+            match lhs
+                    , rhs with
+                ((lhsHeadKey, lhsHeadValue) as lhsHead :: lhsTail)
+                , ((rhsHeadKey, rhsHeadValue) as rhsHead :: rhsTail) ->
+                    match compare lhsHeadKey rhsHeadKey with
+                        result when result < 0 ->
+                            zipAssociationLists lhsTail rhs
+                        | result when result > 0 ->
+                            zipAssociationLists lhs rhsTail
+                        | _ ->
+                            (lhsHeadKey, (lhsHeadValue, rhsHeadValue)) :: zipAssociationLists lhsTail rhsTail
+              | _ ->
+                    []
+
+        zipAssociationLists lhs rhs
+
+    let ZipMaps lhs rhs =
+        ZipAssociationLists (Map.toList lhs) (Map.toList rhs)
         |> Map.ofList

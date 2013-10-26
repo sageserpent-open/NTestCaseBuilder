@@ -1,4 +1,4 @@
-﻿#nowarn "40"
+#nowarn "40"
 
 namespace NTestCaseBuilder
 
@@ -32,7 +32,7 @@ namespace NTestCaseBuilder
         array<TestVariable<Int32>>
 
     type IFixedCombinationOfSubtreeNodesForSynthesis =
-        abstract Prune: Option<IFixedCombinationOfSubtreeNodesForSynthesis>
+        abstract Prune: Int32 * Int32 -> List<Int32 * List<IFixedCombinationOfSubtreeNodesForSynthesis>>
 
         abstract Nodes: array<Node>
 
@@ -47,6 +47,7 @@ namespace NTestCaseBuilder
       | Singleton of Object
       | Interleaving of List<Node>
       | Synthesizing of IFixedCombinationOfSubtreeNodesForSynthesis
+      | Deferral of (unit -> Node)
 
     and Node (kind: NodeKind,
               filters: List<LevelCombinationFilter>,
@@ -100,19 +101,21 @@ namespace NTestCaseBuilder
                                                                     // test variable level index and the corresponding
                                                                     // test variable level for the key's test variable.
     module NodeExtensions =
-        let inline (|TestVariableNode|SingletonNode|InterleavingNode|SynthesizingNode|) (node: Node) =
+        let inline (|TestVariableNode|SingletonNode|InterleavingNode|SynthesizingNode|DeferralNode|) (node: Node) =
             // NASTY HACK: I wish this was written in Scala! There, I said it.
             // Just whingeing about the inability to extend a discriminated union
             // with additional state in F#, which necessitates this hack.
             match node.Kind with
                 TestVariable levels ->
-                    Choice1Of4 levels
+                    Choice1Of5 levels
               | Singleton singletonTestCase ->
-                    Choice2Of4 singletonTestCase
+                    Choice2Of5 singletonTestCase
               | Interleaving subtreeRootNodes ->
-                    Choice3Of4 subtreeRootNodes
+                    Choice3Of5 subtreeRootNodes
               | Synthesizing fixedCombinationOfSubtreeNodesForSynthesis ->
-                    Choice4Of4 fixedCombinationOfSubtreeNodesForSynthesis
+                    Choice4Of5 fixedCombinationOfSubtreeNodesForSynthesis
+              | Deferral deferredNode ->
+                    Choice5Of5 deferredNode
 
         let inline TestVariableNode levels =
             Node (TestVariable levels)
@@ -125,6 +128,9 @@ namespace NTestCaseBuilder
 
         let inline SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis =
             Node (Synthesizing fixedCombinationOfSubtreeNodesForSynthesis)
+
+        let inline DeferralNode deferredNode =
+            Node (Deferral deferredNode)
 
     open NodeExtensions
 
@@ -196,31 +202,56 @@ namespace NTestCaseBuilder
                         maximumPossibleStrength
             walkTree this
 
-        member this.PruneTree =
+        member this.PruneTree deferralBudget =
+            this.PruneTree (deferralBudget
+                            , 0)
+
+        member internal this.PruneTree (deferralBudget,
+                                        numberOfDeferralsSpent) =
             let rec walkTree node =
                 match node with
                     TestVariableNode levels ->
                         if Array.isEmpty levels
                         then
-                            None
+                            List.empty
                         else
-                            Some node
+                            [(numberOfDeferralsSpent
+                             , node)]
                   | SingletonNode _ as node ->
-                        Some node
+                        [(numberOfDeferralsSpent
+                          , node)]
                   | InterleavingNode subtreeRootNodes ->
-                        let prunedSubtreeRootNodes =
+                        let associationListFromDeferralBudgetToPrunedSubtreeRootNodes =
                             subtreeRootNodes
                             |> List.map walkTree
-                            |> Option<_>.GetFromMany
-                        if Seq.isEmpty prunedSubtreeRootNodes
-                        then
-                            None
-                        else
-                            Some (((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
+                            |> BargainBasement.CollectAcrossSortedAssociationLists
+                        associationListFromDeferralBudgetToPrunedSubtreeRootNodes
+                        |> List.map (fun (deferralBudget
+                                          , prunedSubtreeRootNodes) ->
+                                        deferralBudget
+                                        , ((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
-                        fixedCombinationOfSubtreeNodesForSynthesis.Prune
-                        |> Option.map (fun fixedCombinationOfSubtreeNodesForSynthesis ->
-                                        ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
+                        fixedCombinationOfSubtreeNodesForSynthesis.Prune (deferralBudget,
+                                                                          numberOfDeferralsSpent)
+                        |> List.map (fun (deferralBudget
+                                          , fixedCombinationsOfSubtreeNodesForSynthesisConformingToThatBudget) ->
+                                        let alternateSynthesesConformingToThatBudget =
+                                            fixedCombinationsOfSubtreeNodesForSynthesisConformingToThatBudget
+                                            |> List.map (fun fixedCombinationOfSubtreeNodesForSynthesis ->
+                                                            ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
+                                        deferralBudget
+                                        , match alternateSynthesesConformingToThatBudget with
+                                            [uniqueSynthesis] ->
+                                                uniqueSynthesis
+                                          | _ ->
+                                            InterleavingNode alternateSynthesesConformingToThatBudget)
+                  | DeferralNode deferredNode ->
+                        if numberOfDeferralsSpent = deferralBudget
+                        then
+                            List.empty
+                        else
+                            (deferredNode ()).PruneTree (deferralBudget,
+                                                         (1 + numberOfDeferralsSpent))
             walkTree this
 
         member this.CombinedFilter =
@@ -503,9 +534,9 @@ namespace NTestCaseBuilder
                                 let interleaveTestVariableCombinations firstSequence
                                                                        secondSequence =
                                     randomBehaviour.PickAlternatelyFrom [firstSequence; secondSequence]
-                                BargainBasement.MergeAssociations interleaveTestVariableCombinations
-                                                                  previousAssociationFromStrengthToTestVariableCombinations
-                                                                  associationFromStrengthToTestVariableCombinationsFromSubtree
+                                BargainBasement.MergeMaps interleaveTestVariableCombinations
+                                                          previousAssociationFromStrengthToTestVariableCombinations
+                                                          associationFromStrengthToTestVariableCombinationsFromSubtree
                             let associationFromTestVariableIndexToNumberOfItsLevels =
                                 List.append associationFromTestVariableIndexToNumberOfItsLevelsFromSubtree
                                             previousAssociationFromTestVariableIndexToNumberOfItsLevels
@@ -973,30 +1004,56 @@ namespace NTestCaseBuilder
                         finalValueCreator slicesOfFullTestVectorCorrespondingToSubtrees
 
         static member PruneAndCombine subtreeRootNodes
-                                      combinePrunedSubtrees =
-            let prunedSubtreeRootNodes =
-                subtreeRootNodes
-                |> List.map (fun (node: Node) ->
-                                node.PruneTree)
-                |> Option<_>.GetFromMany
-            if not (Seq.isEmpty prunedSubtreeRootNodes)
-                && Seq.length prunedSubtreeRootNodes
-                    = Seq.length subtreeRootNodes
+                                      combinePrunedSubtrees
+                                      deferralBudget
+                                      numberOfDeferralsSpent =
+            if subtreeRootNodes
+               |> List.isEmpty
             then
-                prunedSubtreeRootNodes
-                |> combinePrunedSubtrees
-                |> Some
+                List.empty
             else
-                None
-
+                let associationListFromDeferralBudgetToGroupOfAlternateListsOfSubtreesWhoseSynthesisConformsToTheBudget =
+                    // Think that just about says it all. Might need a bit more descriptive name.
+                    let maximumNumberOfDeferralsSpent =
+                        List.maxBy fst
+                        >> fst
+                    subtreeRootNodes
+                    |> List.map (fun (node: Node) ->
+                                    node.PruneTree (deferralBudget,
+                                                    numberOfDeferralsSpent))
+                    |> List.CrossProduct
+                    |> Seq.groupBy maximumNumberOfDeferralsSpent
+                    |> Seq.map (fun (maximumNumberOfDeferralsSpent
+                                     , crossProductTerms) ->
+                                    maximumNumberOfDeferralsSpent
+                                    , crossProductTerms
+                                      |> Seq.map (List.map snd))
+                [
+                    for maximumNumberOfDeferralsSpent
+                        , groupOfAlternateListsOfPrunedSubtreeRootNodes in associationListFromDeferralBudgetToGroupOfAlternateListsOfSubtreesWhoseSynthesisConformsToTheBudget do
+                        let alternateSynthesesConformingToBudget =
+                            [
+                                for prunedSubtreeRootNodes in groupOfAlternateListsOfPrunedSubtreeRootNodes do
+                                    if Seq.length prunedSubtreeRootNodes
+                                       = Seq.length subtreeRootNodes
+                                    then
+                                        yield prunedSubtreeRootNodes
+                                              |> combinePrunedSubtrees
+                            ]
+                        yield maximumNumberOfDeferralsSpent
+                              , alternateSynthesesConformingToBudget
+                ]
         static member CreateSynthesizingNode subtreeRootNodes
                                              synthesisDelegate =
             let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
                 {
                     new IFixedCombinationOfSubtreeNodesForSynthesis with
-                        member this.Prune =
+                        member this.Prune (deferralBudget,
+                                           numberOfDeferralsSpent) =
                             Node.PruneAndCombine subtreeRootNodes
                                                  fixedCombinationOfSubtreeNodesForSynthesis
+                                                 deferralBudget
+                                                 numberOfDeferralsSpent
 
                         member this.Nodes =
                             subtreeRootNodes

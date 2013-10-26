@@ -50,6 +50,7 @@
     <Compile Include="TestVariable.fs" />
     <Compile Include="Synthesis.fs" />
     <Compile Include="Singleton.fs" />
+    <Compile Include="Deferral.fs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

@@ -6,6 +6,7 @@
     open System.Runtime.Serialization.Formatters.Binary
     open System.IO
     open System.Numerics
+    open System.Text.RegularExpressions
     open SageSerpent.Infrastructure
     open SageSerpent.Infrastructure.RandomExtensions
     open SageSerpent.Infrastructure.IEnumerableExtensions
@@ -47,14 +48,28 @@
             |> unbox
             : FullTestVector
 
-        let makeDescriptionOfReproductionString fullTestVector =
+        let deferralBudgetSeparatorInReproductionString =
+            "@deferred budget of: "
+
+        let makeDescriptionOfReproductionString fullTestVector
+                                                deferralBudget =
+            let fullTestVectorString =
+                (serialize fullTestVector).ToString()
+            let reproductionString =
+                if 0 = deferralBudget
+                then
+                    fullTestVectorString
+                else
+                    fullTestVectorString + deferralBudgetSeparatorInReproductionString + deferralBudget.ToString()
             String.Format ("Encoded text for reproduction of test case follows on next line as C# string:\n\"{0}\"",
-                           (serialize fullTestVector).ToString())
+                           reproductionString)
     open FactoryDetail
 
     type TestCaseReproductionException (fullTestVector
+                                        , deferralBudget
                                         , innerException) =
         inherit Exception (makeDescriptionOfReproductionString fullTestVector
+                                                               deferralBudget
                            , innerException)
 
     /// <summary>A factory that can create an enumerable sequence of test cases used in turn to drive a parameterised
@@ -179,6 +194,9 @@
 
         abstract WithZeroStrengthCost: unit -> IFactory
 
+        abstract WithDeferralBudgetOf: Int32 -> IFactory
+        // By default, the deferral budget is zero - no deferred factories are taken into consideration at all.
+
     /// <summary>This extends the API provided by IFactory to deal with test cases of a specific type given
     /// by the type parameter TestCase.</summary>
     /// <seealso cref="IFactory">The core API provided by the baseclass.</seealso>
@@ -197,10 +215,16 @@
 
         abstract WithZeroStrengthCost: unit -> ITypedFactory<'TestCase>
 
+        abstract WithDeferralBudgetOf: Int32 -> ITypedFactory<'TestCase>
+
     type internal INodeWrapper =
         abstract Node: Node
 
-    type TypedFactoryImplementation<'TestCase> (node: Node) =
+    type TypedFactoryImplementation<'TestCase> (node: Node,
+                                                deferralBudget: Int32) =
+        new (node: Node) =
+            TypedFactoryImplementation(node, 0)
+
         interface INodeWrapper with
             member this.Node = node
 
@@ -211,11 +235,13 @@
                 :> IEnumerable
 
             member this.MaximumStrength =
-                match (this :> INodeWrapper).Node.PruneTree with
-                    Some prunedNode ->
-                        prunedNode.MaximumStrengthOfTestVariableCombination
-                  | None ->
-                        0
+                seq
+                    {
+                        for _
+                            , prunedNode in node.PruneTree deferralBudget do
+                            yield prunedNode.MaximumStrengthOfTestVariableCombination
+                    }
+                |> Seq.max
 
             member this.WithFilter filter =
                 (this :> ITypedFactory<'TestCase>).WithFilter filter
@@ -239,10 +265,20 @@
                 this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest.Invoke
                                                                                                                , reproductionString)
 
+            member this.WithDeferralBudgetOf deferralBudget =
+                (this :> ITypedFactory<'TestCase>).WithDeferralBudgetOf deferralBudget
+                :> IFactory
+
         interface ITypedFactory<'TestCase> with
             member this.CreateEnumerable maximumDesiredStrength =
-                this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength
-                |> Seq.map fst
+                seq
+                    {
+                        for _
+                            , prunedNode in node.PruneTree deferralBudget do
+                            yield! this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector prunedNode
+                                                                                            maximumDesiredStrength
+                                   |> Seq.map fst
+                    }
 
             member this.ExecuteParameterisedUnitTestForAllTestCases (maximumDesiredStrength
                                                                      , parameterisedUnitTest: Action<'TestCase>) =
@@ -255,106 +291,143 @@
                                                                                                                , reproductionString)
 
             member this.WithFilter (filter: LevelCombinationFilter): ITypedFactory<'TestCase> =
-                TypedFactoryImplementation<'TestCase> ((this :> INodeWrapper).Node.WithFilter filter)
+                TypedFactoryImplementation<'TestCase> (node.WithFilter filter)
                 :> ITypedFactory<'TestCase>
 
             member this.WithMaximumStrength maximumStrength =
-                TypedFactoryImplementation<'TestCase> ((this :> INodeWrapper).Node.WithMaximumStrength (Some maximumStrength))
+                TypedFactoryImplementation<'TestCase> (node.WithMaximumStrength (Some maximumStrength))
                 :> ITypedFactory<'TestCase>
 
             member this.WithZeroStrengthCost () =
-                TypedFactoryImplementation<'TestCase> ((this :> INodeWrapper).Node.WithZeroCost ())
+                TypedFactoryImplementation<'TestCase> (node.WithZeroCost ())
+                :> ITypedFactory<'TestCase>
+
+            member this.WithDeferralBudgetOf deferralBudget =
+                TypedFactoryImplementation<'TestCase>(node, deferralBudget)
                 :> ITypedFactory<'TestCase>
 
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
                                                                                                                 , parameterisedUnitTest) =
             let mutable count = 0
-            for testCase
-                , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength do
-                try
-                    parameterisedUnitTest testCase
-                    count <- count + 1
-                with
-                    anyException ->
-                        raise (TestCaseReproductionException (fullTestVector
-                                                              , anyException))
+            for deferralBudget
+                , prunedNode in node.PruneTree deferralBudget do
+                for testCase
+                    , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector prunedNode
+                                                                                                 maximumDesiredStrength do
+                    try
+                        parameterisedUnitTest testCase
+                        count <- count + 1
+                    with
+                        anyException ->
+                            raise (TestCaseReproductionException (fullTestVector
+                                                                  , deferralBudget
+                                                                  , anyException))
             count
+
+        static member private ReproductionStringRegex =
+            Regex (String.Format(@"^(\d+)(?:{0}(\d+))?$",
+                                 Regex.Escape(deferralBudgetSeparatorInReproductionString)))
 
         member private this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest
                                                                                                                       , reproductionString) =
-            match (this :> INodeWrapper).Node.PruneTree with
-                Some prunedNode ->
-                    let fullTestVector =
-                        BigInteger.Parse reproductionString
-                        |> deserialize
-                    let finalValueCreator =
-                        prunedNode.FinalValueCreator ()
-                    let testCase =
-                        finalValueCreator fullTestVector: 'TestCase
-                    parameterisedUnitTest testCase
-              | None ->
-                    ()
+            let regexMatch =
+                TypedFactoryImplementation<_>.ReproductionStringRegex.Match reproductionString
+            if regexMatch.Success
+            then
+                let groups =
+                    regexMatch.Groups
+                let deferralBudget =
+                    let deferralBudgetGroup =
+                        groups.[2]
+                    if deferralBudgetGroup.Success
+                    then
+                        Int32.Parse deferralBudgetGroup.Value
+                    else
+                        0
+                match node.PruneTree deferralBudget
+                      |> List.tryFind (fun (keyDeferralBudget
+                                            , _) ->
+                                            deferralBudget = keyDeferralBudget) with    // Ugly linear search, but it's OK - would
+                                                                                        // need to convert to a more efficient data
+                                                                                        // structure: that would take at least linear
+                                                                                        // time as well.
+                    Some (_
+                         , prunedNode) ->
+                        let fullTestVector =
+                            let fullTestVectorString =
+                                let fullTestVectorStringGroup =
+                                    groups.[1]
+                                fullTestVectorStringGroup.Value
+                            BigInteger.Parse fullTestVectorString
+                            |> deserialize
+                        let finalValueCreator =
+                            prunedNode.FinalValueCreator ()
+                        let testCase =
+                            finalValueCreator fullTestVector: 'TestCase
+                        parameterisedUnitTest testCase
+                  | None ->
+                        raise (AdmissibleFailureException "No factory remains after pruning at the budget implied or given by the reproduction string.")
+            else
+                raise (AdmissibleFailureException "Reproduction string is invalid.")
 
-        member private this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector maximumDesiredStrength =
-            match (this :> INodeWrapper).Node.PruneTree with
-                Some prunedNode ->
-                    let associationFromStrengthToPartialTestVectorRepresentations
-                        , associationFromTestVariableIndexToNumberOfItsLevels =
-                        prunedNode.AssociationFromStrengthToPartialTestVectorRepresentations maximumDesiredStrength
-                    let overallNumberOfTestVariables =
-                        prunedNode.CountTestVariables
-                    let randomBehaviour =
-                        Random 0
-                    let partialTestVectorsInOrderOfDecreasingStrength = // Order by decreasing strength so that high strength vectors get in there
-                                                                        // first. Hopefully the lesser strength vectors should have a greater chance
-                                                                        // of finding an earlier, larger vector to merge with this way.
-                        (seq
-                            {
-                                for partialTestVectorsAtTheSameStrength in associationFromStrengthToPartialTestVectorRepresentations
-                                                                            |> Seq.sortBy (fun keyValuePair -> - keyValuePair.Key)
-                                                                            |> Seq.map (fun keyValuePair -> keyValuePair.Value) do
-                                    yield! partialTestVectorsAtTheSameStrength
-                            })
+        member private this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector prunedNode
+                                                                                maximumDesiredStrength =
+            let associationFromStrengthToPartialTestVectorRepresentations
+                , associationFromTestVariableIndexToNumberOfItsLevels =
+                prunedNode.AssociationFromStrengthToPartialTestVectorRepresentations maximumDesiredStrength
+            let overallNumberOfTestVariables =
+                prunedNode.CountTestVariables
+            let randomBehaviour =
+                Random 0
+            let partialTestVectorsInOrderOfDecreasingStrength = // Order by decreasing strength so that high strength vectors get in there
+                                                                // first. Hopefully the lesser strength vectors should have a greater chance
+                                                                // of finding an earlier, larger vector to merge with this way.
+                (seq
+                    {
+                        for partialTestVectorsAtTheSameStrength in associationFromStrengthToPartialTestVectorRepresentations
+                                                                   |> Seq.sortBy (fun keyValuePair -> - keyValuePair.Key)
+                                                                   |> Seq.map (fun keyValuePair -> keyValuePair.Value) do
+                            yield! partialTestVectorsAtTheSameStrength
+                    })
 
-                    let lazilyProduceMergedPartialTestVectors mergedPartialTestVectorRepresentations
-                                                              partialTestVectors =
-                        // TODO: use 'Seq.unfold' here!
-                        seq
-                            {
-                                let locallyModifiedMergedPartialTestVectorRepresentations =
-                                    ref mergedPartialTestVectorRepresentations
+            let lazilyProduceMergedPartialTestVectors mergedPartialTestVectorRepresentations
+                                                      partialTestVectors =
+                // TODO: use 'Seq.unfold' here!
+                seq
+                    {
+                        let locallyModifiedMergedPartialTestVectorRepresentations =
+                            ref mergedPartialTestVectorRepresentations
 
-                                for partialTestVector in partialTestVectors do
-                                    match (!locallyModifiedMergedPartialTestVectorRepresentations: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector with
-                                        updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
-                                        , Some resultingFullTestCaseVector ->
-                                            yield resultingFullTestCaseVector
+                        for partialTestVector in partialTestVectors do
+                            match (!locallyModifiedMergedPartialTestVectorRepresentations: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector with
+                                updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
+                                , Some resultingFullTestCaseVector ->
+                                    yield resultingFullTestCaseVector
 
-                                            locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
-                                      | updatedMergedPartialTestVectorRepresentations
-                                        , None ->
-                                            locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentations
+                                    locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
+                              | updatedMergedPartialTestVectorRepresentations
+                                , None ->
+                                    locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentations
 
-                                yield! (!locallyModifiedMergedPartialTestVectorRepresentations).EnumerationOfMergedTestVectors false
-                            }
+                        yield! (!locallyModifiedMergedPartialTestVectorRepresentations).EnumerationOfMergedTestVectors false
+                    }
 
-                    let lazilyProducedMergedPartialTestVectors =
-                        lazilyProduceMergedPartialTestVectors (MergedPartialTestVectorRepresentations.Initial overallNumberOfTestVariables
-                                                                                                              prunedNode.CombinedFilter)
-                                                              partialTestVectorsInOrderOfDecreasingStrength
+            let lazilyProducedMergedPartialTestVectors =
+                lazilyProduceMergedPartialTestVectors (MergedPartialTestVectorRepresentations.Initial overallNumberOfTestVariables
+                                                                                                      prunedNode.CombinedFilter)
+                                                      partialTestVectorsInOrderOfDecreasingStrength
 
-                    let finalValueCreator =
-                        prunedNode.FinalValueCreator ()
-                    seq
-                        {
-                            for mergedPartialTestVector in lazilyProducedMergedPartialTestVectors  do
-                                match prunedNode.FillOutPartialTestVectorRepresentation mergedPartialTestVector
-                                                                                        randomBehaviour with
-                                    Some fullTestVector ->
-                                        yield (finalValueCreator fullTestVector: 'TestCase)
-                                              , fullTestVector
-                                   | None ->
-                                        ()
-                        }
-              | None ->
-                    Seq.empty
+            let finalValueCreator =
+                prunedNode.FinalValueCreator ()
+            seq
+                {
+                    for mergedPartialTestVector in lazilyProducedMergedPartialTestVectors  do
+                        match prunedNode.FillOutPartialTestVectorRepresentation mergedPartialTestVector
+                                                                                randomBehaviour with
+                            Some fullTestVector ->
+                                yield (finalValueCreator fullTestVector: 'TestCase)
+                                        , fullTestVector
+                          | None ->
+                                ()
+                }
+
