@@ -36,7 +36,7 @@ namespace NTestCaseBuilder
     /// <seealso cref="FixedCombinationOfFactoriesForSynthesis">Cooperating class from low-level F#-specific API</seealso>
     type SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase> =
         {
-            ContinuationToApplyResultsFromAllButRightmostFactory: 'SynthesisFunction -> List<FullTestVector> -> List<Node> -> 'SynthesizedTestCase * List<FullTestVector> * List<Node>
+            ContinuationToApplyResultsFromAllButRightmostFactory: 'SynthesisFunction -> List<FullTestVector> -> List<Node> -> 'SynthesizedTestCase * List<FullTestVector>
             NodesInRightToLeftOrder: List<Node>
         }
 
@@ -48,17 +48,16 @@ namespace NTestCaseBuilder
                     ContinuationToApplyResultsFromAllButRightmostFactory =
                         fun synthesisFunction
                             slicesOfFullTestVector
-                            nodes ->
+                            nodesInRightToLeftOrder ->
                                 match slicesOfFullTestVector
-                                      , nodes with
+                                      , nodesInRightToLeftOrder with
                                     sliceOfFullTestVectorForThisFactory :: slicesOfFullTestVectorForFactoriesToTheRight
-                                    , nodeFromThisFactory :: nodesFromFactoriesToTheRight ->
+                                    , [ nodeFromThisFactory] ->
                                         (nodeFromThisFactory.FinalValueCreator () sliceOfFullTestVectorForThisFactory: 'TestCaseFromThisFactory)
                                         |> synthesisFunction
                                         , slicesOfFullTestVectorForFactoriesToTheRight
-                                        , nodesFromFactoriesToTheRight
                                   | _ ->
-                                        raise (PreconditionViolationException "Must have at least one slice of the full test vector and one node to create a value from it.")
+                                        raise (PreconditionViolationException "Must have at least one slice of the full test vector and exactly one node to create a value from it.")
                     NodesInRightToLeftOrder =
                         [ nodeFromLeftmostFactory ]
                 }
@@ -74,24 +73,24 @@ namespace NTestCaseBuilder
                     ContinuationToApplyResultsFromAllButRightmostFactory =
                         fun synthesisFunction
                             slicesOfFullTestVector
-                            nodes ->
-                                let synthesisFunctionPartiallyAppliedToResultsFromAllFactoriesToTheLeft
-                                    , remainingSlicesOfFullTestVectorForThisAndFactoriesToTheRight
-                                    , remainingNodesFromThisAndFactoriesToTheRight =
-                                    combinationOfAllOtherFactories.ContinuationToApplyResultsFromAllButRightmostFactory synthesisFunction
-                                                                                                                        slicesOfFullTestVector
-                                                                                                                        nodes
+                            nodesInRightToLeftOrder ->
+                                match nodesInRightToLeftOrder with
+                                    nodeFromThisFactory :: nodesFromFactoriesToTheLeftInRightToLeftOrder ->
+                                        let synthesisFunctionPartiallyAppliedToResultsFromAllFactoriesToTheLeft
+                                            , remainingSlicesOfFullTestVectorForThisAndFactoriesToTheRight =
+                                            combinationOfAllOtherFactories.ContinuationToApplyResultsFromAllButRightmostFactory synthesisFunction
+                                                                                                                                slicesOfFullTestVector
+                                                                                                                                nodesFromFactoriesToTheLeftInRightToLeftOrder
 
-                                match remainingSlicesOfFullTestVectorForThisAndFactoriesToTheRight
-                                      , remainingNodesFromThisAndFactoriesToTheRight with
-                                    sliceOfFullTestVectorForThisFactory :: slicesOfFullTestVectorForFactoriesToTheRight
-                                    , nodeFromThisFactory :: nodesFromFactoriesToTheRight ->
-                                        (nodeFromThisFactory.FinalValueCreator () sliceOfFullTestVectorForThisFactory: 'TestCaseFromThisFactory)
-                                        |> synthesisFunctionPartiallyAppliedToResultsFromAllFactoriesToTheLeft
-                                        , slicesOfFullTestVectorForFactoriesToTheRight
-                                        , nodesFromFactoriesToTheRight
+                                        match remainingSlicesOfFullTestVectorForThisAndFactoriesToTheRight with
+                                            sliceOfFullTestVectorForThisFactory :: slicesOfFullTestVectorForFactoriesToTheRight ->
+                                                (nodeFromThisFactory.FinalValueCreator () sliceOfFullTestVectorForThisFactory: 'TestCaseFromThisFactory)
+                                                |> synthesisFunctionPartiallyAppliedToResultsFromAllFactoriesToTheLeft
+                                                , slicesOfFullTestVectorForFactoriesToTheRight
+                                          | _ ->
+                                                raise (PreconditionViolationException "Missing at least one slice of the full test vector on the right.")
                                   | _ ->
-                                        raise (PreconditionViolationException "Missing at least one slice of the full test vector and one node to create a value from it on the right.")
+                                        raise (PreconditionViolationException "Missing at least one node on the right.")
                     NodesInRightToLeftOrder =
                         nodeFromRightmostFactory :: combinationOfAllOtherFactories.NodesInRightToLeftOrder
                 }
@@ -107,13 +106,10 @@ namespace NTestCaseBuilder
              synthesisFunction) =
 
         let createFinalValueFrom fullTestVector =
-            let finalValue
-                , _
-                , _ =
-                (continuationToApplyResultsFromAllButRightmostFactory synthesisFunction
-                                                                      fullTestVector) (nodesInRightToLeftOrder
-                                                                                       |> List.rev)
-            finalValue
+            continuationToApplyResultsFromAllButRightmostFactory synthesisFunction
+                                                                 fullTestVector
+                                                                 nodesInRightToLeftOrder
+            |> fst
 
         new (heterogenousCombinationOfFactoriesForSynthesis: SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase>,
              synthesisFunction) =
