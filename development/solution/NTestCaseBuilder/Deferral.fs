@@ -10,7 +10,7 @@
                                     deferredFactory.Invoke()
                                 (factory :?> INodeWrapper).Node)
             TypedFactoryImplementation<_> node
-            :> ITypedFactory<_>
+            :> IFactory
 
         static member Create (deferredFactory: Func<ITypedFactory<'TestCase>>) =
             let node =

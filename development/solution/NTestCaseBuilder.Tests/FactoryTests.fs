@@ -143,6 +143,11 @@
                                                                     // actually *creates* a delegate: remember, functional languages *evaluate*
                                                                     // function definitions.
 
+    module StuffForFsCheckAdaptedExample =
+        type Tree = Leaf of Int32 | Branch of Tree * Tree
+
+    open StuffForFsCheckAdaptedExample
+
     type FactoryConstructors<'Factory, 'TestCase> =
         {
             FactoryWithFilterFrom: 'Factory -> LevelCombinationFilter -> 'Factory
@@ -1659,3 +1664,21 @@
             for testCase in expressionFactory.CreateEnumerable combinationStrength
                             |> Seq.take numberOfTestCases do
                 printf "%A\n" testCase
+
+        [<Test>]
+        member this.AdaptedFsCheckExample() =
+            let rec factory (): ITypedFactory<_> =
+                Interleaving.Create [
+                                        Synthesis.Create(TestVariable.Create [0 .. 3], Leaf);
+                                        Synthesis.Create(Deferral.Create factory, Deferral.Create factory, BinaryDelegate(fun x y -> Branch (x,y)))
+                                    ]
+
+            let maximumDepthOfTree =
+                3
+
+            let combinationStrength = 2
+
+            let numberOfTestCasesGenerated =
+                (factory().WithDeferralBudgetOf maximumDepthOfTree).ExecuteParameterisedUnitTestForAllTestCases(combinationStrength, Action<Tree>(fun tree -> printf "Tree: %A\n" tree))
+
+            printf "Exercised %A test cases." numberOfTestCasesGenerated
