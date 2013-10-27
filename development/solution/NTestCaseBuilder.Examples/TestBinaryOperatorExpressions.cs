@@ -37,15 +37,17 @@ namespace NTestCaseBuilder.Examples
         [Test]
         public void FireUpBinaryOperatorExpressions()
         {
-            const Int32 maximumDepth = 3;
+            const Int32 maximumDepth = 2;
 
             var expressionFactory = BuildExpressionFactoryRecursively().WithDeferralBudgetOf(maximumDepth);
 
-            const Int32 strength = 3;
+            const Int32 strength = 2;
 
-            expressionFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
-                                                                          (testCase =>
-                                                                           Console.Out.WriteLine(testCase)));
+            var numberOfTestCasesExercised =
+                expressionFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                              (testCase =>
+                                                                               Console.Out.WriteLine(testCase)));
+            Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
         }
     }
 }
