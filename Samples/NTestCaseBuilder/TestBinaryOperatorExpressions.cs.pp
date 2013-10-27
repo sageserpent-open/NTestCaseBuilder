@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using NTestCaseBuilder;
 using NUnit.Framework;
 
@@ -14,12 +14,21 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
 
         private static ITypedFactory<String> BuildExpressionFactoryRecursively()
         {
+            var subexpressionFactory =
+                Interleaving.Create(new[]
+                                        {
+                                            ConstantFactory,
+                                            Synthesis.Create(
+                                                Deferral.Create<String>(BuildExpressionFactoryRecursively),
+                                                expression => String.Format("({0})", expression))
+                                        });
+
             var binaryOperatorExpressionFactory =
-                Synthesis.Create(Deferral.Create<String>(BuildExpressionFactoryRecursively),
+                Synthesis.Create(subexpressionFactory,
                                  BinaryOperatorFactory,
-                                 Deferral.Create<String>(BuildExpressionFactoryRecursively),
+                                 subexpressionFactory,
                                  (lhsOperand, binaryOperator, rhsOperand) =>
-                                 String.Format("({0}) {1} ({2})", lhsOperand, binaryOperator,
+                                 String.Format("{0} {1} {2}", lhsOperand, binaryOperator,
                                                rhsOperand));
 
             return Interleaving.Create(new[] {ConstantFactory, binaryOperatorExpressionFactory});
@@ -28,15 +37,17 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
         [Test]
         public void FireUpBinaryOperatorExpressions()
         {
-            const Int32 maximumDepth = 3;
+            const Int32 maximumDepth = 2;
 
             var expressionFactory = BuildExpressionFactoryRecursively().WithDeferralBudgetOf(maximumDepth);
 
-            const Int32 strength = 3;
+            const Int32 strength = 2;
 
-            expressionFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
-                                                                          (testCase =>
-                                                                           Console.Out.WriteLine(testCase)));
+            var numberOfTestCasesExercised =
+                expressionFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                              (testCase =>
+                                                                               Console.Out.WriteLine(testCase)));
+            Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
         }
     }
 }
