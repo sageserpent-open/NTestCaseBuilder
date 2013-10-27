@@ -110,6 +110,7 @@
     <Compile Include="Samples\NTestCaseBuilder\IndexedSortedDictionary.cs" />
     <Compile Include="Samples\NTestCaseBuilder\Program.cs" />
     <Compile Include="Samples\NTestCaseBuilder\SortingAlgorithm.cs" />
+    <Compile Include="Samples\NTestCaseBuilder\TestBinaryOperatorExpressions.cs" />
     <Compile Include="Samples\NTestCaseBuilder\TestEncodedFormat.cs" />
     <Compile Include="Samples\NTestCaseBuilder\TestGraphingComponent.cs" />
     <Compile Include="Samples\NTestCaseBuilder\TestSortingAlgorithm.cs" />
