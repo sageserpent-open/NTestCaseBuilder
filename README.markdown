@@ -136,7 +136,7 @@ Note how the sequence gets more complex overall, but jumps around various possib
 	0 * 1
 	0 * 2
 	
-... you can see why this might not be a good idea if we are waiting to see if *1 / 0* blows up - and consider the likes of *2 / ((1 - 1) * 2)*!
+... you can see why this might not be a good idea if we are waiting to see if *1 / 0* blows up - and consider the likes of *2 / (2 / (1 - 1))*!
 	
 
 Longer Sample
