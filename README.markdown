@@ -31,10 +31,118 @@ Install it at project level - it will create (if necessary) a Samples\NTestCaseB
 
 **NOTE:** for both NuGet packages, C5 is installed as a dependency of NTestCaseBuilder; you will need to remove either the C5.Mono.dll or the C5.dll assembly before you can build your project, as the C5 NuGet package installs both by default.
 
-Sample
-------
+Short Sample
+------------
 
-Let's test a couple of sorting algorithms.
+Let's build some test strings to feed to a *very* simple calculator.
+
+This calculator can do arithmetic using binary operators - addition, subtraction, multiplication and division.
+
+It can't do unary negation yet and it doesn't understand operator precedence either - read on and you'll see a more complete example, but for now let's keep it nice and easy.
+
+So we can hit it with:-
+
+	"2"					==> "2"
+	"2 + 1"				==> "3"
+	"0 - 2"				==> "-2"
+	"1 + (2 * 2)"		==> "5"
+
+Rather than get distracted with implementing the calculator and verifying expectations, let's just print out the test strings...
+
+    [TestFixture]
+    internal class TestBinaryOperatorExpressions
+    {
+        private static readonly ITypedFactory<Char> BinaryOperatorFactory =
+            TestVariable.Create(new[] {'+', '-', '*', '/'});
+
+        private static readonly ITypedFactory<String> ConstantFactory = TestVariable.Create(new[] {"0", "1", "2"});
+
+        private static ITypedFactory<String> BuildExpressionFactoryRecursively()
+        {
+            var subexpressionFactory =
+                Interleaving.Create(new[]
+                                        {
+                                            ConstantFactory,
+                                            Synthesis.Create(
+                                                Deferral.Create<String>(BuildExpressionFactoryRecursively),
+                                                expression => String.Format("({0})", expression))
+                                        });
+
+            var binaryOperatorExpressionFactory =
+                Synthesis.Create(subexpressionFactory,
+                                 BinaryOperatorFactory,
+                                 subexpressionFactory,
+                                 (lhsOperand, binaryOperator, rhsOperand) =>
+                                 String.Format("{0} {1} {2}", lhsOperand, binaryOperator,
+                                               rhsOperand));
+
+            return Interleaving.Create(new[] {ConstantFactory, binaryOperatorExpressionFactory});
+        }
+
+        [Test]
+        public void FireUpBinaryOperatorExpressions()
+        {
+            const Int32 maximumDepth = 2;
+
+            var expressionFactory = BuildExpressionFactoryRecursively().WithDeferralBudgetOf(maximumDepth);
+
+            const Int32 strength = 2;
+
+            var numberOfTestCasesExercised =
+                expressionFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                              (testCase =>
+                                                                               Console.Out.WriteLine(testCase)));
+            Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
+        }
+    }
+
+Running this will print out progressively more complex test strings:-
+
+	0 + 0
+	2 * 1
+	1 / 1
+	2 - 1
+	0 / 1
+	1 - 0
+	0 * 2
+	2 / 0
+	0 - 2
+	1 / 2
+	1 + 1
+	1 * 0
+	2 + 2
+	0
+	1
+	2
+	0 + (1 - 2)
+	(1 / 2) - 2
+	(2 + 0) + (0 - 0)
+	0 * (2 / 1)
+	(0 - 1) + (2)
+	(0) * (0 - 1)
+	etc...
+	
+Look carefully at the start - you will see that for any combination of the left hand number and the operator, or the operator and the right hand number, or the left and right hand number, the generated sequence *covers* it. This is because we set the *strength* to be 2 - so any pair of items that can be combined in our resulting test case will be covered.
+
+Note how the sequence gets more complex overall, but jumps around various possibilities within each band of complexity - NTestCaseBuilder tries to decorrelate test cases so that they **don't clump together like this...**
+
+	0
+	1
+	2
+	0 + 0
+	0 + 1
+	0 + 2
+	0 * 0
+	0 * 1
+	0 * 2
+	
+... you can see why this might not be a good idea if we are waiting to see if *1 / 0* blows up - and consider the likes of *2 / ((1 - 1) * 2)*!
+	
+
+Longer Sample
+-------------
+
+Let's thoroughly test a couple of sorting algorithms.
 
 First, the algorithms to test - I'll cheat and just wrap up some existing functionality:-
 
@@ -994,11 +1102,11 @@ Tasks:
 
 1. Publish this via NuGet for immediate consumption of binaries in Visual Studio.	*** DONE ***
 
-2. Add the capability to recursively build up a tree of factories, so that the final generated test cases can be arbitrarily 'long'. The encoding example above is a case in point: it has been arbitrarily limited to just ten characters per string test case, but it should be able to produce longer and longer strings in a lazily-evaluated fashion until the test decides that it has run long enough.
+2. Add the capability to recursively build up a tree of factories, so that the final generated test cases can be arbitrarily 'long'. The encoding example above is a case in point: it has been arbitrarily limited to just ten characters per string test case, but it should be able to produce longer and longer strings in a lazily-evaluated fashion until the test decides that it has run long enough.	*** DONE ***
 
-4. In a similar vein, consider a progressive approach where the strength is increased and again, the sequence is produced via lazy-evaluation; the test can keep going until a time limit is reached.
+3. In a similar vein, consider a progressive approach where the strength is increased and again, the sequence is produced via lazy-evaluation; the test can keep going until a time limit is reached.	*** DONE ***
 
-3. Allow local caps on the strength for subtrees within the tree of factories. This is because we may know that some test variables will have largely independent behaviour, so we can trade off a lower strength of combination for just these variables against having a higher overall strength of combination.
+4. Allow local caps on the strength for subtrees within the tree of factories. This is because we may know that some test variables will have largely independent behaviour, so we can trade off a lower strength of combination for just these variables against having a higher overall strength of combination.	*** DONE ***
 
 4. Integrate with Pex - smooth the path for importing Pex-generated test cases as test-levels for higher-level tests, also for integrating with Pex's notion of a parameterised test.
 
