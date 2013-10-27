@@ -143,6 +143,11 @@
                                                                     // actually *creates* a delegate: remember, functional languages *evaluate*
                                                                     // function definitions.
 
+    module StuffForFsCheckAdaptedExample =
+        type Tree = Leaf of Int32 | Branch of Tree * Tree
+
+    open StuffForFsCheckAdaptedExample
+
     type FactoryConstructors<'Factory, 'TestCase> =
         {
             FactoryWithFilterFrom: 'Factory -> LevelCombinationFilter -> 'Factory
@@ -150,6 +155,7 @@
             SingletonFrom: 'TestCase -> 'Factory
             SynthesisFrom: 'Factory [] -> (List<'TestCase> -> 'TestCase) -> Boolean -> 'Factory
             InterleavingFrom: List<'Factory> -> 'Factory
+            DeferralFrom: 'Factory -> 'Factory 
         }
 
     type PermutationCreation =
@@ -164,6 +170,7 @@
         let maximumNumberOfNonZeroCombinationStrengthSubtrees = 4
         let maximumNumberOfTestLevels = 3
         let maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving = 2;
+        let maximumNumberOfDeferrals = 5
 
         let delegateTypeBuilder =
             BargainBasement.Memoize (CodeGeneration.NAryDelegateTypeBuilder<List<TestVariableLevel>>)
@@ -199,6 +206,11 @@
                 InterleavingFrom =
                     (fun subtrees ->
                         Interleaving.Create subtrees)
+                DeferralFrom =
+                    (fun factory ->
+                        Deferral.Create (fun () ->
+                                            factory)
+                        :> IFactory)
             }
 
         let stronglyTypedFactoryConstructors =
@@ -235,6 +247,10 @@
                 InterleavingFrom =
                     (fun subtrees ->
                         Interleaving.Create subtrees)
+                DeferralFrom =
+                    (fun factory ->
+                        Deferral.Create (fun () ->
+                                            factory))
             }
 
         let testVariableEncodedIndicesPass testVariableLevelEncodedIndices
@@ -252,7 +268,8 @@
                                                                      randomBehaviour
                                                                      allowDuplicatedLevels
                                                                      allowSynthesisToPermuteInputs
-                                                                     ensureContiguousSortedTestVariableIndicesAfterPruning =
+                                                                     ensureContiguousSortedTestVariableIndicesAfterPruning
+                                                                     allowDeferrals =
             // NOTE: the logic that follows is written so that 'allowSynthesisToPermuteInputs' can be set to either true or false without changing
             // the fundamental structure of the generated tree (given all the other parameters are the same, including the underlying mutable state
             // of 'randomBehaviour'). That the tree of factories generated will have the same structure - the only differences being the presence or
@@ -260,11 +277,37 @@
             // factories are simply related by permutation - the tests have to take that statement into account.
             let combinationStrength =
                 (randomBehaviour: Random).ChooseAnyNumberFromOneTo maximumCombinationStrength
-            let rec constructFactoryWithAccompanyingTestVariableCombinations combinationStrength
+            let rec decorateWithDeferralIfRequired combinationStrength
+                                                   testVariableIndexToLevelsMapping
+                                                   numberOfAncestorFactories
+                                                   allowEmptyValueNodes
+                                                   mustHavePermutingSynthesisInTree =
+                let factory
+                    , testVariableCombination
+                    , testVariableIndexToLevelsMapping
+                    , permutationExample
+                    , targetNonSingletonTestVariableCombinations =
+                    constructFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                              testVariableIndexToLevelsMapping
                                                                              numberOfAncestorFactories
                                                                              allowEmptyValueNodes
-                                                                             mustHavePermutingSynthesisInTree =
+                                                                             mustHavePermutingSynthesisInTree
+                if allowDeferrals
+                   && numberOfAncestorFactories < maximumNumberOfDeferrals
+                   && randomBehaviour.HeadsItIs()
+                then
+                    factoryConstructors.DeferralFrom factory
+                else
+                    factory
+                , testVariableCombination
+                , testVariableIndexToLevelsMapping
+                , permutationExample
+                , targetNonSingletonTestVariableCombinations
+            and constructFactoryWithAccompanyingTestVariableCombinations combinationStrength
+                                                                         testVariableIndexToLevelsMapping
+                                                                         numberOfAncestorFactories
+                                                                         allowEmptyValueNodes
+                                                                         mustHavePermutingSynthesisInTree =
                 let indexForLeftmostTestVariable =
                     (testVariableIndexToLevelsMapping: Map<_, _>).Count
                 let considerAddingFilterToFactory factory
@@ -470,13 +513,13 @@
                                         , testVariableIndexToLevelsMappingFromSubtree
                                         , permutationExtentFromSubtree
                                         , targetNonSingletonTestVariableCombinationsFromSubtree =
-                                        constructFactoryWithAccompanyingTestVariableCombinations subtreeCombinationStrength
-                                                                                                                   testVariableIndexToLevelsMapping
-                                                                                                                   (numberOfAncestorFactories + 1)
-                                                                                                                   (allowEmptyValueNodeInSubtree
-                                                                                                                    && not permuteInputsAndForbidPruning)
-                                                                                                                   (mustHavePermutingSynthesisInTreeInSubtree
-                                                                                                                    && not permuteInputsAndForbidPruning)
+                                        decorateWithDeferralIfRequired subtreeCombinationStrength
+                                                                       testVariableIndexToLevelsMapping
+                                                                       (numberOfAncestorFactories + 1)
+                                                                       (allowEmptyValueNodeInSubtree
+                                                                        && not permuteInputsAndForbidPruning)
+                                                                       (mustHavePermutingSynthesisInTreeInSubtree
+                                                                        && not permuteInputsAndForbidPruning)
                                     let remainingSubtrees
                                         , testVariableCombinationsFromRemainingSubtrees
                                         , testVariableIndexToLevelsMappingFromRemainingSubtrees
@@ -651,11 +694,11 @@
                                         , testVariableIndexToLevelsMappingFromSubtree
                                         , permutationExtentFromSubtree
                                         , targetNonSingletonTestVariableCombinationsFromSubtree =
-                                        constructFactoryWithAccompanyingTestVariableCombinations subtreeCombinationStrength
-                                                                                                 testVariableIndexToLevelsMapping
-                                                                                                 (numberOfAncestorFactories + 1)
-                                                                                                 allowEmptyValueNodeInSubtree
-                                                                                                 mustHavePermutingSynthesisInTreeInSubtree
+                                        decorateWithDeferralIfRequired subtreeCombinationStrength
+                                                                       testVariableIndexToLevelsMapping
+                                                                       (numberOfAncestorFactories + 1)
+                                                                       allowEmptyValueNodeInSubtree
+                                                                       mustHavePermutingSynthesisInTreeInSubtree
                                     let remainingSubtrees
                                         , testVariableCombinationsFromRemainingSubtrees
                                         , testVariableIndexToLevelsMappingFromRemainingSubtrees
@@ -723,11 +766,11 @@
                 , testVariableIndexToLevelsMapping
                 , permutationExample
                 , targetNonSingletonTestVariableCombinations =
-                constructFactoryWithAccompanyingTestVariableCombinations combinationStrength
-                                                                         Map.empty
-                                                                         0
-                                                                         false
-                                                                         true
+                decorateWithDeferralIfRequired combinationStrength
+                                               Map.empty
+                                               0
+                                               false
+                                               true
             factory
             , testVariableCombination.Value
             , testVariableIndexToLevelsMapping
@@ -761,10 +804,13 @@
                     , permutationExample
                     , targetNonSingletonTestVariableCombinations =
                     constructFactoryWithAccompanyingTestVariableCombinations weaklyTypedFactoryConstructors
-                                                                                               randomBehaviour
-                                                                                               false
-                                                                                               No
-                                                                                               false
+                                                                             randomBehaviour
+                                                                             false
+                                                                             No
+                                                                             false
+                                                                             true
+                let factory =
+                    factory.WithDeferralBudgetOf maximumNumberOfDeferrals
                 let maximumStrength =
                     randomBehaviour.ChooseAnyNumberFromOneTo factory.MaximumStrength
                 let testVariableCombinationConformingToMaximumStrength =
@@ -802,6 +848,7 @@
                                                                              false
                                                                              Yes
                                                                              false
+                                                                             false
                 let unpermutedFactory
                     , _
                     , _
@@ -811,6 +858,7 @@
                                                                              copiedRandomBehaviourTwo
                                                                              false
                                                                              No
+                                                                             false
                                                                              false
 
                 printf "Permutation example: %A\n" permutationExample
@@ -947,6 +995,7 @@
                                                                              false
                                                                              Yes
                                                                              false
+                                                                             false
 
                 let shouldBeTrue =
                     seq
@@ -1077,6 +1126,7 @@
                                                                                    false
                                                                                    No
                                                                                    false
+                                                                                   false
                 let factoryBasedOnDuplicateLevels
                     , _
                     , _
@@ -1085,6 +1135,7 @@
                                                                                    copiedRandomBehaviourTwo
                                                                                    true
                                                                                    No
+                                                                                   false
                                                                                    false
                 let maximumStrength =
                     factory.MaximumStrength
@@ -1123,6 +1174,7 @@
                                                                              randomBehaviour
                                                                              false
                                                                              No
+                                                                             false
                                                                              false
                 let maximumStrength =
                     factory.MaximumStrength
@@ -1186,6 +1238,9 @@
                                                                              false
                                                                              Randomly
                                                                              false
+                                                                             true
+                let factory =
+                    factory.WithDeferralBudgetOf maximumNumberOfDeferrals
                 let randomStrength =
                     randomBehaviour.ChooseAnyNumberFromOneTo factory.MaximumStrength
                 let randomTestCase =
@@ -1256,6 +1311,7 @@
                                                                              true
                                                                              Randomly
                                                                              true
+                                                                             false
                 for strength in 0 .. typedFactory.MaximumStrength do
                     for _ in typedFactory.CreateEnumerable strength do
                         ()
@@ -1281,6 +1337,9 @@
                                                                              false
                                                                              No
                                                                              false
+                                                                             true
+                let weaklyTypedFactory =
+                    weaklyTypedFactory.WithDeferralBudgetOf maximumNumberOfDeferrals
                 let stronglyTypedFactory
                     , _
                     , _
@@ -1291,6 +1350,9 @@
                                                                              false
                                                                              No
                                                                              false
+                                                                             true
+                let stronglyTypedFactory =
+                    stronglyTypedFactory.WithDeferralBudgetOf maximumNumberOfDeferrals
                 let shouldBeTrue =
                     weaklyTypedFactory.MaximumStrength = stronglyTypedFactory.MaximumStrength
                 for strength in 0 .. weaklyTypedFactory.MaximumStrength do
@@ -1602,3 +1664,21 @@
             for testCase in expressionFactory.CreateEnumerable combinationStrength
                             |> Seq.take numberOfTestCases do
                 printf "%A\n" testCase
+
+        [<Test>]
+        member this.AdaptedFsCheckExample() =
+            let rec createFactory (): ITypedFactory<_> =
+                Interleaving.Create [
+                                        Synthesis.Create(TestVariable.Create [0 .. 3], Leaf);
+                                        Synthesis.Create(Deferral.Create createFactory, Deferral.Create createFactory, BinaryDelegate(fun x y -> Branch (x,y)))
+                                    ]
+
+            let maximumDepthOfTree =
+                3
+
+            let combinationStrength = 2
+
+            let numberOfTestCasesGenerated =
+                (createFactory().WithDeferralBudgetOf maximumDepthOfTree).ExecuteParameterisedUnitTestForAllTestCases(combinationStrength, Action<Tree>(fun tree -> printf "Tree: %A\n" tree))
+
+            printf "Exercised %A test cases." numberOfTestCasesGenerated

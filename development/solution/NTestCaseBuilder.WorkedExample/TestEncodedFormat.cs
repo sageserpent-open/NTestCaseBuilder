@@ -48,6 +48,20 @@ namespace NTestCaseBuilder.WorkedExample
             Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
         }
 
+        [Test]
+        public void TestEncodingAndDecodingRoundtripStage4()
+        {
+            const Int32 maximumStringLength = 5;
+
+            var factory = BuildFactoryRecursivelyUsingDeferral().WithDeferralBudgetOf(maximumStringLength);
+            const Int32 strength = 3;
+
+            var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                                        ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+
+            Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
+        }
+
         public ITypedFactory<String> BuildFactoryRecursively(Int32 maximumStringLength)
         {
             if (0 == maximumStringLength)
@@ -63,6 +77,18 @@ namespace NTestCaseBuilder.WorkedExample
                                                              leftmostCharacterToPrepend + shorterString);
 
             return Interleaving.Create(new[] {_emptyStringFactory, factoryForNonEmptyStrings});
+        }
+
+        public ITypedFactory<String> BuildFactoryRecursivelyUsingDeferral()
+        {
+            var simplerFactoryForShorterStrings = Deferral.Create<String>(BuildFactoryRecursivelyUsingDeferral);
+
+            var factoryForNonEmptyStrings = Synthesis.Create(_factoryForSingleCharacters,
+                                                             simplerFactoryForShorterStrings,
+                                                             (leftmostCharacterToPrepend, shorterString) =>
+                                                             leftmostCharacterToPrepend + shorterString);
+
+            return Interleaving.Create(new[] { _emptyStringFactory, factoryForNonEmptyStrings });
         }
 
         public void ParameterisedUnitTestForEncodingAndDecodingRoundtrip(String testCase)

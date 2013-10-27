@@ -82,7 +82,7 @@
       <HintPath>..\packages\FSharp.Core.4.0.0\lib\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="NTestCaseBuilder">
-      <HintPath>..\packages\NTestCaseBuilder.2.1.1.0\lib\net40\NTestCaseBuilder.dll</HintPath>
+      <HintPath>..\packages\NTestCaseBuilder.2.2.0.0\lib\net40\NTestCaseBuilder.dll</HintPath>
     </Reference>
     <Reference Include="nunit.framework, Version=2.6.3.13283, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -103,7 +103,7 @@
       <HintPath>..\packages\QuickGraph.3.6.61119.7\lib\net4\QuickGraph.Serialization.dll</HintPath>
     </Reference>
     <Reference Include="SageSerpent.Infrastructure">
-      <HintPath>..\packages\NTestCaseBuilder.2.1.1.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
+      <HintPath>..\packages\NTestCaseBuilder.2.2.0.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -123,6 +123,7 @@
     <Compile Include="GraphDisplayWindow.xaml.cs">
       <DependentUpon>GraphDisplayWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="TestBinaryOperatorExpressions.cs" />
     <Compile Include="Vertex.cs" />
     <Compile Include="IndexedSortedDictionary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
