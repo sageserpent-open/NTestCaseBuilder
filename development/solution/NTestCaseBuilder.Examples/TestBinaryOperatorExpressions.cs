@@ -14,12 +14,21 @@ namespace NTestCaseBuilder.Examples
 
         private static ITypedFactory<String> BuildExpressionFactoryRecursively()
         {
+            var subexpressionFactory =
+                Interleaving.Create(new[]
+                                        {
+                                            ConstantFactory,
+                                            Synthesis.Create(
+                                                Deferral.Create<String>(BuildExpressionFactoryRecursively),
+                                                expression => String.Format("({0})", expression))
+                                        });
+
             var binaryOperatorExpressionFactory =
-                Synthesis.Create(Deferral.Create<String>(BuildExpressionFactoryRecursively),
+                Synthesis.Create(subexpressionFactory,
                                  BinaryOperatorFactory,
-                                 Deferral.Create<String>(BuildExpressionFactoryRecursively),
+                                 subexpressionFactory,
                                  (lhsOperand, binaryOperator, rhsOperand) =>
-                                 String.Format("({0}) {1} ({2})", lhsOperand, binaryOperator,
+                                 String.Format("{0} {1} {2}", lhsOperand, binaryOperator,
                                                rhsOperand));
 
             return Interleaving.Create(new[] {ConstantFactory, binaryOperatorExpressionFactory});
