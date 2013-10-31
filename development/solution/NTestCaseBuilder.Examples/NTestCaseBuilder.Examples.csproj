@@ -100,7 +100,10 @@
     <Compile Include="GraphDisplayWindow.xaml.cs">
       <DependentUpon>GraphDisplayWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="TestBinaryOperatorExpressions.cs" />
+    <Compile Include="TestBinaryOperatorExpressions.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TestCalculator.cs" />
     <Compile Include="Vertex.cs" />
     <Compile Include="IndexedSortedDictionary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
