@@ -50,26 +50,26 @@ namespace NTestCaseBuilder.Examples
                     BinaryExpressionFrom
                     );
 
-            var nonNegatedExpressionFactory =
-                Interleaving.Create(new[] {ConstantFactory, binaryOperatorExpressionFactory});
+            var negatedExpressionFactory = Synthesis.Create(
+                Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
+                expression =>
+                Tuple.Create(
+                    expression.Item1,
+                    String.Format(
+                        directlyToTheRightOfABinaryOperator ? "(-{0})" : "-{0}",
+                        expression.Item2)));
 
+            var bracketedExpressionFactory = Synthesis.Create(
+                Deferral.Create(() => BuildExpressionFactoryRecursively(false)),
+                expression =>
+                Tuple.Create(false,
+                             String.Format("({0})", expression.Item2)));
             return
                 Interleaving.Create(new[]
                                         {
-                                            nonNegatedExpressionFactory,
-                                            Synthesis.Create(
-                                                Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
-                                                expression =>
-                                                Tuple.Create(
-                                                    expression.Item1,
-                                                    String.Format(
-                                                        directlyToTheRightOfABinaryOperator ? "(-{0})" : "-{0}",
-                                                        expression.Item2))),
-                                            Synthesis.Create(
-                                                Deferral.Create(() => BuildExpressionFactoryRecursively(false)),
-                                                expression =>
-                                                Tuple.Create(false,
-                                                             String.Format("({0})", expression.Item2)))
+                                            ConstantFactory, binaryOperatorExpressionFactory,
+                                            negatedExpressionFactory,
+                                            bracketedExpressionFactory
                                         });
         }
 
