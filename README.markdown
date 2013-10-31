@@ -638,12 +638,12 @@ Taking these italicesed terms and applying them to the breakdown above yields a 
 																										-	Test Variable (of the 'Bar' constructor parameter with 3 levels
 																											               - closed, normal business and taking last orders)
 								-	Synthesis (of a sequence of Operation)
-															- 	Test Variable (of an 'Operation' with two levels - execute 'DoThis()' and execute 'DoThat()')
-															-	Test Variable (ditto)
-															-	Test Variable (ditto)
-															-	Test Variable (ditto)
+															- 	TestVariable (of an 'Operation' with two levels - execute 'DoThis()' and execute 'DoThat()')
+															-	TestVariable (ditto)
+															-	TestVariable (ditto)
+															-	TestVariable (ditto)
 
-NTestCaseBuilder realises such conceptual trees as trees of *test case factories* - each factory can be either a *synthesizing factory*, an *interleaving factory*, a *test variable level factory* or a *singleton factory*.
+NTestCaseBuilder realises such conceptual trees as trees of *test case factories* - each factory can be either a *synthesizing factory*, an *interleaving factory*, a *test variable factory* or a *singleton factory*.
 
 A factory has two roles:-
 
@@ -761,11 +761,9 @@ So the string, "Madam, I'm Adam" would be reconstructed as:-
 
 Where the question mark denotes a placeholder for a missing character.
 
-We'll write the test for this up-front as a parameterised unit test, and design the API at the same time. Then we'll implement it and see how it fares against the unit test, and see how NTestCaseBuilder can help us in the process.
+We'll write the test for this up-front as a parameterised unit test, and design the encoding and decoding API at the same time.
 
-Actually, *we'll* do the first part together on this document, and *I'll* go off and code the second part as a series of commits in this repository; these will go in the directory 'development\solution\SageSerpent.NTestCaseBuilder.WorkedExample' and will be tagged; with the benefit of hindsight, you can then watch me as I made mistakes and went through the debugging process.
-
-The objective is for you to see some source code that uses NTestCaseBuilder to generate test cases, as well as the use of signatures to create one-off tests for debugging and a special test variable level factory for subsequent higher-level testing.
+The objective is for you to see some source code that uses NTestCaseBuilder to generate test cases.
 
 
 Our parameterised unit test simply takes a string as its parameter - for each string, it encodes it into the encoded format, then progressively decodes the format, checking the partially decoded result against the original string. We know how many steps the progressive decoding will take, because we can count the number of occurrances of each character in the original string in a histogram.
@@ -875,7 +873,7 @@ Our parameterised unit test looks like this:-
 
 For this parameterised unit test, the test case is exactly the system under test - a string to be encoded and decoded. We don't need to add any operations into the test case, because I've deliberately made the API simple enough for the unit test to completely cover the possibilities.
 
-(Actually, not quite - can you spot the untested possibility? It is one whose testing could reasonably be neglected by making some obvious implementation decisions - I'll leave it for you to think about what's missing and how you'd either write a test for it, or just design it out in the implementation. Hint: look at 'CreateNewDecoder()' and think about how it could be misused.)
+(Actually, not quite - can you spot the untested possibility? It is one whose testing could reasonably be neglected by making an obvious implementation decision - I'll leave it for you to think about what's missing and whether you would write a test for it, or just design it out in the implementation. Hint: look at 'CreateNewDecoder()' and think about how it could be misused. Where is the decoding state maintained?)
 
 The method 'ParameterisedUnitTestForEncodingAndDecodingRoundtrip()' is the actual parameterised unit test; the method 'TestEncodingAndDecodingRoundtripStage1' is a simple NUnit test that serves as a driver for it. To start with, we only have one test case - the empty string.
 
@@ -980,8 +978,212 @@ I'll do this so I can make good on that wager I made beforehand when I've finish
 
 It's really just there as a 'feel-good-factor' when you've got your system under test debugged to the point where all the test cases go through with a pass. The 'green-bar moment', if you know what I mean.
 
+Alright, here are the spoilers: once the parameterised unit test passes for all the test cases, NTestCaseBuilder reports back that it got coverage with 38446 test cases - a lot better than my sloppy estimate of 105456, and way better than the original brute force cost of 11881376.
+
+Don't forget that this also includes shorter strings of length < 5 (which the brute force cost doesn't - it would have been a whopping 308915775 if we'd included those as well).
+
+To summarise:-
+
+NTestCaseBuilder - strings of length <= 5 ----->  38 thousand
+Sloppy estimate  - strings of length == 5 -----> 105 thousand
+Brute force      - strings of length == 5 ----->  11 million
+Brute force      - strings of length <= 5 -----> 308 million
+
+Advanced Stuff: Deferrals
+-------------------------
+
+Looking at the encoding / decoding example above, we had to make sure that we didn't build strings longer than 5 characters - specifically, we had to stop the recursion in 'BuildFactoryRecursively' from running out of control.
+
+So we kept track of the recursion depth via the argument 'maximumStringLength' and wrote some guard logic to bottom out the recursion. This is correct, but rather annoying - conceptually at least, we should be able to imagine the recursion carrying on and on, making ever more complex test cases. Whether one wants all these extra test cases is debatable once a certain length has been reached, but the extra guard logic is annoying - it would be nicer to simply state that a string can be an empty string or 1 character prepended on to a shorter string, and just leave it at that.
+
+NTestCaseBuilder could then be told to generate test cases up to some limit we would apply as a control parameter to the factory - so no more guard logic!
+
+We can do this - we simply write the recursion out without any guard logic whatsoever (so the recursion doesn't appear to terminate) - the trick is to wrap the recursion within a *deferral*.
+
+Like this:-
+
+	[Test]
+	public void TestEncodingAndDecodingRoundtripStage4()
+	{
+		const Int32 maximumStringLength = 5;
+
+		var factory = BuildFactoryRecursivelyUsingDeferral().WithDeferralBudgetOf(maximumStringLength);
+		const Int32 strength = 3;
+
+		var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+																					ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+
+		Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
+	}
+
+	public ITypedFactory<String> BuildFactoryRecursivelyUsingDeferral()
+	{
+		var simplerFactoryForShorterStrings = Deferral.Create<String>(BuildFactoryRecursivelyUsingDeferral);
+
+		var factoryForNonEmptyStrings = Synthesis.Create(_factoryForSingleCharacters,
+														 simplerFactoryForShorterStrings,
+														 (leftmostCharacterToPrepend, shorterString) =>
+														 leftmostCharacterToPrepend + shorterString);
+
+		return Interleaving.Create(new[] { _emptyStringFactory, factoryForNonEmptyStrings });
+	}
+	
+See how the code for building the factory has simplified - there is no guard logic at the start to terminate recursion.
+
+A new kind of factory is introduced here - a deferral factory. This has a single argument: a delegate or lambda expression that itself has no arguments and creates a factory when invoked; this represents a factory whose creation is deferred until necessary.
+
+What NTestCaseBuilder will do is to start working with the factory tree without the deferred part, creating simple test cases - in this case, an empty string.
+
+Once the empty string has been created, NTestCaseBuilder steps up the complexity of the test cases by creating the deferred factory - it calls the delegate or lambda passed as parameter to the deferral factory.
+
+This adds a new section of child factories on to the overall factory tree - including a second deferral, because the deferred factory is itself built by recursion. This allows strings of length 1 to be built, so NTestCaseBuilder does that until it exhausts the possibilities.
+
+The next step in complexity brings in a third deferral, and so on - but once strings of length 4 are being generated, NTestCaseBuilder will not exhaustively create them, because of the strength limit of 3 we have placed on the top-level factory that we use to drive the test.
+
+You might think that this test would run on forever, but it does not - the call '.WithDeferralBudgetOf(maximumStringLength)' on the top-level factory imposes a cap on the complexity of the test cases - the deferral budget is the maximum number of deferrals that NTestCaseBuilder can 'activate' to deepen the factory tree, counting down from the top-level node.
+
+This is what makes the string length top out at 5 in this example.
+
+If you forget to call 'WithDeferralBudget', don't worry: the cap is zero by default - so you won't see any deferrals activate and your test cases will all be simple ones.
+
+This count is always computed along a path from the top-level factory to whatever deferral is being considered, so we can also use deferrals in parallel on sibling factories. NTestCaseBuilder is smart enough to consider possibilities where one sibling subtree has deepened via an activated deferral, while another one is still pending.
+
+To see what I mean, let's revisit the short sample from before - we'll add in support for negation, and make the use a brackets optional by handling operator precedence:
+
+    [TestFixture]
+    internal class TestCalculator
+    {
+        private static readonly ITypedFactory<Char> BinaryOperatorFactory =
+            TestVariable.Create(new[] {'+', '-', '*', '/'});
+
+        private static readonly ITypedFactory<Tuple<Boolean, String>> ConstantFactory =
+            Synthesis.Create(TestVariable.Create(new[] {"0", "1", "2"}), constant => Tuple.Create(false, constant));
+
+        private static Tuple<Boolean, String> BinaryExpressionFrom(Tuple<Boolean, String> lhs,
+                                                                   Tuple<Boolean, String> rhs,
+                                                                   Char binaryOperator)
+        {
+            switch (binaryOperator)
+            {
+                case '*':
+                case '/':
+                    {
+                        var lhsWithCorrectPrecendence =
+                            lhs.Item1 ? String.Format("({0})", lhs.Item2) : lhs.Item2;
+                        var rhsWithCorrectPrecendence =
+                            rhs.Item1 ? String.Format("({0})", rhs.Item2) : rhs.Item2;
+
+                        return Tuple.Create(false,
+                                            String.Format("{0} {1} {2}", lhsWithCorrectPrecendence, binaryOperator,
+                                                          rhsWithCorrectPrecendence));
+                    }
+                default:
+                    {
+                        return Tuple.Create(true,
+                                            String.Format("{0} {1} {2}", lhs.Item2, binaryOperator, rhs.Item2));
+                    }
+            }
+        }
+
+        private static ITypedFactory<Tuple<Boolean, String>> BuildExpressionFactoryRecursively(
+            Boolean directlyToTheRightOfABinaryOperator)
+        {
+            var binaryOperatorExpressionFactory =
+                Synthesis.Create(
+                    Deferral.Create(() => BuildExpressionFactoryRecursively(directlyToTheRightOfABinaryOperator)),
+                    Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
+                    BinaryOperatorFactory,
+                    BinaryExpressionFrom
+                    );
+
+            var negatedExpressionFactory = Synthesis.Create(
+                Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
+                expression =>
+                Tuple.Create(
+                    expression.Item1,
+                    String.Format(
+                        directlyToTheRightOfABinaryOperator ? "(-{0})" : "-{0}",
+                        expression.Item2)));
+
+            var bracketedExpressionFactory = Synthesis.Create(
+                Deferral.Create(() => BuildExpressionFactoryRecursively(false)),
+                expression =>
+                Tuple.Create(false,
+                             String.Format("({0})", expression.Item2)));
+            return
+                Interleaving.Create(new[]
+                                        {
+                                            ConstantFactory, binaryOperatorExpressionFactory,
+                                            negatedExpressionFactory,
+                                            bracketedExpressionFactory
+                                        });
+        }
+
+        [Test]
+        public void FireUpCalculators()
+        {
+            const Int32 maximumDepth = 3;
+
+            var expressionFactory = BuildExpressionFactoryRecursively(false).WithDeferralBudgetOf(maximumDepth);
+
+            const Int32 strength = 2;
+
+            var numberOfTestCasesExercised =
+                expressionFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                              (testCase =>
+                                                                               Console.Out.WriteLine(testCase.Item2)));
+            Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
+        }
+    }
 
 
+NTestCaseBuilder will create test cases in waves of increasing complexity as it increases the deferral budget up to the cap supplied.
+
+Within a wave, the test cases will be decorrelated - the idea is to mix them up so that test levels don't just vary for one test variable at a time as we jump from one test case to the next. Rather, they are mixed up in a deliberately haphazard way.
+
+You can see that in the test cases generated by the example above:-
+
+To start with, no deferrals...
+
+	0
+	1
+	2
+
+End of the first wave - now allow one level of deferrals to be activated. We see binary operators, simple negation and bracketing competing...
+
+	2 / 1
+	0 - 1
+	0 + 0
+	0 * 2
+	1 / 0
+	1 - 2
+	2 - 0
+	1 * 1
+	2 / 2
+	1 + 1
+	2 * 0
+	2 + 2
+	(0)
+	-0
+	(1)
+	-1
+	(2)
+	-2
+	0 / 0
+
+End of the second wave - now allow two levels of deferrals to be activated. We can see mixing of negation, binary operator and bracketing in the same test case now...
+
+	-1 - 2			NTestCaseBuilder used the full budget of two deferrals to make the lhs term, but only one for the rhs term.
+	-2 * (-1)		Here, both the lhs and rhs use the full budget of two deferrals.
+	0 / 1 / 0
+	(1) / 1
+	2 / (2)			The lhs just uses one deferral, the rhs takes the full budget of two deferrals.
+	-1 + 2 + 2
+	-0 + 2
+	0 - (-0)
+	2 * 1 - 2
+	
+So you can see how trees of deferrals can lead to both 'balanced' and 'lopsided' test cases.	
 
 How do I install this thing?
 ----------------------------
