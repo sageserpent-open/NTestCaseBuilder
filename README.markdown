@@ -628,7 +628,7 @@ Note that unlike the usual usage of the work 'singleton', we do not insist that 
 
 The other way of making a 'Foo' is to supply a 'Bar' - if we have a constructor (again, not shown in the code snippet above) for 'Bar' that takes a parameter describing whether the 'Bar' is closed, doing normal business or is taking last orders, then we could represent this as a synthesis of a 'Foo' from a 'Bar' which in turn is synthesized from a test variable with three levels.
 
-Taking these italicesed terms and applying them to the breakdown above yields a conceptual tree:
+Taking these italicised terms and applying them to the breakdown above yields a conceptual tree:
 
 	Synthesis (of a TestCase)
 								-	Interleaving (of a Foo)
@@ -661,7 +661,7 @@ That wasn't really a complex example - one can realistically imagine, say 20 tes
 That's rather a lot of test cases - do we really need all of them?
 
 
-Let's think about how likely a bug is going to be manifest when we run our parameterised test repeatedly over all 95367431640625 test cases. Let's say that we've already fixed the low-hanging bugs that occur straightaway for just about any choice of test case.
+Let's think about how likely a bug is going to be manifest when we run our parameterised test repeatedly over all 95367431640625 test cases. Let's say that we've already fixed the low-hanging bugs that occur straight away for just about any choice of test case.
 
 When I say 'low-hanging bugs', I mean things like:-
 
@@ -675,7 +675,7 @@ Typically, a smoke test will expose most of these kinds of errors (and this is w
 
 So at this point we have an implementation for our component under test that seems to work - it would certainly pass a smoke test coded in the style shown right at the beginning, and would probably survive an 'executable-documentation' unit test too.
 
-We then expect that our parameteried unit test will be repeatedly called with each new test case, and will repeatedly succeed, until at some point - **KERBOOM**: test failure!
+We then expect that our parameterised unit test will be repeatedly called with each new test case, and will repeatedly succeed, until at some point - **KERBOOM**: test failure!
 
 So the failing test case contains a magic combination of levels for its test variables that cause the component to fail. Is it likely that **all** of the test variables contribute to the failure? All 20 of them?
 
@@ -744,7 +744,7 @@ Walk me through an example!
 
 Let's test a component that encodes text strings. A reverse decoding of the encoded format back to the original string is also supported.
 
-The encoded format will support the ability to progressively reconstruct the original string as the sequence is received; for each character occurring at least once in the original string, the reconstruction will fill in all of the occurrances of that character in the decoded string in each progressive step.
+The encoded format will support the ability to progressively reconstruct the original string as the sequence is received; for each character occurring at least once in the original string, the reconstruction will fill in all of the occurrences of that character in the decoded string in each progressive step.
 
 So the string, "Madam, I'm Adam" would be reconstructed as:-
 
@@ -766,7 +766,7 @@ We'll write the test for this up-front as a parameterised unit test, and design 
 The objective is for you to see some source code that uses NTestCaseBuilder to generate test cases.
 
 
-Our parameterised unit test simply takes a string as its parameter - for each string, it encodes it into the encoded format, then progressively decodes the format, checking the partially decoded result against the original string. We know how many steps the progressive decoding will take, because we can count the number of occurrances of each character in the original string in a histogram.
+Our parameterised unit test simply takes a string as its parameter - for each string, it encodes it into the encoded format, then progressively decodes the format, checking the partially decoded result against the original string. We know how many steps the progressive decoding will take, because we can count the number of occurrences of each character in the original string in a histogram.
 
 Our API just needs to create an encoded representation from a string, and then allow progressive decoding. How about this:-
 
@@ -785,11 +785,11 @@ Our API just needs to create an encoded representation from a string, and then a
         {
             /// <summary>
             /// Carries out a step of the progressive decoding of the format.
-            /// At each step, all of the occurrances of some character in the original encoded
+            /// At each step, all of the occurrences of some character in the original encoded
             /// string will be decoded and placed into a string builder at their original
             /// locations. Each step deals with a unique character in the original string.
             /// </summary>
-            /// <param name="builderForPartiallyDecodedString">A non-null string builder for the partially decoded result. This is modified on each call, and is intended to be reused across successive calls to this method to achieve a progressive decoding. Can be set up arbitrarily; will be resized to accomodate the need for additional characters, or will be trimmed if too long. Any existing characters not placed into the buffer by a previous call to this method will eventually be overwritten or truncated over a progressive series of calls.</param>
+            /// <param name="builderForPartiallyDecodedString">A non-null string builder for the partially decoded result. This is modified on each call, and is intended to be reused across successive calls to this method to achieve a progressive decoding. Can be set up arbitrarily; will be resized to accommodate the need for additional characters, or will be trimmed if too long. Any existing characters not placed into the buffer by a previous call to this method will eventually be overwritten or truncated over a progressive series of calls.</param>
             /// <returns>True if 'builderForPartiallyDecodedString' contains the completely decoded string, false if there is more decoding to follow.</returns>
             public Boolean DecodeIntoAndReportIfCompleted(StringBuilder builderForPartiallyDecodedString)
             {
@@ -894,13 +894,13 @@ Our parameterised unit test remains unchanged, but the driver now creates a fact
 
 If we run this test, the stubbed implementation of 'EncodedFormat' promptly throws an exception - if you run under the debugger or use NUnit's logging to capture the output, you will see that NTestCaseBuilder has intercepted the exception and wrapped it inside a 'TestCaseReproductionException'.
 
-This exception refers internally to the original exception - in this case, a 'NotImplementedException' that came from the stubbed implementation. It also adds a *reproduction string*, so that you can reproduce the test failure without having to re-run through all of the preceeding test cases that did succeed.
+This exception refers internally to the original exception - in this case, a 'NotImplementedException' that came from the stubbed implementation. It also adds a *reproduction string*, so that you can reproduce the test failure without having to re-run through all of the preceding test cases that did succeed.
 
 In this case however, we only have one test case to start with - this is the empty string that was used to construct the singleton factory. So we'll forget about the error message for now and press on.
 
 
 
-OK, that was nice, but all that I really did was to replicate our original anaemeic driver test. Let's add some sophistication in by generating more than one test case - which means that we need to be able to vary the test case; which in turn means we need test variables.
+OK, that was nice, but all that I really did was to replicate our original anaemic driver test. Let's add some sophistication in by generating more than one test case - which means that we need to be able to vary the test case; which in turn means we need test variables.
 
 So what are our test variables? Well, our test cases are strings, and a string is essentially a sequence of characters - so we can vary the choice of character at each position in the string. So in some way, each position on the string will have an associated test variable whose levels are the possible values the character at that position can take.
 
@@ -984,10 +984,10 @@ Don't forget that this also includes shorter strings of length < 5 (which the br
 
 To summarise:-
 
-NTestCaseBuilder - strings of length <= 5 ----->  38 thousand
-Sloppy estimate  - strings of length == 5 -----> 105 thousand
-Brute force      - strings of length == 5 ----->  11 million
-Brute force      - strings of length <= 5 -----> 308 million
+	NTestCaseBuilder - strings of length <= 5 ----->  38 thousand
+	Sloppy estimate  - strings of length == 5 -----> 105 thousand
+	Brute force      - strings of length == 5 ----->  11 million
+	Brute force      - strings of length <= 5 -----> 308 million
 
 Advanced Stuff: Deferrals
 -------------------------
@@ -1038,9 +1038,9 @@ Once the empty string has been created, NTestCaseBuilder steps up the complexity
 
 This adds a new section of child factories on to the overall factory tree - including a second deferral, because the deferred factory is itself built by recursion. This allows strings of length 1 to be built, so NTestCaseBuilder does that until it exhausts the possibilities.
 
-The next step in complexity brings in a third deferral, and so on - but once strings of length 4 are being generated, NTestCaseBuilder will not exhaustively create them, because of the strength limit of 3 we have placed on the top-level factory that we use to drive the test.
+The next step in complexity introduces strings of length 2 and also brings in a third deferral, and so on - but once strings of length 4 are being generated, NTestCaseBuilder will not exhaustively create them, because of the strength limit of 3 we have placed on the top-level factory that we use to drive the test.
 
-You might think that this test would run on forever, but it does not - the call '.WithDeferralBudgetOf(maximumStringLength)' on the top-level factory imposes a cap on the complexity of the test cases - the deferral budget is the maximum number of deferrals that NTestCaseBuilder can 'activate' to deepen the factory tree, counting down from the top-level node.
+You might think that this test would run on forever, but it does not - the call '.WithDeferralBudgetOf(maximumStringLength)' on the top-level factory produced by 'BuildFactoryRecursivelyUsingDeferral()' imposes a cap on the complexity of the test cases - the deferral budget is the maximum number of deferrals that NTestCaseBuilder can 'activate' to deepen the factory tree, counting down from the top-level node.
 
 This is what makes the string length top out at 5 in this example.
 
@@ -1171,7 +1171,7 @@ End of the first wave - now allow one level of deferrals to be activated. We see
 	-2
 	0 / 0
 
-End of the second wave - now allow two levels of deferrals to be activated. We can see mixing of negation, binary operator and bracketing in the same test case now...
+End of the second wave - now allow two levels of deferrals to be activated. We can see mixing and nesting of negation, binary operator and bracketing in the same test case now...
 
 	-1 - 2			NTestCaseBuilder used the full budget of two deferrals to make the lhs term, but only one for the rhs term.
 	-2 * (-1)		Here, both the lhs and rhs use the full budget of two deferrals.
