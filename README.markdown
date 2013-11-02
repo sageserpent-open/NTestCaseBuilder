@@ -602,17 +602,17 @@ We have a *test case* - the data that parameterises our *parameterised unit test
 Each test case has to be built up from smaller pieces of data. Here, we have a breakdown of:-
 
 	TestCase
-				(Foo
+			(Foo
 
-				OR
+			OR
 
-				Foo
+			Foo
 					Bar)
 
-				AND
+			AND
 
-				sequence of
-						Operation - either a DoThis or a DoThat
+			sequence of
+					Operation - either a DoThis or a DoThat
 
 We say that a TestCase is *synthesized* from a Foo and a sequence of Operation instances - this synthesis might be a plain constructor call, passing the two items as parameters, or might be some more involved process requiring the subsequent setting of properties.
 
@@ -631,17 +631,17 @@ The other way of making a 'Foo' is to supply a 'Bar' - if we have a constructor 
 Taking these italicised terms and applying them to the breakdown above yields a conceptual tree:
 
 	Synthesis (of a TestCase)
-								-	Interleaving (of a Foo)
-															-	Singleton (of a Foo created with the parameterless constructor)
-															-	Synthesis (of a Foo)
-																					-	Synthesis (of a Bar)
-																										-	Test Variable (of the 'Bar' constructor parameter with 3 levels
-																											               - closed, normal business and taking last orders)
-								-	Synthesis (of a sequence of Operation)
-															- 	TestVariable (of an 'Operation' with two levels - execute 'DoThis()' and execute 'DoThat()')
-															-	TestVariable (ditto)
-															-	TestVariable (ditto)
-															-	TestVariable (ditto)
+		-	Interleaving (of a Foo)
+				-	Singleton (of a Foo created with the parameterless constructor)
+				-	Synthesis (of a Foo)
+						-	Synthesis (of a Bar)
+								-	Test Variable (of the 'Bar' constructor parameter with 3 levels
+												   - closed, normal business and taking last orders)
+		-	Synthesis (of a sequence of Operation)
+				- 	TestVariable (of an 'Operation' with two levels - execute 'DoThis()' and execute 'DoThat()')
+				-	TestVariable (ditto)
+				-	TestVariable (ditto)
+				-	TestVariable (ditto)
 
 NTestCaseBuilder realises such conceptual trees as trees of *test case factories* - each factory can be either a *synthesizing factory*, an *interleaving factory*, a *test variable factory* or a *singleton factory*.
 
