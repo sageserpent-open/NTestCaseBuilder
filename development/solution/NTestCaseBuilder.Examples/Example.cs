@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -58,7 +59,6 @@ namespace NTestCaseBuilder.Examples
     {
         private enum OperationKind
         {
-            DoNothing,
             Insertion,
             Deletion,
             Replacement,
@@ -94,7 +94,6 @@ namespace NTestCaseBuilder.Examples
 
             private void AddStateTransitionsForWhenNoEntryExists()
             {
-                _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.DoNothing, AddDoNothingOperation);
                 _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Insertion,
                                                                           AddInsertionOperationThatShouldSucceed);
                 _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Deletion,
@@ -107,8 +106,6 @@ namespace NTestCaseBuilder.Examples
 
             private void AddStateTransitionsForWhenAnEntryAlreadyExists()
             {
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.DoNothing,
-                                                                                 AddDoNothingOperation);
                 _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Insertion,
                                                                                  AddInsertionOperationThatShouldFail);
                 _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Deletion,
@@ -131,49 +128,73 @@ namespace NTestCaseBuilder.Examples
                 }
             }
 
-            private void AddDoNothingOperation()
-            {
-                Operations.Add(obj => { });
-            }
-
             private void AddQueryOperationThatShouldFail()
             {
-                Operations.Add(indexedSortedDictionary => Assert.IsFalse(indexedSortedDictionary.ContainsKey(_key)));
+                Operations.Add(indexedSortedDictionary =>
+                                   {
+                                       Console.WriteLine("Querying with key: {0} - this should fail.", _key);
+                                       Assert.IsFalse(indexedSortedDictionary.ContainsKey(_key));
+                                   });
             }
 
             private void AddQueryOperationThatShouldSucceed()
             {
+                var fixedValue = _value;
                 Operations.Add(indexedSortedDictionary =>
                                    {
+                                       Console.WriteLine(
+                                           "Querying with key: {0} - this should succeed and yield: {1}.", _key,
+                                           fixedValue);
                                        Assert.IsTrue(indexedSortedDictionary.ContainsKey(_key));
-                                       Assert.IsTrue(indexedSortedDictionary[_key] == _value);
+                                       Assert.IsTrue(indexedSortedDictionary[_key] == fixedValue);
                                    });
             }
 
             private void AddDeletionOperationThatShouldFail()
             {
-                Operations.Add(indexedSortedDictionary => Assert.IsFalse(indexedSortedDictionary.Remove(_key)));
+                Operations.Add(indexedSortedDictionary =>
+                                   {
+                                       Console.WriteLine("Deleting key: {0} - this should fail.", _key);
+                                       Assert.IsFalse(indexedSortedDictionary.Remove(_key));
+                                   });
             }
 
             private void AddDeletionOperationThatShouldSucceed()
             {
-                Operations.Add(indexedSortedDictionary => Assert.IsTrue(indexedSortedDictionary.Remove(_key)));
+                Operations.Add(indexedSortedDictionary =>
+                                   {
+                                       Console.WriteLine("Deleting key: {0} - this should succeed.", _key);
+                                       Assert.IsTrue(indexedSortedDictionary.Remove(_key));
+                                   }
+                    );
                 _value = null;
             }
 
             private void AddInsertionOperationThatShouldSucceed()
             {
                 _value = MakeRandomValue();
-                Operations.Add(indexedSortedDictionary => indexedSortedDictionary.Add(_key, _value));
+
+                var fixedValue = _value;
+                Operations.Add(indexedSortedDictionary =>
+                                   {
+                                       Console.WriteLine("Adding key: {0} with value: {1} - this should succeed.", _key,
+                                                         fixedValue);
+                                       indexedSortedDictionary.Add(_key, fixedValue);
+                                   });
             }
 
             private void AddInsertionOperationThatShouldFail()
             {
+                var fixedValue = _value;
                 Operations.Add(indexedSortedDictionary =>
                                    {
                                        try
                                        {
-                                           indexedSortedDictionary.Add(_key, MakeRandomValue());
+                                           var newValue = MakeRandomValue();
+                                           Console.WriteLine("Adding key: {0} with value: {1} - this should fail.", _key,
+                                                             newValue);
+
+                                           indexedSortedDictionary.Add(_key, newValue);
                                        }
                                        catch (ArgumentException)
                                        {
@@ -182,9 +203,10 @@ namespace NTestCaseBuilder.Examples
 
                                        var stringBuilder = new StringBuilder();
 
+
                                        stringBuilder.AppendFormat(
                                            "Should not have been able to insert with key {0} as it already has an entry in the dictionary {1} of {2}",
-                                           _key, indexedSortedDictionary, _value);
+                                           _key, indexedSortedDictionary, fixedValue);
 
                                        Assert.Fail(stringBuilder.ToString());
                                    });
@@ -193,7 +215,13 @@ namespace NTestCaseBuilder.Examples
             private void AddReplacementOperation()
             {
                 _value = MakeRandomValue();
-                Operations.Add(indexedSortedDictionary => indexedSortedDictionary[_key] = _value);
+                var fixedValue = _value;
+                Operations.Add(indexedSortedDictionary =>
+                                   {
+                                       Console.WriteLine("Replacing value for key: {0} with value: {1}.", _key,
+                                                         fixedValue);
+                                       indexedSortedDictionary[_key] = fixedValue;
+                                   });
             }
 
             private Value MakeRandomValue()
@@ -466,6 +494,61 @@ namespace NTestCaseBuilder.Examples
                 Assert.IsTrue(
                     BargainBasement.IsSorted(from index in Enumerable.Range(0, indexedSortedDictionary.Count)
                                              select indexedSortedDictionary[index]));
+            }
+        }
+
+        [Test]
+        public void TestStandardDictionaryWithJustOneKey()
+        {
+            var keyFactory = TestVariable.Create(Enumerable.Range(-2, 5));
+
+            var operationFactory = TestVariable.Create(
+                from operationKind in ((IEnumerable<OperationKind>) Enum.GetValues(typeof (OperationKind)))
+                select operationKind);
+
+            const Int32 numberOfOperations = 10;
+
+            var randomBehaviour = new Random(0);
+
+            var operationKindSequenceFactory =
+                Synthesis.Create<IEnumerable<ITypedFactory<OperationKind>>, OperationKind>(
+                    Enumerable.Repeat(operationFactory, numberOfOperations));
+
+            var operationListBuilderFactory = Synthesis.Create(keyFactory,
+                                                               operationKindSequenceFactory,
+                                                               (key, operationKindSequence) =>
+                                                                   {
+                                                                       var result = new OperationListBuilder(key,
+                                                                                                             randomBehaviour);
+
+                                                                       foreach (
+                                                                           var operationKind in operationKindSequence)
+                                                                       {
+                                                                           result.AppendNewOperationOfKind(operationKind);
+                                                                       }
+
+                                                                       return result;
+                                                                   });
+
+            const Int32 strength = 4;
+
+            var numberOfTestCasesExercised =
+                operationListBuilderFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                                        ParameterisedUnitTestForStandardDictionaryWithJustOneKey);
+
+            Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
+        }
+
+        private static void ParameterisedUnitTestForStandardDictionaryWithJustOneKey(
+            OperationListBuilder operationListBuilder)
+        {
+            IDictionary<int, string> systemUnderTest = new Dictionary<Key, Value>();
+
+            Console.WriteLine("**** New Test Case ****");
+
+            foreach (var operation in operationListBuilder.Operations)
+            {
+                operation(systemUnderTest);
             }
         }
     }
