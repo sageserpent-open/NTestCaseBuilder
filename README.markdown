@@ -1069,7 +1069,7 @@ This adds a new section of child factories on to the overall factory tree - incl
 
 The next step in complexity introduces strings of length 2 and also brings in a third deferral, and so on - but once strings of length 4 are being generated, NTestCaseBuilder will not exhaustively create them, because of the strength limit of 3 we have placed on the top-level factory that we use to drive the test.
 
-You might think that this test would run on forever, but it does not - the call '.WithDeferralBudgetOf(maximumStringLength)' on the top-level factory produced by 'BuildFactoryRecursivelyUsingDeferral()' imposes a cap on the complexity of the test cases - the deferral budget is the maximum number of deferrals that NTestCaseBuilder can 'activate' to deepen the factory tree, counting down from the top-level node.
+You might think that this test would run on forever, but it does not - the call *'.WithDeferralBudgetOf(maximumStringLength)'* on the top-level factory produced by 'BuildFactoryRecursivelyUsingDeferral()' imposes a cap on the complexity of the test cases - the deferral budget is the maximum number of deferrals that NTestCaseBuilder can 'activate' to deepen the factory tree, counting down from the top-level node.
 
 This is what makes the string length top out at 5 in this example.
 
@@ -1548,7 +1548,7 @@ So, running this test yields output like this:-
 	Deleting key: -2 - this should fail.
 	Deleting key: -2 - this should fail.
 
-NTestCaseBuilder covers 1310 test cases in this example.
+NTestCaseBuilder generates 1310 test cases in this example to achieve coverage.
 
 Now this is all very well - but look at the penultimate test case. There is a query for what is stored under key 2, followed straight away by exactly the same query. Both queries are expected to have the same outcome, as nothing else has happened in between.
 
@@ -1578,6 +1578,163 @@ What we need is some way of keeping the mixing up in any position of different k
 
 What we need is a *filter*.
 
+Let's put one in - I'll just amend the previous code by changing:
+
+        [Test]
+        public void TestStandardDictionaryWithJustOneKey()
+        {
+<i>blah, blah...</i>
+			
+            var operationKindSequenceFactory =
+                Synthesis.Create<IEnumerable<ITypedFactory<OperationKind>>, OperationKind>(
+					Enumerable.Repeat(operationFactory, numberOfOperations)).WithFilter(
+                        FilterOutThreeOrMoreConsecutiveIdenticalOperationKinds);
+			
+<i>etc...</i>
+		
+		}
+
+So now there is a call *'.WithFilter(FilterOutThreeOrMoreConsecutiveIdenticalOperationKinds)'* on the factory for the sequence of operation kinds.
+		
+I'll also add in a filter function:
+
+	private static Boolean FilterOutThreeOrMoreConsecutiveIdenticalOperationKinds(
+		IDictionary<Int32, Tuple<Int32, Object>> testVariableIndexToLevelDictionary)
+	{
+		var testVariableIndices = testVariableIndexToLevelDictionary.Keys;
+
+		var numberOfTestVariables = testVariableIndices.Count;
+
+		var sortedTestVariableIndices = new Int32[numberOfTestVariables];
+
+		testVariableIndices.CopyTo(sortedTestVariableIndices, 0);
+
+		Array.Sort(sortedTestVariableIndices);
+
+		if (1 >= numberOfTestVariables)
+		{
+			return true;
+		}
+
+		var preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(sortedTestVariableIndices.First(), 1);
+
+		foreach (var index in Enumerable.Range(1, numberOfTestVariables - 1))
+		{
+			var testVariableIndex = sortedTestVariableIndices[index];
+
+			var preceedingTestVariableIndex = preceedingTestVariableIndexAndConsecutiveCount.Item1;
+
+			if (1 + preceedingTestVariableIndex == testVariableIndex
+				&&
+				testVariableIndexToLevelDictionary[preceedingTestVariableIndex].Item1 ==
+				testVariableIndexToLevelDictionary[testVariableIndex].Item1)
+			{
+				var consecutiveCount = preceedingTestVariableIndexAndConsecutiveCount.Item2;
+
+				if (2 == consecutiveCount)
+				{
+					return false;
+				}
+
+				preceedingTestVariableIndexAndConsecutiveCount =
+					Tuple.Create(testVariableIndex, 1 + consecutiveCount);
+			}
+			else
+			{
+				preceedingTestVariableIndexAndConsecutiveCount =
+					Tuple.Create(testVariableIndex, 1);
+			}
+		}
+
+		return true;
+	}
+	
+What the filter function does is to vet potential test cases that NTestCaseBuilder is thinking about building up - if it returns 'true', NTestCaseBuilder will carry on as usual. When it returns 'false' though, NTestCaseBuilder reconsiders how to combine test levels from the test variables in such as way as to avoid the combination that failed the filter.
+
+Now, think about what I just said - this isn't simply a post-processor that scans through the generated test cases; rather this is way of telling the algorithm inside NTestCaseBuilder to reconsider its optimisation strategy for creating a minimal number of test cases - so the end sequence of test cases is still packed in an optimal sense, even if certain potential combinations were blocked by a filter.
+
+Also, because this isn't a post-processing step, NTestCaseBuilder can (and will) present the filter with partial combinations of test levels that are not complete test cases - these may have gaps at either end, or holes in the middle - the filter might even be presented with just one test variable at a time.
+
+The API reflects this by not working with actual test cases - that would imply that NTestCaseBuilder would have to build complete test cases first, which would in turn force filtering to be a post-processing step, thus not guaranteeing optimal coverage.
+
+Instead, a dictionary is passed to the filter - its keys are indices that denote test variables. The way to interpret these test variable indices is to count the number of factories that occur as leaves in the subtree of whatever factory the filter is attached to, working from left to right.
+
+So test variable index 0 denotes the leftmost test variable or singleton factory in the subtree, 1 is the next one to the right and so on.
+
+The test variable indices in the dictionary are always purely for **test variables** - singleton factories count towards the index, but never actually appear in the dictionary - this is because they are unvarying test cases and as such are not optional - if it is important to include a singleton test case's value in a filter, it should be done explicitly.
+
+The value in the dictionary associated with a test variable index key is a pair of an integer index that denotes the particular level the test variable has taken in the test case being considered, together with the actual level object.
+
+The reason for keeping a level index in addition to the level itself is because it is often more convenient to work with it - rather than worry about whether equality is well-defined for the type of the levels, one can simply compare the level indices to see whether levels from two different test variables clash or not.
+
+Nevertheless, the option is still there to work with the actual level values - just bear in mind that they are typed as 'System.Object', and thus may be boxed - and will probably require potentially unsafe downcasting to a more exact type. The choice is yours - in the example above, level indices are used to detect consecutive runs of test variables whose levels are the same.
+
+Now, if NTestCaseBuilder is calling a filter before it has created complete and final test cases, and if it can reconsider how to repack its test cases, then this implies that a filter should not expect to see a complete set of test variable indices as keys in the dictionary passed to it. Nor should it expect to see even groups of adjacent test variables - the keys may correspond to isolated test variables, or groups of adjacent test variables with gaps between or to the side of them, or both. Indeed, NTestCaseBuilder doesn't even guarantee that it will progressively fill in the test variables for a given combination of levels - it can jump around quite haphazardly and reconsider partially overlapping combinations.
+
+So it is up to the writer of the filter to make sure that a filter is *consistent* - if a filter returns 'true' for some combination of levels from a group of test variables, it is permitted to return 'false' if a new test variable and level are added into the mix. The reverse is *not* true - once a filter has labelled a combination with 'false', it cannot change its mind later, even if it sees new test variables being added to the combination.
+
+As an example:
+
+	Test Variables 2, 5 & 6 have unequal levels ==> True
+	Test Variables 2, 5 & 6 have unequal levels, but 7 is set to 'FooBar' ==> False
+
+This is OK for a filter, but if I changed that to:
+
+	Test Variables 2, 5 & 6 have unequal levels ==> True
+	Test Variables 2, 5 & 6 have unequal levels, but 7 is set to 'FooBar' ==> False
+	Test Variables 2, 5 & 6 have unequal levels, but 7 is set to 'FooBar' and 20 has an equal level to 5 ==> True
+
+The third line is not consistent with the second one - the filter is 'changing its mind back again based on additional evidence'. Put another way, the filter must implement 'anti-double-jeopardy' - it can retry an innocent test case and find it guilty, but it can't retry a guilty test case in find it innocent again.
+
+The correct way to code the second filter would be:
+
+	Test Variables 2, 5 & 6 have unequal levels ==> True
+	Test Variables 2, 5 & 6 have unequal levels, but 7 is set to 'FooBar' ==> True
+	Test Variables 2, 5 & 6 have unequal levels, but 7 is set to 'FooBar' and 20 has an unequal level to 5 ==> False
+
+Other than that the rules of the game for filters are best summarised as:-
+
+	1. You can put filters on any factory in a tree.
+	2. You can have more than one factory in a tree with a filter.
+	3. You can have more than one filter on a factory - they are logically conjoined together
+	   - they all have to pass the combination in unison for it to be accepted.
+	4. The test variable indices used as keys in a dictionary are always counted off from the
+	   point of view of the factory the filter was attached to, even if that factory forms part
+	   of a larger tree, and even if there are other filters elsewhere in the tree.
+	5. Singleton test variables never show up implicitly via the dictionary passed to a filter.
+	6. You have to be consistent or NTestCaseBuilder may launch a nuclear missile strike. You have been warned.
+	
+With that in mind, what does our revised test do?
+
+Well, it no longer generates daft test cases with three or more consecutive operations:
+
+	**** New Test Case ****
+	Replacing value for key: -2 with value: 18.
+	Adding key: -2 with value: 11 - this should fail.
+	Deleting key: -2 - this should succeed.
+	Replacing value for key: -2 with value: 19.
+	Adding key: -2 with value: 17 - this should fail.
+	Replacing value for key: -2 with value: 9.
+	Adding key: -2 with value: 12 - this should fail.
+	Replacing value for key: -2 with value: 9.
+	Deleting key: -2 - this should succeed.
+	Adding key: -2 with value: 1 - this should succeed.
+	**** New Test Case ****
+	Adding key: -2 with value: 15 - this should succeed.
+	Adding key: -2 with value: 17 - this should fail.
+	Replacing value for key: -2 with value: 15.
+	Querying with key: -2 - this should succeed and yield: 15.
+	Adding key: -2 with value: 5 - this should fail.
+	Deleting key: -2 - this should succeed.
+	Adding key: -2 with value: 14 - this should succeed.
+	Deleting key: -2 - this should succeed.
+	Adding key: -2 with value: 19 - this should succeed.
+	Deleting key: -2 - this should succeed.
+	
+	etc...
+
+NTestCaseBuilder now generates 1339 test cases in this example to get coverage - so you can see that NTestCaseBuilder is not simply throwing away test cases by postprocessing - in this case it has actually generated a few more test cases to get coverage.
+	
 How do I install this thing?
 ----------------------------
 
