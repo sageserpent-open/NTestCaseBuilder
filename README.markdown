@@ -1,4 +1,4 @@
-[1]:NTestCaseBuilder, for .NET Testing
+NTestCaseBuilder, for .NET Testing
 ==================================
 
 This is a .NET library that generates sets of test cases, for use by parameterised tests.
@@ -18,36 +18,36 @@ The sources are written in F#, but the API can be used just as comfortably from 
 
 Some background and a full worked example are given below after the following sample. A note on a related .NET utility, Pex, is also provided at the towards the end along with a link to a thought-provoking article relevant to this library.
 
-[2]:Chapters
+Chapters
 --------
 
-[NTestCaseBuilder, for .NET Testing][1]
+NTestCaseBuilder, for .NET Testing
 
-[Chapters][2]
+Chapters
 
-[Use It][3]
+Use It
 
-[Short Sample][4]
+Short Sample
 
-[Longer Sample][5]
+Longer Sample
 
-[License][6]
+License
 
-[Background][7]
+Background
 
-[Walk me through an example!][8]
+Walk me through an example!
 
-[Advanced Stuff: Deferrals][9]
+Advanced Stuff: Deferrals
 
-[More Advanced Stuff: Filters][10]
+More Advanced Stuff: Filters
 
-[How do I install this thing?][11]
+How do I install this thing?
 
-[A Thought-Provoking Article You Should Read][12]
+A Thought-Provoking Article You Should Read
 
-[Can this possibly be improved?][13]
+Can this possibly be improved?
 
-[3]:Use It
+Use It
 ------
 
 NTestCaseBuilder is available as NuGet binary package over at:  [NTestCaseBuilder](http://www.nuget.org/packages/NTestCaseBuilder/ "NTestCaseBuilder")
@@ -60,7 +60,7 @@ Install it at project level - it will create (if necessary) a Samples\NTestCaseB
 
 **NOTE:** for both NuGet packages, C5 is installed as a dependency of NTestCaseBuilder; you will need to remove either the C5.Mono.dll or the C5.dll assembly before you can build your project, as the C5 NuGet package installs both by default.
 
-[4]:Short Sample
+Short Sample
 ------------
 
 Let's build some test strings to feed to a *very* simple calculator.
@@ -168,7 +168,7 @@ Note how the sequence gets more complex overall, but jumps around various possib
 ... you can see why this might not be a good idea if we are waiting to see if *1 / 0* blows up - and consider the likes of *2 / (2 / (1 - 1))*!
 	
 
-[5]:Longer Sample
+Longer Sample
 -------------
 
 Let's thoroughly test a couple of sorting algorithms.
@@ -398,7 +398,7 @@ OK, great. Now for the test:-
         }
     }
 
-[6]:License
+License
 -------
 
 The MIT License (MIT)
@@ -411,7 +411,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-[7]:Background
+Background
 ----------
 
 Tests come in different shapes and sizes - unit tests, integration tests, smoke tests for example.
@@ -768,7 +768,7 @@ Oh, one last thing: when a test case is produced that exposes a bug, it is incon
 
 There is a harness utility that will trap any exceptions propagated out of the parameterised unit test run under its control; when it traps an exception, the harness will create a *signature* that can be used to completely synthesize the test case exposing the bug. The signature and the exception are packaged into a special wrapper exception - one can copy the text of the signature from the initial debug session and then write a special one-off unit test that instructs the factory to go directly to creating the failing test case; so this one-off test can be used to perform further debugging without having to wait around on each re-run.
 
-[8]:Walk me through an example!
+Walk me through an example!
 ---------------------------
 
 Let's test a component that encodes text strings. A reverse decoding of the encoded format back to the original string is also supported.
@@ -1018,7 +1018,7 @@ To summarise:-
 	Brute force      - strings of length == 5 ----->  11 million
 	Brute force      - strings of length <= 5 -----> 308 million
 
-[9]:Advanced Stuff: Deferrals
+Advanced Stuff: Deferrals
 -------------------------
 
 Looking at the encoding / decoding example above, we had to make sure that we didn't build strings longer than 5 characters - specifically, we had to stop the recursion in 'BuildFactoryRecursively' from running out of control.
@@ -1214,7 +1214,7 @@ End of the second wave - now allow two levels of deferrals to be activated. We c
 	
 So you can see how trees of deferrals can lead to both 'balanced' and 'lopsided' test cases.	
 
-[10]:More Advanced Stuff: Filters
+More Advanced Stuff: Filters
 ----------------------------
 
 Let's write a parameterised unit test that will test a dictionary - the trusty System.Generic.Collections.Dictionary, to be precise. After all, you never know.
@@ -1578,7 +1578,7 @@ What we need is some way of keeping the mixing up in any position of different k
 
 What we need is a *filter*.
 
-[11]:How do I install this thing?
+How do I install this thing?
 ----------------------------
 
 ### Install assemblies via NuGet.
@@ -1609,7 +1609,7 @@ The current package targets the .Net framework v4.0.
 
 9. You need to use the assemblies built by the project 'NTestCaseBuilder'. *NTestCaseBuilder.dll* is the one that your project will directly reference; it has an accompanying XML file for the API documentation.
 
-[12]:A Thought-Provoking Article You Should Read
+A Thought-Provoking Article You Should Read
 -------------------------------------------
 
 [http://www.testingeducation.org/wtst5/PairwisePNSQC2004.pdf](http://www.testingeducation.org/wtst5/PairwisePNSQC2004.pdf).
