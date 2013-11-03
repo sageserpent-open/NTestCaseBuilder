@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
-using NTestCaseBuilder;
-using SageSerpent.Infrastructure;
 
 
 namespace NTestCaseBuilder.Examples
