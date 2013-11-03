@@ -236,6 +236,113 @@ namespace NTestCaseBuilder.Examples
             #endregion
         }
 
+        private static Boolean FilterOutThreeOrMoreConsecutiveIdenticalOperationKinds(
+            IDictionary<Int32, Tuple<Int32, Object>> testVariableIndexToLevelDictionary)
+        {
+            var testVariableIndices = testVariableIndexToLevelDictionary.Keys;
+
+            var numberOfTestVariables = testVariableIndices.Count;
+
+            var sortedTestVariableIndices = new Int32[numberOfTestVariables];
+
+            testVariableIndices.CopyTo(sortedTestVariableIndices, 0);
+
+            Array.Sort(sortedTestVariableIndices);
+
+            if (1 >= numberOfTestVariables)
+            {
+                return true;
+            }
+
+            var preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(sortedTestVariableIndices.First(), 1);
+
+            foreach (var index in Enumerable.Range(1, numberOfTestVariables - 1))
+            {
+                var testVariableIndex = sortedTestVariableIndices[index];
+
+                var preceedingTestVariableIndex = preceedingTestVariableIndexAndConsecutiveCount.Item1;
+
+                if (1 + preceedingTestVariableIndex == testVariableIndex
+                    &&
+                    testVariableIndexToLevelDictionary[preceedingTestVariableIndex].Item1 ==
+                    testVariableIndexToLevelDictionary[testVariableIndex].Item1)
+                {
+                    var consecutiveCount = preceedingTestVariableIndexAndConsecutiveCount.Item2;
+
+                    if (2 == consecutiveCount)
+                    {
+                        return false;
+                    }
+
+                    preceedingTestVariableIndexAndConsecutiveCount =
+                        Tuple.Create(testVariableIndex, 1 + consecutiveCount);
+                }
+                else
+                {
+                    preceedingTestVariableIndexAndConsecutiveCount =
+                        Tuple.Create(testVariableIndex, 1);
+                }
+            }
+
+            return true;
+        }
+
+        [Test]
+        public void TestStandardDictionaryWithJustOneKey()
+        {
+            var keyFactory = TestVariable.Create(Enumerable.Range(-2, 5));
+
+            var operationFactory = TestVariable.Create(
+                from operationKind in ((IEnumerable<OperationKind>) Enum.GetValues(typeof (OperationKind)))
+                select operationKind);
+
+            const Int32 numberOfOperations = 10;
+
+            var randomBehaviour = new Random(0);
+
+            var operationKindSequenceFactory =
+                Synthesis.Create<IEnumerable<ITypedFactory<OperationKind>>, OperationKind>(
+                    Enumerable.Repeat(operationFactory, numberOfOperations)).WithFilter(
+                        FilterOutThreeOrMoreConsecutiveIdenticalOperationKinds);
+
+            var operationListBuilderFactory =
+                Synthesis.Create(keyFactory,
+                                 operationKindSequenceFactory,
+                                 (key, operationKindSequence) =>
+                                     {
+                                         var result = new OperationListBuilder(key,
+                                                                               randomBehaviour);
+
+                                         foreach (
+                                             var operationKind in operationKindSequence)
+                                         {
+                                             result.AppendNewOperationOfKind(operationKind);
+                                         }
+
+                                         return result;
+                                     });
+            const Int32 strength = 4;
+
+            var numberOfTestCasesExercised =
+                operationListBuilderFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                                        ParameterisedUnitTestForStandardDictionaryWithJustOneKey);
+
+            Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
+        }
+
+        private static void ParameterisedUnitTestForStandardDictionaryWithJustOneKey(
+            OperationListBuilder operationListBuilder)
+        {
+            IDictionary<Key, Value> systemUnderTest = new Dictionary<Key, Value>();
+
+            Console.WriteLine("**** New Test Case ****");
+
+            foreach (var operation in operationListBuilder.Operations)
+            {
+                operation(systemUnderTest);
+            }
+        }
+
         private static IList<Operation> CreateOperationsAccordingToSequenceOfKinds(IEnumerable<OperationKind> kinds,
                                                                                    Key key, Random randomBehaviour)
         {
@@ -494,61 +601,6 @@ namespace NTestCaseBuilder.Examples
                 Assert.IsTrue(
                     BargainBasement.IsSorted(from index in Enumerable.Range(0, indexedSortedDictionary.Count)
                                              select indexedSortedDictionary[index]));
-            }
-        }
-
-        [Test]
-        public void TestStandardDictionaryWithJustOneKey()
-        {
-            var keyFactory = TestVariable.Create(Enumerable.Range(-2, 5));
-
-            var operationFactory = TestVariable.Create(
-                from operationKind in ((IEnumerable<OperationKind>) Enum.GetValues(typeof (OperationKind)))
-                select operationKind);
-
-            const Int32 numberOfOperations = 10;
-
-            var randomBehaviour = new Random(0);
-
-            var operationKindSequenceFactory =
-                Synthesis.Create<IEnumerable<ITypedFactory<OperationKind>>, OperationKind>(
-                    Enumerable.Repeat(operationFactory, numberOfOperations));
-
-            var operationListBuilderFactory =
-                Synthesis.Create(keyFactory,
-                                 operationKindSequenceFactory,
-                                 (key, operationKindSequence) =>
-                                     {
-                                         var result = new OperationListBuilder(key,
-                                                                               randomBehaviour);
-
-                                         foreach (
-                                             var operationKind in operationKindSequence)
-                                         {
-                                             result.AppendNewOperationOfKind(operationKind);
-                                         }
-
-                                         return result;
-                                     });
-            const Int32 strength = 4;
-
-            var numberOfTestCasesExercised =
-                operationListBuilderFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
-                                                                                        ParameterisedUnitTestForStandardDictionaryWithJustOneKey);
-
-            Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
-        }
-
-        private static void ParameterisedUnitTestForStandardDictionaryWithJustOneKey(
-            OperationListBuilder operationListBuilder)
-        {
-            IDictionary<Key, Value> systemUnderTest = new Dictionary<Key, Value>();
-
-            Console.WriteLine("**** New Test Case ****");
-
-            foreach (var operation in operationListBuilder.Operations)
-            {
-                operation(systemUnderTest);
             }
         }
     }
