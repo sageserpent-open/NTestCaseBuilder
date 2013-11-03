@@ -1512,6 +1512,20 @@ So, running this test yields output like this:-
 	Deleting key: -2 - this should succeed.
 
 	etc...
+	
+	**** New Test Case ****
+	Replacing value for key: -1 with value: 5.
+	Replacing value for key: -1 with value: 4.
+	Adding key: -1 with value: 9 - this should fail.
+	Querying with key: -1 - this should succeed and yield: 4.
+	Deleting key: -1 - this should succeed.
+	Querying with key: -1 - this should fail.
+	Querying with key: -1 - this should fail.
+	Querying with key: -1 - this should fail.
+	Adding key: -1 with value: 15 - this should succeed.
+	Replacing value for key: -1 with value: 7.
+
+	etc ...
 
 	**** New Test Case ****
 	Replacing value for key: 2 with value: 11.
@@ -1537,6 +1551,34 @@ So, running this test yields output like this:-
 	Deleting key: -2 - this should fail.
 
 NTestCaseBuilder covers 1310 test cases in this example.
+
+Now this is all very well - but look at the penultimate test case. There is a query for what is stored under key 2, followed straight away by exactly the same query. Both queries are expected to have the same outcome, as nothing else has happened in between.
+
+Similarly, both the penultimate and final test cases have consecutive deletions on the same key when the key has been removed prior to the first attempt - so both fail in the same manner.
+
+One could argue (and I do) that it is worth testing this behaviour - we want to verify that operations that are expected to leave the dictionary unchanged don't mysteriously perturb its internal state in such as way as to cause an externally visible change.
+
+OK, but what about the second test case listed above - it has *three* consecutive queries. Do we need the third one, once we've shown that the second behaves the same way?
+
+There are worse offenders elsewhere in the output, too:
+
+	**** New Test Case ****
+	Deleting key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Replacing value for key: 2 with value: 7.
+	Deleting key: 2 - this should succeed.
+	Adding key: 2 with value: 6 - this should succeed.
+	Replacing value for key: 2 with value: 11.
+
+I think you'd agree that the point was made with just the first two deletions!
+
+What we need is some way of keeping the mixing up in any position of different kinds of operation, but we want to prevent more than two consecutive operations being of the same kind for every test case.
+
+What we need is a *filter*.
 
 A Thought-Provoking Article you should read
 -------------------------------------------
