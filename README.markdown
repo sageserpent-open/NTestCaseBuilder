@@ -1216,6 +1216,328 @@ The current package targets the .Net framework v4.0.
 
 9. You need to use the assemblies built by the project 'NTestCaseBuilder'. *NTestCaseBuilder.dll* is the one that your project will directly reference; it has an accompanying XML file for the API documentation.
 
+More Advanced Stuff: Filters
+----------------------------
+
+Let's write a parameterised unit test that will test a dictionary - the trusty System.Generic.Collections.Dictionary, to be precise. After all, you never know.
+
+We'll do this in a fairly simple way - we'll take an empty dictionary, some key and a sequence of operations to be applied to the dictionary - addition of a value for that key, deletion of the key and its associated value, querying for the key's value, and replacing the value for a key (which may add the key in for the first time).
+
+We can make this more complex in a while by mixing up operations that pertain to more than one key, but for now, let's press on.
+
+Consider the operations - because they all involve the one shared key, the test can figure out for itself what the dictionary should be doing by maintaining a simple state machine for the key. This works precisely because a correctly working dictionary uses its keys to subdivide its value state into independent pieces - if I modify the stored value under key 1 from 'Fred' to 'Freya', then I know that the value 'Kermit' stored under key -5 will be completely unaffected.
+
+Here we go, this one is quite long:-
+
+	using Key = System.Int32;
+	using Value = System.String;
+	using Operation = System.Action<System.Collections.Generic.IDictionary<System.Int32, System.String>>;
+
+	private enum OperationKind
+	{
+		Insertion,
+		Deletion,
+		Replacement,
+		Query
+	}
+
+	private class OperationListBuilder
+	{
+		private const Int32 MaximumValueRepresentation = 20;
+		private readonly Key _key;
+
+		private readonly IDictionary<OperationKind, OperationCreator>
+			_operationKindToOperationCreatorMapWhereAnEntryAlreadyExists =
+				new Dictionary<OperationKind, OperationCreator>(),
+			_operationKindToOperationCreatorMapWhereNoEntryExists =
+				new Dictionary<OperationKind, OperationCreator>();
+
+		private readonly Random _randomBehaviour;
+		private Value _value;
+
+		public OperationListBuilder(Key key, Random randomBehaviourInitialState)
+		{
+			Operations = new List<Operation>();
+			_key = key;
+			_randomBehaviour = new Random(randomBehaviourInitialState.Next());
+
+			AddStateTransitionsForWhenAnEntryAlreadyExists();
+
+			AddStateTransitionsForWhenNoEntryExists();
+		}
+
+		public IList<Operation> Operations { get; private set; }
+
+		private void AddStateTransitionsForWhenNoEntryExists()
+		{
+			_operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Insertion,
+																	  AddInsertionOperationThatShouldSucceed);
+			_operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Deletion,
+																	  AddDeletionOperationThatShouldFail);
+			_operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Replacement,
+																	  AddReplacementOperation);
+			_operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Query,
+																	  AddQueryOperationThatShouldFail);
+		}
+
+		private void AddStateTransitionsForWhenAnEntryAlreadyExists()
+		{
+			_operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Insertion,
+																			 AddInsertionOperationThatShouldFail);
+			_operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Deletion,
+																			 AddDeletionOperationThatShouldSucceed);
+			_operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Replacement,
+																			 AddReplacementOperation);
+			_operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Query,
+																			 AddQueryOperationThatShouldSucceed);
+		}
+
+		public void AppendNewOperationOfKind(OperationKind operationKind)
+		{
+			if (null != _value)
+			{
+				_operationKindToOperationCreatorMapWhereAnEntryAlreadyExists[operationKind]();
+			}
+			else
+			{
+				_operationKindToOperationCreatorMapWhereNoEntryExists[operationKind]();
+			}
+		}
+
+		private void AddQueryOperationThatShouldFail()
+		{
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   Console.WriteLine("Querying with key: {0} - this should fail.", _key);
+								   Assert.IsFalse(indexedSortedDictionary.ContainsKey(_key));
+							   });
+		}
+
+		private void AddQueryOperationThatShouldSucceed()
+		{
+			var fixedValue = _value;
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   Console.WriteLine(
+									   "Querying with key: {0} - this should succeed and yield: {1}.", _key,
+									   fixedValue);
+								   Assert.IsTrue(indexedSortedDictionary.ContainsKey(_key));
+								   Assert.IsTrue(indexedSortedDictionary[_key] == fixedValue);
+							   });
+		}
+
+		private void AddDeletionOperationThatShouldFail()
+		{
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   Console.WriteLine("Deleting key: {0} - this should fail.", _key);
+								   Assert.IsFalse(indexedSortedDictionary.Remove(_key));
+							   });
+		}
+
+		private void AddDeletionOperationThatShouldSucceed()
+		{
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   Console.WriteLine("Deleting key: {0} - this should succeed.", _key);
+								   Assert.IsTrue(indexedSortedDictionary.Remove(_key));
+							   }
+				);
+			_value = null;
+		}
+
+		private void AddInsertionOperationThatShouldSucceed()
+		{
+			_value = MakeRandomValue();
+
+			var fixedValue = _value;
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   Console.WriteLine("Adding key: {0} with value: {1} - this should succeed.", _key,
+													 fixedValue);
+								   indexedSortedDictionary.Add(_key, fixedValue);
+							   });
+		}
+
+		private void AddInsertionOperationThatShouldFail()
+		{
+			var fixedValue = _value;
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   try
+								   {
+									   var newValue = MakeRandomValue();
+									   Console.WriteLine("Adding key: {0} with value: {1} - this should fail.", _key,
+														 newValue);
+
+									   indexedSortedDictionary.Add(_key, newValue);
+								   }
+								   catch (ArgumentException)
+								   {
+									   return;
+								   }
+
+								   var stringBuilder = new StringBuilder();
+
+
+								   stringBuilder.AppendFormat(
+									   "Should not have been able to insert with key {0} as it already has an entry in the dictionary {1} of {2}",
+									   _key, indexedSortedDictionary, fixedValue);
+
+								   Assert.Fail(stringBuilder.ToString());
+							   });
+		}
+
+		private void AddReplacementOperation()
+		{
+			_value = MakeRandomValue();
+			var fixedValue = _value;
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   Console.WriteLine("Replacing value for key: {0} with value: {1}.", _key,
+													 fixedValue);
+								   indexedSortedDictionary[_key] = fixedValue;
+							   });
+		}
+
+		private Value MakeRandomValue()
+		{
+			return _randomBehaviour.ChooseAnyNumberFromOneTo(MaximumValueRepresentation).ToString();
+		}
+
+		#region Nested type: OperationCreator
+
+		private delegate void OperationCreator();
+
+		#endregion
+	}
+	
+	[TestFixture]
+	public class TestDictionary
+	{
+        private static void ExerciseTestCase(PlacementOfOperationsIntoFinalOrder testCase, Int32 totalNumberOfOperations,
+                                             IList<Operation> operations, ref UInt64 numberOfTestCases)
+        {
+            testCase(totalNumberOfOperations, index => index, operations);
+
+            var indexedSortedDictionary = new IndexedSortedDictionary<Int32, Value>();
+
+            ++numberOfTestCases;
+
+            foreach (var operation in
+                operations)
+            {
+                operation(indexedSortedDictionary);
+                Assert.IsTrue(BargainBasement.IsSorted(indexedSortedDictionary.Keys));
+                Assert.IsTrue(
+                    BargainBasement.IsSorted(from index in Enumerable.Range(0, indexedSortedDictionary.Count)
+                                             select indexedSortedDictionary[index]));
+            }
+        }
+
+        [Test]
+        public void TestStandardDictionaryWithJustOneKey()
+        {
+            var keyFactory = TestVariable.Create(Enumerable.Range(-2, 5));
+
+            var operationFactory = TestVariable.Create(
+                from operationKind in ((IEnumerable<OperationKind>) Enum.GetValues(typeof (OperationKind)))
+                select operationKind);
+
+            const Int32 numberOfOperations = 10;
+
+            var randomBehaviour = new Random(0);
+
+            var operationKindSequenceFactory =
+                Synthesis.Create<IEnumerable<ITypedFactory<OperationKind>>, OperationKind>(
+                    Enumerable.Repeat(operationFactory, numberOfOperations));
+
+            var operationListBuilderFactory =
+                Synthesis.Create(keyFactory,
+                                 operationKindSequenceFactory,
+                                 (key, operationKindSequence) =>
+                                     {
+                                         var result = new OperationListBuilder(key,
+                                                                               randomBehaviour);
+
+                                         foreach (
+                                             var operationKind in operationKindSequence)
+                                         {
+                                             result.AppendNewOperationOfKind(operationKind);
+                                         }
+
+                                         return result;
+                                     });
+            const Int32 strength = 4;
+
+            var numberOfTestCasesExercised =
+                operationListBuilderFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                                        ParameterisedUnitTestForStandardDictionaryWithJustOneKey);
+
+            Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
+        }
+
+        private static void ParameterisedUnitTestForStandardDictionaryWithJustOneKey(
+            OperationListBuilder operationListBuilder)
+        {
+            IDictionary<Key, Value> systemUnderTest = new Dictionary<Key, Value>();
+
+            Console.WriteLine("**** New Test Case ****");
+
+            foreach (var operation in operationListBuilder.Operations)
+            {
+                operation(systemUnderTest);
+            }
+        }
+	}
+	
+The operations enforce the test expectations as they run against the dictionary - the state machine for a key is part of the implementation of OperationListBuilder.
+
+Note the handy overload of Synthesis.Create that takes a sequence of factories for the same input test case type, and yields a single factory whose output test cases are sequences of that input test case type.
+
+Also, note how the number of operations in a sequence for a key is fixed in this test - if you think about, there is no purpose in testing shorter sequences, because the act of executing the sequence of operations also tests the prefixes as well.
+
+So, running this test yields output like this:-
+
+**** New Test Case ****
+Replacing value for key: -2 with value: 18.
+Adding key: -2 with value: 1 - this should fail.
+Adding key: -2 with value: 11 - this should fail.
+Replacing value for key: -2 with value: 19.
+Adding key: -2 with value: 17 - this should fail.
+Replacing value for key: -2 with value: 9.
+Adding key: -2 with value: 12 - this should fail.
+Replacing value for key: -2 with value: 9.
+Adding key: -2 with value: 19 - this should fail.
+Deleting key: -2 - this should succeed.
+
+etc...
+
+**** New Test Case ****
+Replacing value for key: 2 with value: 11.
+Querying with key: 2 - this should succeed and yield: 11.
+Querying with key: 2 - this should succeed and yield: 11.
+Replacing value for key: 2 with value: 20.
+Deleting key: 2 - this should succeed.
+Querying with key: 2 - this should fail.
+Deleting key: 2 - this should fail.
+Deleting key: 2 - this should fail.
+Adding key: 2 with value: 19 - this should succeed.
+Querying with key: 2 - this should succeed and yield: 19.
+**** New Test Case ****
+Querying with key: -2 - this should fail.
+Deleting key: -2 - this should fail.
+Replacing value for key: -2 with value: 16.
+Adding key: -2 with value: 3 - this should fail.
+Replacing value for key: -2 with value: 14.
+Replacing value for key: -2 with value: 6.
+Deleting key: -2 - this should succeed.
+Querying with key: -2 - this should fail.
+Deleting key: -2 - this should fail.
+Deleting key: -2 - this should fail.
+
+NTestCaseBuilder covers 1310 test cases in this example.
+
 A Thought-Provoking Article you should read
 -------------------------------------------
 

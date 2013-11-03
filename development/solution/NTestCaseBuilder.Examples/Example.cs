@@ -482,7 +482,7 @@ namespace NTestCaseBuilder.Examples
         {
             testCase(totalNumberOfOperations, index => index, operations);
 
-            var indexedSortedDictionary = new IndexedSortedDictionary<Int32, Value>();
+            var indexedSortedDictionary = new IndexedSortedDictionary<Key, Value>();
 
             ++numberOfTestCases;
 
@@ -514,22 +514,22 @@ namespace NTestCaseBuilder.Examples
                 Synthesis.Create<IEnumerable<ITypedFactory<OperationKind>>, OperationKind>(
                     Enumerable.Repeat(operationFactory, numberOfOperations));
 
-            var operationListBuilderFactory = Synthesis.Create(keyFactory,
-                                                               operationKindSequenceFactory,
-                                                               (key, operationKindSequence) =>
-                                                                   {
-                                                                       var result = new OperationListBuilder(key,
-                                                                                                             randomBehaviour);
+            var operationListBuilderFactory =
+                Synthesis.Create(keyFactory,
+                                 operationKindSequenceFactory,
+                                 (key, operationKindSequence) =>
+                                     {
+                                         var result = new OperationListBuilder(key,
+                                                                               randomBehaviour);
 
-                                                                       foreach (
-                                                                           var operationKind in operationKindSequence)
-                                                                       {
-                                                                           result.AppendNewOperationOfKind(operationKind);
-                                                                       }
+                                         foreach (
+                                             var operationKind in operationKindSequence)
+                                         {
+                                             result.AppendNewOperationOfKind(operationKind);
+                                         }
 
-                                                                       return result;
-                                                                   });
-
+                                         return result;
+                                     });
             const Int32 strength = 4;
 
             var numberOfTestCasesExercised =
@@ -542,7 +542,7 @@ namespace NTestCaseBuilder.Examples
         private static void ParameterisedUnitTestForStandardDictionaryWithJustOneKey(
             OperationListBuilder operationListBuilder)
         {
-            IDictionary<int, string> systemUnderTest = new Dictionary<Key, Value>();
+            IDictionary<Key, Value> systemUnderTest = new Dictionary<Key, Value>();
 
             Console.WriteLine("**** New Test Case ****");
 
