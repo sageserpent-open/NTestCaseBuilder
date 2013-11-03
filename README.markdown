@@ -1499,42 +1499,42 @@ Also, note how the number of operations in a sequence for a key is fixed in this
 
 So, running this test yields output like this:-
 
-**** New Test Case ****
-Replacing value for key: -2 with value: 18.
-Adding key: -2 with value: 1 - this should fail.
-Adding key: -2 with value: 11 - this should fail.
-Replacing value for key: -2 with value: 19.
-Adding key: -2 with value: 17 - this should fail.
-Replacing value for key: -2 with value: 9.
-Adding key: -2 with value: 12 - this should fail.
-Replacing value for key: -2 with value: 9.
-Adding key: -2 with value: 19 - this should fail.
-Deleting key: -2 - this should succeed.
+	**** New Test Case ****
+	Replacing value for key: -2 with value: 18.
+	Adding key: -2 with value: 1 - this should fail.
+	Adding key: -2 with value: 11 - this should fail.
+	Replacing value for key: -2 with value: 19.
+	Adding key: -2 with value: 17 - this should fail.
+	Replacing value for key: -2 with value: 9.
+	Adding key: -2 with value: 12 - this should fail.
+	Replacing value for key: -2 with value: 9.
+	Adding key: -2 with value: 19 - this should fail.
+	Deleting key: -2 - this should succeed.
 
-etc...
+	etc...
 
-**** New Test Case ****
-Replacing value for key: 2 with value: 11.
-Querying with key: 2 - this should succeed and yield: 11.
-Querying with key: 2 - this should succeed and yield: 11.
-Replacing value for key: 2 with value: 20.
-Deleting key: 2 - this should succeed.
-Querying with key: 2 - this should fail.
-Deleting key: 2 - this should fail.
-Deleting key: 2 - this should fail.
-Adding key: 2 with value: 19 - this should succeed.
-Querying with key: 2 - this should succeed and yield: 19.
-**** New Test Case ****
-Querying with key: -2 - this should fail.
-Deleting key: -2 - this should fail.
-Replacing value for key: -2 with value: 16.
-Adding key: -2 with value: 3 - this should fail.
-Replacing value for key: -2 with value: 14.
-Replacing value for key: -2 with value: 6.
-Deleting key: -2 - this should succeed.
-Querying with key: -2 - this should fail.
-Deleting key: -2 - this should fail.
-Deleting key: -2 - this should fail.
+	**** New Test Case ****
+	Replacing value for key: 2 with value: 11.
+	Querying with key: 2 - this should succeed and yield: 11.
+	Querying with key: 2 - this should succeed and yield: 11.
+	Replacing value for key: 2 with value: 20.
+	Deleting key: 2 - this should succeed.
+	Querying with key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Adding key: 2 with value: 19 - this should succeed.
+	Querying with key: 2 - this should succeed and yield: 19.
+	**** New Test Case ****
+	Querying with key: -2 - this should fail.
+	Deleting key: -2 - this should fail.
+	Replacing value for key: -2 with value: 16.
+	Adding key: -2 with value: 3 - this should fail.
+	Replacing value for key: -2 with value: 14.
+	Replacing value for key: -2 with value: 6.
+	Deleting key: -2 - this should succeed.
+	Querying with key: -2 - this should fail.
+	Deleting key: -2 - this should fail.
+	Deleting key: -2 - this should fail.
 
 NTestCaseBuilder covers 1310 test cases in this example.
 
