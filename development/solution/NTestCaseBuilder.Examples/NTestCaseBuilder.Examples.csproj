@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -123,7 +123,11 @@
     <Compile Include="GraphDisplayWindow.xaml.cs">
       <DependentUpon>GraphDisplayWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="TestBinaryOperatorExpressions.cs" />
+    <Compile Include="TestBinaryOperatorExpressions.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TestCalculator.cs" />
+    <Compile Include="TestDictionary.cs" />
     <Compile Include="Vertex.cs" />
     <Compile Include="IndexedSortedDictionary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
