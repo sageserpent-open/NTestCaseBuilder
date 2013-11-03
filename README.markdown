@@ -1,4 +1,4 @@
-NTestCaseBuilder, for .NET Testing
+[1]:NTestCaseBuilder, for .NET Testing
 ==================================
 
 This is a .NET library that generates sets of test cases, for use by parameterised tests.
@@ -18,7 +18,36 @@ The sources are written in F#, but the API can be used just as comfortably from 
 
 Some background and a full worked example are given below after the following sample. A note on a related .NET utility, Pex, is also provided at the towards the end along with a link to a thought-provoking article relevant to this library.
 
-Use It
+[2]:Chapters
+--------
+
+[NTestCaseBuilder, for .NET Testing][1]
+
+[Chapters][2]
+
+[Use It][3]
+
+[Short Sample][4]
+
+[Longer Sample][5]
+
+[License][6]
+
+[Background][7]
+
+[Walk me through an example!][8]
+
+[Advanced Stuff: Deferrals][9]
+
+[More Advanced Stuff: Filters][10]
+
+[How do I install this thing?][11]
+
+[A Thought-Provoking Article You Should Read][12]
+
+[Can this possibly be improved?][13]
+
+[3]:Use It
 ------
 
 NTestCaseBuilder is available as NuGet binary package over at:  [NTestCaseBuilder](http://www.nuget.org/packages/NTestCaseBuilder/ "NTestCaseBuilder")
@@ -31,7 +60,7 @@ Install it at project level - it will create (if necessary) a Samples\NTestCaseB
 
 **NOTE:** for both NuGet packages, C5 is installed as a dependency of NTestCaseBuilder; you will need to remove either the C5.Mono.dll or the C5.dll assembly before you can build your project, as the C5 NuGet package installs both by default.
 
-Short Sample
+[4]:Short Sample
 ------------
 
 Let's build some test strings to feed to a *very* simple calculator.
@@ -139,7 +168,7 @@ Note how the sequence gets more complex overall, but jumps around various possib
 ... you can see why this might not be a good idea if we are waiting to see if *1 / 0* blows up - and consider the likes of *2 / (2 / (1 - 1))*!
 	
 
-Longer Sample
+[5]:Longer Sample
 -------------
 
 Let's thoroughly test a couple of sorting algorithms.
@@ -369,7 +398,7 @@ OK, great. Now for the test:-
         }
     }
 
-License
+[6]:License
 -------
 
 The MIT License (MIT)
@@ -382,7 +411,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Background
+[7]:Background
 ----------
 
 Tests come in different shapes and sizes - unit tests, integration tests, smoke tests for example.
@@ -739,7 +768,7 @@ Oh, one last thing: when a test case is produced that exposes a bug, it is incon
 
 There is a harness utility that will trap any exceptions propagated out of the parameterised unit test run under its control; when it traps an exception, the harness will create a *signature* that can be used to completely synthesize the test case exposing the bug. The signature and the exception are packaged into a special wrapper exception - one can copy the text of the signature from the initial debug session and then write a special one-off unit test that instructs the factory to go directly to creating the failing test case; so this one-off test can be used to perform further debugging without having to wait around on each re-run.
 
-Walk me through an example!
+[8]:Walk me through an example!
 ---------------------------
 
 Let's test a component that encodes text strings. A reverse decoding of the encoded format back to the original string is also supported.
@@ -989,7 +1018,7 @@ To summarise:-
 	Brute force      - strings of length == 5 ----->  11 million
 	Brute force      - strings of length <= 5 -----> 308 million
 
-Advanced Stuff: Deferrals
+[9]:Advanced Stuff: Deferrals
 -------------------------
 
 Looking at the encoding / decoding example above, we had to make sure that we didn't build strings longer than 5 characters - specifically, we had to stop the recursion in 'BuildFactoryRecursively' from running out of control.
@@ -1185,38 +1214,7 @@ End of the second wave - now allow two levels of deferrals to be activated. We c
 	
 So you can see how trees of deferrals can lead to both 'balanced' and 'lopsided' test cases.	
 
-How do I install this thing?
-----------------------------
-
-### Install assemblies via NuGet.
-
-NTestCaseBuilder is available via the public NuGet feed as a package called 'NTestCaseBuilder'. You know the drill, don't you?
-
-If not, head over to the NuGet documentation at [http://docs.nuget.org](http://docs.nuget.org) - it will walk through how to use a NuGet package and any setup steps you may need in Visual Studio.
-
-The current package targets the .Net framework v4.0.
-
-### Build from source.
-
-1. I assume you know how to clone a Git repository, as you're looking at this on GitHub: otherwise, if you go to the main webpage for this project, you should see button commands to either clone in Windows via a nice GUI front-end to Git, or to just download a snapshot of the project as a .zip file.
-
-2. Open up Visual Studio 2010. (There is a branch that is a backport to Visual Studio 2008, but this gets very little attention from me at the time of writing. If this is vital, get in touch with me.)
-
-3. Make sure that the NuGet Visual Studio Extension is installed in Visual Studio and is up to date. If this isn't familiar to you, go see: [http://nuget.codeplex.com/wikipage?title=Getting%20Started](http://nuget.codeplex.com/wikipage?title=Getting%20Started).
-
-4. Open up the solution '...\development\solution\everything.sln' from within your cloned Git repository for this project.
-
-5. Make sure that the option to "Enable NuGet Package Restore" is activated - if it isn't, you will see this as a menu option in the right-click context menu for the solution explorer view.
-
-6. You will probably see yellow warning icons in the solution explorer view for the dependencies managed by NuGet. Don't worry about this.
-
-7. Go ahead and build - NuGet *should* download and install the various third-party dependencies; those yellow icons will eventually disappear.
-
-8. However, if this doesn't work and you get build failures due to missing dependencies, you can use the right-click context menu for the solution explorer view to open up the NuGet package manager - "Manage NuGet Packages for Solution...". This takes you to a dialog which, in this particular situation, will give you a button command to restore missing packages. Do this and retry step #7.
-
-9. You need to use the assemblies built by the project 'NTestCaseBuilder'. *NTestCaseBuilder.dll* is the one that your project will directly reference; it has an accompanying XML file for the API documentation.
-
-More Advanced Stuff: Filters
+[10]:More Advanced Stuff: Filters
 ----------------------------
 
 Let's write a parameterised unit test that will test a dictionary - the trusty System.Generic.Collections.Dictionary, to be precise. After all, you never know.
@@ -1580,7 +1578,38 @@ What we need is some way of keeping the mixing up in any position of different k
 
 What we need is a *filter*.
 
-A Thought-Provoking Article you should read
+[11]:How do I install this thing?
+----------------------------
+
+### Install assemblies via NuGet.
+
+NTestCaseBuilder is available via the public NuGet feed as a package called 'NTestCaseBuilder'. You know the drill, don't you?
+
+If not, head over to the NuGet documentation at [http://docs.nuget.org](http://docs.nuget.org) - it will walk through how to use a NuGet package and any setup steps you may need in Visual Studio.
+
+The current package targets the .Net framework v4.0.
+
+### Build from source.
+
+1. I assume you know how to clone a Git repository, as you're looking at this on GitHub: otherwise, if you go to the main webpage for this project, you should see button commands to either clone in Windows via a nice GUI front-end to Git, or to just download a snapshot of the project as a .zip file.
+
+2. Open up Visual Studio 2010. (There is a branch that is a backport to Visual Studio 2008, but this gets very little attention from me at the time of writing. If this is vital, get in touch with me.)
+
+3. Make sure that the NuGet Visual Studio Extension is installed in Visual Studio and is up to date. If this isn't familiar to you, go see: [http://nuget.codeplex.com/wikipage?title=Getting%20Started](http://nuget.codeplex.com/wikipage?title=Getting%20Started).
+
+4. Open up the solution '...\development\solution\everything.sln' from within your cloned Git repository for this project.
+
+5. Make sure that the option to "Enable NuGet Package Restore" is activated - if it isn't, you will see this as a menu option in the right-click context menu for the solution explorer view.
+
+6. You will probably see yellow warning icons in the solution explorer view for the dependencies managed by NuGet. Don't worry about this.
+
+7. Go ahead and build - NuGet *should* download and install the various third-party dependencies; those yellow icons will eventually disappear.
+
+8. However, if this doesn't work and you get build failures due to missing dependencies, you can use the right-click context menu for the solution explorer view to open up the NuGet package manager - "Manage NuGet Packages for Solution...". This takes you to a dialog which, in this particular situation, will give you a button command to restore missing packages. Do this and retry step #7.
+
+9. You need to use the assemblies built by the project 'NTestCaseBuilder'. *NTestCaseBuilder.dll* is the one that your project will directly reference; it has an accompanying XML file for the API documentation.
+
+[12]:A Thought-Provoking Article You Should Read
 -------------------------------------------
 
 [http://www.testingeducation.org/wtst5/PairwisePNSQC2004.pdf](http://www.testingeducation.org/wtst5/PairwisePNSQC2004.pdf).
@@ -1591,7 +1620,7 @@ There are several points that the article makes, but ones which can be addressed
 
 2. The number of levels for a test variable may be effectively infinite (think of floating-point numbers), or so large as to preclude putting in every level. This means that even an exhaustive enumeration of the cross-product of all test variable levels taken from finite sets could miss exposing a bug. In this situation, there either needs to be some thought as to whether there are levels for a test variable that are obvious 'trouble-spots' from the specification, or consider the use of a tool such as Pex (discussed below) as a cheap way of generating a good set of levels.
 
-Pex: the 800-pound gorilla?
+[13]:Pex: the 800-pound gorilla?
 ---------------------------
 
 It is impossible not to refer to the Pex tool developed by Microsoft Research (see: [http://research.microsoft.com/en-us/projects/pex](http://research.microsoft.com/en-us/projects/pex)).
