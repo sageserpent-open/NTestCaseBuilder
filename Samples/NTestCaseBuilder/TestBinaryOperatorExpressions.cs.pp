@@ -1,5 +1,4 @@
 using System;
-using NTestCaseBuilder;
 using NUnit.Framework;
 
 namespace $rootnamespace$.Samples.NTestCaseBuilder
