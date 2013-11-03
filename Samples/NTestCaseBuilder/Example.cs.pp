@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 
+using NTestCaseBuilder;
 
 namespace $rootnamespace$.Samples.NTestCaseBuilder
 {

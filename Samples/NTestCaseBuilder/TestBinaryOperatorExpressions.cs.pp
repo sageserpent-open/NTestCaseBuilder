@@ -1,6 +1,8 @@
 using System;
 using NUnit.Framework;
 
+using NTestCaseBuilder;
+
 namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
     [TestFixture]

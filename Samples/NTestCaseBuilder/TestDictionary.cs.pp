@@ -8,6 +8,7 @@ using Key = System.Int32;
 using Value = System.String;
 using Operation = System.Action<System.Collections.Generic.IDictionary<System.Int32, System.String>>;
 
+using NTestCaseBuilder;
 
 namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
