@@ -209,8 +209,7 @@
                 DeferralFrom =
                     (fun factory ->
                         Deferral.Create (fun () ->
-                                            factory)
-                        :> IFactory)
+                                            factory))
             }
 
         let stronglyTypedFactoryConstructors =
