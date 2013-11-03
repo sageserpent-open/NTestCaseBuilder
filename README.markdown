@@ -18,6 +18,37 @@ The sources are written in F#, but the API can be used just as comfortably from 
 
 Some background and a full worked example are given below after the following sample. A note on a related .NET utility, Pex, is also provided at the towards the end along with a link to a thought-provoking article relevant to this library.
 
+Chapters
+--------
+
+NTestCaseBuilder, for .NET Testing
+
+Chapters
+
+Use It
+
+Short Sample
+
+Longer Sample
+
+License
+
+Background
+
+Walk me through an example!
+
+Advanced Stuff: Deferrals
+
+More Advanced Stuff: Filters
+
+Stuff I didn't Document
+
+How do I install this thing?
+
+A Thought-Provoking Article You Should Read
+
+Can this possibly be improved?
+
 Use It
 ------
 
@@ -31,10 +62,118 @@ Install it at project level - it will create (if necessary) a Samples\NTestCaseB
 
 **NOTE:** for both NuGet packages, C5 is installed as a dependency of NTestCaseBuilder; you will need to remove either the C5.Mono.dll or the C5.dll assembly before you can build your project, as the C5 NuGet package installs both by default.
 
-Sample
-------
+Short Sample
+------------
 
-Let's test a couple of sorting algorithms.
+Let's build some test strings to feed to a *very* simple calculator.
+
+This calculator can do arithmetic using binary operators - addition, subtraction, multiplication and division.
+
+It can't do unary negation yet and it doesn't understand operator precedence either - read on and you'll see a more complete example, but for now let's keep it nice and easy.
+
+So we can hit it with:-
+
+	"2"					==> "2"
+	"2 + 1"				==> "3"
+	"0 - 2"				==> "-2"
+	"1 + (2 * 2)"		==> "5"
+
+Rather than get distracted with implementing the calculator and verifying expectations, let's just print out the test strings...
+
+    [TestFixture]
+    internal class TestBinaryOperatorExpressions
+    {
+        private static readonly ITypedFactory<Char> BinaryOperatorFactory =
+            TestVariable.Create(new[] {'+', '-', '*', '/'});
+
+        private static readonly ITypedFactory<String> ConstantFactory = TestVariable.Create(new[] {"0", "1", "2"});
+
+        private static ITypedFactory<String> BuildExpressionFactoryRecursively()
+        {
+            var subexpressionFactory =
+                Interleaving.Create(new[]
+                                        {
+                                            ConstantFactory,
+                                            Synthesis.Create(
+                                                Deferral.Create<String>(BuildExpressionFactoryRecursively),
+                                                expression => String.Format("({0})", expression))
+                                        });
+
+            var binaryOperatorExpressionFactory =
+                Synthesis.Create(subexpressionFactory,
+                                 BinaryOperatorFactory,
+                                 subexpressionFactory,
+                                 (lhsOperand, binaryOperator, rhsOperand) =>
+                                 String.Format("{0} {1} {2}", lhsOperand, binaryOperator,
+                                               rhsOperand));
+
+            return Interleaving.Create(new[] {ConstantFactory, binaryOperatorExpressionFactory});
+        }
+
+        [Test]
+        public void FireUpBinaryOperatorExpressions()
+        {
+            const Int32 maximumDepth = 2;
+
+            var expressionFactory = BuildExpressionFactoryRecursively().WithDeferralBudgetOf(maximumDepth);
+
+            const Int32 strength = 2;
+
+            var numberOfTestCasesExercised =
+                expressionFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                              (testCase =>
+                                                                               Console.Out.WriteLine(testCase)));
+            Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
+        }
+    }
+
+Running this will print out progressively more complex test strings:-
+
+	0 + 0
+	2 * 1
+	1 / 1
+	2 - 1
+	0 / 1
+	1 - 0
+	0 * 2
+	2 / 0
+	0 - 2
+	1 / 2
+	1 + 1
+	1 * 0
+	2 + 2
+	0
+	1
+	2
+	0 + (1 - 2)
+	(1 / 2) - 2
+	(2 + 0) + (0 - 0)
+	0 * (2 / 1)
+	(0 - 1) + (2)
+	(0) * (0 - 1)
+	etc...
+	
+Look carefully at the start - you will see that for any combination of the left hand number and the operator, or the operator and the right hand number, or the left and right hand number, the generated sequence *covers* it. This is because we set the *strength* to be 2 - so any pair of items that can be combined in our resulting test case will be covered.
+
+Note how the sequence gets more complex overall, but jumps around various possibilities within each band of complexity - NTestCaseBuilder tries to decorrelate test cases so that they **don't clump together like this...**
+
+	0
+	1
+	2
+	0 + 0
+	0 + 1
+	0 + 2
+	0 * 0
+	0 * 1
+	0 * 2
+	
+... you can see why this might not be a good idea if we are waiting to see if *1 / 0* blows up - and consider the likes of *2 / (2 / (1 - 1))*!
+	
+
+Longer Sample
+-------------
+
+Let's thoroughly test a couple of sorting algorithms.
 
 First, the algorithms to test - I'll cheat and just wrap up some existing functionality:-
 
@@ -494,17 +633,17 @@ We have a *test case* - the data that parameterises our *parameterised unit test
 Each test case has to be built up from smaller pieces of data. Here, we have a breakdown of:-
 
 	TestCase
-				(Foo
+			(Foo
 
-				OR
+			OR
 
-				Foo
+			Foo
 					Bar)
 
-				AND
+			AND
 
-				sequence of
-						Operation - either a DoThis or a DoThat
+			sequence of
+					Operation - either a DoThis or a DoThat
 
 We say that a TestCase is *synthesized* from a Foo and a sequence of Operation instances - this synthesis might be a plain constructor call, passing the two items as parameters, or might be some more involved process requiring the subsequent setting of properties.
 
@@ -520,22 +659,22 @@ Note that unlike the usual usage of the work 'singleton', we do not insist that 
 
 The other way of making a 'Foo' is to supply a 'Bar' - if we have a constructor (again, not shown in the code snippet above) for 'Bar' that takes a parameter describing whether the 'Bar' is closed, doing normal business or is taking last orders, then we could represent this as a synthesis of a 'Foo' from a 'Bar' which in turn is synthesized from a test variable with three levels.
 
-Taking these italicesed terms and applying them to the breakdown above yields a conceptual tree:
+Taking these italicised terms and applying them to the breakdown above yields a conceptual tree:
 
 	Synthesis (of a TestCase)
-								-	Interleaving (of a Foo)
-															-	Singleton (of a Foo created with the parameterless constructor)
-															-	Synthesis (of a Foo)
-																					-	Synthesis (of a Bar)
-																										-	Test Variable (of the 'Bar' constructor parameter with 3 levels
-																											               - closed, normal business and taking last orders)
-								-	Synthesis (of a sequence of Operation)
-															- 	Test Variable (of an 'Operation' with two levels - execute 'DoThis()' and execute 'DoThat()')
-															-	Test Variable (ditto)
-															-	Test Variable (ditto)
-															-	Test Variable (ditto)
+		-	Interleaving (of a Foo)
+				-	Singleton (of a Foo created with the parameterless constructor)
+				-	Synthesis (of a Foo)
+						-	Synthesis (of a Bar)
+								-	Test Variable (of the 'Bar' constructor parameter with 3 levels
+												   - closed, normal business and taking last orders)
+		-	Synthesis (of a sequence of Operation)
+				- 	TestVariable (of an 'Operation' with two levels - execute 'DoThis()' and execute 'DoThat()')
+				-	TestVariable (ditto)
+				-	TestVariable (ditto)
+				-	TestVariable (ditto)
 
-NTestCaseBuilder realises such conceptual trees as trees of *test case factories* - each factory can be either a *synthesizing factory*, an *interleaving factory*, a *test variable level factory* or a *singleton factory*.
+NTestCaseBuilder realises such conceptual trees as trees of *test case factories* - each factory can be either a *synthesizing factory*, an *interleaving factory*, a *test variable factory* or a *singleton factory*.
 
 A factory has two roles:-
 
@@ -553,7 +692,7 @@ That wasn't really a complex example - one can realistically imagine, say 20 tes
 That's rather a lot of test cases - do we really need all of them?
 
 
-Let's think about how likely a bug is going to be manifest when we run our parameterised test repeatedly over all 95367431640625 test cases. Let's say that we've already fixed the low-hanging bugs that occur straightaway for just about any choice of test case.
+Let's think about how likely a bug is going to be manifest when we run our parameterised test repeatedly over all 95367431640625 test cases. Let's say that we've already fixed the low-hanging bugs that occur straight away for just about any choice of test case.
 
 When I say 'low-hanging bugs', I mean things like:-
 
@@ -567,7 +706,7 @@ Typically, a smoke test will expose most of these kinds of errors (and this is w
 
 So at this point we have an implementation for our component under test that seems to work - it would certainly pass a smoke test coded in the style shown right at the beginning, and would probably survive an 'executable-documentation' unit test too.
 
-We then expect that our parameteried unit test will be repeatedly called with each new test case, and will repeatedly succeed, until at some point - **KERBOOM**: test failure!
+We then expect that our parameterised unit test will be repeatedly called with each new test case, and will repeatedly succeed, until at some point - **KERBOOM**: test failure!
 
 So the failing test case contains a magic combination of levels for its test variables that cause the component to fail. Is it likely that **all** of the test variables contribute to the failure? All 20 of them?
 
@@ -636,7 +775,7 @@ Walk me through an example!
 
 Let's test a component that encodes text strings. A reverse decoding of the encoded format back to the original string is also supported.
 
-The encoded format will support the ability to progressively reconstruct the original string as the sequence is received; for each character occurring at least once in the original string, the reconstruction will fill in all of the occurrances of that character in the decoded string in each progressive step.
+The encoded format will support the ability to progressively reconstruct the original string as the sequence is received; for each character occurring at least once in the original string, the reconstruction will fill in all of the occurrences of that character in the decoded string in each progressive step.
 
 So the string, "Madam, I'm Adam" would be reconstructed as:-
 
@@ -653,14 +792,12 @@ So the string, "Madam, I'm Adam" would be reconstructed as:-
 
 Where the question mark denotes a placeholder for a missing character.
 
-We'll write the test for this up-front as a parameterised unit test, and design the API at the same time. Then we'll implement it and see how it fares against the unit test, and see how NTestCaseBuilder can help us in the process.
+We'll write the test for this up-front as a parameterised unit test, and design the encoding and decoding API at the same time.
 
-Actually, *we'll* do the first part together on this document, and *I'll* go off and code the second part as a series of commits in this repository; these will go in the directory 'development\solution\SageSerpent.NTestCaseBuilder.WorkedExample' and will be tagged; with the benefit of hindsight, you can then watch me as I made mistakes and went through the debugging process.
-
-The objective is for you to see some source code that uses NTestCaseBuilder to generate test cases, as well as the use of signatures to create one-off tests for debugging and a special test variable level factory for subsequent higher-level testing.
+The objective is for you to see some source code that uses NTestCaseBuilder to generate test cases.
 
 
-Our parameterised unit test simply takes a string as its parameter - for each string, it encodes it into the encoded format, then progressively decodes the format, checking the partially decoded result against the original string. We know how many steps the progressive decoding will take, because we can count the number of occurrances of each character in the original string in a histogram.
+Our parameterised unit test simply takes a string as its parameter - for each string, it encodes it into the encoded format, then progressively decodes the format, checking the partially decoded result against the original string. We know how many steps the progressive decoding will take, because we can count the number of occurrences of each character in the original string in a histogram.
 
 Our API just needs to create an encoded representation from a string, and then allow progressive decoding. How about this:-
 
@@ -679,11 +816,11 @@ Our API just needs to create an encoded representation from a string, and then a
         {
             /// <summary>
             /// Carries out a step of the progressive decoding of the format.
-            /// At each step, all of the occurrances of some character in the original encoded
+            /// At each step, all of the occurrences of some character in the original encoded
             /// string will be decoded and placed into a string builder at their original
             /// locations. Each step deals with a unique character in the original string.
             /// </summary>
-            /// <param name="builderForPartiallyDecodedString">A non-null string builder for the partially decoded result. This is modified on each call, and is intended to be reused across successive calls to this method to achieve a progressive decoding. Can be set up arbitrarily; will be resized to accomodate the need for additional characters, or will be trimmed if too long. Any existing characters not placed into the buffer by a previous call to this method will eventually be overwritten or truncated over a progressive series of calls.</param>
+            /// <param name="builderForPartiallyDecodedString">A non-null string builder for the partially decoded result. This is modified on each call, and is intended to be reused across successive calls to this method to achieve a progressive decoding. Can be set up arbitrarily; will be resized to accommodate the need for additional characters, or will be trimmed if too long. Any existing characters not placed into the buffer by a previous call to this method will eventually be overwritten or truncated over a progressive series of calls.</param>
             /// <returns>True if 'builderForPartiallyDecodedString' contains the completely decoded string, false if there is more decoding to follow.</returns>
             public Boolean DecodeIntoAndReportIfCompleted(StringBuilder builderForPartiallyDecodedString)
             {
@@ -767,7 +904,7 @@ Our parameterised unit test looks like this:-
 
 For this parameterised unit test, the test case is exactly the system under test - a string to be encoded and decoded. We don't need to add any operations into the test case, because I've deliberately made the API simple enough for the unit test to completely cover the possibilities.
 
-(Actually, not quite - can you spot the untested possibility? It is one whose testing could reasonably be neglected by making some obvious implementation decisions - I'll leave it for you to think about what's missing and how you'd either write a test for it, or just design it out in the implementation. Hint: look at 'CreateNewDecoder()' and think about how it could be misused.)
+(Actually, not quite - can you spot the untested possibility? It is one whose testing could reasonably be neglected by making an obvious implementation decision - I'll leave it for you to think about what's missing and whether you would write a test for it, or just design it out in the implementation. Hint: look at 'CreateNewDecoder()' and think about how it could be misused. Where is the decoding state maintained?)
 
 The method 'ParameterisedUnitTestForEncodingAndDecodingRoundtrip()' is the actual parameterised unit test; the method 'TestEncodingAndDecodingRoundtripStage1' is a simple NUnit test that serves as a driver for it. To start with, we only have one test case - the empty string.
 
@@ -788,13 +925,13 @@ Our parameterised unit test remains unchanged, but the driver now creates a fact
 
 If we run this test, the stubbed implementation of 'EncodedFormat' promptly throws an exception - if you run under the debugger or use NUnit's logging to capture the output, you will see that NTestCaseBuilder has intercepted the exception and wrapped it inside a 'TestCaseReproductionException'.
 
-This exception refers internally to the original exception - in this case, a 'NotImplementedException' that came from the stubbed implementation. It also adds a *reproduction string*, so that you can reproduce the test failure without having to re-run through all of the preceeding test cases that did succeed.
+This exception refers internally to the original exception - in this case, a 'NotImplementedException' that came from the stubbed implementation. It also adds a *reproduction string*, so that you can reproduce the test failure without having to re-run through all of the preceding test cases that did succeed.
 
 In this case however, we only have one test case to start with - this is the empty string that was used to construct the singleton factory. So we'll forget about the error message for now and press on.
 
 
 
-OK, that was nice, but all that I really did was to replicate our original anaemeic driver test. Let's add some sophistication in by generating more than one test case - which means that we need to be able to vary the test case; which in turn means we need test variables.
+OK, that was nice, but all that I really did was to replicate our original anaemic driver test. Let's add some sophistication in by generating more than one test case - which means that we need to be able to vary the test case; which in turn means we need test variables.
 
 So what are our test variables? Well, our test cases are strings, and a string is essentially a sequence of characters - so we can vary the choice of character at each position in the string. So in some way, each position on the string will have an associated test variable whose levels are the possible values the character at that position can take.
 
@@ -872,9 +1009,752 @@ I'll do this so I can make good on that wager I made beforehand when I've finish
 
 It's really just there as a 'feel-good-factor' when you've got your system under test debugged to the point where all the test cases go through with a pass. The 'green-bar moment', if you know what I mean.
 
+Alright, here are the spoilers: once the parameterised unit test passes for all the test cases, NTestCaseBuilder reports back that it got coverage with 38446 test cases - a lot better than my sloppy estimate of 105456, and way better than the original brute force cost of 11881376.
+
+Don't forget that this also includes shorter strings of length < 5 (which the brute force cost doesn't - it would have been a whopping 308915775 if we'd included those as well).
+
+To summarise:-
+
+	NTestCaseBuilder - strings of length <= 5 ----->  38 thousand
+	Sloppy estimate  - strings of length == 5 -----> 105 thousand
+	Brute force      - strings of length == 5 ----->  11 million
+	Brute force      - strings of length <= 5 -----> 308 million
+
+Advanced Stuff: Deferrals
+-------------------------
+
+Looking at the encoding / decoding example above, we had to make sure that we didn't build strings longer than 5 characters - specifically, we had to stop the recursion in 'BuildFactoryRecursively' from running out of control.
+
+So we kept track of the recursion depth via the argument 'maximumStringLength' and wrote some guard logic to bottom out the recursion. This is correct, but rather annoying - conceptually at least, we should be able to imagine the recursion carrying on and on, making ever more complex test cases. Whether one wants all these extra test cases is debatable once a certain length has been reached, but the extra guard logic is annoying - it would be nicer to simply state that a string can be an empty string or 1 character prepended on to a shorter string, and just leave it at that.
+
+NTestCaseBuilder could then be told to generate test cases up to some limit we would apply as a control parameter to the factory - so no more guard logic!
+
+We can do this - we simply write the recursion out without any guard logic whatsoever (so the recursion doesn't appear to terminate) - the trick is to wrap the recursion within a *deferral*.
+
+Like this:-
+
+	[Test]
+	public void TestEncodingAndDecodingRoundtripStage4()
+	{
+		const Int32 maximumStringLength = 5;
+
+		var factory = BuildFactoryRecursivelyUsingDeferral().WithDeferralBudgetOf(maximumStringLength);
+		const Int32 strength = 3;
+
+		var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+																					ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+
+		Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
+	}
+
+	public ITypedFactory<String> BuildFactoryRecursivelyUsingDeferral()
+	{
+		var simplerFactoryForShorterStrings = Deferral.Create<String>(BuildFactoryRecursivelyUsingDeferral);
+
+		var factoryForNonEmptyStrings = Synthesis.Create(_factoryForSingleCharacters,
+														 simplerFactoryForShorterStrings,
+														 (leftmostCharacterToPrepend, shorterString) =>
+														 leftmostCharacterToPrepend + shorterString);
+
+		return Interleaving.Create(new[] { _emptyStringFactory, factoryForNonEmptyStrings });
+	}
+	
+See how the code for building the factory has simplified - there is no guard logic at the start to terminate recursion.
+
+A new kind of factory is introduced here - a deferral factory. This has a single argument: a delegate or lambda expression that itself has no arguments and creates a factory when invoked; this represents a factory whose creation is deferred until necessary.
+
+What NTestCaseBuilder will do is to start working with the factory tree without the deferred part, creating simple test cases - in this case, an empty string.
+
+Once the empty string has been created, NTestCaseBuilder steps up the complexity of the test cases by creating the deferred factory - it calls the delegate or lambda passed as parameter to the deferral factory.
+
+This adds a new section of child factories on to the overall factory tree - including a second deferral, because the deferred factory is itself built by recursion. This allows strings of length 1 to be built, so NTestCaseBuilder does that until it exhausts the possibilities.
+
+The next step in complexity introduces strings of length 2 and also brings in a third deferral, and so on - but once strings of length 4 are being generated, NTestCaseBuilder will not exhaustively create them, because of the strength limit of 3 we have placed on the top-level factory that we use to drive the test.
+
+You might think that this test would run on forever, but it does not - the call *'.WithDeferralBudgetOf(maximumStringLength)'* on the top-level factory produced by 'BuildFactoryRecursivelyUsingDeferral()' imposes a cap on the complexity of the test cases - the deferral budget is the maximum number of deferrals that NTestCaseBuilder can 'activate' to deepen the factory tree, counting down from the top-level node.
+
+This is what makes the string length top out at 5 in this example.
+
+If you forget to call 'WithDeferralBudget', don't worry: the cap is zero by default - so you won't see any deferrals activate and your test cases will all be simple ones.
+
+This count is always computed along a path from the top-level factory to whatever deferral is being considered, so we can also use deferrals in parallel on sibling factories. NTestCaseBuilder is smart enough to consider possibilities where one sibling subtree has deepened via an activated deferral, while another one is still pending.
+
+To see what I mean, let's revisit the short sample from before - we'll add in support for negation, and make the use a brackets optional by handling operator precedence:
+
+    [TestFixture]
+    internal class TestCalculator
+    {
+        private static readonly ITypedFactory<Char> BinaryOperatorFactory =
+            TestVariable.Create(new[] {'+', '-', '*', '/'});
+
+        private static readonly ITypedFactory<Tuple<Boolean, String>> ConstantFactory =
+            Synthesis.Create(TestVariable.Create(new[] {"0", "1", "2"}), constant => Tuple.Create(false, constant));
+
+        private static Tuple<Boolean, String> BinaryExpressionFrom(Tuple<Boolean, String> lhs,
+                                                                   Tuple<Boolean, String> rhs,
+                                                                   Char binaryOperator)
+        {
+            switch (binaryOperator)
+            {
+                case '*':
+                case '/':
+                    {
+                        var lhsWithCorrectPrecendence =
+                            lhs.Item1 ? String.Format("({0})", lhs.Item2) : lhs.Item2;
+                        var rhsWithCorrectPrecendence =
+                            rhs.Item1 ? String.Format("({0})", rhs.Item2) : rhs.Item2;
+
+                        return Tuple.Create(false,
+                                            String.Format("{0} {1} {2}", lhsWithCorrectPrecendence, binaryOperator,
+                                                          rhsWithCorrectPrecendence));
+                    }
+                default:
+                    {
+                        return Tuple.Create(true,
+                                            String.Format("{0} {1} {2}", lhs.Item2, binaryOperator, rhs.Item2));
+                    }
+            }
+        }
+
+        private static ITypedFactory<Tuple<Boolean, String>> BuildExpressionFactoryRecursively(
+            Boolean directlyToTheRightOfABinaryOperator)
+        {
+            var binaryOperatorExpressionFactory =
+                Synthesis.Create(
+                    Deferral.Create(() => BuildExpressionFactoryRecursively(directlyToTheRightOfABinaryOperator)),
+                    Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
+                    BinaryOperatorFactory,
+                    BinaryExpressionFrom
+                    );
+
+            var negatedExpressionFactory = Synthesis.Create(
+                Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
+                expression =>
+                Tuple.Create(
+                    expression.Item1,
+                    String.Format(
+                        directlyToTheRightOfABinaryOperator ? "(-{0})" : "-{0}",
+                        expression.Item2)));
+
+            var bracketedExpressionFactory = Synthesis.Create(
+                Deferral.Create(() => BuildExpressionFactoryRecursively(false)),
+                expression =>
+                Tuple.Create(false,
+                             String.Format("({0})", expression.Item2)));
+            return
+                Interleaving.Create(new[]
+                                        {
+                                            ConstantFactory, binaryOperatorExpressionFactory,
+                                            negatedExpressionFactory,
+                                            bracketedExpressionFactory
+                                        });
+        }
+
+        [Test]
+        public void FireUpCalculators()
+        {
+            const Int32 maximumDepth = 3;
+
+            var expressionFactory = BuildExpressionFactoryRecursively(false).WithDeferralBudgetOf(maximumDepth);
+
+            const Int32 strength = 2;
+
+            var numberOfTestCasesExercised =
+                expressionFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                              (testCase =>
+                                                                               Console.Out.WriteLine(testCase.Item2)));
+            Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
+        }
+    }
 
 
+NTestCaseBuilder will create test cases in waves of increasing complexity as it increases the deferral budget up to the cap supplied.
 
+Within a wave, the test cases will be decorrelated - the idea is to mix them up so that test levels don't just vary for one test variable at a time as we jump from one test case to the next. Rather, they are mixed up in a deliberately haphazard way.
+
+You can see that in the test cases generated by the example above:-
+
+To start with, no deferrals...
+
+	0
+	1
+	2
+
+End of the first wave - now allow one level of deferrals to be activated. We see binary operators, simple negation and bracketing competing...
+
+	2 / 1
+	0 - 1
+	0 + 0
+	0 * 2
+	1 / 0
+	1 - 2
+	2 - 0
+	1 * 1
+	2 / 2
+	1 + 1
+	2 * 0
+	2 + 2
+	(0)
+	-0
+	(1)
+	-1
+	(2)
+	-2
+	0 / 0
+
+End of the second wave - now allow two levels of deferrals to be activated. We can see mixing and nesting of negation, binary operator and bracketing in the same test case now...
+
+	-1 - 2			NTestCaseBuilder used the full budget of two deferrals to make the lhs term, but only one for the rhs term.
+	-2 * (-1)		Here, both the lhs and rhs use the full budget of two deferrals.
+	0 / 1 / 0
+	(1) / 1
+	2 / (2)			The lhs just uses one deferral, the rhs takes the full budget of two deferrals.
+	-1 + 2 + 2
+	-0 + 2
+	0 - (-0)
+	2 * 1 - 2
+	
+So you can see how trees of deferrals can lead to both 'balanced' and 'lopsided' test cases.	
+
+More Advanced Stuff: Filters
+----------------------------
+
+Let's write a parameterised unit test that will test a dictionary - the trusty System.Generic.Collections.Dictionary, to be precise. After all, you never know.
+
+We'll do this in a fairly simple way - we'll take an empty dictionary, some key and a sequence of operations to be applied to the dictionary - addition of a value for that key, deletion of the key and its associated value, querying for the key's value, and replacing the value for a key (which may add the key in for the first time).
+
+We can make this more complex in a while by mixing up operations that pertain to more than one key, but for now, let's press on.
+
+Consider the operations - because they all involve the one shared key, the test can figure out for itself what the dictionary should be doing by maintaining a simple state machine for the key. This works precisely because a correctly working dictionary uses its keys to subdivide its value state into independent pieces - if I modify the stored value under key 1 from 'Fred' to 'Freya', then I know that the value 'Kermit' stored under key -5 will be completely unaffected.
+
+Here we go, this one is quite long:-
+
+	using Key = System.Int32;
+	using Value = System.String;
+	using Operation = System.Action<System.Collections.Generic.IDictionary<System.Int32, System.String>>;
+
+	private enum OperationKind
+	{
+		Insertion,
+		Deletion,
+		Replacement,
+		Query
+	}
+
+	private class OperationListBuilder
+	{
+		private const Int32 MaximumValueRepresentation = 20;
+		private readonly Key _key;
+
+		private readonly IDictionary<OperationKind, OperationCreator>
+			_operationKindToOperationCreatorMapWhereAnEntryAlreadyExists =
+				new Dictionary<OperationKind, OperationCreator>(),
+			_operationKindToOperationCreatorMapWhereNoEntryExists =
+				new Dictionary<OperationKind, OperationCreator>();
+
+		private readonly Random _randomBehaviour;
+		private Value _value;
+
+		public OperationListBuilder(Key key, Random randomBehaviourInitialState)
+		{
+			Operations = new List<Operation>();
+			_key = key;
+			_randomBehaviour = new Random(randomBehaviourInitialState.Next());
+
+			AddStateTransitionsForWhenAnEntryAlreadyExists();
+
+			AddStateTransitionsForWhenNoEntryExists();
+		}
+
+		public IList<Operation> Operations { get; private set; }
+
+		private void AddStateTransitionsForWhenNoEntryExists()
+		{
+			_operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Insertion,
+																	  AddInsertionOperationThatShouldSucceed);
+			_operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Deletion,
+																	  AddDeletionOperationThatShouldFail);
+			_operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Replacement,
+																	  AddReplacementOperation);
+			_operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Query,
+																	  AddQueryOperationThatShouldFail);
+		}
+
+		private void AddStateTransitionsForWhenAnEntryAlreadyExists()
+		{
+			_operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Insertion,
+																			 AddInsertionOperationThatShouldFail);
+			_operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Deletion,
+																			 AddDeletionOperationThatShouldSucceed);
+			_operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Replacement,
+																			 AddReplacementOperation);
+			_operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Query,
+																			 AddQueryOperationThatShouldSucceed);
+		}
+
+		public void AppendNewOperationOfKind(OperationKind operationKind)
+		{
+			if (null != _value)
+			{
+				_operationKindToOperationCreatorMapWhereAnEntryAlreadyExists[operationKind]();
+			}
+			else
+			{
+				_operationKindToOperationCreatorMapWhereNoEntryExists[operationKind]();
+			}
+		}
+
+		private void AddQueryOperationThatShouldFail()
+		{
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   Console.WriteLine("Querying with key: {0} - this should fail.", _key);
+								   Assert.IsFalse(indexedSortedDictionary.ContainsKey(_key));
+							   });
+		}
+
+		private void AddQueryOperationThatShouldSucceed()
+		{
+			var fixedValue = _value;
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   Console.WriteLine(
+									   "Querying with key: {0} - this should succeed and yield: {1}.", _key,
+									   fixedValue);
+								   Assert.IsTrue(indexedSortedDictionary.ContainsKey(_key));
+								   Assert.IsTrue(indexedSortedDictionary[_key] == fixedValue);
+							   });
+		}
+
+		private void AddDeletionOperationThatShouldFail()
+		{
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   Console.WriteLine("Deleting key: {0} - this should fail.", _key);
+								   Assert.IsFalse(indexedSortedDictionary.Remove(_key));
+							   });
+		}
+
+		private void AddDeletionOperationThatShouldSucceed()
+		{
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   Console.WriteLine("Deleting key: {0} - this should succeed.", _key);
+								   Assert.IsTrue(indexedSortedDictionary.Remove(_key));
+							   }
+				);
+			_value = null;
+		}
+
+		private void AddInsertionOperationThatShouldSucceed()
+		{
+			_value = MakeRandomValue();
+
+			var fixedValue = _value;
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   Console.WriteLine("Adding key: {0} with value: {1} - this should succeed.", _key,
+													 fixedValue);
+								   indexedSortedDictionary.Add(_key, fixedValue);
+							   });
+		}
+
+		private void AddInsertionOperationThatShouldFail()
+		{
+			var fixedValue = _value;
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   try
+								   {
+									   var newValue = MakeRandomValue();
+									   Console.WriteLine("Adding key: {0} with value: {1} - this should fail.", _key,
+														 newValue);
+
+									   indexedSortedDictionary.Add(_key, newValue);
+								   }
+								   catch (ArgumentException)
+								   {
+									   return;
+								   }
+
+								   var stringBuilder = new StringBuilder();
+
+
+								   stringBuilder.AppendFormat(
+									   "Should not have been able to insert with key {0} as it already has an entry in the dictionary {1} of {2}",
+									   _key, indexedSortedDictionary, fixedValue);
+
+								   Assert.Fail(stringBuilder.ToString());
+							   });
+		}
+
+		private void AddReplacementOperation()
+		{
+			_value = MakeRandomValue();
+			var fixedValue = _value;
+			Operations.Add(indexedSortedDictionary =>
+							   {
+								   Console.WriteLine("Replacing value for key: {0} with value: {1}.", _key,
+													 fixedValue);
+								   indexedSortedDictionary[_key] = fixedValue;
+							   });
+		}
+
+		private Value MakeRandomValue()
+		{
+			return _randomBehaviour.ChooseAnyNumberFromOneTo(MaximumValueRepresentation).ToString();
+		}
+
+		#region Nested type: OperationCreator
+
+		private delegate void OperationCreator();
+
+		#endregion
+	}
+	
+	[TestFixture]
+	public class TestDictionary
+	{
+        private static void ExerciseTestCase(PlacementOfOperationsIntoFinalOrder testCase, Int32 totalNumberOfOperations,
+                                             IList<Operation> operations, ref UInt64 numberOfTestCases)
+        {
+            testCase(totalNumberOfOperations, index => index, operations);
+
+            var indexedSortedDictionary = new IndexedSortedDictionary<Int32, Value>();
+
+            ++numberOfTestCases;
+
+            foreach (var operation in
+                operations)
+            {
+                operation(indexedSortedDictionary);
+                Assert.IsTrue(BargainBasement.IsSorted(indexedSortedDictionary.Keys));
+                Assert.IsTrue(
+                    BargainBasement.IsSorted(from index in Enumerable.Range(0, indexedSortedDictionary.Count)
+                                             select indexedSortedDictionary[index]));
+            }
+        }
+
+        [Test]
+        public void TestStandardDictionaryWithJustOneKey()
+        {
+            var keyFactory = TestVariable.Create(Enumerable.Range(-2, 5));
+
+            var operationFactory = TestVariable.Create(
+                from operationKind in ((IEnumerable<OperationKind>) Enum.GetValues(typeof (OperationKind)))
+                select operationKind);
+
+            const Int32 numberOfOperations = 10;
+
+            var randomBehaviour = new Random(0);
+
+            var operationKindSequenceFactory =
+                Synthesis.Create<IEnumerable<ITypedFactory<OperationKind>>, OperationKind>(
+                    Enumerable.Repeat(operationFactory, numberOfOperations));
+
+            var operationListBuilderFactory =
+                Synthesis.Create(keyFactory,
+                                 operationKindSequenceFactory,
+                                 (key, operationKindSequence) =>
+                                     {
+                                         var result = new OperationListBuilder(key,
+                                                                               randomBehaviour);
+
+                                         foreach (
+                                             var operationKind in operationKindSequence)
+                                         {
+                                             result.AppendNewOperationOfKind(operationKind);
+                                         }
+
+                                         return result;
+                                     });
+            const Int32 strength = 4;
+
+            var numberOfTestCasesExercised =
+                operationListBuilderFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                                                                                        ParameterisedUnitTestForStandardDictionaryWithJustOneKey);
+
+            Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
+        }
+
+        private static void ParameterisedUnitTestForStandardDictionaryWithJustOneKey(
+            OperationListBuilder operationListBuilder)
+        {
+            IDictionary<Key, Value> systemUnderTest = new Dictionary<Key, Value>();
+
+            Console.WriteLine("**** New Test Case ****");
+
+            foreach (var operation in operationListBuilder.Operations)
+            {
+                operation(systemUnderTest);
+            }
+        }
+	}
+	
+The operations enforce the test expectations as they run against the dictionary - the state machine for a key is part of the implementation of OperationListBuilder.
+
+Note the handy overload of Synthesis.Create that takes a sequence of factories for the same input test case type, and yields a single factory whose output test cases are sequences of that input test case type.
+
+Also, note how the number of operations in a sequence for a key is fixed in this test - if you think about, there is no purpose in testing shorter sequences, because the act of executing the sequence of operations also tests the prefixes as well.
+
+So, running this test yields output like this:-
+
+	**** New Test Case ****
+	Replacing value for key: -2 with value: 18.
+	Adding key: -2 with value: 1 - this should fail.
+	Adding key: -2 with value: 11 - this should fail.
+	Replacing value for key: -2 with value: 19.
+	Adding key: -2 with value: 17 - this should fail.
+	Replacing value for key: -2 with value: 9.
+	Adding key: -2 with value: 12 - this should fail.
+	Replacing value for key: -2 with value: 9.
+	Adding key: -2 with value: 19 - this should fail.
+	Deleting key: -2 - this should succeed.
+
+	etc...
+	
+	**** New Test Case ****
+	Replacing value for key: -1 with value: 5.
+	Replacing value for key: -1 with value: 4.
+	Adding key: -1 with value: 9 - this should fail.
+	Querying with key: -1 - this should succeed and yield: 4.
+	Deleting key: -1 - this should succeed.
+	Querying with key: -1 - this should fail.
+	Querying with key: -1 - this should fail.
+	Querying with key: -1 - this should fail.
+	Adding key: -1 with value: 15 - this should succeed.
+	Replacing value for key: -1 with value: 7.
+
+	etc ...
+
+	**** New Test Case ****
+	Replacing value for key: 2 with value: 11.
+	Querying with key: 2 - this should succeed and yield: 11.
+	Querying with key: 2 - this should succeed and yield: 11.
+	Replacing value for key: 2 with value: 20.
+	Deleting key: 2 - this should succeed.
+	Querying with key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Adding key: 2 with value: 19 - this should succeed.
+	Querying with key: 2 - this should succeed and yield: 19.
+	**** New Test Case ****
+	Querying with key: -2 - this should fail.
+	Deleting key: -2 - this should fail.
+	Replacing value for key: -2 with value: 16.
+	Adding key: -2 with value: 3 - this should fail.
+	Replacing value for key: -2 with value: 14.
+	Replacing value for key: -2 with value: 6.
+	Deleting key: -2 - this should succeed.
+	Querying with key: -2 - this should fail.
+	Deleting key: -2 - this should fail.
+	Deleting key: -2 - this should fail.
+
+NTestCaseBuilder generates 1310 test cases in this example to achieve coverage.
+
+Now this is all very well - but look at the penultimate test case. There is a query for what is stored under key 2, followed straight away by exactly the same query. Both queries are expected to have the same outcome, as nothing else has happened in between.
+
+Similarly, both the penultimate and final test cases have consecutive deletions on the same key when the key has been removed prior to the first attempt - so both fail in the same manner.
+
+One could argue (and I do) that it is worth testing this behaviour - we want to verify that operations that are expected to leave the dictionary unchanged don't mysteriously perturb its internal state in such as way as to cause an externally visible change.
+
+OK, but what about the second test case listed above - it has *three* consecutive queries. Do we need the third one, once we've shown that the second behaves the same way?
+
+There are worse offenders elsewhere in the output, too:
+
+	**** New Test Case ****
+	Deleting key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Deleting key: 2 - this should fail.
+	Replacing value for key: 2 with value: 7.
+	Deleting key: 2 - this should succeed.
+	Adding key: 2 with value: 6 - this should succeed.
+	Replacing value for key: 2 with value: 11.
+
+I think you'd agree that the point was made with just the first two deletions!
+
+What we need is some way of keeping the mixing up in any position of different kinds of operation, but we want to prevent more than two consecutive operations being of the same kind for every test case.
+
+What we need is a *filter*.
+
+Let's put one in - I'll just amend the previous code by changing:
+
+        [Test]
+        public void TestStandardDictionaryWithJustOneKey()
+        {
+<i>blah, blah...</i>
+			
+            var operationKindSequenceFactory =
+                Synthesis.Create<IEnumerable<ITypedFactory<OperationKind>>, OperationKind>(
+					Enumerable.Repeat(operationFactory, numberOfOperations)).WithFilter(
+                        FilterOutThreeOrMoreConsecutiveIdenticalOperationKinds);
+			
+<i>etc...</i>
+		
+		}
+
+So now there is a call *'.WithFilter(FilterOutThreeOrMoreConsecutiveIdenticalOperationKinds)'* on the factory for the sequence of operation kinds.
+		
+I'll also add in a filter function:
+
+	private static Boolean FilterOutThreeOrMoreConsecutiveIdenticalOperationKinds(
+		IDictionary<Int32, Tuple<Int32, Object>> testVariableIndexToLevelDictionary)
+	{
+		var testVariableIndices = testVariableIndexToLevelDictionary.Keys;
+
+		var numberOfTestVariables = testVariableIndices.Count;
+
+		var sortedTestVariableIndices = new Int32[numberOfTestVariables];
+
+		testVariableIndices.CopyTo(sortedTestVariableIndices, 0);
+
+		Array.Sort(sortedTestVariableIndices);
+
+		if (1 >= numberOfTestVariables)
+		{
+			return true;
+		}
+
+		var preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(sortedTestVariableIndices.First(), 1);
+
+		foreach (var index in Enumerable.Range(1, numberOfTestVariables - 1))
+		{
+			var testVariableIndex = sortedTestVariableIndices[index];
+
+			var preceedingTestVariableIndex = preceedingTestVariableIndexAndConsecutiveCount.Item1;
+
+			if (1 + preceedingTestVariableIndex == testVariableIndex
+				&&
+				testVariableIndexToLevelDictionary[preceedingTestVariableIndex].Item1 ==
+				testVariableIndexToLevelDictionary[testVariableIndex].Item1)
+			{
+				var consecutiveCount = preceedingTestVariableIndexAndConsecutiveCount.Item2;
+
+				if (2 == consecutiveCount)
+				{
+					return false;
+				}
+
+				preceedingTestVariableIndexAndConsecutiveCount =
+					Tuple.Create(testVariableIndex, 1 + consecutiveCount);
+			}
+			else
+			{
+				preceedingTestVariableIndexAndConsecutiveCount =
+					Tuple.Create(testVariableIndex, 1);
+			}
+		}
+
+		return true;
+	}
+	
+What the filter function does is to vet potential test cases that NTestCaseBuilder is thinking about building up - if it returns 'true', NTestCaseBuilder will carry on as usual. When it returns 'false' though, NTestCaseBuilder reconsiders how to combine test levels from the test variables in such as way as to avoid the combination that failed the filter.
+
+Now, think about what I just said - this isn't simply a post-processor that scans through the generated test cases; rather this is way of telling the algorithm inside NTestCaseBuilder to reconsider its optimisation strategy for creating a minimal number of test cases - so the end sequence of test cases is still packed in an optimal sense, even if certain potential combinations were blocked by a filter.
+
+Also, because this isn't a post-processing step, NTestCaseBuilder can (and will) present the filter with partial combinations of test levels that are not complete test cases - these may have gaps at either end, or holes in the middle - the filter might even be presented with just one test variable at a time.
+
+The API reflects this by not working with actual test cases - that would imply that NTestCaseBuilder would have to build complete test cases first, which would in turn force filtering to be a post-processing step, thus not guaranteeing optimal coverage.
+
+Instead, a dictionary is passed to the filter - its keys are indices that denote test variables. The way to interpret these test variable indices is to count the number of factories that occur as leaves in the subtree of whatever factory the filter is attached to, working from left to right.
+
+So test variable index 0 denotes the leftmost test variable or singleton factory in the subtree, 1 is the next one to the right and so on.
+
+The test variable indices in the dictionary are always purely for **test variables** - singleton factories count towards the index, but never actually appear in the dictionary - this is because they are unvarying test cases and as such are not optional - if it is important to include a singleton test case's value in a filter, it should be done explicitly.
+
+The value in the dictionary associated with a test variable index key is a pair of an integer index that denotes the particular level the test variable has taken in the test case being considered, together with the actual level object.
+
+The reason for keeping a level index in addition to the level itself is because it is often more convenient to work with it - rather than worry about whether equality is well-defined for the type of the levels, one can simply compare the level indices to see whether levels from two different test variables clash or not.
+
+Nevertheless, the option is still there to work with the actual level values - just bear in mind that they are typed as 'System.Object', and thus may be boxed - and will probably require potentially unsafe downcasting to a more exact type. The choice is yours - in the example above, level indices are used to detect consecutive runs of test variables whose levels are the same.
+
+Now, if NTestCaseBuilder is calling a filter before it has created complete and final test cases, and if it can reconsider how to repack its test cases, then this implies that a filter should not expect to see a complete set of test variable indices as keys in the dictionary passed to it. Nor should it expect to see even groups of adjacent test variables - the keys may correspond to isolated test variables, or groups of adjacent test variables with gaps between or to the side of them, or both. Indeed, NTestCaseBuilder doesn't even guarantee that it will progressively fill in the test variables for a given combination of levels - it can jump around quite haphazardly and reconsider partially overlapping combinations.
+
+So it is up to the writer of the filter to make sure that a filter is *consistent* - if a filter returns 'true' for some combination of levels from a group of test variables, it is permitted to return 'false' if a new test variable and level are added into the mix. The reverse is *not* true - once a filter has labelled a combination with 'false', it cannot change its mind later, even if it sees new test variables being added to the combination.
+
+As an example:
+
+	Test Variables 2, 5 & 6 have unequal levels ==> True
+	Test Variables 2, 5 & 6 have unequal levels, but 7 is set to 'FooBar' ==> False
+
+This is OK for a filter, but if I changed that to:
+
+	Test Variables 2, 5 & 6 have unequal levels ==> True
+	Test Variables 2, 5 & 6 have unequal levels, but 7 is set to 'FooBar' ==> False
+	Test Variables 2, 5 & 6 have unequal levels, but 7 is set to 'FooBar' and 20 has an equal level to 5 ==> True
+
+The third line is not consistent with the second one - the filter is 'changing its mind back again based on additional evidence'. Put another way, the filter must implement 'anti-double-jeopardy' - it can retry an innocent test case and find it guilty, but it can't retry a guilty test case in find it innocent again.
+
+The correct way to code the second filter would be:
+
+	Test Variables 2, 5 & 6 have unequal levels ==> True
+	Test Variables 2, 5 & 6 have unequal levels, but 7 is set to 'FooBar' ==> True
+	Test Variables 2, 5 & 6 have unequal levels, but 7 is set to 'FooBar' and 20 has an unequal level to 5 ==> False
+
+Other than that the rules of the game for filters are best summarised as:-
+
+1. You can put filters on any factory in a tree.
+2. You can have more than one factory in a tree with a filter.
+3. You can have more than one filter on a factory - they are logically conjoined together - they all have to pass the combination in unison for it to be accepted.
+4. The test variable indices used as keys in a dictionary are always counted off from the point of view of the factory the filter was attached to, even if that factory forms part of a larger tree, and even if there are other filters elsewhere in the tree.
+5. Singleton test variables never show up implicitly via the dictionary passed to a filter.
+6. You have to be consistent or NTestCaseBuilder may launch a nuclear missile strike. You have been warned.
+	
+With that in mind, what does our revised test do?
+
+Well, it no longer generates daft test cases with three or more consecutive operations:
+
+	**** New Test Case ****
+	Replacing value for key: -2 with value: 18.
+	Adding key: -2 with value: 11 - this should fail.
+	Deleting key: -2 - this should succeed.
+	Replacing value for key: -2 with value: 19.
+	Adding key: -2 with value: 17 - this should fail.
+	Replacing value for key: -2 with value: 9.
+	Adding key: -2 with value: 12 - this should fail.
+	Replacing value for key: -2 with value: 9.
+	Deleting key: -2 - this should succeed.
+	Adding key: -2 with value: 1 - this should succeed.
+	**** New Test Case ****
+	Adding key: -2 with value: 15 - this should succeed.
+	Adding key: -2 with value: 17 - this should fail.
+	Replacing value for key: -2 with value: 15.
+	Querying with key: -2 - this should succeed and yield: 15.
+	Adding key: -2 with value: 5 - this should fail.
+	Deleting key: -2 - this should succeed.
+	Adding key: -2 with value: 14 - this should succeed.
+	Deleting key: -2 - this should succeed.
+	Adding key: -2 with value: 19 - this should succeed.
+	Deleting key: -2 - this should succeed.
+	
+	etc...
+
+NTestCaseBuilder now generates 1339 test cases in this example to get coverage - so you can see that NTestCaseBuilder is not simply throwing away test cases by postprocessing - in this case it has actually generated a few more test cases to get coverage.
+
+Stuff I didn't Document
+-----------------------
+
+Sorry, I try to make the documentation as complete as possible, but I have time pressures. So here's a list of things that I hope you figure out by looking at the NTestCaseBuilder.xml file, or by using Resharper or whatever to view the API.
+
+Hey, you're all bright people, you'll get the idea...
+
+1. WithMaximumStrength is a method on a factory that imposes a local cap on its strength - so regardless of the overall strength used to generate test cases, this factory and (in the absence of further strength caps) its subtree will impose a limit on the strength passed down.
+
+2. WithZeroStrengthCost is a method on a factory that gives it a 'free-pass'; it can explore the combinations from its subtree right up to the limits of its strength without taking away from the strength of its sibling subtrees. The best thing to do is to have a play with this and see what it does!
+
+3. Synthesis.Create has a very handy overload that uses WithZeroStrengthCost to create and / or apply a permutation across a list of test cases generated by the child factories. Again, have a play around.
+
+4. Synthesis.Create has another overload that allows curried F# functions to be used for synthesis.
+
+5. It's a good idea to study the tests for NTestCaseBuilder to see just what the Synthesis API can do, as well as browse the overloads.
+
+6. There are actually two public interfaces for factories - IFactory and ITypedFactory<TestCase>. These are analogous to IEnumerable and IEnumerable<Item>, and couple to the latter classes as well. Browse the interfaces and you'll get the idea.
+
+7. You can make an enumerable of test cases from the corresponding factory interface, if you want to decide how to process the test cases yourself.
+	
 How do I install this thing?
 ----------------------------
 
@@ -906,7 +1786,7 @@ The current package targets the .Net framework v4.0.
 
 9. You need to use the assemblies built by the project 'NTestCaseBuilder'. *NTestCaseBuilder.dll* is the one that your project will directly reference; it has an accompanying XML file for the API documentation.
 
-A Thought-Provoking Article you should read
+A Thought-Provoking Article You Should Read
 -------------------------------------------
 
 [http://www.testingeducation.org/wtst5/PairwisePNSQC2004.pdf](http://www.testingeducation.org/wtst5/PairwisePNSQC2004.pdf).
@@ -994,11 +1874,11 @@ Tasks:
 
 1. Publish this via NuGet for immediate consumption of binaries in Visual Studio.	*** DONE ***
 
-2. Add the capability to recursively build up a tree of factories, so that the final generated test cases can be arbitrarily 'long'. The encoding example above is a case in point: it has been arbitrarily limited to just ten characters per string test case, but it should be able to produce longer and longer strings in a lazily-evaluated fashion until the test decides that it has run long enough.
+2. Add the capability to recursively build up a tree of factories, so that the final generated test cases can be arbitrarily 'long'. The encoding example above is a case in point: it has been arbitrarily limited to just ten characters per string test case, but it should be able to produce longer and longer strings in a lazily-evaluated fashion until the test decides that it has run long enough.	*** DONE ***
 
-4. In a similar vein, consider a progressive approach where the strength is increased and again, the sequence is produced via lazy-evaluation; the test can keep going until a time limit is reached.
+3. In a similar vein, consider a progressive approach where the strength is increased and again, the sequence is produced via lazy-evaluation; the test can keep going until a time limit is reached.	*** DONE ***
 
-3. Allow local caps on the strength for subtrees within the tree of factories. This is because we may know that some test variables will have largely independent behaviour, so we can trade off a lower strength of combination for just these variables against having a higher overall strength of combination.
+4. Allow local caps on the strength for subtrees within the tree of factories. This is because we may know that some test variables will have largely independent behaviour, so we can trade off a lower strength of combination for just these variables against having a higher overall strength of combination.	*** DONE ***
 
 4. Integrate with Pex - smooth the path for importing Pex-generated test cases as test-levels for higher-level tests, also for integrating with Pex's notion of a parameterised test.
 
