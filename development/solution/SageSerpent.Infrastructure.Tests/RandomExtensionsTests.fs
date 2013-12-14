@@ -218,15 +218,32 @@
                     sequences
                     |> List.length
                 let disentangledPickedSubsequences =
-                    sequences
-                    |> List.mapi (fun sequenceIndex
-                                      sequence ->
-                                      sequence
-                                      |> Seq.filter (fun item ->
-                                                        item % numberOfSequences
-                                                         = sequenceIndex))
+                    let sequenceIndexToDisentangledPickedSubsequenceMap =
+                        alternatelyPickedSequence
+                        |> Seq.fold (fun sequenceIndexToDisentangledPickedSubsequenceMap
+                                         item ->
+                                        let sequenceIndex =
+                                            item % numberOfSequences
+                                        let disentangledSubsequence =
+                                            match Map.tryFind sequenceIndex
+                                                              sequenceIndexToDisentangledPickedSubsequenceMap with
+                                                Some disentangledSubsequence ->
+                                                    item :: disentangledSubsequence
+                                              | None ->
+                                                    [item]
+                                        Map.add sequenceIndex
+                                                disentangledSubsequence
+                                                sequenceIndexToDisentangledPickedSubsequenceMap)
+                                    Map.empty
+                    sequenceIndexToDisentangledPickedSubsequenceMap
+                    |> Map.toList
+                    |> List.map (snd >> List.rev)
                 let shouldBeTrue =
-                    List.zip sequences
+                    printf "Expected: %A\n" (sequences
+                                             |> List.filter (Seq.isEmpty >> not))
+                    printf "Got: %A\n" disentangledPickedSubsequences
+                    List.zip (sequences
+                              |> List.filter (Seq.isEmpty >> not))
                              disentangledPickedSubsequences
                     |> List.forall (fun (sequence
                                          , disentangledPickedSubsequence) ->
