@@ -36,7 +36,7 @@ namespace NTestCaseBuilder
     /// <seealso cref="FixedCombinationOfFactoriesForSynthesis">Cooperating class from low-level F#-specific API</seealso>
     type SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase> =
         {
-            ContinuationToApplyResultsFromAllButRightmostFactory: 'SynthesisFunction -> List<FullTestVector> -> List<Node> -> 'SynthesizedTestCase * List<FullTestVector>
+            ApplyResultsFromAllFactories: 'SynthesisFunction -> List<FullTestVector> -> List<Node> -> 'SynthesizedTestCase * List<FullTestVector>
             NodesInRightToLeftOrder: List<Node>
         }
 
@@ -45,7 +45,7 @@ namespace NTestCaseBuilder
                 (leftmostFactory :?> INodeWrapper).Node
             let rec createSingletonCombination (nodeFromLeftmostFactory: Node) =
                 {
-                    ContinuationToApplyResultsFromAllButRightmostFactory =
+                    ApplyResultsFromAllFactories =
                         fun synthesisFunction
                             slicesOfFullTestVector
                             nodesInRightToLeftOrder ->
@@ -70,7 +70,7 @@ namespace NTestCaseBuilder
             let rec createCombinationWithExtraRightmostNode (nodeFromRightmostFactory: Node)
                                                              combinationOfAllOtherFactories =
                 {
-                    ContinuationToApplyResultsFromAllButRightmostFactory =
+                    ApplyResultsFromAllFactories =
                         fun synthesisFunction
                             slicesOfFullTestVector
                             nodesInRightToLeftOrder ->
@@ -78,7 +78,7 @@ namespace NTestCaseBuilder
                                     nodeFromThisFactory :: nodesFromFactoriesToTheLeftInRightToLeftOrder ->
                                         let synthesisFunctionPartiallyAppliedToResultsFromAllFactoriesToTheLeft
                                             , remainingSlicesOfFullTestVectorForThisAndFactoriesToTheRight =
-                                            combinationOfAllOtherFactories.ContinuationToApplyResultsFromAllButRightmostFactory synthesisFunction
+                                            combinationOfAllOtherFactories.ApplyResultsFromAllFactories synthesisFunction
                                                                                                                                 slicesOfFullTestVector
                                                                                                                                 nodesFromFactoriesToTheLeftInRightToLeftOrder
 
@@ -102,19 +102,19 @@ namespace NTestCaseBuilder
     /// <seealso cref="SynthesisInputs">Cooperating class from low-level F#-specific API</seealso>
     and FixedCombinationOfFactoriesForSynthesis<'SynthesisFunction, 'SynthesizedTestCase>
             (nodesInRightToLeftOrder: List<Node>,
-             continuationToApplyResultsFromAllButRightmostFactory,
+             applyResultsFromAllFactories,
              synthesisFunction) =
 
         let createFinalValueFrom fullTestVector =
-            continuationToApplyResultsFromAllButRightmostFactory synthesisFunction
-                                                                 fullTestVector
-                                                                 nodesInRightToLeftOrder
+            applyResultsFromAllFactories synthesisFunction
+                                         fullTestVector
+                                         nodesInRightToLeftOrder
             |> fst
 
         new (heterogenousCombinationOfFactoriesForSynthesis: SynthesisInputs<'SynthesisFunction, 'SynthesizedTestCase>,
              synthesisFunction) =
              FixedCombinationOfFactoriesForSynthesis(heterogenousCombinationOfFactoriesForSynthesis.NodesInRightToLeftOrder,
-                                                     heterogenousCombinationOfFactoriesForSynthesis.ContinuationToApplyResultsFromAllButRightmostFactory,
+                                                     heterogenousCombinationOfFactoriesForSynthesis.ApplyResultsFromAllFactories,
                                                      synthesisFunction)
 
         interface IFixedCombinationOfSubtreeNodesForSynthesis with
@@ -125,7 +125,7 @@ namespace NTestCaseBuilder
                                      (fun prunedNodeList ->
                                         FixedCombinationOfFactoriesForSynthesis((prunedNodeList
                                                                                  |> List.rev),
-                                                                                continuationToApplyResultsFromAllButRightmostFactory,
+                                                                                applyResultsFromAllFactories,
                                                                                 synthesisFunction)
                                         :> IFixedCombinationOfSubtreeNodesForSynthesis)
                                      deferralBudget
@@ -206,9 +206,8 @@ namespace NTestCaseBuilder
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
         /// <seealso cref="FixedCombinationOfFactoriesForSynthesis">Cooperating class from low-level F#-specific API.</seealso>
-        static member inline Create (fixedCombinationOfFactoriesForSynthesis: FixedCombinationOfFactoriesForSynthesis<_, 'SynthesizedTestCase>) =
+        static member inline Create (fixedCombinationOfFactoriesForSynthesis: IFixedCombinationOfSubtreeNodesForSynthesis) =
             TypedFactoryImplementation<'SynthesizedTestCase> (fixedCombinationOfFactoriesForSynthesis
-                                                              :> IFixedCombinationOfSubtreeNodesForSynthesis
                                                               |> SynthesizingNode)
             :> ITypedFactory<_>
 
@@ -230,7 +229,7 @@ namespace NTestCaseBuilder
                 FixedCombinationOfFactoriesForSynthesis (singletonCombinationOfFactoriesForSynthesis
                                                          , synthesisDelegate.Invoke)
             Synthesis.Create fixedCombinationOfFactoriesForSynthesis
-            :> ITypedFactory<_>
+            : ITypedFactory<'SynthesizedTestCase>
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -247,12 +246,12 @@ namespace NTestCaseBuilder
                 SynthesisInputs<_, _>.StartWithLeftmostFactory factoryOne
             let combinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.AddFactoryToTheRight (singletonCombinationOfFactoriesForSynthesis,
-                                                                                           factoryTwo)
+                                                            factoryTwo)
             let fixedCombinationOfFactoriesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
             Synthesis.Create fixedCombinationOfFactoriesForSynthesis
-            :> ITypedFactory<_>
+            : ITypedFactory<'SynthesizedTestCase>
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -270,15 +269,15 @@ namespace NTestCaseBuilder
                 SynthesisInputs<_, _>.StartWithLeftmostFactory factoryOne
             let combinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.AddFactoryToTheRight(singletonCombinationOfFactoriesForSynthesis,
-                                                                                          factoryTwo)
+                                                           factoryTwo)
             let combinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                                                          factoryThree)
+                                                           factoryThree)
             let fixedCombinationOfFactoriesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
             Synthesis.Create fixedCombinationOfFactoriesForSynthesis
-            :> ITypedFactory<_>
+            : ITypedFactory<'SynthesizedTestCase>
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -297,18 +296,18 @@ namespace NTestCaseBuilder
                 SynthesisInputs<_, _>.StartWithLeftmostFactory factoryOne
             let combinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.AddFactoryToTheRight(singletonCombinationOfFactoriesForSynthesis,
-                                                                                          factoryTwo)
+                                                           factoryTwo)
             let combinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                                                          factoryThree)
+                                                           factoryThree)
             let combinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                                                          factoryFour)
+                                                           factoryFour)
             let fixedCombinationOfFactoriesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
             Synthesis.Create fixedCombinationOfFactoriesForSynthesis
-            :> ITypedFactory<_>
+            : ITypedFactory<'SynthesizedTestCase>
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -328,21 +327,21 @@ namespace NTestCaseBuilder
                 SynthesisInputs<_, _>.StartWithLeftmostFactory factoryOne
             let combinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.AddFactoryToTheRight(singletonCombinationOfFactoriesForSynthesis,
-                                                                                          factoryTwo)
+                                                           factoryTwo)
             let combinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                                                          factoryThree)
+                                                           factoryThree)
             let combinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                                                          factoryFour)
+                                                           factoryFour)
             let combinationOfFactoriesForSynthesis =
                 SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                                                          factoryFive)
+                                                           factoryFive)
             let fixedCombinationOfFactoriesForSynthesis =
                 FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
                                                          , FuncConvert.FuncFromTupled<_, _, _, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
             Synthesis.Create fixedCombinationOfFactoriesForSynthesis
-            :> ITypedFactory<_>
+            : ITypedFactory<'SynthesizedTestCase>
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
@@ -404,11 +403,8 @@ namespace NTestCaseBuilder
                                 false
                     }
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesFromExplicitFactories
-            let node =
-                fixedCombinationOfSubtreeNodesForSynthesis
-                |> SynthesizingNode
-            TypedFactoryImplementation<'SynthesizedTestCase> node
-            :> ITypedFactory<_>
+            Synthesis.Create fixedCombinationOfSubtreeNodesForSynthesis
+            : ITypedFactory<'SynthesizedTestCase>
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
@@ -472,7 +468,7 @@ namespace NTestCaseBuilder
              else
                 Synthesis.Create (sequenceOfFactoriesProvidingInputsToSynthesis,
                                   condensation))
-            :> ITypedFactory<_>
+            : ITypedFactory<_>
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
