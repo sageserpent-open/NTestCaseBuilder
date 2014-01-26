@@ -468,7 +468,6 @@ namespace NTestCaseBuilder
              else
                 Synthesis.Create (sequenceOfFactoriesProvidingInputsToSynthesis,
                                   condensation))
-            : ITypedFactory<_>
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
@@ -574,8 +573,5 @@ namespace NTestCaseBuilder
                     }
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesIncludingImplicitFactoryForPermutation
 
-            let node =
-                fixedCombinationOfSubtreeNodesForSynthesis
-                |> SynthesizingNode
-            TypedFactoryImplementation<List<'TestCaseListElement> * Permutation<'Something>> node
-            :> ITypedFactory<_>
+            Synthesis.Create fixedCombinationOfSubtreeNodesForSynthesis
+            : ITypedFactory<List<'TestCaseListElement> * Permutation<'Something>>
