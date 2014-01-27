@@ -405,7 +405,7 @@ License
 
 The MIT License (MIT)
 
-Copyright (c) 2013 Gerard Murphy, SageSerpent Ltd
+Copyright (c) 2014 Gerard Murphy, SageSerpent Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -482,7 +482,7 @@ However, these tests are really about documenting behaviour - while they *do* ac
 
 There is also another problem in that this style of unit test doesn't scale well as we move away from the lowest level of components that form the roots of an application's software component dependencies, proceeding up the dependency chains to test components that are composed of, or otherwise rely on, simpler components.
 
-It becomes progressively more difficult to set up the component under test because of the increasing number of dependency components that have to be correctly set up for the component under test to run. In effect, a unit test for a higher-level component is kind of integration test for that component's dependencies.
+It becomes progressively more difficult to set up the component under test because of the increasing number of dependency components that have to be correctly set up for the component under test to run. In effect, a unit test for a higher-level component is a kind of integration test for that component's dependencies.
 
 The traditional solution to this to mock the dependency components, which ensures that the higher-level component really is being unit-tested. This approach is well and good, and can also point the way to effective design of the dependencies between an application's components.
 
