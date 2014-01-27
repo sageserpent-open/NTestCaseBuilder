@@ -223,14 +223,37 @@ namespace NTestCaseBuilder
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factory: ITypedFactory<_>,
-                              synthesisDelegate: UnaryDelegate<_, 'SynthesizedTestCase>) =
-            let singletonCombinationOfFactoriesForSynthesis =
-                SynthesisInputs<_, _>.StartWithLeftmostFactory factory
-            let fixedCombinationOfFactoriesForSynthesis =
-                FixedCombinationOfFactoriesForSynthesis (singletonCombinationOfFactoriesForSynthesis
-                                                         , synthesisDelegate.Invoke)
-            Synthesis.Create fixedCombinationOfFactoriesForSynthesis
+        static member Create (factory: ITypedFactory<'InputTestCase>,
+                              synthesisDelegate: UnaryDelegate<'InputTestCase, 'SynthesizedTestCase>) =
+            let rec fixedCombinationOfSubtreeNodesForSynthesis node =
+                {
+                    new IFixedCombinationOfSubtreeNodesForSynthesis with
+                        member this.Prune (deferralBudget,
+                                           numberOfDeferralsSpent) =
+                            Node.PruneAndCombine [node]
+                                                 (function [node] ->
+                                                            fixedCombinationOfSubtreeNodesForSynthesis node)
+                                                 deferralBudget
+                                                 numberOfDeferralsSpent
+
+                        member this.Nodes =
+                            [|node|]
+
+                        member this.FinalValueCreator () =
+                            function [sliceOfFullTestVector] ->
+                                        let invocationArgument =
+                                            node.FinalValueCreator () sliceOfFullTestVector
+                                        synthesisDelegate.Invoke(invocationArgument)
+                            |> mediateFinalValueCreatorType
+                        member this.IsSubtreeZeroCost _ =
+                            false
+
+                        member this.IsSubtreeHiddenFromFilters _ =
+                            false
+                }
+            let fixedCombinationsOfNodesForSynthesis =
+                fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factory)
+            Synthesis.Create fixedCombinationsOfNodesForSynthesis
             : ITypedFactory<'SynthesizedTestCase>
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
@@ -262,11 +285,11 @@ namespace NTestCaseBuilder
 
                         member this.FinalValueCreator () =
                             function [sliceOfFullTestVector1; sliceOfFullTestVector2] ->
-                                    let invocationArgument1 =
-                                        node1.FinalValueCreator () sliceOfFullTestVector1
-                                    let invocationArgument2 =
-                                        node2.FinalValueCreator () sliceOfFullTestVector2
-                                    synthesisDelegate.Invoke(invocationArgument1, invocationArgument2)
+                                        let invocationArgument1 =
+                                            node1.FinalValueCreator () sliceOfFullTestVector1
+                                        let invocationArgument2 =
+                                            node2.FinalValueCreator () sliceOfFullTestVector2
+                                        synthesisDelegate.Invoke(invocationArgument1, invocationArgument2)
                             |> mediateFinalValueCreatorType
                         member this.IsSubtreeZeroCost _ =
                             false
@@ -288,22 +311,49 @@ namespace NTestCaseBuilder
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factoryOne: ITypedFactory<_>,
-                              factoryTwo: ITypedFactory<_>,
-                              factoryThree: ITypedFactory<_>,
-                              synthesisDelegate: TernaryDelegate<_, _, _, _>) =
-            let singletonCombinationOfFactoriesForSynthesis =
-                SynthesisInputs<_, _>.StartWithLeftmostFactory factoryOne
-            let combinationOfFactoriesForSynthesis =
-                SynthesisInputs<_, _>.AddFactoryToTheRight(singletonCombinationOfFactoriesForSynthesis,
-                                                           factoryTwo)
-            let combinationOfFactoriesForSynthesis =
-                SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                           factoryThree)
-            let fixedCombinationOfFactoriesForSynthesis =
-                FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
-                                                         , FuncConvert.FuncFromTupled<_, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
-            Synthesis.Create fixedCombinationOfFactoriesForSynthesis
+        static member Create (factoryOne: ITypedFactory<'InputTestCase1>,
+                              factoryTwo: ITypedFactory<'InputTestCase2>,
+                              factoryThree: ITypedFactory<'InputTestCase3>,
+                              synthesisDelegate: TernaryDelegate<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'SynthesizedTestCase>) =
+            let rec fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                               node2
+                                                               node3 =
+                {
+                    new IFixedCombinationOfSubtreeNodesForSynthesis with
+                        member this.Prune (deferralBudget,
+                                           numberOfDeferralsSpent) =
+                            Node.PruneAndCombine [node1; node2; node3]
+                                                 (function [node1; node2; node3] ->
+                                                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                                                                       node2
+                                                                                                       node3)
+                                                 deferralBudget
+                                                 numberOfDeferralsSpent
+
+                        member this.Nodes =
+                            [|node1; node2; node3|]
+
+                        member this.FinalValueCreator () =
+                            function [sliceOfFullTestVector1; sliceOfFullTestVector2; sliceOfFullTestVector3] ->
+                                        let invocationArgument1 =
+                                            node1.FinalValueCreator () sliceOfFullTestVector1
+                                        let invocationArgument2 =
+                                            node2.FinalValueCreator () sliceOfFullTestVector2
+                                        let invocationArgument3 =
+                                            node2.FinalValueCreator () sliceOfFullTestVector3
+                                        synthesisDelegate.Invoke(invocationArgument1, invocationArgument2, invocationArgument3)
+                            |> mediateFinalValueCreatorType
+                        member this.IsSubtreeZeroCost _ =
+                            false
+
+                        member this.IsSubtreeHiddenFromFilters _ =
+                            false
+                }
+            let fixedCombinationsOfNodesForSynthesis =
+                fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factoryOne)
+                                                           (extractNodeFrom factoryTwo)
+                                                           (extractNodeFrom factoryThree)
+            Synthesis.Create fixedCombinationsOfNodesForSynthesis
             : ITypedFactory<'SynthesizedTestCase>
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
@@ -314,26 +364,55 @@ namespace NTestCaseBuilder
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factoryOne: ITypedFactory<_>,
-                              factoryTwo: ITypedFactory<_>,
-                              factoryThree: ITypedFactory<_>,
-                              factoryFour: ITypedFactory<_>,
-                              synthesisDelegate: QuatenaryDelegate<_, _, _, _, _>) =
-            let singletonCombinationOfFactoriesForSynthesis =
-                SynthesisInputs<_, _>.StartWithLeftmostFactory factoryOne
-            let combinationOfFactoriesForSynthesis =
-                SynthesisInputs<_, _>.AddFactoryToTheRight(singletonCombinationOfFactoriesForSynthesis,
-                                                           factoryTwo)
-            let combinationOfFactoriesForSynthesis =
-                SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                           factoryThree)
-            let combinationOfFactoriesForSynthesis =
-                SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                           factoryFour)
-            let fixedCombinationOfFactoriesForSynthesis =
-                FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
-                                                         , FuncConvert.FuncFromTupled<_, _, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
-            Synthesis.Create fixedCombinationOfFactoriesForSynthesis
+        static member Create (factoryOne: ITypedFactory<'InputTestCase1>,
+                              factoryTwo: ITypedFactory<'InputTestCase2>,
+                              factoryThree: ITypedFactory<'InputTestCase3>,
+                              factoryFour: ITypedFactory<'InputTestCase4>,
+                              synthesisDelegate: QuatenaryDelegate<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'SynthesizedTestCase>) =
+            let rec fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                               node2
+                                                               node3
+                                                               node4 =
+                {
+                    new IFixedCombinationOfSubtreeNodesForSynthesis with
+                        member this.Prune (deferralBudget,
+                                           numberOfDeferralsSpent) =
+                            Node.PruneAndCombine [node1; node2; node3; node4]
+                                                 (function [node1; node2; node3; node4] ->
+                                                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                                                                       node2
+                                                                                                       node3
+                                                                                                       node4)
+                                                 deferralBudget
+                                                 numberOfDeferralsSpent
+
+                        member this.Nodes =
+                            [|node1; node2; node3; node4|]
+
+                        member this.FinalValueCreator () =
+                            function [sliceOfFullTestVector1; sliceOfFullTestVector2; sliceOfFullTestVector3; sliceOfFullTestVector4] ->
+                                        let invocationArgument1 =
+                                            node1.FinalValueCreator () sliceOfFullTestVector1
+                                        let invocationArgument2 =
+                                            node2.FinalValueCreator () sliceOfFullTestVector2
+                                        let invocationArgument3 =
+                                            node2.FinalValueCreator () sliceOfFullTestVector3
+                                        let invocationArgument4 =
+                                            node2.FinalValueCreator () sliceOfFullTestVector4
+                                        synthesisDelegate.Invoke(invocationArgument1, invocationArgument2, invocationArgument3, invocationArgument4)
+                            |> mediateFinalValueCreatorType
+                        member this.IsSubtreeZeroCost _ =
+                            false
+
+                        member this.IsSubtreeHiddenFromFilters _ =
+                            false
+                }
+            let fixedCombinationsOfNodesForSynthesis =
+                fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factoryOne)
+                                                           (extractNodeFrom factoryTwo)
+                                                           (extractNodeFrom factoryThree)
+                                                           (extractNodeFrom factoryFour)
+            Synthesis.Create fixedCombinationsOfNodesForSynthesis
             : ITypedFactory<'SynthesizedTestCase>
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
@@ -344,30 +423,61 @@ namespace NTestCaseBuilder
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factoryOne: ITypedFactory<_>,
-                              factoryTwo: ITypedFactory<_>,
-                              factoryThree: ITypedFactory<_>,
-                              factoryFour: ITypedFactory<_>,
-                              factoryFive: ITypedFactory<_>,
-                              synthesisDelegate: QuintenaryDelegate<_, _, _, _, _, _>) =
-            let singletonCombinationOfFactoriesForSynthesis =
-                SynthesisInputs<_, _>.StartWithLeftmostFactory factoryOne
-            let combinationOfFactoriesForSynthesis =
-                SynthesisInputs<_, _>.AddFactoryToTheRight(singletonCombinationOfFactoriesForSynthesis,
-                                                           factoryTwo)
-            let combinationOfFactoriesForSynthesis =
-                SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                           factoryThree)
-            let combinationOfFactoriesForSynthesis =
-                SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                           factoryFour)
-            let combinationOfFactoriesForSynthesis =
-                SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                           factoryFive)
-            let fixedCombinationOfFactoriesForSynthesis =
-                FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
-                                                         , FuncConvert.FuncFromTupled<_, _, _, _, _, 'SynthesizedTestCase> synthesisDelegate.Invoke)
-            Synthesis.Create fixedCombinationOfFactoriesForSynthesis
+        static member Create (factoryOne: ITypedFactory<'InputTestCase1>,
+                              factoryTwo: ITypedFactory<'InputTestCase2>,
+                              factoryThree: ITypedFactory<'InputTestCase3>,
+                              factoryFour: ITypedFactory<'InputTestCase4>,
+                              factoryFive: ITypedFactory<'InputTestCase5>,
+                              synthesisDelegate: QuintenaryDelegate<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'InputTestCase5, 'SynthesizedTestCase>) =
+            let rec fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                               node2
+                                                               node3
+                                                               node4
+                                                               node5 =
+                {
+                    new IFixedCombinationOfSubtreeNodesForSynthesis with
+                        member this.Prune (deferralBudget,
+                                           numberOfDeferralsSpent) =
+                            Node.PruneAndCombine [node1; node2; node3; node4; node5]
+                                                 (function [node1; node2; node3; node4; node5] ->
+                                                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                                                                       node2
+                                                                                                       node3
+                                                                                                       node4
+                                                                                                       node5)
+                                                 deferralBudget
+                                                 numberOfDeferralsSpent
+
+                        member this.Nodes =
+                            [|node1; node2; node3; node4; node5|]
+
+                        member this.FinalValueCreator () =
+                            function [sliceOfFullTestVector1; sliceOfFullTestVector2; sliceOfFullTestVector3; sliceOfFullTestVector4; sliceOfFullTestVector5] ->
+                                        let invocationArgument1 =
+                                            node1.FinalValueCreator () sliceOfFullTestVector1
+                                        let invocationArgument2 =
+                                            node2.FinalValueCreator () sliceOfFullTestVector2
+                                        let invocationArgument3 =
+                                            node2.FinalValueCreator () sliceOfFullTestVector3
+                                        let invocationArgument4 =
+                                            node2.FinalValueCreator () sliceOfFullTestVector4
+                                        let invocationArgument5 =
+                                            node2.FinalValueCreator () sliceOfFullTestVector5
+                                        synthesisDelegate.Invoke(invocationArgument1, invocationArgument2, invocationArgument3, invocationArgument4, invocationArgument5)
+                            |> mediateFinalValueCreatorType
+                        member this.IsSubtreeZeroCost _ =
+                            false
+
+                        member this.IsSubtreeHiddenFromFilters _ =
+                            false
+                }
+            let fixedCombinationsOfNodesForSynthesis =
+                fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factoryOne)
+                                                           (extractNodeFrom factoryTwo)
+                                                           (extractNodeFrom factoryThree)
+                                                           (extractNodeFrom factoryFour)
+                                                           (extractNodeFrom factoryFive)
+            Synthesis.Create fixedCombinationsOfNodesForSynthesis
             : ITypedFactory<'SynthesizedTestCase>
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
