@@ -340,7 +340,7 @@ namespace NTestCaseBuilder
                                         let invocationArgument2 =
                                             node2.FinalValueCreator () sliceOfFullTestVector2
                                         let invocationArgument3 =
-                                            node2.FinalValueCreator () sliceOfFullTestVector3
+                                            node3.FinalValueCreator () sliceOfFullTestVector3
                                         synthesisDelegate.Invoke(invocationArgument1, invocationArgument2, invocationArgument3)
                             |> mediateFinalValueCreatorType
                         member this.IsSubtreeZeroCost _ =
@@ -396,9 +396,9 @@ namespace NTestCaseBuilder
                                         let invocationArgument2 =
                                             node2.FinalValueCreator () sliceOfFullTestVector2
                                         let invocationArgument3 =
-                                            node2.FinalValueCreator () sliceOfFullTestVector3
+                                            node3.FinalValueCreator () sliceOfFullTestVector3
                                         let invocationArgument4 =
-                                            node2.FinalValueCreator () sliceOfFullTestVector4
+                                            node4.FinalValueCreator () sliceOfFullTestVector4
                                         synthesisDelegate.Invoke(invocationArgument1, invocationArgument2, invocationArgument3, invocationArgument4)
                             |> mediateFinalValueCreatorType
                         member this.IsSubtreeZeroCost _ =
@@ -458,11 +458,11 @@ namespace NTestCaseBuilder
                                         let invocationArgument2 =
                                             node2.FinalValueCreator () sliceOfFullTestVector2
                                         let invocationArgument3 =
-                                            node2.FinalValueCreator () sliceOfFullTestVector3
+                                            node3.FinalValueCreator () sliceOfFullTestVector3
                                         let invocationArgument4 =
-                                            node2.FinalValueCreator () sliceOfFullTestVector4
+                                            node4.FinalValueCreator () sliceOfFullTestVector4
                                         let invocationArgument5 =
-                                            node2.FinalValueCreator () sliceOfFullTestVector5
+                                            node5.FinalValueCreator () sliceOfFullTestVector5
                                         synthesisDelegate.Invoke(invocationArgument1, invocationArgument2, invocationArgument3, invocationArgument4, invocationArgument5)
                             |> mediateFinalValueCreatorType
                         member this.IsSubtreeZeroCost _ =
