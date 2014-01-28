@@ -97,8 +97,15 @@
         NumberOfPermutations x x
 
     let NumberOfCombinations originalSize combinationSize =
-        NumberOfPermutations originalSize combinationSize
-        / Factorial combinationSize
+        let unpickedSize =
+            originalSize - combinationSize
+        if combinationSize < unpickedSize
+        then
+            NumberOfPermutations originalSize combinationSize
+            / Factorial combinationSize
+        else
+            NumberOfPermutations originalSize unpickedSize
+            / Factorial unpickedSize
 
 
     let MappingAvoidingIndices sortedIndicesToAvoid =

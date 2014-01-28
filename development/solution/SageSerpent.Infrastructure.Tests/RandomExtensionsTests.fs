@@ -4,6 +4,7 @@
 
     open SageSerpent.Infrastructure
     open System
+    open C5
     open RandomExtensions
 
     [<TestFixture>]
@@ -30,6 +31,95 @@
                 let chosenItems = random.ChooseSeveralOf(concreteRangeOfIntegers, maximumUpperBound)
                 for chosenItem in chosenItems do
                     ()
+
+        let sampleDistributions upperBound
+                                sampleSize
+                                buildRandomSequenceOfDistinctIntegersOfSize =
+            let numberOfTrials =
+                (BargainBasement.NumberOfCombinations upperBound 
+                                                      sampleSize) * 1000
+    
+            printf "Number of trials: %d, upperBound: %d, sampleSize: %d\n" numberOfTrials upperBound sampleSize
+
+            let findWithDefaultValue (dictionary: TreeDictionary<_, 'Value>)
+                                     key
+                                     defaultValue =
+                let result = ref Unchecked.defaultof<'Value>
+                if dictionary.Find(ref key, result)
+                then
+                    !result
+                else
+                    defaultValue
+
+            let sampleToCountMap =
+                TreeDictionary()
+
+            let itemToCountAndSumOfPositionsMap =
+                TreeDictionary()
+
+            for _ in 1 .. numberOfTrials do
+                let sample =
+                    buildRandomSequenceOfDistinctIntegersOfSize sampleSize
+                    |> List.ofSeq
+      
+                let sampleAsSet =
+                    sample
+                    |> Set.ofList
+      
+                sampleToCountMap.[sampleAsSet]
+                    <- 1 + findWithDefaultValue sampleToCountMap
+                                                sampleAsSet
+                                                0
+                for position
+                    , item in sample
+                              |> List.mapi (fun index
+                                                item ->
+                                                index
+                                                , item) do
+                    let count
+                        , sumOfPositions =
+                        findWithDefaultValue itemToCountAndSumOfPositionsMap
+                                             item
+                                             (0, 0.0)
+                    itemToCountAndSumOfPositionsMap.[item] <-
+                        (1 + count
+                         , (double position + sumOfPositions))
+
+            let numberOfDistinctSamplesObtained =
+                sampleToCountMap.Count
+    
+            Assert.IsTrue(sampleToCountMap.Values
+                          |> Seq.filter(fun count ->
+                                            let expectedCount =
+                                                double numberOfTrials / double numberOfDistinctSamplesObtained
+                                            let tolerance =
+                                                1e-1
+                                            abs(double count - expectedCount) <= tolerance * double expectedCount)
+                          |> Seq.length
+                          |> double
+                          >= 9e-1 * double sampleToCountMap.Count)
+
+            Assert.IsTrue(itemToCountAndSumOfPositionsMap.Count = upperBound)
+
+            Assert.IsTrue(itemToCountAndSumOfPositionsMap.Keys
+                          |> Seq.forall(fun item ->
+                                            0 <= item && upperBound > item))
+
+            Assert.IsTrue(itemToCountAndSumOfPositionsMap.Values
+                          |> Seq.filter(function (count, sumOfPositions) ->
+                                                    let meanPosition =
+                                                        sumOfPositions / double count
+                                                    let expectedMeanPosition =
+                                                        double (sampleSize - 1) / 2.0
+                                                    let difference =
+                                                        abs(meanPosition - expectedMeanPosition)
+                                                    let tolerance =
+                                                        1e-1
+                                                    difference <= tolerance * expectedMeanPosition)
+                          |> Seq.length
+                          |> double
+                          >= 9e-1 * double itemToCountAndSumOfPositionsMap.Count)
+
 
         let commonTestStructureForTestingAlternatePickingFromSequences testOnSequences =
             let randomBehaviour =
@@ -83,29 +173,21 @@
         member this.TestDistributionOfSuccessiveSequencesWithTheSameUpperBound() =
             let random = Random 1
 
-            let maximumUpperBound = 30
+            let maximumUpperBound = 17
 
-            for upperBound in 0 .. maximumUpperBound do
-                let concreteRangeOfIntegers = inclusiveUpToExclusiveRange 0 upperBound
+            for upperBound in 1 .. maximumUpperBound do
+                let concreteRangeOfIntegers =
+                    inclusiveUpToExclusiveRange 0 upperBound
 
-                let numberOfTrials = 100000
+                let sampleSizes =
+                    Set [1; min (1 + random.Next(upperBound)) upperBound; upperBound]
 
-                let itemToCountAndSumOfPositionsMap = Array.create upperBound (0, 0.0)
+                for sampleSize in sampleSizes do
+                    sampleDistributions upperBound
+                                        sampleSize
+                                        (fun sampleSize ->
+                                            random.ChooseSeveralOf(concreteRangeOfIntegers, sampleSize))
 
-                for _ in 1 .. numberOfTrials do
-                    for position, item in random.ChooseSeveralOf(concreteRangeOfIntegers, upperBound) |> Seq.mapi (fun position item -> position, item) do
-                        let count, sumOfPositions = itemToCountAndSumOfPositionsMap.[item]
-                        itemToCountAndSumOfPositionsMap.[item] <- 1 + count, (float position + sumOfPositions)
-
-                let toleranceEpsilon = 1e-1
-
-                let shouldBeTrue =
-                    itemToCountAndSumOfPositionsMap
-                    |> Seq.forall (fun (count, sumOfPositions)
-                                    -> let difference = (sumOfPositions / (float count) - float (upperBound - 1) / 2.0)
-                                       difference < toleranceEpsilon)
-
-                Assert.IsTrue shouldBeTrue
 
         [<Test>]
         member this.TestThatAllItemsChosenBelongToTheSourceSequence() =
