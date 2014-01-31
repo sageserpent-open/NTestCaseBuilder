@@ -38,7 +38,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="C5">
-      <HintPath>packages\C5.2.2.4881.16939\lib\portable-win+net40+sl40+wp+Xbox40\C5.dll</HintPath>
+      <HintPath>packages\C5.2.2.5073.27396\lib\portable-net40+sl50+wp80+win\C5.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <Private>True</Private>
@@ -63,7 +63,7 @@
       <HintPath>packages\GraphSharp.1.1.0.0\lib\net40\GraphSharp.Controls.dll</HintPath>
     </Reference>
     <Reference Include="NTestCaseBuilder">
-      <HintPath>packages\NTestCaseBuilder.2.2.0.0\lib\net40\NTestCaseBuilder.dll</HintPath>
+      <HintPath>packages\NTestCaseBuilder.2.3.0.0\lib\net40\NTestCaseBuilder.dll</HintPath>
     </Reference>
     <Reference Include="nunit.framework">
       <HintPath>packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
@@ -83,7 +83,7 @@
       <HintPath>packages\QuickGraph.3.6.61119.7\lib\net4\QuickGraph.Serialization.dll</HintPath>
     </Reference>
     <Reference Include="SageSerpent.Infrastructure">
-      <HintPath>packages\NTestCaseBuilder.2.2.0.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
+      <HintPath>packages\NTestCaseBuilder.2.3.0.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
