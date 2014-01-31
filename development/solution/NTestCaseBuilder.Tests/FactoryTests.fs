@@ -239,6 +239,22 @@
                                                   BinaryDelegate(fun firstInputTestCase
                                                                      secondInputTestCase ->
                                                                         undoShuffleAndConcatenateContributedLevels [firstInputTestCase; secondInputTestCase]))
+                          | 3 when not permuteInputs ->
+                                let singletonCombinationOfFactoriesForSynthesis =
+                                    SynthesisInputs<_, _>.StartWithLeftmostFactory permutedSubtrees.[0]
+                                let combinationOfFactoriesForSynthesis =
+                                    SynthesisInputs<_, _>.AddFactoryToTheRight(singletonCombinationOfFactoriesForSynthesis,
+                                                                               permutedSubtrees.[1])
+                                let combinationOfFactoriesForSynthesis =
+                                    SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
+                                                                               permutedSubtrees.[2])
+                                let fixedCombinationOfFactoriesForSynthesis =
+                                    FixedCombinationOfFactoriesForSynthesis (combinationOfFactoriesForSynthesis
+                                                                             , (fun firstInputTestCase
+                                                                                    secondInputTestCase
+                                                                                    thirdInputTestCase ->
+                                                                                    undoShuffleAndConcatenateContributedLevels [firstInputTestCase; secondInputTestCase; thirdInputTestCase]))
+                                Synthesis.Create fixedCombinationOfFactoriesForSynthesis                               
                           | _ ->
                                 Synthesis.Create (permutedSubtrees,
                                                   SequenceCondensation(List.ofSeq >> undoShuffleAndConcatenateContributedLevels),
