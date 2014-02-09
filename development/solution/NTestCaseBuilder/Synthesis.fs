@@ -167,7 +167,7 @@ namespace NTestCaseBuilder
         delegate of seq<'Item> -> 'Result
 
     type Permutation<'Item> =
-        delegate of seq<'Item> -> List<'Item>
+        delegate of seq<'Item> -> seq<'Item>
 
     type Synthesis =
         /// <summary>Constructor function that creates an instance of IFactory.</summary>
@@ -644,8 +644,8 @@ namespace NTestCaseBuilder
         /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases form inputs
         /// for synthesis.</param>
         /// <returns>The constructed factory.</returns>
-        /// <seealso cref="ITypedFactory&lt;Tuple&lt;List&lt;'TestCaseListElement&gt;, Permutation&lt;'Something&gt;&gt;&gt;">Type of constructed factory.</seealso>
-        static member CreateWithPermutation<'TestCaseListElement, 'Something> (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITypedFactory<'TestCaseListElement>>): ITypedFactory<List<'TestCaseListElement> * Permutation<'Something>> =
+        /// <seealso cref="ITypedFactory&lt;Tuple&lt;IEnumerable&lt;'TestCaseListElement&gt;, Permutation&lt;'Something&gt;&gt;&gt;">Type of constructed factory.</seealso>
+        static member CreateWithPermutation<'TestCaseListElement, 'Something> (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITypedFactory<'TestCaseListElement>>): ITypedFactory<seq<'TestCaseListElement> * Permutation<'Something>> =
             let subtreeRootNodesFromExplicitFactories =
                 sequenceOfFactoriesProvidingInputsToSynthesis
                 |> List.ofSeq
@@ -696,6 +696,7 @@ namespace NTestCaseBuilder
                                     let shuffle itemsToPermute =
                                         GeneratePermutation itemsToPermute
                                                             permutationIndex
+                                        :> seq<_>
                                     unshuffledResultsFromSubtrees
                                     , Permutation<'Something>(List.ofSeq >> shuffle)
                                 |> mediateFinalValueCreatorType
@@ -709,4 +710,4 @@ namespace NTestCaseBuilder
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesIncludingImplicitFactoryForPermutation
 
             Synthesis.Create fixedCombinationOfSubtreeNodesForSynthesis
-            : ITypedFactory<List<'TestCaseListElement> * Permutation<'Something>>
+            : ITypedFactory<seq<'TestCaseListElement> * Permutation<'Something>>
