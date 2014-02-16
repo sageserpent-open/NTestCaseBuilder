@@ -92,6 +92,9 @@
       <HintPath>..\packages\NTestCaseBuilder.2.3.0.0\lib\net40\NTestCaseBuilder.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="nunit-console-runner">
+      <HintPath>..\packages\NUnit.Runners.2.6.3\tools\lib\nunit-console-runner.dll</HintPath>
+    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
     </Reference>
