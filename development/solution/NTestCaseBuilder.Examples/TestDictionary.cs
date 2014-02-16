@@ -260,7 +260,7 @@ namespace NTestCaseBuilder.Examples
             var randomBehaviour = new Random(0);
 
             var operationKindSequenceFactory =
-                Synthesis.Create<IEnumerable<ITypedFactory<OperationKind>>, OperationKind>(
+                Synthesis.Create(
                     Enumerable.Repeat(operationFactory, numberOfOperations)).WithFilter(
                         FilterOutThreeOrMoreConsecutiveIdenticalOperationKinds);
 

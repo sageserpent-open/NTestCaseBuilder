@@ -184,8 +184,8 @@ namespace NTestCaseBuilder
         /// <param name="synthesisDelegate">Delegate in weakly-typed form used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="IFactory">Type of constructed factory.</seealso>
-        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<IFactory>,
-                              synthesisDelegate: Delegate) =
+        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: seq<IFactory>,
+                              synthesisDelegate: Delegate): IFactory =
             if Seq.isEmpty sequenceOfFactoriesProvidingInputsToSynthesis
             then
                 raise (PreconditionViolationException "Must provide at least one component.")
@@ -208,13 +208,11 @@ namespace NTestCaseBuilder
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
         /// <seealso cref="FixedCombinationOfFactoriesForSynthesis">Cooperating class from low-level F#-specific API.</seealso>
-        static member inline Create (fixedCombinationOfFactoriesForSynthesis: IFixedCombinationOfSubtreeNodesForSynthesis) =
+        static member inline Create<'SynthesizedTestCase>
+                                (fixedCombinationOfFactoriesForSynthesis: IFixedCombinationOfSubtreeNodesForSynthesis): ITypedFactory<'SynthesizedTestCase> =
             TypedFactoryImplementation<'SynthesizedTestCase> (fixedCombinationOfFactoriesForSynthesis
                                                               |> SynthesizingNode)
             :> ITypedFactory<_>
-
-        // TODO: re-implement with special-case implementations of 'IFixedCombinationOfSubtreeNodesForSynthesis';
-        // we don't need the full API using 'SynthesisInputs<_, _>' to do these tuple cases.
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -223,8 +221,9 @@ namespace NTestCaseBuilder
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factory: ITypedFactory<'InputTestCase>,
-                              synthesisDelegate: UnaryDelegate<'InputTestCase, 'SynthesizedTestCase>) =
+        static member Create<'InputTestCase, 'SynthesizedTestCase>
+                        (factory: ITypedFactory<'InputTestCase>,
+                         synthesisDelegate: UnaryDelegate<'InputTestCase, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
             let rec fixedCombinationOfSubtreeNodesForSynthesis node =
                 {
                     new IFixedCombinationOfSubtreeNodesForSynthesis with
@@ -253,8 +252,7 @@ namespace NTestCaseBuilder
                 }
             let fixedCombinationsOfNodesForSynthesis =
                 fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factory)
-            Synthesis.Create fixedCombinationsOfNodesForSynthesis
-            : ITypedFactory<'SynthesizedTestCase>
+            Synthesis.Create<'SynthesizedTestCase> fixedCombinationsOfNodesForSynthesis
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -264,9 +262,10 @@ namespace NTestCaseBuilder
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factoryOne: ITypedFactory<'InputTestCase1>,
-                              factoryTwo: ITypedFactory<'InputTestCase2>,
-                              synthesisDelegate: BinaryDelegate<'InputTestCase1, 'InputTestCase2, 'SynthesizedTestCase>) =
+        static member Create<'InputTestCase1, 'InputTestCase2, 'SynthesizedTestCase>
+                        (factoryOne: ITypedFactory<'InputTestCase1>,
+                         factoryTwo: ITypedFactory<'InputTestCase2>,
+                         synthesisDelegate: BinaryDelegate<'InputTestCase1, 'InputTestCase2, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
             let rec fixedCombinationOfSubtreeNodesForSynthesis node1
                                                                node2 =
                 {
@@ -300,8 +299,7 @@ namespace NTestCaseBuilder
             let fixedCombinationsOfNodesForSynthesis =
                 fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factoryOne)
                                                            (extractNodeFrom factoryTwo)
-            Synthesis.Create fixedCombinationsOfNodesForSynthesis
-            : ITypedFactory<'SynthesizedTestCase>
+            Synthesis.Create<'SynthesizedTestCase> fixedCombinationsOfNodesForSynthesis
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -311,10 +309,11 @@ namespace NTestCaseBuilder
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factoryOne: ITypedFactory<'InputTestCase1>,
-                              factoryTwo: ITypedFactory<'InputTestCase2>,
-                              factoryThree: ITypedFactory<'InputTestCase3>,
-                              synthesisDelegate: TernaryDelegate<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'SynthesizedTestCase>) =
+        static member Create<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'SynthesizedTestCase>
+                        (factoryOne: ITypedFactory<'InputTestCase1>,
+                         factoryTwo: ITypedFactory<'InputTestCase2>,
+                         factoryThree: ITypedFactory<'InputTestCase3>,
+                         synthesisDelegate: TernaryDelegate<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
             let rec fixedCombinationOfSubtreeNodesForSynthesis node1
                                                                node2
                                                                node3 =
@@ -353,8 +352,7 @@ namespace NTestCaseBuilder
                 fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factoryOne)
                                                            (extractNodeFrom factoryTwo)
                                                            (extractNodeFrom factoryThree)
-            Synthesis.Create fixedCombinationsOfNodesForSynthesis
-            : ITypedFactory<'SynthesizedTestCase>
+            Synthesis.Create<'SynthesizedTestCase> fixedCombinationsOfNodesForSynthesis
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -364,11 +362,12 @@ namespace NTestCaseBuilder
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factoryOne: ITypedFactory<'InputTestCase1>,
-                              factoryTwo: ITypedFactory<'InputTestCase2>,
-                              factoryThree: ITypedFactory<'InputTestCase3>,
-                              factoryFour: ITypedFactory<'InputTestCase4>,
-                              synthesisDelegate: QuatenaryDelegate<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'SynthesizedTestCase>) =
+        static member Create<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'SynthesizedTestCase>
+                        (factoryOne: ITypedFactory<'InputTestCase1>,
+                         factoryTwo: ITypedFactory<'InputTestCase2>,
+                         factoryThree: ITypedFactory<'InputTestCase3>,
+                         factoryFour: ITypedFactory<'InputTestCase4>,
+                         synthesisDelegate: QuatenaryDelegate<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
             let rec fixedCombinationOfSubtreeNodesForSynthesis node1
                                                                node2
                                                                node3
@@ -412,8 +411,7 @@ namespace NTestCaseBuilder
                                                            (extractNodeFrom factoryTwo)
                                                            (extractNodeFrom factoryThree)
                                                            (extractNodeFrom factoryFour)
-            Synthesis.Create fixedCombinationsOfNodesForSynthesis
-            : ITypedFactory<'SynthesizedTestCase>
+            Synthesis.Create<'SynthesizedTestCase> fixedCombinationsOfNodesForSynthesis
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -423,12 +421,13 @@ namespace NTestCaseBuilder
         /// <param name="synthesisDelegate">Delegate used to synthesize the output test cases.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (factoryOne: ITypedFactory<'InputTestCase1>,
-                              factoryTwo: ITypedFactory<'InputTestCase2>,
-                              factoryThree: ITypedFactory<'InputTestCase3>,
-                              factoryFour: ITypedFactory<'InputTestCase4>,
-                              factoryFive: ITypedFactory<'InputTestCase5>,
-                              synthesisDelegate: QuintenaryDelegate<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'InputTestCase5, 'SynthesizedTestCase>) =
+        static member Create<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'InputTestCase5, 'SynthesizedTestCase>
+                        (factoryOne: ITypedFactory<'InputTestCase1>,
+                         factoryTwo: ITypedFactory<'InputTestCase2>,
+                         factoryThree: ITypedFactory<'InputTestCase3>,
+                         factoryFour: ITypedFactory<'InputTestCase4>,
+                         factoryFive: ITypedFactory<'InputTestCase5>,
+                         synthesisDelegate: QuintenaryDelegate<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'InputTestCase5, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
             let rec fixedCombinationOfSubtreeNodesForSynthesis node1
                                                                node2
                                                                node3
@@ -477,8 +476,7 @@ namespace NTestCaseBuilder
                                                            (extractNodeFrom factoryThree)
                                                            (extractNodeFrom factoryFour)
                                                            (extractNodeFrom factoryFive)
-            Synthesis.Create fixedCombinationsOfNodesForSynthesis
-            : ITypedFactory<'SynthesizedTestCase>
+            Synthesis.Create<'SynthesizedTestCase> fixedCombinationsOfNodesForSynthesis
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
@@ -500,8 +498,9 @@ namespace NTestCaseBuilder
         /// test cases passed together to it as a list.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<ITypedFactory<'TestCaseListElement>>,
-                              condensation: SequenceCondensation<'TestCaseListElement, 'SynthesizedTestCase>) =
+        static member Create<'TestCaseListElement, 'SynthesizedTestCase>
+                        (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITypedFactory<'TestCaseListElement>>,
+                         condensation: SequenceCondensation<'TestCaseListElement, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
             let subtreeRootNodesFromExplicitFactories =
                 sequenceOfFactoriesProvidingInputsToSynthesis
                 |> List.ofSeq
@@ -539,10 +538,9 @@ namespace NTestCaseBuilder
                                 false
                     }
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesFromExplicitFactories
-            Synthesis.Create fixedCombinationOfSubtreeNodesForSynthesis
-            : ITypedFactory<'SynthesizedTestCase>
+            Synthesis.Create<'SynthesizedTestCase> fixedCombinationOfSubtreeNodesForSynthesis
 
-        /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <summary>Constructor function that creates an instance of ITypedFactory&lt;IEnumerable&lt;'TestCaseListElement&gt;&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. An output test case is the concatenation of the input
@@ -558,9 +556,11 @@ namespace NTestCaseBuilder
         /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases are concatenated.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'TestCaseListElement&gt;">Type of constructed factory.</seealso>
-        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<ITypedFactory<'TestCaseListElement>>) =
-            Synthesis.Create (sequenceOfFactoriesProvidingInputsToSynthesis,
-                              SequenceCondensation(BargainBasement.Identity))
+        static member Create<'TestCaseListElement>
+                        (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITypedFactory<'TestCaseListElement>>): ITypedFactory<seq<'TestCaseListElement>> =
+            Synthesis.Create<'TestCaseListElement, seq<'TestCaseListElement>>
+                        (sequenceOfFactoriesProvidingInputsToSynthesis,
+                         SequenceCondensation(BargainBasement.Identity))
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
@@ -587,25 +587,28 @@ namespace NTestCaseBuilder
         /// <param name="permuteInputs">Whether to permute the input test cases prior to submitting them to the condensation delegate.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
-        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<ITypedFactory<'TestCaseListElement>>,
-                              condensation: SequenceCondensation<'TestCaseListElement, 'SynthesizedTestCase>,
-                              permuteInputs: Boolean) =
+        static member Create<'TestCaseListElement, 'SynthesizedTestCase>
+                        (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITypedFactory<_>>,
+                         condensation: SequenceCondensation<_, _>,
+                         permuteInputs: Boolean): ITypedFactory<'SynthesizedTestCase> =
             (if permuteInputs
              then
                 let intermediateFactory =
-                    Synthesis.CreateWithPermutation sequenceOfFactoriesProvidingInputsToSynthesis
+                    Synthesis.CreateWithPermutation<'TestCaseListElement, 'TestCaseListElement> sequenceOfFactoriesProvidingInputsToSynthesis
                 let permuteAndCondense (unshuffledResultsFromSubtrees
                                         , shuffle: Permutation<'TestCaseListElement>) =
                     shuffle.Invoke unshuffledResultsFromSubtrees
                     |> condensation.Invoke
 
-                Synthesis.Create (intermediateFactory,
-                                  UnaryDelegate(permuteAndCondense))
+                Synthesis.Create<seq<'TestCaseListElement> * Permutation<'TestCaseListElement>, 'SynthesizedTestCase>
+                            (intermediateFactory,
+                             UnaryDelegate(permuteAndCondense))
              else
-                Synthesis.Create (sequenceOfFactoriesProvidingInputsToSynthesis,
-                                  condensation))
+                Synthesis.Create<'TestCaseListElement, 'SynthesizedTestCase>
+                            (sequenceOfFactoriesProvidingInputsToSynthesis,
+                             condensation))
 
-        /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
+        /// <summary>Constructor function that creates an instance of ITypedFactory&lt;IEnumerable&lt;'TestCaseListElement&gt;&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. An output test case is the concatenation of the input
@@ -625,13 +628,15 @@ namespace NTestCaseBuilder
         /// <param name="sequenceOfFactoriesProvidingInputsToSynthesis">A sequence of factories whose test cases are concatenated.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;'TestCaseListElement&gt;">Type of constructed factory.</seealso>
-        static member Create (sequenceOfFactoriesProvidingInputsToSynthesis: #seq<ITypedFactory<'TestCaseListElement>>,
-                              permuteInputs: Boolean) =
-            Synthesis.Create (sequenceOfFactoriesProvidingInputsToSynthesis,
-                              SequenceCondensation(BargainBasement.Identity),
-                              permuteInputs)
+        static member Create<'TestCaseListElement>
+                        (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITypedFactory<'TestCaseListElement>>,
+                         permuteInputs: Boolean): ITypedFactory<seq<'TestCaseListElement>> =
+            Synthesis.Create<'TestCaseListElement, seq<'TestCaseListElement>>
+                        (sequenceOfFactoriesProvidingInputsToSynthesis,
+                         SequenceCondensation(BargainBasement.Identity),
+                         permuteInputs)
 
-        /// <summary>Constructor function that creates an instance of ITypedFactory&lt;List&lt;'TestCaseListElement&gt; * Permutation&lt;'Something&gt;&gt;.</summary>
+        /// <summary>Constructor function that creates an instance of ITypedFactory&lt;IEnumerable&lt;'TestCaseListElement&gt; * Permutation&lt;'Something&gt;&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
         /// out of a combination of input test cases taken from across the sequences yielded by the the child
         /// factories used to construct the factory. The input test cases are combined into a sequence that forms
@@ -645,7 +650,8 @@ namespace NTestCaseBuilder
         /// for synthesis.</param>
         /// <returns>The constructed factory.</returns>
         /// <seealso cref="ITypedFactory&lt;Tuple&lt;IEnumerable&lt;'TestCaseListElement&gt;, Permutation&lt;'Something&gt;&gt;&gt;">Type of constructed factory.</seealso>
-        static member CreateWithPermutation<'TestCaseListElement, 'Something> (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITypedFactory<'TestCaseListElement>>): ITypedFactory<seq<'TestCaseListElement> * Permutation<'Something>> =
+        static member CreateWithPermutation<'TestCaseListElement, 'Something>
+                        (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITypedFactory<'TestCaseListElement>>): ITypedFactory<seq<'TestCaseListElement> * Permutation<'Something>> =
             let subtreeRootNodesFromExplicitFactories =
                 sequenceOfFactoriesProvidingInputsToSynthesis
                 |> List.ofSeq
@@ -688,10 +694,10 @@ namespace NTestCaseBuilder
                                         implicitSubtreeRootNodeForPermutation.FinalValueCreator () sliceOfFullTestVectorForPermutation
                                         |> unbox
                                     let unshuffledResultsFromSubtrees =
-                                        List.zip explicitSubtreeRootNodes
-                                                 slicesOfFullTestVectorForExplicitSubtrees
-                                        |> List.map (fun (subtreeRootNode
-                                                          , sliceOfFullTestVectorCorrespondingToSubtree) ->
+                                        Seq.zip explicitSubtreeRootNodes
+                                                slicesOfFullTestVectorForExplicitSubtrees
+                                        |> Seq.map (fun (subtreeRootNode
+                                                         , sliceOfFullTestVectorCorrespondingToSubtree) ->
                                                         subtreeRootNode.FinalValueCreator () sliceOfFullTestVectorCorrespondingToSubtree: 'TestCaseListElement)
                                     let shuffle itemsToPermute =
                                         GeneratePermutation itemsToPermute
@@ -709,5 +715,4 @@ namespace NTestCaseBuilder
                     }
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesIncludingImplicitFactoryForPermutation
 
-            Synthesis.Create fixedCombinationOfSubtreeNodesForSynthesis
-            : ITypedFactory<seq<'TestCaseListElement> * Permutation<'Something>>
+            Synthesis.Create<seq<'TestCaseListElement> * Permutation<'Something>> fixedCombinationOfSubtreeNodesForSynthesis

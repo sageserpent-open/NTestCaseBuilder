@@ -240,10 +240,10 @@
                                                                      secondInputTestCase ->
                                                                         undoShuffleAndConcatenateContributedLevels [firstInputTestCase; secondInputTestCase]))
                           | 3 when not permuteInputs ->
-                                let singletonCombinationOfFactoriesForSynthesis =
+                                let trivialCombinationOfFactoriesForSynthesis =
                                     SynthesisInputs<_, _>.StartWithLeftmostFactory permutedSubtrees.[0]
                                 let combinationOfFactoriesForSynthesis =
-                                    SynthesisInputs<_, _>.AddFactoryToTheRight(singletonCombinationOfFactoriesForSynthesis,
+                                    SynthesisInputs<_, _>.AddFactoryToTheRight(trivialCombinationOfFactoriesForSynthesis,
                                                                                permutedSubtrees.[1])
                                 let combinationOfFactoriesForSynthesis =
                                     SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
