@@ -252,7 +252,7 @@ namespace NTestCaseBuilder
                 }
             let fixedCombinationsOfNodesForSynthesis =
                 fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factory)
-            Synthesis.Create<'SynthesizedTestCase> fixedCombinationsOfNodesForSynthesis
+            Synthesis.Create fixedCombinationsOfNodesForSynthesis
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -299,7 +299,7 @@ namespace NTestCaseBuilder
             let fixedCombinationsOfNodesForSynthesis =
                 fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factoryOne)
                                                            (extractNodeFrom factoryTwo)
-            Synthesis.Create<'SynthesizedTestCase> fixedCombinationsOfNodesForSynthesis
+            Synthesis.Create fixedCombinationsOfNodesForSynthesis
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -352,7 +352,7 @@ namespace NTestCaseBuilder
                 fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factoryOne)
                                                            (extractNodeFrom factoryTwo)
                                                            (extractNodeFrom factoryThree)
-            Synthesis.Create<'SynthesizedTestCase> fixedCombinationsOfNodesForSynthesis
+            Synthesis.Create fixedCombinationsOfNodesForSynthesis
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -411,7 +411,7 @@ namespace NTestCaseBuilder
                                                            (extractNodeFrom factoryTwo)
                                                            (extractNodeFrom factoryThree)
                                                            (extractNodeFrom factoryFour)
-            Synthesis.Create<'SynthesizedTestCase> fixedCombinationsOfNodesForSynthesis
+            Synthesis.Create fixedCombinationsOfNodesForSynthesis
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases each of which is synthesized
@@ -476,7 +476,7 @@ namespace NTestCaseBuilder
                                                            (extractNodeFrom factoryThree)
                                                            (extractNodeFrom factoryFour)
                                                            (extractNodeFrom factoryFive)
-            Synthesis.Create<'SynthesizedTestCase> fixedCombinationsOfNodesForSynthesis
+            Synthesis.Create fixedCombinationsOfNodesForSynthesis
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
@@ -538,7 +538,7 @@ namespace NTestCaseBuilder
                                 false
                     }
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesFromExplicitFactories
-            Synthesis.Create<'SynthesizedTestCase> fixedCombinationOfSubtreeNodesForSynthesis
+            Synthesis.Create fixedCombinationOfSubtreeNodesForSynthesis
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;IEnumerable&lt;'TestCaseListElement&gt;&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
@@ -558,7 +558,7 @@ namespace NTestCaseBuilder
         /// <seealso cref="ITypedFactory&lt;'TestCaseListElement&gt;">Type of constructed factory.</seealso>
         static member Create<'TestCaseListElement>
                         (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITypedFactory<'TestCaseListElement>>): ITypedFactory<seq<'TestCaseListElement>> =
-            Synthesis.Create<'TestCaseListElement, seq<'TestCaseListElement>>
+            Synthesis.Create
                         (sequenceOfFactoriesProvidingInputsToSynthesis,
                          SequenceCondensation(BargainBasement.Identity))
 
@@ -600,11 +600,11 @@ namespace NTestCaseBuilder
                     shuffle.Invoke unshuffledResultsFromSubtrees
                     |> condensation.Invoke
 
-                Synthesis.Create<seq<'TestCaseListElement> * Permutation<'TestCaseListElement>, 'SynthesizedTestCase>
+                Synthesis.Create
                             (intermediateFactory,
                              UnaryDelegate(permuteAndCondense))
              else
-                Synthesis.Create<'TestCaseListElement, 'SynthesizedTestCase>
+                Synthesis.Create
                             (sequenceOfFactoriesProvidingInputsToSynthesis,
                              condensation))
 
@@ -631,7 +631,7 @@ namespace NTestCaseBuilder
         static member Create<'TestCaseListElement>
                         (sequenceOfFactoriesProvidingInputsToSynthesis: seq<ITypedFactory<'TestCaseListElement>>,
                          permuteInputs: Boolean): ITypedFactory<seq<'TestCaseListElement>> =
-            Synthesis.Create<'TestCaseListElement, seq<'TestCaseListElement>>
+            Synthesis.Create
                         (sequenceOfFactoriesProvidingInputsToSynthesis,
                          SequenceCondensation(BargainBasement.Identity),
                          permuteInputs)
@@ -715,4 +715,4 @@ namespace NTestCaseBuilder
                     }
                 fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesIncludingImplicitFactoryForPermutation
 
-            Synthesis.Create<seq<'TestCaseListElement> * Permutation<'Something>> fixedCombinationOfSubtreeNodesForSynthesis
+            Synthesis.Create fixedCombinationOfSubtreeNodesForSynthesis
