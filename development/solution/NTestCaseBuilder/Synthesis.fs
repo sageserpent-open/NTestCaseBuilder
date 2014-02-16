@@ -148,21 +148,6 @@ namespace NTestCaseBuilder
             member this.IsSubtreeHiddenFromFilters _ =
                 false
 
-    type UnaryDelegate<'Argument, 'Result> =
-        delegate of 'Argument -> 'Result
-
-    type BinaryDelegate<'ArgumentOne, 'ArgumentTwo, 'Result> =
-        delegate of 'ArgumentOne * 'ArgumentTwo -> 'Result
-
-    type TernaryDelegate<'ArgumentOne, 'ArgumentTwo, 'ArgumentThree, 'Result> =
-        delegate of 'ArgumentOne * 'ArgumentTwo * 'ArgumentThree -> 'Result
-
-    type QuatenaryDelegate<'ArgumentOne, 'ArgumentTwo, 'ArgumentThree, 'ArgumentFour, 'Result> =
-        delegate of 'ArgumentOne * 'ArgumentTwo * 'ArgumentThree * 'ArgumentFour -> 'Result
-
-    type QuintenaryDelegate<'ArgumentOne, 'ArgumentTwo, 'ArgumentThree, 'ArgumentFour, 'ArgumentFive, 'Result> =
-        delegate of 'ArgumentOne * 'ArgumentTwo * 'ArgumentThree * 'ArgumentFour * 'ArgumentFive -> 'Result
-
     type SequenceCondensation<'Item, 'Result> =
         delegate of seq<'Item> -> 'Result
 
@@ -223,7 +208,7 @@ namespace NTestCaseBuilder
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
         static member Create<'InputTestCase, 'SynthesizedTestCase>
                         (factory: ITypedFactory<'InputTestCase>,
-                         synthesisDelegate: UnaryDelegate<'InputTestCase, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
+                         synthesisDelegate: Func<'InputTestCase, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
             let rec fixedCombinationOfSubtreeNodesForSynthesis node =
                 {
                     new IFixedCombinationOfSubtreeNodesForSynthesis with
@@ -265,7 +250,7 @@ namespace NTestCaseBuilder
         static member Create<'InputTestCase1, 'InputTestCase2, 'SynthesizedTestCase>
                         (factoryOne: ITypedFactory<'InputTestCase1>,
                          factoryTwo: ITypedFactory<'InputTestCase2>,
-                         synthesisDelegate: BinaryDelegate<'InputTestCase1, 'InputTestCase2, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
+                         synthesisDelegate: Func<'InputTestCase1, 'InputTestCase2, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
             let rec fixedCombinationOfSubtreeNodesForSynthesis node1
                                                                node2 =
                 {
@@ -313,7 +298,7 @@ namespace NTestCaseBuilder
                         (factoryOne: ITypedFactory<'InputTestCase1>,
                          factoryTwo: ITypedFactory<'InputTestCase2>,
                          factoryThree: ITypedFactory<'InputTestCase3>,
-                         synthesisDelegate: TernaryDelegate<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
+                         synthesisDelegate: Func<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
             let rec fixedCombinationOfSubtreeNodesForSynthesis node1
                                                                node2
                                                                node3 =
@@ -367,7 +352,7 @@ namespace NTestCaseBuilder
                          factoryTwo: ITypedFactory<'InputTestCase2>,
                          factoryThree: ITypedFactory<'InputTestCase3>,
                          factoryFour: ITypedFactory<'InputTestCase4>,
-                         synthesisDelegate: QuatenaryDelegate<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
+                         synthesisDelegate: Func<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
             let rec fixedCombinationOfSubtreeNodesForSynthesis node1
                                                                node2
                                                                node3
@@ -427,7 +412,7 @@ namespace NTestCaseBuilder
                          factoryThree: ITypedFactory<'InputTestCase3>,
                          factoryFour: ITypedFactory<'InputTestCase4>,
                          factoryFive: ITypedFactory<'InputTestCase5>,
-                         synthesisDelegate: QuintenaryDelegate<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'InputTestCase5, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
+                         synthesisDelegate: Func<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'InputTestCase5, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
             let rec fixedCombinationOfSubtreeNodesForSynthesis node1
                                                                node2
                                                                node3
@@ -602,7 +587,7 @@ namespace NTestCaseBuilder
 
                 Synthesis.Create
                             (intermediateFactory,
-                             UnaryDelegate(permuteAndCondense))
+                             Func<_, _>(permuteAndCondense))
              else
                 Synthesis.Create
                             (sequenceOfFactoriesProvidingInputsToSynthesis,

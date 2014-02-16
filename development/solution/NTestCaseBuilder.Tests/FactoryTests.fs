@@ -231,13 +231,13 @@
                         match Array.length permutedSubtrees with
                             1 when not permuteInputs ->
                                 Synthesis.Create (permutedSubtrees.[0],
-                                                  UnaryDelegate(fun inputTestCase ->
-                                                                    undoShuffleAndConcatenateContributedLevels [inputTestCase]))
+                                                  Func<_, _>(fun inputTestCase ->
+                                                                undoShuffleAndConcatenateContributedLevels [inputTestCase]))
                           | 2 when not permuteInputs ->
                                 Synthesis.Create (permutedSubtrees.[0],
                                                   permutedSubtrees.[1],
-                                                  BinaryDelegate(fun firstInputTestCase
-                                                                     secondInputTestCase ->
+                                                  Func<_, _, _>(fun firstInputTestCase
+                                                                    secondInputTestCase ->
                                                                         undoShuffleAndConcatenateContributedLevels [firstInputTestCase; secondInputTestCase]))
                           | 3 when not permuteInputs ->
                                 let trivialCombinationOfFactoriesForSynthesis =
@@ -1685,7 +1685,7 @@
             let rec createFactory (): ITypedFactory<_> =
                 Interleaving.Create [
                                         Synthesis.Create(TestVariable.Create [0 .. 3], Leaf);
-                                        Synthesis.Create(Deferral.Create createFactory, Deferral.Create createFactory, BinaryDelegate(fun x y -> Branch (x,y)))
+                                        Synthesis.Create(Deferral.Create createFactory, Deferral.Create createFactory, Func<_, _, _>(fun x y -> Branch (x,y)))
                                     ]
 
             let maximumDepthOfTree =
