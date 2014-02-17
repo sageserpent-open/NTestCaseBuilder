@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.FSharp.Collections;
 using NUnit.Framework;
 
 namespace NTestCaseBuilder.Examples
@@ -95,7 +94,7 @@ namespace NTestCaseBuilder.Examples
             return Interleaving.Create(new[] {testCaseFactoryForTrivialCase, testCaseFactoryForNonTrivialCases});
         }
 
-        private static ITypedFactory<Tuple<FSharpList<Int32>, Permutation<Int32>>>
+        private static ITypedFactory<Tuple<IEnumerable<Int32>, Permutation<Int32>>>
             BuildNonNegativeDeltasAndPermutationFactory(int numberOfDeltas)
         {
             var factoryForNonNegativeDelta =
