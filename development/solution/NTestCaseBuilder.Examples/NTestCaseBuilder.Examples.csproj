@@ -55,21 +55,23 @@
     <DocumentationFile>bin\Release\NTestCaseBuilder.Examples.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="C5, Version=2.2.5073.27396, Culture=neutral, PublicKeyToken=282361b99ded7e8e, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="C5">
       <HintPath>..\packages\C5.2.2.5073.27396\lib\portable-net40+sl50+wp80+win\C5.dll</HintPath>
     </Reference>
-    <Reference Include="FSharp.PowerPack, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809, processorArchitecture=MSIL">
-      <HintPath>..\packages\FSPowerPack.Community.2.1.3.1\Lib\Net40\FSharp.PowerPack.dll</HintPath>
+    <Reference Include="FSharp.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\FSharp.Core.3.0.0.2\lib\net40\FSharp.Core.dll</HintPath>
     </Reference>
-    <Reference Include="FSharp.PowerPack.Linq, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809, processorArchitecture=MSIL">
-      <HintPath>..\packages\FSPowerPack.Community.2.1.3.1\Lib\Net40\FSharp.PowerPack.Linq.dll</HintPath>
+    <Reference Include="FSharp.PowerPack">
+      <HintPath>..\packages\FSPowerPack.Core.Community.3.0.0.0\Lib\Net40\FSharp.PowerPack.dll</HintPath>
     </Reference>
-    <Reference Include="FSharp.PowerPack.Metadata, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809, processorArchitecture=MSIL">
-      <HintPath>..\packages\FSPowerPack.Community.2.1.3.1\Lib\Net40\FSharp.PowerPack.Metadata.dll</HintPath>
+    <Reference Include="FSharp.PowerPack.Linq">
+      <HintPath>..\packages\FSPowerPack.Linq.Community.3.0.0.0\Lib\Net40\FSharp.PowerPack.Linq.dll</HintPath>
     </Reference>
-    <Reference Include="FSharp.PowerPack.Parallel.Seq, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809, processorArchitecture=MSIL">
-      <HintPath>..\packages\FSPowerPack.Community.2.1.3.1\Lib\Net40\FSharp.PowerPack.Parallel.Seq.dll</HintPath>
+    <Reference Include="FSharp.PowerPack.Metadata">
+      <HintPath>..\packages\FSPowerPack.Metadata.Community.3.0.0.0\Lib\Net40\FSharp.PowerPack.Metadata.dll</HintPath>
+    </Reference>
+    <Reference Include="FSharp.PowerPack.Parallel.Seq">
+      <HintPath>..\packages\FSPowerPack.Parallel.Seq.Community.3.0.0.0\Lib\Net40\FSharp.PowerPack.Parallel.Seq.dll</HintPath>
     </Reference>
     <Reference Include="GraphSharp">
       <HintPath>..\packages\GraphSharp.1.1.0.0\lib\net40\GraphSharp.dll</HintPath>
@@ -77,17 +79,15 @@
     <Reference Include="GraphSharp.Controls">
       <HintPath>..\packages\GraphSharp.1.1.0.0\lib\net40\GraphSharp.Controls.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Scripting, Version=1.1.0.20, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL" />
-    <Reference Include="FSharp.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <Private>True</Private>
-      <HintPath>..\packages\FSharp.Core.4.0.0\lib\FSharp.Core.dll</HintPath>
-    </Reference>
     <Reference Include="NTestCaseBuilder">
-      <HintPath>..\packages\NTestCaseBuilder.2.3.0.0\lib\net40\NTestCaseBuilder.dll</HintPath>
+      <HintPath>..\packages\NTestCaseBuilder.2.4.0.0\lib\net40\NTestCaseBuilder.dll</HintPath>
     </Reference>
     <Reference Include="nunit.framework, Version=2.6.3.13283, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="policy.2.3.FSharp.Core">
+      <HintPath>..\packages\FSharp.Core.3.0.0.2\lib\net40\policy.2.3.FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -104,7 +104,7 @@
       <HintPath>..\packages\QuickGraph.3.6.61119.7\lib\net4\QuickGraph.Serialization.dll</HintPath>
     </Reference>
     <Reference Include="SageSerpent.Infrastructure">
-      <HintPath>..\packages\NTestCaseBuilder.2.3.0.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
+      <HintPath>..\packages\NTestCaseBuilder.2.4.0.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -157,6 +157,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
