@@ -96,8 +96,7 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
             return Interleaving.Create(new[] {testCaseFactoryForTrivialCase, testCaseFactoryForNonTrivialCases});
         }
 
-        private static ITypedFactory<Tuple<FSharpList<Int32>, Permutation<Int32>>>
-            BuildNonNegativeDeltasAndPermutationFactory(int numberOfDeltas)
+        private static ITypedFactory<Tuple<IEnumerable<int>, Permutation<int>>> BuildNonNegativeDeltasAndPermutationFactory(int numberOfDeltas)
         {
             var factoryForNonNegativeDelta =
                 TestVariable.Create(from signedDelta in Enumerable.Range(0, 5) select (Int32) signedDelta);
