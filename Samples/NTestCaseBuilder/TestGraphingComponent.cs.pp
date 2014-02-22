@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using NTestCaseBuilder;
 using NUnit.Framework;
+using QuickGraph;
+using QuickGraph.Algorithms;
+using SageSerpent.Infrastructure;
 
 namespace $rootnamespace$.Samples.NTestCaseBuilder
 {
@@ -37,7 +40,7 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
 
 
         private static IEnumerable<Tuple<Int32, Int32>> EnumerateConnections(IEnumerable<Boolean> connectionSwitches,
-                                                                             Int32 numberOfVertices)
+            Int32 numberOfVertices)
         {
             if (NumberOfPotentialUniqueConnectionsWithoutSelfLoops(numberOfVertices) != connectionSwitches.Count())
             {
@@ -52,31 +55,32 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
             while (connectionIterator.MoveNext())
             {
                 // Have to avoid creating potential connections that are self-loops - see comment for 'NumberOfPotentialUniqueConnectionsWithoutSelfLoops'.
-                int targetIndex;
-                int sourceIndex;
-                GetSourceAndTargetIndices(numberOfVertices, counter, out targetIndex, out sourceIndex);
+
+                int sourceVertexId;
+                int targetVertexId;
+                GetSourceAndTargetVertices(numberOfVertices, counter, out sourceVertexId, out targetVertexId);
 
                 if (connectionIterator.Current)
-                    yield return Tuple.Create(sourceIndex, targetIndex);
+                    yield return Tuple.Create(sourceVertexId, targetVertexId);
 
                 ++counter;
             }
         }
 
-        private static void GetSourceAndTargetIndices(Int32 numberOfVertices, Int32 masterIndex, out Int32 targetIndex,
-                                                      out Int32 sourceIndex)
+        private static void GetSourceAndTargetVertices(int numberOfVertices, int masterIndex, out int sourceVertexId,
+            out int targetVertexId)
         {
-            sourceIndex = masterIndex/(numberOfVertices - 1);
-            targetIndex = masterIndex%(numberOfVertices - 1);
+            sourceVertexId = masterIndex / (numberOfVertices - 1);
+            targetVertexId = masterIndex % (numberOfVertices - 1);
 
-            if (targetIndex == sourceIndex)
+            if (targetVertexId >= sourceVertexId)
             {
-                targetIndex = (targetIndex + 1)%numberOfVertices;
+                targetVertexId = 1 + targetVertexId;
             }
         }
 
         private static int NumberOfPotentialUniqueConnectionsWithoutSelfLoops(Int32 numberOfVertices)
-            // Ban self-loops, as Graph# can't render them right now.
+            // Ban self-loops; we are trying to create DAGs in the first place.
         {
             return numberOfVertices*(numberOfVertices - 1);
         }
@@ -91,60 +95,44 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
             return
                 Synthesis.Create(
                     Enumerable.Repeat(connectionSwitchFactory, numberOfPotentialUniqueConnectionsWithoutSelfLoops),
-                    (SequenceCondensation<Boolean, IEnumerable<Tuple<Int32, Int32>>>)
-                    (connectionSwitches => EnumerateConnections(connectionSwitches, numberOfVertices)));
+                    connectionSwitches => EnumerateConnections(connectionSwitches, numberOfVertices));
         }
 
-        private static Boolean FilterOutNonDagCases(
+        private static Boolean ConnectionsImplyADag(
             IEnumerable<KeyValuePair<int, Tuple<int, object>>> testVariableIndexToLevelNumberAndValueMap,
             Int32 numberOfVertices)
         {
             return
-                Enumerable.Range(0, numberOfVertices).Any(
+                Enumerable.Range(0, numberOfVertices)
+                    .Any(
                     frozenRootingIndexToCloseOver =>
                     testVariableIndexToLevelNumberAndValueMap.All(testVariableIndexToLevelNumberAndValuePair =>
                                                                       {
-                                                                          Int32 sourceIndex;
-                                                                          Int32 targetIndex;
-                                                                          GetSourceAndTargetIndices(numberOfVertices,
-                                                                                                    testVariableIndexToLevelNumberAndValuePair
-                                                                                                        .Key,
-                                                                                                    out sourceIndex,
-                                                                                                    out targetIndex);
-                                                                          return
-                                                                              !(Boolean)
-                                                                               testVariableIndexToLevelNumberAndValuePair
-                                                                                   .Value.Item2 ||
-                                                                              (sourceIndex -
-                                                                               frozenRootingIndexToCloseOver)%
+                                Int32 sourceVertexId;
+                                Int32 targetVertexId;
+                                GetSourceAndTargetVertices(numberOfVertices,
+                                    testVariableIndexToLevelNumberAndValuePair.Key, out sourceVertexId,
+                                    out targetVertexId);
+                                return !(Boolean) testVariableIndexToLevelNumberAndValuePair.Value.Item2 ||
+                                       (numberOfVertices + sourceVertexId - frozenRootingIndexToCloseOver) %
                                                                               numberOfVertices <
-                                                                              (targetIndex -
-                                                                               frozenRootingIndexToCloseOver)%
+                                       (numberOfVertices + targetVertexId - frozenRootingIndexToCloseOver) %
                                                                               numberOfVertices;
                                                                       }));
         }
 
-        private static ITypedFactory<TestCase> BuildTestCaseFactory(Int32 maximumNumberOfVertices)
+        private static ITypedFactory<TestCase> BuildTestCaseFactory(Int32 numberOfVertices)
         {
-            var numberOfVertices = maximumNumberOfVertices;
-
-            var connectionsFactory = BuildConnectionsFactory(numberOfVertices);
+            var connectionsFactory =
+                BuildConnectionsFactory(numberOfVertices)
+                    .WithFilter(dictionary => ConnectionsImplyADag(dictionary, numberOfVertices));
 
             var testCaseFactory = Synthesis.Create(connectionsFactory,
-                                                   connections =>
-                                                   new TestCase()
-                                                       {NumberOfVertices = numberOfVertices, Connections = connections});
+                connections => new TestCase() {NumberOfVertices = numberOfVertices, Connections = connections});
 
-            var testCaseFactoryWithFilter =
-                testCaseFactory.WithFilter(dictionary => FilterOutNonDagCases(dictionary, numberOfVertices));
-
-            return 0 == maximumNumberOfVertices
-                       ? testCaseFactory
-                       : Interleaving.Create(new[]
-                                                 {
-                                                     testCaseFactoryWithFilter,
-                                                     BuildTestCaseFactory(maximumNumberOfVertices - 1)
-                                                 });
+            return
+                Interleaving.Create(new[]
+                {testCaseFactory, Deferral.Create(() => BuildTestCaseFactory(1 + numberOfVertices))});
         }
 
         [Test]
@@ -153,26 +141,34 @@ namespace $rootnamespace$.Samples.NTestCaseBuilder
         [Ignore]
         public void ShowSomeGraphs()
         {
-            var factory = BuildTestCaseFactory(12);
+            var factory = BuildTestCaseFactory(1).WithDeferralBudgetOf(12);
 
             const int maximumStrengthRequired = 2;
 
             factory.ExecuteParameterisedUnitTestForAllTestCases(maximumStrengthRequired, testCase =>
-                                                                                             {
-                                                                                                 var windowToPopUp
-                                                                                                     =
-                                                                                                     new GraphDisplayWindow
-                                                                                                         {
-                                                                                                             DataContext
-                                                                                                                 =
-                                                                                                                 testCase
-                                                                                                                 .
-                                                                                                                 MakeGraph
-                                                                                                                 ()
-                                                                                                         };
-                                                                                                 windowToPopUp.
-                                                                                                     ShowDialog();
-                                                                                             });
+            {
+                var graph = testCase.MakeGraph();
+                if (!graph.IsDirected)
+                {
+                    throw new LogicErrorException(
+                        "One of the aims of this example is to show the guaranteed generation of a DAG via a filter: it has failed.");
+                }
+
+                Console.WriteLine("**********");
+
+                foreach (var vertex in graph.TopologicalSort())
+                {
+                    var outEdges = graph.OutEdges(vertex).ToList();
+                    Console.WriteLine(outEdges.Any()
+                        ? String.Format("Source vertex: {0}, leading to targets: {1}", vertex.Id,
+                            outEdges.Select(edge => edge.GetOtherVertex(vertex).Id.ToString())
+                                .Aggregate((lhs, rhs) => String.Format("{0}, {1}", lhs, rhs)))
+                        : String.Format("Isolated vertex: {0}", vertex.Id));
+                }
+
+                var windowToPopUp = new GraphDisplayWindow {DataContext = graph};
+                windowToPopUp.ShowDialog();
+            });
         }
     }
 }
