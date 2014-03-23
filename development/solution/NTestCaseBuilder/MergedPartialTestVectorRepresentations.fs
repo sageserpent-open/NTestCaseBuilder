@@ -1480,12 +1480,59 @@ namespace NTestCaseBuilder
                                                                                                         true
                                                                                             if not consistent
                                                                                             then
-                                                                                                raise (InternalAssertionViolationException "The merged removed partial test vector has a value that is inconsistent with the original."))
+                                                                                                raise (InternalAssertionViolationException "The merged removed partial test vector is not acceptable to the filter."))
                                                                             let! _ =
                                                                                 remove testVectorPathsWithoutMergeCandidate
                                                                                        mergedPartialTestVectorRepresentation
                                                                                        (fun _ -> raise (InternalAssertionViolationException "This should not be called."))
-                                                                            do raise (InternalAssertionViolationException "The merged removed partial test vector still matches with something left behind!")
+                                                                            do
+                                                                                let mergedPartialTestVectorRepresentationInExternalForm =
+                                                                                    seq
+                                                                                        {
+                                                                                            for testVariableIndex
+                                                                                                , testVariableLevel in mergedPartialTestVectorRepresentation
+                                                                                                                       |> List.mapi (fun testVariableIndex
+                                                                                                                                         testVariableLevel ->
+                                                                                                                                            testVariableIndex
+                                                                                                                                            , testVariableLevel) do
+                                                                                                match testVariableLevel with
+                                                                                                    Some testVariableLevel ->
+                                                                                                        yield testVariableIndex
+                                                                                                              , testVariableLevel
+                                                                                                  | None ->
+                                                                                                        ()
+                                                                                        }
+                                                                                    |> Map.ofSeq
+                                                                                if mergedPartialTestVectorRepresentationInExternalForm
+                                                                                   |> Map.toSeq
+                                                                                   |> testVectorIsAcceptable
+                                                                                   |> not
+                                                                                then
+                                                                                    raise (InternalAssertionViolationException "The merged removed partial test vector should be passed by the filter.")
+                                                                                let whatHasBeenMergedIn =
+                                                                                    mergedPartialTestVectorRepresentationInExternalForm
+                                                                                    |> Map.filter (fun testVariableIndex
+                                                                                                       _ ->
+                                                                                                       Map.containsKey testVariableIndex
+                                                                                                                       partialTestVectorRepresentationInExternalForm
+                                                                                                       |> not)
+                                                                                    |> Map.toList
+                                                                                for sampleSize in 1 .. List.length whatHasBeenMergedIn - 1 do
+                                                                                    for sample in CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder sampleSize
+                                                                                                                                                                       whatHasBeenMergedIn do
+                                                                                        let partialTestVectorBetweenTheQueryAndTheMergeResult =
+                                                                                            seq
+                                                                                                {
+                                                                                                    yield! partialTestVectorRepresentationInExternalForm
+                                                                                                           |> Map.toSeq
+                                                                                                    yield! sample
+                                                                                                }
+                                                                                        if testVectorIsAcceptable (partialTestVectorBetweenTheQueryAndTheMergeResult
+                                                                                                                   |> Seq.sortBy fst)
+                                                                                           |> not
+                                                                                        then
+                                                                                            raise (PreconditionViolationException "The filter is inconsistent - it forbids a vector that is a subset of a larger vector that is passed.")
+                                                                                raise (InternalAssertionViolationException "The merged removed partial test vector still matches with something left behind!")
                                                                         }
                                                                     + continuationWorkflow
                                                                         {
