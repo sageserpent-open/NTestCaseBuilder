@@ -9,7 +9,7 @@ using SageSerpent.Infrastructure;
 namespace NTestCaseBuilder.Examples
 {
     [TestFixture]
-    public class BugReproductionTests
+    public class ComplicatedFilter
 
     {
         public ITypedFactory<ThingHistory> ThingFactory(int thingRecordIndex, int maximumNumberOfItems)

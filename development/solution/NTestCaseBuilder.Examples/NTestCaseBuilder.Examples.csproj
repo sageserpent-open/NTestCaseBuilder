@@ -99,7 +99,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BugReproductionTests.cs" />
+    <Compile Include="ComplicatedFilter.cs" />
     <Compile Include="Edge.cs" />
     <Compile Include="Example.cs" />
     <Compile Include="Graph.cs" />
