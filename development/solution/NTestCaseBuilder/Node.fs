@@ -883,10 +883,12 @@ namespace NTestCaseBuilder
                                                                                          |> Map.toList))
                 optionWorkflow
                     {
+                        let combinedFilter =
+                            this.CombinedFilter
                         let! chosenFullTestVectorRepresentation =
                             fullTestVectorRepresentations
                             |> Seq.tryFind (fun fullTestVectorRepresentation ->
-                                                this.CombinedFilter (fullTestVectorRepresentation :> seq<_>))
+                                                combinedFilter (fullTestVectorRepresentation :> seq<_>))
                         return chosenFullTestVectorRepresentation
                                |> List.map snd
                                |> List.toArray
