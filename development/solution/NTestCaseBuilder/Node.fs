@@ -848,6 +848,8 @@ namespace NTestCaseBuilder
                 combinationsOfTestVariablesAssociatedWithTheirLevels node
                                                                      testVariableIndices
                                                                      0
+            let combinedFilter =
+                this.CombinedFilter
             let fillOutFrom combinationOfTestVariablesAssociatedWithTheirLevels =
                 let testVariableIndices =
                     combinationOfTestVariablesAssociatedWithTheirLevels
@@ -861,7 +863,10 @@ namespace NTestCaseBuilder
                 levelCombinationsForTestVariableCombination
                 |> Seq.map (fun levelCombination ->
                                 List.zip testVariableIndices
-                                         levelCombination)
+                                         levelCombination
+                                |> List.sortBy fst)
+                |> Seq.filter (fun fillerSection ->
+                                combinedFilter fillerSection)
             if missingTestVariableIndices
                |> List.isEmpty
             then
@@ -877,14 +882,11 @@ namespace NTestCaseBuilder
                 let fullTestVectorRepresentations =
                     fillerSections
                     |> Seq.map (fun fillerSection ->
-                                    BargainBasement.MergeDisjointSortedAssociationLists (fillerSection
-                                                                                         |> List.sortBy fst)
+                                    BargainBasement.MergeDisjointSortedAssociationLists fillerSection
                                                                                         (partialTestVectorRepresentation
                                                                                          |> Map.toList))
                 optionWorkflow
                     {
-                        let combinedFilter =
-                            this.CombinedFilter
                         let! chosenFullTestVectorRepresentation =
                             fullTestVectorRepresentations
                             |> Seq.tryFind (fun fullTestVectorRepresentation ->
