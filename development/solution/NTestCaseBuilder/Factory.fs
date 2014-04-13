@@ -234,7 +234,7 @@
                 seq
                     {
                         for _
-                            , prunedNode in node.PruneTree () do
+                            , prunedNode in node.PruneTree false do
                             yield prunedNode.MaximumStrengthOfTestVariableCombination
                     }
                 |> Seq.max
@@ -270,7 +270,7 @@
                 seq
                     {
                         for _
-                            , prunedNode in node.PruneTree () do
+                            , prunedNode in node.PruneTree false do
                             yield! this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector prunedNode
                                                                                             maximumDesiredStrength
                                    |> Seq.map fst
@@ -306,7 +306,7 @@
                                                                                                                 , parameterisedUnitTest) =
             let mutable count = 0
             for deferralBudget
-                , prunedNode in node.PruneTree () do
+                , prunedNode in node.PruneTree false do
                 for testCase
                     , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector prunedNode
                                                                                                  maximumDesiredStrength do
@@ -340,7 +340,7 @@
                         Int32.Parse deferralBudgetGroup.Value
                     else
                         0
-                match node.PruneTree ()
+                match (node.WithDeferralBudget (Some deferralBudget)).PruneTree true
                       |> List.tryFind (fun (keyDeferralBudget
                                             , _) ->
                                             deferralBudget = keyDeferralBudget) with    // Ugly linear search, but it's OK - would

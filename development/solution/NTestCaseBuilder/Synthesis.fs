@@ -122,7 +122,8 @@ namespace NTestCaseBuilder
 
         interface IFixedCombinationOfSubtreeNodesForSynthesis with
             member this.Prune (deferralBudget,
-                               numberOfDeferralsSpent) =
+                               numberOfDeferralsSpent,
+                               forceDeferralBudgetThrough) =
                 Node.PruneAndCombine (nodesInRightToLeftOrder
                                       |> List.rev)
                                      (fun prunedNodeList ->
@@ -133,6 +134,7 @@ namespace NTestCaseBuilder
                                         :> IFixedCombinationOfSubtreeNodesForSynthesis)
                                      deferralBudget
                                      numberOfDeferralsSpent
+                                     forceDeferralBudgetThrough
 
             member this.Nodes =
                 nodesInRightToLeftOrder
@@ -213,12 +215,14 @@ namespace NTestCaseBuilder
                 {
                     new IFixedCombinationOfSubtreeNodesForSynthesis with
                         member this.Prune (deferralBudget,
-                                           numberOfDeferralsSpent) =
+                                           numberOfDeferralsSpent,
+                                           forceDeferralBudgetThrough) =
                             Node.PruneAndCombine [node]
                                                  (function [node] ->
                                                             fixedCombinationOfSubtreeNodesForSynthesis node)
                                                  deferralBudget
                                                  numberOfDeferralsSpent
+                                                 forceDeferralBudgetThrough
 
                         member this.Nodes =
                             [|node|]
@@ -256,13 +260,15 @@ namespace NTestCaseBuilder
                 {
                     new IFixedCombinationOfSubtreeNodesForSynthesis with
                         member this.Prune (deferralBudget,
-                                           numberOfDeferralsSpent) =
+                                           numberOfDeferralsSpent,
+                                           forceDeferralBudgetThrough) =
                             Node.PruneAndCombine [node1; node2]
                                                  (function [node1; node2] ->
                                                             fixedCombinationOfSubtreeNodesForSynthesis node1
                                                                                                        node2)
                                                  deferralBudget
                                                  numberOfDeferralsSpent
+                                                 forceDeferralBudgetThrough
 
                         member this.Nodes =
                             [|node1; node2|]
@@ -305,7 +311,8 @@ namespace NTestCaseBuilder
                 {
                     new IFixedCombinationOfSubtreeNodesForSynthesis with
                         member this.Prune (deferralBudget,
-                                           numberOfDeferralsSpent) =
+                                           numberOfDeferralsSpent,
+                                           forceDeferralBudgetThrough) =
                             Node.PruneAndCombine [node1; node2; node3]
                                                  (function [node1; node2; node3] ->
                                                             fixedCombinationOfSubtreeNodesForSynthesis node1
@@ -313,6 +320,7 @@ namespace NTestCaseBuilder
                                                                                                        node3)
                                                  deferralBudget
                                                  numberOfDeferralsSpent
+                                                 forceDeferralBudgetThrough
 
                         member this.Nodes =
                             [|node1; node2; node3|]
@@ -360,7 +368,8 @@ namespace NTestCaseBuilder
                 {
                     new IFixedCombinationOfSubtreeNodesForSynthesis with
                         member this.Prune (deferralBudget,
-                                           numberOfDeferralsSpent) =
+                                           numberOfDeferralsSpent,
+                                           forceDeferralBudgetThrough) =
                             Node.PruneAndCombine [node1; node2; node3; node4]
                                                  (function [node1; node2; node3; node4] ->
                                                             fixedCombinationOfSubtreeNodesForSynthesis node1
@@ -369,6 +378,7 @@ namespace NTestCaseBuilder
                                                                                                        node4)
                                                  deferralBudget
                                                  numberOfDeferralsSpent
+                                                 forceDeferralBudgetThrough
 
                         member this.Nodes =
                             [|node1; node2; node3; node4|]
@@ -421,7 +431,8 @@ namespace NTestCaseBuilder
                 {
                     new IFixedCombinationOfSubtreeNodesForSynthesis with
                         member this.Prune (deferralBudget,
-                                           numberOfDeferralsSpent) =
+                                           numberOfDeferralsSpent,
+                                           forceDeferralBudgetThrough) =
                             Node.PruneAndCombine [node1; node2; node3; node4; node5]
                                                  (function [node1; node2; node3; node4; node5] ->
                                                             fixedCombinationOfSubtreeNodesForSynthesis node1
@@ -431,6 +442,7 @@ namespace NTestCaseBuilder
                                                                                                        node5)
                                                  deferralBudget
                                                  numberOfDeferralsSpent
+                                                 forceDeferralBudgetThrough
 
                         member this.Nodes =
                             [|node1; node2; node3; node4; node5|]
@@ -495,11 +507,13 @@ namespace NTestCaseBuilder
                     {
                         new IFixedCombinationOfSubtreeNodesForSynthesis with
                             member this.Prune (deferralBudget,
-                                               numberOfDeferralsSpent) =
+                                               numberOfDeferralsSpent,
+                                               forceDeferralBudgetThrough) =
                                 Node.PruneAndCombine subtreeRootNodes
                                                      fixedCombinationOfSubtreeNodesForSynthesis
                                                      deferralBudget
                                                      numberOfDeferralsSpent
+                                                     forceDeferralBudgetThrough
 
                             member this.Nodes =
                                 subtreeRootNodes
@@ -657,11 +671,13 @@ namespace NTestCaseBuilder
                     {
                         new IFixedCombinationOfSubtreeNodesForSynthesis with
                             member this.Prune (deferralBudget,
-                                               numberOfDeferralsSpent) =
+                                               numberOfDeferralsSpent,
+                                               forceDeferralBudgetThrough) =
                                 Node.PruneAndCombine subtreeRootNodes
                                                      fixedCombinationOfSubtreeNodesForSynthesis
                                                      deferralBudget
                                                      numberOfDeferralsSpent
+                                                     forceDeferralBudgetThrough
 
                             member this.Nodes =
                                 subtreeRootNodes
