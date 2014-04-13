@@ -1243,7 +1243,7 @@
             let randomBehaviour = Random randomBehaviourSeed
             for _ in 1 .. overallTestRepeats do
                 printf "\n\n\n******************************\n\n\n"
-                let factory
+                let factoryWithoutExplicitDeferralBudget
                     , _
                     , _
                     , _
@@ -1254,14 +1254,14 @@
                                                                              Randomly
                                                                              false
                                                                              true
-                let factory =
-                    factory.WithDeferralBudgetOf maximumNumberOfDeferrals
+                let factoryWithDeferralBudget =
+                    factoryWithoutExplicitDeferralBudget.WithDeferralBudgetOf maximumNumberOfDeferrals
                 let randomStrength =
-                    randomBehaviour.ChooseAnyNumberFromOneTo factory.MaximumStrength
+                    randomBehaviour.ChooseAnyNumberFromOneTo factoryWithDeferralBudget.MaximumStrength
                 let randomTestCase =
                     seq
                         {
-                            for testCase in factory.CreateEnumerable randomStrength do
+                            for testCase in factoryWithDeferralBudget.CreateEnumerable randomStrength do
                                 yield testCase
                         }
                     |> randomBehaviour.ChooseOneOf
@@ -1270,8 +1270,8 @@
                     then
                         raise (LogicErrorException (testCase.ToString ()))
                 let shouldBeNone =
-                    try factory.ExecuteParameterisedUnitTestForAllTestCases (randomStrength
-                                                                             , Action<_>(failOnSpecificTestCase))
+                    try factoryWithDeferralBudget.ExecuteParameterisedUnitTestForAllTestCases (randomStrength
+                                                                                               , Action<_>(failOnSpecificTestCase))
                         |> Some with
                         :? TestCaseReproductionException as testCaseReproductionException ->
                             let innerException =
@@ -1286,16 +1286,19 @@
                                 Assert.AreEqual (2
                                                  , groupsFromMatch.Count)
                                 groupsFromMatch.[1].Value
-                            let shouldBeNone =
-                                try factory.ExecuteParameterisedUnitTestForReproducedTestCase (Action<_>(failOnSpecificTestCase)
-                                                                                               , reproductionString)
-                                    |> Some with
-                                    reproducedException ->
-                                        let shouldBeTrue =
-                                            innerException.Message = reproducedException.Message
-                                        Assert.IsTrue shouldBeTrue
-                                        None
-                            Assert.IsTrue shouldBeNone.IsNone
+                            let verifyBugReproductionUsing (factory: ITypedFactory<_>) =
+                                let shouldBeNone =
+                                    try factory.ExecuteParameterisedUnitTestForReproducedTestCase (Action<_>(failOnSpecificTestCase)
+                                                                                                   , reproductionString)
+                                        |> Some with
+                                        reproducedException ->
+                                            let shouldBeTrue =
+                                                innerException.Message = reproducedException.Message
+                                            Assert.IsTrue shouldBeTrue
+                                            None
+                                Assert.IsTrue shouldBeNone.IsNone
+                            verifyBugReproductionUsing factoryWithoutExplicitDeferralBudget
+                            verifyBugReproductionUsing factoryWithDeferralBudget
                             None
                       | _ ->
                             Assert.Fail "No other exception should have been thrown."
@@ -1303,8 +1306,8 @@
                 Assert.IsTrue shouldBeNone.IsNone
                 let neverFail =
                     ignore
-                try factory.ExecuteParameterisedUnitTestForAllTestCases (randomStrength
-                                                                         , Action<Object>(neverFail))
+                try factoryWithDeferralBudget.ExecuteParameterisedUnitTestForAllTestCases (randomStrength
+                                                                                           , Action<Object>(neverFail))
                     |> ignore with
                     :? TestCaseReproductionException as testCaseReproductionException ->
                         Assert.Fail "Should not be throwing this specific kind of exception if the unit test succeeded."

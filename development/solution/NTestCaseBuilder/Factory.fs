@@ -220,11 +220,7 @@
     type internal INodeWrapper =
         abstract Node: Node
 
-    type TypedFactoryImplementation<'TestCase> (node: Node,
-                                                deferralBudget: Int32) =
-        new (node: Node) =
-            TypedFactoryImplementation(node, 0)
-
+    type TypedFactoryImplementation<'TestCase> (node: Node) =
         interface INodeWrapper with
             member this.Node = node
 
@@ -238,7 +234,7 @@
                 seq
                     {
                         for _
-                            , prunedNode in node.PruneTree deferralBudget do
+                            , prunedNode in node.PruneTree () do
                             yield prunedNode.MaximumStrengthOfTestVariableCombination
                     }
                 |> Seq.max
@@ -274,7 +270,7 @@
                 seq
                     {
                         for _
-                            , prunedNode in node.PruneTree deferralBudget do
+                            , prunedNode in node.PruneTree () do
                             yield! this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector prunedNode
                                                                                             maximumDesiredStrength
                                    |> Seq.map fst
@@ -303,14 +299,14 @@
                 :> ITypedFactory<'TestCase>
 
             member this.WithDeferralBudgetOf deferralBudget =
-                TypedFactoryImplementation<'TestCase>(node, deferralBudget)
+                TypedFactoryImplementation<'TestCase>(node.WithDeferralBudget (Some deferralBudget))
                 :> ITypedFactory<'TestCase>
 
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
                                                                                                                 , parameterisedUnitTest) =
             let mutable count = 0
             for deferralBudget
-                , prunedNode in node.PruneTree deferralBudget do
+                , prunedNode in node.PruneTree () do
                 for testCase
                     , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector prunedNode
                                                                                                  maximumDesiredStrength do
@@ -344,7 +340,7 @@
                         Int32.Parse deferralBudgetGroup.Value
                     else
                         0
-                match node.PruneTree deferralBudget
+                match node.PruneTree ()
                       |> List.tryFind (fun (keyDeferralBudget
                                             , _) ->
                                             deferralBudget = keyDeferralBudget) with    // Ugly linear search, but it's OK - would

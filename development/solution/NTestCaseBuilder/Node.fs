@@ -52,10 +52,12 @@ namespace NTestCaseBuilder
     and Node (kind: NodeKind,
               filters: List<LevelCombinationFilter>,
               maximumStrength: Option<Int32>,
+              deferralBudget: Option<Int32>,
               isZeroCost: Boolean) =
         new kind =
             Node (kind,
                   List.empty,
+                  None,
                   None,
                   false)
 
@@ -68,6 +70,9 @@ namespace NTestCaseBuilder
         member this.MaximumStrength =
             maximumStrength
 
+        member this.DeferralBudget =
+            deferralBudget
+
         member this.IsZeroCost =
             isZeroCost
 
@@ -75,6 +80,7 @@ namespace NTestCaseBuilder
             Node (kind,
                   additionalFilter :: filters,
                   maximumStrength,
+                  deferralBudget,
                   isZeroCost)
 
         member private this.WithFilters additionalFilters =
@@ -82,18 +88,28 @@ namespace NTestCaseBuilder
                  List.append additionalFilters
                              filters,
                  maximumStrength,
+                 deferralBudget,
                  isZeroCost)
 
         member this.WithMaximumStrength maximumStrength =
             Node (kind,
                   filters,
                   maximumStrength,
+                  deferralBudget,
+                  isZeroCost)
+
+        member this.WithDeferralBudget deferralBudget =
+            Node (kind,
+                  filters,
+                  maximumStrength,
+                  deferralBudget,
                   isZeroCost)
 
         member this.WithZeroCost () =
             Node (kind,
                   filters,
                   maximumStrength,
+                  deferralBudget,
                   true)
 
     and LevelCombinationFilter =
@@ -202,13 +218,21 @@ namespace NTestCaseBuilder
                         maximumPossibleStrength
             walkTree this
 
-        member this.PruneTree deferralBudget =
-            this.PruneTree (deferralBudget
+        member this.PruneTree () =
+            this.PruneTree (defaultArg this.DeferralBudget
+                                       0
                             , 0)
 
-        member internal this.PruneTree (deferralBudget,
+        member internal this.PruneTree (desiredDeferralBudget,
                                         numberOfDeferralsSpent) =
             let rec walkTree node =
+                let desiredDeferralBudget =
+                    match (node: Node).DeferralBudget with
+                        Some deferralBudget ->
+                            min desiredDeferralBudget
+                                deferralBudget
+                      | _ ->
+                            desiredDeferralBudget
                 match node with
                     TestVariableNode levels ->
                         if Array.isEmpty levels
@@ -231,7 +255,7 @@ namespace NTestCaseBuilder
                                         deferralBudget
                                         , ((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
-                        fixedCombinationOfSubtreeNodesForSynthesis.Prune (deferralBudget,
+                        fixedCombinationOfSubtreeNodesForSynthesis.Prune (desiredDeferralBudget,
                                                                           numberOfDeferralsSpent)
                         |> List.map (fun (deferralBudget
                                           , fixedCombinationsOfSubtreeNodesForSynthesisConformingToThatBudget) ->
@@ -246,11 +270,11 @@ namespace NTestCaseBuilder
                                           | _ ->
                                             InterleavingNode alternateSynthesesConformingToThatBudget)
                   | DeferralNode deferredNode ->
-                        if numberOfDeferralsSpent = deferralBudget
+                        if numberOfDeferralsSpent = desiredDeferralBudget
                         then
                             List.empty
                         else
-                            (deferredNode ()).PruneTree (deferralBudget,
+                            (deferredNode ()).PruneTree (desiredDeferralBudget,
                                                          (1 + numberOfDeferralsSpent))
             walkTree this
 
