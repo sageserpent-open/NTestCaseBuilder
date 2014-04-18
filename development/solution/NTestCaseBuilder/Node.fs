@@ -36,6 +36,8 @@ namespace NTestCaseBuilder
 
         abstract Nodes: array<Node>
 
+        abstract BuildSimilarFrom: List<Node> -> IFixedCombinationOfSubtreeNodesForSynthesis
+
         abstract FinalValueCreator: Unit -> (List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase)
 
         abstract IsSubtreeZeroCost: Int32 -> Boolean
@@ -217,6 +219,87 @@ namespace NTestCaseBuilder
                     | _ ->
                         maximumPossibleStrength
             walkTree this
+
+        member private this.FoldRightPostOrder folding
+                                               accumulated =
+            let rec walkTree node
+                             accumulated =
+                match node with
+                    InterleavingNode subtreeRootNodes ->
+                        let accumulatedFromSubtrees =
+                            List.foldBack walkTree
+                                          subtreeRootNodes
+                                          accumulated
+                        folding node
+                                accumulatedFromSubtrees
+                  | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+                        let accumulatedFromSubtrees =
+                            Array.foldBack walkTree
+                                           fixedCombinationOfSubtreeNodesForSynthesis.Nodes
+                                           accumulated
+                        folding node
+                                accumulatedFromSubtrees
+                  | _ ->
+                        folding node
+                                accumulated
+            walkTree this
+                     accumulated
+
+        member this.DeferralBudgetsOverSubtree () =
+            this.FoldRightPostOrder (fun node
+                                         (nodeIndex
+                                          , nodeIndexToDeferralBudgetMap) ->
+                                        1 + nodeIndex
+                                        , match node.DeferralBudget with
+                                            Some deferralBudget ->
+                                                Map.add nodeIndex
+                                                        deferralBudget
+                                                        nodeIndexToDeferralBudgetMap
+                                          | None ->
+                                                nodeIndexToDeferralBudgetMap)
+                                   (0
+                                    , Map.empty)
+            |> snd
+
+        member this.ApplyDeferralBudgetsOverSubtree nodeIndexToDeferralBudgetMap =
+            this.FoldRightPostOrder (fun node
+                                         (nodeIndex
+                                          , stackOfNodesWithBudgetAppliedIfRequired: List<_>) ->
+                                        let applyDeferralBudget (node: Node) =
+                                            match Map.tryFind nodeIndex
+                                                              nodeIndexToDeferralBudgetMap with
+                                                Some deferralBudget ->
+                                                    node.WithDeferralBudget (Some deferralBudget)
+                                              | None ->
+                                                    node
+                                        1 + nodeIndex
+                                        , match node with
+                                            InterleavingNode subtreeRootNodes ->
+                                                let numberOfSubtreeRootNodes =
+                                                    subtreeRootNodes.Length
+                                                let subtreeRootNodesWithBudgetAppliedIfRequired
+                                                    , remainingNodesWithBudgetAppliedIfRequired =
+                                                    stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
+                                                (InterleavingNode stackOfNodesWithBudgetAppliedIfRequired
+                                                 |> applyDeferralBudget)
+                                                :: remainingNodesWithBudgetAppliedIfRequired
+                                          | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+                                                let numberOfSubtreeRootNodes =
+                                                    fixedCombinationOfSubtreeNodesForSynthesis.Nodes.Length
+                                                let subtreeRootNodesWithBudgetAppliedIfRequired
+                                                    , remainingNodesWithBudgetAppliedIfRequired =
+                                                    stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
+                                                (SynthesizingNode (fixedCombinationOfSubtreeNodesForSynthesis.BuildSimilarFrom subtreeRootNodesWithBudgetAppliedIfRequired)
+                                                 |> applyDeferralBudget)
+                                                :: remainingNodesWithBudgetAppliedIfRequired
+                                          | _ ->
+                                            (node
+                                             |> applyDeferralBudget)
+                                            :: stackOfNodesWithBudgetAppliedIfRequired)
+                                    (0,
+                                     List.Empty)
+            |> snd
+            |> List.head
 
         member this.PruneTree () =
             this.PruneTree (defaultArg this.DeferralBudget
@@ -1086,6 +1169,9 @@ namespace NTestCaseBuilder
                         member this.Nodes =
                             subtreeRootNodes
                             |> Array.ofList
+
+                        member this.BuildSimilarFrom nodes =
+                            fixedCombinationOfSubtreeNodesForSynthesis nodes
 
                         member this.FinalValueCreator () =
                             fun slicesOfFullTestVector ->
