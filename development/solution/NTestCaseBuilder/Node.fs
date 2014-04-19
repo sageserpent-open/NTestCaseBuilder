@@ -280,7 +280,7 @@ namespace NTestCaseBuilder
                                                 let subtreeRootNodesWithBudgetAppliedIfRequired
                                                     , remainingNodesWithBudgetAppliedIfRequired =
                                                     stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
-                                                (InterleavingNode stackOfNodesWithBudgetAppliedIfRequired
+                                                (InterleavingNode subtreeRootNodesWithBudgetAppliedIfRequired
                                                  |> applyDeferralBudget)
                                                 :: remainingNodesWithBudgetAppliedIfRequired
                                           | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
