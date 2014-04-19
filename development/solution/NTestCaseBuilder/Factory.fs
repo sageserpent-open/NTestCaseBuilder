@@ -48,28 +48,46 @@
             |> unbox
             : FullTestVector
 
-        let deferralBudgetSeparatorInReproductionString =
-            "@deferred budget of: "
+        let realisedDeferralBudgetSeparatorInReproductionString =
+            "@realised deferral budget of: "
+
+        let deferralBudgetsOverSubtreeSeparatorInReproductionString =
+            "@deferral budget map: "
 
         let makeDescriptionOfReproductionString fullTestVector
-                                                deferralBudget =
+                                                realisedDeferralBudget
+                                                deferralBudgetsOverSubtree =
             let fullTestVectorString =
                 (serialize fullTestVector).ToString()
             let reproductionString =
-                if 0 = deferralBudget
+                if 0 = realisedDeferralBudget
                 then
                     fullTestVectorString
                 else
-                    fullTestVectorString + deferralBudgetSeparatorInReproductionString + deferralBudget.ToString()
+                    let deferralBudgetsOverSubtreeAsStrings =
+                        deferralBudgetsOverSubtree
+                          |> Map.toSeq
+                          |> Seq.map (function nodeIndex
+                                               , deferralBudget ->
+                                                String.Format("({0}, {1})",
+                                                              nodeIndex,
+                                                              deferralBudget))
+                    fullTestVectorString
+                    + realisedDeferralBudgetSeparatorInReproductionString
+                    + realisedDeferralBudget.ToString()
+                    + deferralBudgetsOverSubtreeSeparatorInReproductionString
+                    + String.Join(", ", deferralBudgetsOverSubtreeAsStrings)
             String.Format ("Encoded text for reproduction of test case follows on next line as C# string:\n\"{0}\"",
                            reproductionString)
     open FactoryDetail
 
     type TestCaseReproductionException (fullTestVector
-                                        , deferralBudget
+                                        , realisedDeferralBudget
+                                        , deferralBudgetsOverSubtree
                                         , innerException) =
         inherit Exception (makeDescriptionOfReproductionString fullTestVector
-                                                               deferralBudget
+                                                               realisedDeferralBudget
+                                                               deferralBudgetsOverSubtree
                            , innerException)
 
     /// <summary>A factory that can create an enumerable sequence of test cases used in turn to drive a parameterised
@@ -305,7 +323,7 @@
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
                                                                                                                 , parameterisedUnitTest) =
             let mutable count = 0
-            for deferralBudget
+            for realisedDeferralBudget
                 , prunedNode in node.PruneTree () do
                 for testCase
                     , fullTestVector in this.CreateEnumerableOfTypedTestCaseAndItsFullTestVector prunedNode
@@ -316,13 +334,15 @@
                     with
                         anyException ->
                             raise (TestCaseReproductionException (fullTestVector
-                                                                  , deferralBudget
+                                                                  , realisedDeferralBudget
+                                                                  , node.DeferralBudgetsOverSubtree ()
                                                                   , anyException))
             count
 
         static member private ReproductionStringRegex =
-            Regex (String.Format(@"^(\d+)(?:{0}(\d+))?$",
-                                 Regex.Escape(deferralBudgetSeparatorInReproductionString)))
+            Regex (String.Format(@"^(\d+)(?:{0}(\d+)(?:{1}(?:\((\d+), (\d+)\))(?:, \((\d+), (\d+)\))*)?)?$",
+                                 Regex.Escape(realisedDeferralBudgetSeparatorInReproductionString),
+                                 Regex.Escape(deferralBudgetsOverSubtreeSeparatorInReproductionString)))
 
         member private this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest
                                                                                                                       , reproductionString) =
@@ -332,7 +352,7 @@
             then
                 let groups =
                     regexMatch.Groups
-                let deferralBudget =
+                let realisedDeferralBudget =
                     let deferralBudgetGroup =
                         groups.[2]
                     if deferralBudgetGroup.Success
@@ -340,15 +360,44 @@
                         Int32.Parse deferralBudgetGroup.Value
                     else
                         0
-                match node.PruneTree ()
-                      |> List.tryFind (fun (keyDeferralBudget
+                let deferralBudgetsOverSubtree =
+                    let firstNodeIndexGroup =
+                        groups.[3]
+                    if firstNodeIndexGroup.Success
+                    then
+                        let firstDeferralBudgetAssociation =
+                            let firstDeferralBudgetGroup =
+                                groups.[4]  // Assertion: 'ReproductionStringRegex' guarantees that if group #3 has succeeded, so will this one.
+                            (Int32.Parse firstNodeIndexGroup.Value
+                             , Int32.Parse firstDeferralBudgetGroup.Value)
+                        let subsequentDeferralBudgetAssociations =
+                            let subsequentNodeIndexGroup =
+                                groups.[5]
+                            let subsequentDeferralBudgetGroup =
+                                groups.[6]  // Assertion: 'ReproductionStringRegex' guarantees that this group's captures are in lockstep with those of group #5.
+                            List.zip [
+                                        for capture in subsequentNodeIndexGroup.Captures do
+                                            yield Int32.Parse capture.Value
+                                     ]
+                                     [
+                                        for capture in subsequentDeferralBudgetGroup.Captures do
+                                            yield Int32.Parse capture.Value
+                                     ]
+                        (firstDeferralBudgetAssociation :: subsequentDeferralBudgetAssociations
+                         |> Map.ofList)
+                    else
+                        Map.empty
+                let nodeWithDeferralBudgetsApplied =
+                    node.ApplyDeferralBudgetsOverSubtree deferralBudgetsOverSubtree
+                match nodeWithDeferralBudgetsApplied.PruneTree ()
+                      |> List.tryFind (fun (availableRealisedDeferralBudget
                                             , _) ->
-                                            deferralBudget = keyDeferralBudget) with    // Ugly linear search, but it's OK - would
-                                                                                        // need to convert to a more efficient data
-                                                                                        // structure: that would take at least linear
-                                                                                        // time as well.
+                                            realisedDeferralBudget = availableRealisedDeferralBudget) with  // Ugly linear search, but it's OK - would
+                                                                                                            // need to convert to a more efficient data
+                                                                                                            // structure: that would take at least linear
+                                                                                                            // time as well.
                     Some (_
-                         , prunedNode) ->
+                          , prunedNode) ->
                         let fullTestVector =
                             let fullTestVectorString =
                                 let fullTestVectorStringGroup =

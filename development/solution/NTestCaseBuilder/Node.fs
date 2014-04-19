@@ -271,7 +271,7 @@ namespace NTestCaseBuilder
                                                 Some deferralBudget ->
                                                     node.WithDeferralBudget (Some deferralBudget)
                                               | None ->
-                                                    node
+                                                    node.WithDeferralBudget None
                                         1 + nodeIndex
                                         , match node with
                                             InterleavingNode subtreeRootNodes ->
