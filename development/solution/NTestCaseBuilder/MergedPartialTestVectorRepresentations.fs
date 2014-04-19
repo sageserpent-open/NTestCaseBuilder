@@ -66,6 +66,22 @@ namespace NTestCaseBuilder
                 BranchingRoot = EmptyTernarySearchTree
             }
 
+        let inline (|SingleTrivialPath|_|) testVectorPaths =
+            match testVectorPaths with
+                {
+                    SharedPathPrefix = Nil
+                    BranchingRoot = SuccessfulSearchTerminationNode
+                } ->
+                    Some ()
+              | _ ->
+                    None
+
+        let SingleTrivialPath =
+            {
+                SharedPathPrefix = Nil
+                BranchingRoot = SuccessfulSearchTerminationNode
+            }
+
         let inline (|BranchingWithSingleLevelForLeadingTestVariable|_|) ternarySearchTree =
             match ternarySearchTree with
                 BinaryTreeOfLevelsForTestVariable
@@ -1356,6 +1372,11 @@ namespace NTestCaseBuilder
                             checkInvariantOfBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
                                                                               NegativeInfinity
                                                                               PositiveInfinity
+                        match testVectorPathsForFollowingIndices with
+                            SingleTrivialPath when numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex > 0 ->
+                                raise (LogicErrorException "Found wildcard path that always merges with at least one path using the non-wildcard match - should have been merged.")
+                          | _ ->
+                            ()
                         let numberOfSuccessfulPathsFromTestVectorPathsForFollowingIndices =
                             checkInvariantOfTestVectorPaths testVectorPathsForFollowingIndices
                                                             (testVariableIndex + 1)
@@ -1367,13 +1388,12 @@ namespace NTestCaseBuilder
                           | _
                             , 0 ->
                                 raise (LogicErrorException "Redundant wildcard node that has no successful paths using its wildcard match leading through it.")
-                          | _
-                            , _ ->
+                          | _ ->
                                 numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex
                                 + numberOfSuccessfulPathsFromTestVectorPathsForFollowingIndices
 
             if 0 = checkInvariantOfTestVectorPaths testVectorPaths
-                                                    0
+                                                   0
             then
                 raise (LogicErrorException "No successful search paths but tree should be non-empty.")
 
@@ -1385,10 +1405,7 @@ namespace NTestCaseBuilder
 
         static member Initial maximumNumberOfTestVariablesOverall
                               testVectorIsAcceptable =
-            MergedPartialTestVectorRepresentations<'Level> ({
-                                                                SharedPathPrefix = Nil
-                                                                BranchingRoot = SuccessfulSearchTerminationNode
-                                                            },
+            MergedPartialTestVectorRepresentations<'Level> (SingleTrivialPath,
                                                             maximumNumberOfTestVariablesOverall,
                                                             testVectorIsAcceptable)
 
@@ -1480,12 +1497,82 @@ namespace NTestCaseBuilder
                                                                                                         true
                                                                                             if not consistent
                                                                                             then
-                                                                                                raise (InternalAssertionViolationException "The merged removed partial test vector has a value that is inconsistent with the original."))
-                                                                            let! _ =
+                                                                                                raise (InternalAssertionViolationException "The merged removed partial test vector is not acceptable to the filter."))
+                                                                            let! _
+                                                                                , remergedPartialTestVectorRepresentation =
                                                                                 remove testVectorPathsWithoutMergeCandidate
                                                                                        mergedPartialTestVectorRepresentation
                                                                                        (fun _ -> raise (InternalAssertionViolationException "This should not be called."))
-                                                                            do raise (InternalAssertionViolationException "The merged removed partial test vector still matches with something left behind!")
+                                                                            do
+                                                                                let externalFormFor partialTestVectorRepresentation =
+                                                                                    seq
+                                                                                        {
+                                                                                            for testVariableIndex
+                                                                                                , testVariableLevel in partialTestVectorRepresentation
+                                                                                                                       |> List.mapi (fun testVariableIndex
+                                                                                                                                         testVariableLevel ->
+                                                                                                                                            testVariableIndex
+                                                                                                                                            , testVariableLevel) do
+                                                                                                match testVariableLevel with
+                                                                                                    Some testVariableLevel ->
+                                                                                                        yield testVariableIndex
+                                                                                                              , testVariableLevel
+                                                                                                  | None ->
+                                                                                                        ()
+                                                                                        }
+                                                                                    |> Map.ofSeq
+                                                                                let mergedPartialTestVectorRepresentationInExternalForm =
+                                                                                    externalFormFor mergedPartialTestVectorRepresentation
+                                                                                if mergedPartialTestVectorRepresentationInExternalForm
+                                                                                   |> Map.toSeq
+                                                                                   |> testVectorIsAcceptable
+                                                                                   |> not
+                                                                                then
+                                                                                    raise (InternalAssertionViolationException "The merged removed partial test vector should be passed by the filter.")
+                                                                                let checkWhatHasBeenMergedInToMake mergedPartialTestVectorRepresentationInExternalForm =
+                                                                                    let whatHasBeenMergedIn =
+                                                                                        mergedPartialTestVectorRepresentationInExternalForm
+                                                                                        |> Map.filter (fun testVariableIndex
+                                                                                                           _ ->
+                                                                                                           Map.containsKey testVariableIndex
+                                                                                                                           partialTestVectorRepresentationInExternalForm
+                                                                                                           |> not)
+                                                                                        |> Map.toList
+                                                                                    for sampleSize in 1 .. List.length whatHasBeenMergedIn - 1 do
+                                                                                        for sample in CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder sampleSize
+                                                                                                                                                                           whatHasBeenMergedIn do
+                                                                                            let partialTestVectorBetweenTheQueryAndTheMergeResult =
+                                                                                                seq
+                                                                                                    {
+                                                                                                        yield! partialTestVectorRepresentationInExternalForm
+                                                                                                               |> Map.toSeq
+                                                                                                        yield! sample
+                                                                                                    }
+                                                                                            if testVectorIsAcceptable (partialTestVectorBetweenTheQueryAndTheMergeResult
+                                                                                                                       |> Seq.sortBy fst)
+                                                                                               |> not
+                                                                                            then
+                                                                                                testVectorIsAcceptable (mergedPartialTestVectorRepresentationInExternalForm
+                                                                                                                        |> Map.toSeq
+                                                                                                                        |> Seq.sortBy fst)
+                                                                                                |> ignore
+                                                                                                testVectorIsAcceptable (partialTestVectorBetweenTheQueryAndTheMergeResult
+                                                                                                                        |> Seq.sortBy fst)
+                                                                                                |> ignore
+                                                                                                printf "partialTestVectorBetweenTheQueryAndTheMergeResult: %A\n" (List.ofSeq (partialTestVectorBetweenTheQueryAndTheMergeResult |> Seq.sortBy fst))
+                                                                                                raise (PreconditionViolationException "The filter is inconsistent - it forbids a vector that is a subset of a larger vector that is passed.")
+
+                                                                                let remergedPartialTestVectorRepresentationInExternalForm =
+                                                                                    externalFormFor remergedPartialTestVectorRepresentation
+                                                                                
+                                                                                printf "partialTestVectorRepresentationInExternalForm: %A\n" (Map.toList partialTestVectorRepresentationInExternalForm)
+                                                                                printf "mergedPartialTestVectorRepresentationInExternalForm: %A\n" (Map.toList mergedPartialTestVectorRepresentationInExternalForm)
+                                                                                printf "remergedPartialTestVectorRepresentationInExternalForm: %A\n" (Map.toList remergedPartialTestVectorRepresentationInExternalForm)
+
+                                                                                checkWhatHasBeenMergedInToMake mergedPartialTestVectorRepresentationInExternalForm
+                                                                                checkWhatHasBeenMergedInToMake remergedPartialTestVectorRepresentationInExternalForm
+
+                                                                                raise (InternalAssertionViolationException "The merged removed partial test vector still matches with something left behind!")
                                                                         }
                                                                     + continuationWorkflow
                                                                         {

@@ -36,6 +36,8 @@ namespace NTestCaseBuilder
 
         abstract Nodes: array<Node>
 
+        abstract BuildSimilarFrom: List<Node> -> IFixedCombinationOfSubtreeNodesForSynthesis
+
         abstract FinalValueCreator: Unit -> (List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase)
 
         abstract IsSubtreeZeroCost: Int32 -> Boolean
@@ -52,10 +54,12 @@ namespace NTestCaseBuilder
     and Node (kind: NodeKind,
               filters: List<LevelCombinationFilter>,
               maximumStrength: Option<Int32>,
+              deferralBudget: Option<Int32>,
               isZeroCost: Boolean) =
         new kind =
             Node (kind,
                   List.empty,
+                  None,
                   None,
                   false)
 
@@ -68,6 +72,9 @@ namespace NTestCaseBuilder
         member this.MaximumStrength =
             maximumStrength
 
+        member this.DeferralBudget =
+            deferralBudget
+
         member this.IsZeroCost =
             isZeroCost
 
@@ -75,6 +82,7 @@ namespace NTestCaseBuilder
             Node (kind,
                   additionalFilter :: filters,
                   maximumStrength,
+                  deferralBudget,
                   isZeroCost)
 
         member private this.WithFilters additionalFilters =
@@ -82,18 +90,28 @@ namespace NTestCaseBuilder
                  List.append additionalFilters
                              filters,
                  maximumStrength,
+                 deferralBudget,
                  isZeroCost)
 
         member this.WithMaximumStrength maximumStrength =
             Node (kind,
                   filters,
                   maximumStrength,
+                  deferralBudget,
+                  isZeroCost)
+
+        member this.WithDeferralBudget deferralBudget =
+            Node (kind,
+                  filters,
+                  maximumStrength,
+                  deferralBudget,
                   isZeroCost)
 
         member this.WithZeroCost () =
             Node (kind,
                   filters,
                   maximumStrength,
+                  deferralBudget,
                   true)
 
     and LevelCombinationFilter =
@@ -202,13 +220,102 @@ namespace NTestCaseBuilder
                         maximumPossibleStrength
             walkTree this
 
-        member this.PruneTree deferralBudget =
-            this.PruneTree (deferralBudget
+        member private this.FoldRightPostOrder folding
+                                               accumulated =
+            let rec walkTree node
+                             accumulated =
+                match node with
+                    InterleavingNode subtreeRootNodes ->
+                        let accumulatedFromSubtrees =
+                            List.foldBack walkTree
+                                          subtreeRootNodes
+                                          accumulated
+                        folding node
+                                accumulatedFromSubtrees
+                  | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+                        let accumulatedFromSubtrees =
+                            Array.foldBack walkTree
+                                           fixedCombinationOfSubtreeNodesForSynthesis.Nodes
+                                           accumulated
+                        folding node
+                                accumulatedFromSubtrees
+                  | _ ->
+                        folding node
+                                accumulated
+            walkTree this
+                     accumulated
+
+        member this.DeferralBudgetsOverSubtree () =
+            this.FoldRightPostOrder (fun node
+                                         (nodeIndex
+                                          , nodeIndexToDeferralBudgetMap) ->
+                                        1 + nodeIndex
+                                        , match node.DeferralBudget with
+                                            Some deferralBudget ->
+                                                Map.add nodeIndex
+                                                        deferralBudget
+                                                        nodeIndexToDeferralBudgetMap
+                                          | None ->
+                                                nodeIndexToDeferralBudgetMap)
+                                   (0
+                                    , Map.empty)
+            |> snd
+
+        member this.ApplyDeferralBudgetsOverSubtree nodeIndexToDeferralBudgetMap =
+            this.FoldRightPostOrder (fun node
+                                         (nodeIndex
+                                          , stackOfNodesWithBudgetAppliedIfRequired: List<_>) ->
+                                        let applyDeferralBudget (node: Node) =
+                                            match Map.tryFind nodeIndex
+                                                              nodeIndexToDeferralBudgetMap with
+                                                Some deferralBudget ->
+                                                    node.WithDeferralBudget (Some deferralBudget)
+                                              | None ->
+                                                    node.WithDeferralBudget None
+                                        1 + nodeIndex
+                                        , match node with
+                                            InterleavingNode subtreeRootNodes ->
+                                                let numberOfSubtreeRootNodes =
+                                                    subtreeRootNodes.Length
+                                                let subtreeRootNodesWithBudgetAppliedIfRequired
+                                                    , remainingNodesWithBudgetAppliedIfRequired =
+                                                    stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
+                                                (InterleavingNode subtreeRootNodesWithBudgetAppliedIfRequired
+                                                 |> applyDeferralBudget)
+                                                :: remainingNodesWithBudgetAppliedIfRequired
+                                          | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+                                                let numberOfSubtreeRootNodes =
+                                                    fixedCombinationOfSubtreeNodesForSynthesis.Nodes.Length
+                                                let subtreeRootNodesWithBudgetAppliedIfRequired
+                                                    , remainingNodesWithBudgetAppliedIfRequired =
+                                                    stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
+                                                (SynthesizingNode (fixedCombinationOfSubtreeNodesForSynthesis.BuildSimilarFrom subtreeRootNodesWithBudgetAppliedIfRequired)
+                                                 |> applyDeferralBudget)
+                                                :: remainingNodesWithBudgetAppliedIfRequired
+                                          | _ ->
+                                            (node
+                                             |> applyDeferralBudget)
+                                            :: stackOfNodesWithBudgetAppliedIfRequired)
+                                    (0,
+                                     List.Empty)
+            |> snd
+            |> List.head
+
+        member this.PruneTree () =
+            this.PruneTree (defaultArg this.DeferralBudget
+                                       0
                             , 0)
 
-        member internal this.PruneTree (deferralBudget,
+        member internal this.PruneTree (desiredDeferralBudget,
                                         numberOfDeferralsSpent) =
             let rec walkTree node =
+                let desiredDeferralBudget =
+                    match (node: Node).DeferralBudget with
+                        Some deferralBudget ->
+                            min desiredDeferralBudget
+                                deferralBudget
+                      | _ ->
+                            desiredDeferralBudget
                 match node with
                     TestVariableNode levels ->
                         if Array.isEmpty levels
@@ -231,7 +338,7 @@ namespace NTestCaseBuilder
                                         deferralBudget
                                         , ((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
                   | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
-                        fixedCombinationOfSubtreeNodesForSynthesis.Prune (deferralBudget,
+                        fixedCombinationOfSubtreeNodesForSynthesis.Prune (desiredDeferralBudget,
                                                                           numberOfDeferralsSpent)
                         |> List.map (fun (deferralBudget
                                           , fixedCombinationsOfSubtreeNodesForSynthesisConformingToThatBudget) ->
@@ -246,11 +353,11 @@ namespace NTestCaseBuilder
                                           | _ ->
                                             InterleavingNode alternateSynthesesConformingToThatBudget)
                   | DeferralNode deferredNode ->
-                        if numberOfDeferralsSpent = deferralBudget
+                        if numberOfDeferralsSpent = desiredDeferralBudget
                         then
                             List.empty
                         else
-                            (deferredNode ()).PruneTree (deferralBudget,
+                            (deferredNode ()).PruneTree (desiredDeferralBudget,
                                                          (1 + numberOfDeferralsSpent))
             walkTree this
 
@@ -848,6 +955,8 @@ namespace NTestCaseBuilder
                 combinationsOfTestVariablesAssociatedWithTheirLevels node
                                                                      testVariableIndices
                                                                      0
+            let combinedFilter =
+                this.CombinedFilter
             let fillOutFrom combinationOfTestVariablesAssociatedWithTheirLevels =
                 let testVariableIndices =
                     combinationOfTestVariablesAssociatedWithTheirLevels
@@ -861,7 +970,10 @@ namespace NTestCaseBuilder
                 levelCombinationsForTestVariableCombination
                 |> Seq.map (fun levelCombination ->
                                 List.zip testVariableIndices
-                                         levelCombination)
+                                         levelCombination
+                                |> List.sortBy fst)
+                |> Seq.filter (fun fillerSection ->
+                                combinedFilter fillerSection)
             if missingTestVariableIndices
                |> List.isEmpty
             then
@@ -877,8 +989,7 @@ namespace NTestCaseBuilder
                 let fullTestVectorRepresentations =
                     fillerSections
                     |> Seq.map (fun fillerSection ->
-                                    BargainBasement.MergeDisjointSortedAssociationLists (fillerSection
-                                                                                         |> List.sortBy fst)
+                                    BargainBasement.MergeDisjointSortedAssociationLists fillerSection
                                                                                         (partialTestVectorRepresentation
                                                                                          |> Map.toList))
                 optionWorkflow
@@ -886,7 +997,7 @@ namespace NTestCaseBuilder
                         let! chosenFullTestVectorRepresentation =
                             fullTestVectorRepresentations
                             |> Seq.tryFind (fun fullTestVectorRepresentation ->
-                                                this.CombinedFilter (fullTestVectorRepresentation :> seq<_>))
+                                                combinedFilter (fullTestVectorRepresentation :> seq<_>))
                         return chosenFullTestVectorRepresentation
                                |> List.map snd
                                |> List.toArray
@@ -1058,6 +1169,9 @@ namespace NTestCaseBuilder
                         member this.Nodes =
                             subtreeRootNodes
                             |> Array.ofList
+
+                        member this.BuildSimilarFrom nodes =
+                            fixedCombinationOfSubtreeNodesForSynthesis nodes
 
                         member this.FinalValueCreator () =
                             fun slicesOfFullTestVector ->

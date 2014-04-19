@@ -139,6 +139,13 @@ namespace NTestCaseBuilder
                 |> List.rev
                 |> Array.ofList
 
+            member this.BuildSimilarFrom nodes =
+                FixedCombinationOfFactoriesForSynthesis(nodes
+                                                        |> List.rev,
+                                                        applyResultsFromAllFactories,
+                                                        synthesisFunction)
+                :> IFixedCombinationOfSubtreeNodesForSynthesis
+
             member this.FinalValueCreator (): List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase =
                 mediateFinalValueCreatorType createFinalValueFrom
 
@@ -223,6 +230,9 @@ namespace NTestCaseBuilder
                         member this.Nodes =
                             [|node|]
 
+                        member this.BuildSimilarFrom [node] =
+                            fixedCombinationOfSubtreeNodesForSynthesis node
+
                         member this.FinalValueCreator () =
                             function [sliceOfFullTestVector] ->
                                         let invocationArgument =
@@ -266,6 +276,10 @@ namespace NTestCaseBuilder
 
                         member this.Nodes =
                             [|node1; node2|]
+
+                        member this.BuildSimilarFrom [node1; node2] =
+                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                                       node2
 
                         member this.FinalValueCreator () =
                             function [sliceOfFullTestVector1; sliceOfFullTestVector2] ->
@@ -316,6 +330,11 @@ namespace NTestCaseBuilder
 
                         member this.Nodes =
                             [|node1; node2; node3|]
+
+                        member this.BuildSimilarFrom [node1; node2; node3] =
+                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                                       node2
+                                                                       node3
 
                         member this.FinalValueCreator () =
                             function [sliceOfFullTestVector1; sliceOfFullTestVector2; sliceOfFullTestVector3] ->
@@ -372,6 +391,12 @@ namespace NTestCaseBuilder
 
                         member this.Nodes =
                             [|node1; node2; node3; node4|]
+
+                        member this.BuildSimilarFrom [node1; node2; node3; node4] =
+                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                                       node2
+                                                                       node3
+                                                                       node4
 
                         member this.FinalValueCreator () =
                             function [sliceOfFullTestVector1; sliceOfFullTestVector2; sliceOfFullTestVector3; sliceOfFullTestVector4] ->
@@ -434,6 +459,13 @@ namespace NTestCaseBuilder
 
                         member this.Nodes =
                             [|node1; node2; node3; node4; node5|]
+
+                        member this.BuildSimilarFrom [node1; node2; node3; node4; node5] =
+                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                                       node2
+                                                                       node3
+                                                                       node4
+                                                                       node5
 
                         member this.FinalValueCreator () =
                             function [sliceOfFullTestVector1; sliceOfFullTestVector2; sliceOfFullTestVector3; sliceOfFullTestVector4; sliceOfFullTestVector5] ->
@@ -504,6 +536,9 @@ namespace NTestCaseBuilder
                             member this.Nodes =
                                 subtreeRootNodes
                                 |> Array.ofList
+
+                            member this.BuildSimilarFrom nodes =
+                                fixedCombinationOfSubtreeNodesForSynthesis nodes
 
                             member this.FinalValueCreator () =
                                 fun slicesOfFullTestVector ->
@@ -666,6 +701,9 @@ namespace NTestCaseBuilder
                             member this.Nodes =
                                 subtreeRootNodes
                                 |> Array.ofList
+
+                            member this.BuildSimilarFrom nodes =
+                                fixedCombinationOfSubtreeNodesForSynthesis nodes
 
                             member this.FinalValueCreator () =
                                 fun slicesOfFullTestVector ->
