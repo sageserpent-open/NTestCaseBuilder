@@ -460,7 +460,7 @@ This progresses to writing unit tests that do have expectations, but which are r
             Assert.IsTrue(componentUnderTest.Bar.IsAtLastOrders);
         }
 
-I've avoided the use of mocking and fluent testing above to keep things simple. The important point is that this style of test is generally not sufficient for a statement of correctness of the code; rather, it's purpose is to illustrate the API of the system under test by way of example.
+I've avoided the use of mocking and fluent testing above to keep things simple. The important point is that this style of test is generally not sufficient for a statement of correctness of the code; rather, its purpose is to illustrate the API of the system under test by way of example.
 
 Once you've read this test, you know:-
 
