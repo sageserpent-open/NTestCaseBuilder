@@ -44,75 +44,63 @@ namespace NTestCaseBuilder
 
         abstract IsSubtreeHiddenFromFilters: Int32 -> Boolean
 
-    and NodeKind =
+    and [<CustomEquality; NoComparison>]
+        NodeKind =
         TestVariable of array<Object>
       | Singleton of Object
       | Interleaving of List<Node>
       | Synthesizing of IFixedCombinationOfSubtreeNodesForSynthesis
       | Deferral of (unit -> Node)
 
-    and Node (kind: NodeKind,
-              filters: List<LevelCombinationFilter>,
-              maximumStrength: Option<Int32>,
-              deferralBudget: Option<Int32>,
-              isZeroCost: Boolean) =
-        new kind =
-            Node (kind,
-                  List.empty,
-                  None,
-                  None,
-                  false)
+        override this.Equals (another: Object) =
+            System.Runtime.CompilerServices.RuntimeHelpers.Equals(this, another)
 
-        member this.Kind =
-            kind
+        override this.GetHashCode () =
+            System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)
 
-        member this.Filters =
-            filters
-
-        member this.MaximumStrength =
-            maximumStrength
-
-        member this.DeferralBudget =
-            deferralBudget
-
-        member this.IsZeroCost =
-            isZeroCost
+    and Node =
+        {
+            Kind: NodeKind
+            Filters: List<LevelCombinationFilter>
+            MaximumStrength: Option<Int32>
+            DeferralBudget: Option<Int32>
+            IsZeroCost: Boolean
+        }
+        
+        static member For kind =
+            {
+                Kind = kind
+                Filters = List.empty
+                MaximumStrength = None
+                DeferralBudget = None
+                IsZeroCost = false
+            }
 
         member this.WithFilter additionalFilter =
-            Node (kind,
-                  additionalFilter :: filters,
-                  maximumStrength,
-                  deferralBudget,
-                  isZeroCost)
+            {
+                this with Filters = additionalFilter ::this.Filters
+            }
 
         member private this.WithFilters additionalFilters =
-            Node(kind,
-                 List.append additionalFilters
-                             filters,
-                 maximumStrength,
-                 deferralBudget,
-                 isZeroCost)
+            {
+                this with Filters = List.append additionalFilters
+                                                this.Filters
+            }
 
         member this.WithMaximumStrength maximumStrength =
-            Node (kind,
-                  filters,
-                  maximumStrength,
-                  deferralBudget,
-                  isZeroCost)
+            {
+                this with MaximumStrength = maximumStrength
+            }
 
         member this.WithDeferralBudget deferralBudget =
-            Node (kind,
-                  filters,
-                  maximumStrength,
-                  deferralBudget,
-                  isZeroCost)
+            {
+                this with DeferralBudget = deferralBudget
+            }
 
         member this.WithZeroCost () =
-            Node (kind,
-                  filters,
-                  maximumStrength,
-                  deferralBudget,
-                  true)
+            {
+                this with IsZeroCost = true
+            }
 
     and LevelCombinationFilter =
         delegate of IDictionary<Int32, Int32 * Object> -> Boolean   // NOTE: the test variable index keys map to pairs of the
@@ -136,19 +124,19 @@ namespace NTestCaseBuilder
                     Choice5Of5 deferredNode
 
         let inline TestVariableNode levels =
-            Node (TestVariable levels)
+            Node.For (TestVariable levels)
 
         let inline SingletonNode singletonTestCase =
-            Node (Singleton singletonTestCase)
+            Node.For (Singleton singletonTestCase)
 
         let inline InterleavingNode subtreeRootNodes =
-            Node (Interleaving subtreeRootNodes)
+            Node.For (Interleaving subtreeRootNodes)
 
         let inline SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis =
-            Node (Synthesizing fixedCombinationOfSubtreeNodesForSynthesis)
+            Node.For (Synthesizing fixedCombinationOfSubtreeNodesForSynthesis)
 
         let inline DeferralNode deferredNode =
-            Node (Deferral deferredNode)
+            Node.For (Deferral deferredNode)
 
     open NodeExtensions
 
