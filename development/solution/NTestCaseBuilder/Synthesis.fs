@@ -16,7 +16,7 @@ namespace NTestCaseBuilder
                 :? (List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase) as finalValueCreatorWithAgreedTypeSignature ->
                     finalValueCreatorWithAgreedTypeSignature
                     // We have to mediate between the expected precise type of the result and the actual type
-                    // that is hidden by the abstracting interface 'IFixedCombinationOfSubtreeNodesForSynthesis'
+                    // that is hidden by the abstracting interface 'IFixedCombinationOfSubtreeRootNodesForSynthesis'
                     // - client code must ensure that the types are the same. By doing this to a function value
                     // rather than to individual test cases produced by applying the function, we can take an
                     // up-front one-off performance hit and then get a precisely-typed function that doesn't
@@ -120,7 +120,7 @@ namespace NTestCaseBuilder
                                                      heterogenousCombinationOfFactoriesForSynthesis.ApplyResultsFromAllFactories,
                                                      synthesisFunction)
 
-        interface IFixedCombinationOfSubtreeNodesForSynthesis with
+        interface IFixedCombinationOfSubtreeRootNodesForSynthesis with
             member this.Prune (deferralBudget,
                                numberOfDeferralsSpent) =
                 Node.PruneAndCombine (nodesInRightToLeftOrder
@@ -130,21 +130,21 @@ namespace NTestCaseBuilder
                                                                                  |> List.rev),
                                                                                 applyResultsFromAllFactories,
                                                                                 synthesisFunction)
-                                        :> IFixedCombinationOfSubtreeNodesForSynthesis)
+                                        :> IFixedCombinationOfSubtreeRootNodesForSynthesis)
                                      deferralBudget
                                      numberOfDeferralsSpent
 
-            member this.Nodes =
+            member this.SubtreeRootNodes =
                 nodesInRightToLeftOrder
                 |> List.rev
                 |> Array.ofList
 
-            member this.BuildSimilarFrom nodes =
-                FixedCombinationOfFactoriesForSynthesis(nodes
+            member this.BuildSimilarFrom subtreeRootNodes =
+                FixedCombinationOfFactoriesForSynthesis(subtreeRootNodes
                                                         |> List.rev,
                                                         applyResultsFromAllFactories,
                                                         synthesisFunction)
-                :> IFixedCombinationOfSubtreeNodesForSynthesis
+                :> IFixedCombinationOfSubtreeRootNodesForSynthesis
 
             member this.FinalValueCreator (): List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase =
                 mediateFinalValueCreatorType createFinalValueFrom
@@ -201,7 +201,7 @@ namespace NTestCaseBuilder
         /// <seealso cref="ITypedFactory&lt;'SynthesizedTestCase&gt;">Type of constructed factory.</seealso>
         /// <seealso cref="FixedCombinationOfFactoriesForSynthesis">Cooperating class from low-level F#-specific API.</seealso>
         static member inline Create<'SynthesizedTestCase>
-                                (fixedCombinationOfFactoriesForSynthesis: IFixedCombinationOfSubtreeNodesForSynthesis): ITypedFactory<'SynthesizedTestCase> =
+                                (fixedCombinationOfFactoriesForSynthesis: IFixedCombinationOfSubtreeRootNodesForSynthesis): ITypedFactory<'SynthesizedTestCase> =
             TypedFactoryImplementation<'SynthesizedTestCase> (fixedCombinationOfFactoriesForSynthesis
                                                               |> SynthesizingNode)
             :> ITypedFactory<_>
@@ -216,22 +216,22 @@ namespace NTestCaseBuilder
         static member Create<'InputTestCase, 'SynthesizedTestCase>
                         (factory: ITypedFactory<'InputTestCase>,
                          synthesisDelegate: Func<'InputTestCase, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
-            let rec fixedCombinationOfSubtreeNodesForSynthesis node =
+            let rec fixedCombinationOfSubtreeRootNodesForSynthesis node =
                 {
-                    new IFixedCombinationOfSubtreeNodesForSynthesis with
+                    new IFixedCombinationOfSubtreeRootNodesForSynthesis with
                         member this.Prune (deferralBudget,
                                            numberOfDeferralsSpent) =
                             Node.PruneAndCombine [node]
                                                  (function [node] ->
-                                                            fixedCombinationOfSubtreeNodesForSynthesis node)
+                                                            fixedCombinationOfSubtreeRootNodesForSynthesis node)
                                                  deferralBudget
                                                  numberOfDeferralsSpent
 
-                        member this.Nodes =
+                        member this.SubtreeRootNodes =
                             [|node|]
 
                         member this.BuildSimilarFrom [node] =
-                            fixedCombinationOfSubtreeNodesForSynthesis node
+                            fixedCombinationOfSubtreeRootNodesForSynthesis node
 
                         member this.FinalValueCreator () =
                             function [sliceOfFullTestVector] ->
@@ -246,7 +246,7 @@ namespace NTestCaseBuilder
                             false
                 }
             let fixedCombinationsOfNodesForSynthesis =
-                fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factory)
+                fixedCombinationOfSubtreeRootNodesForSynthesis (extractNodeFrom factory)
             Synthesis.Create fixedCombinationsOfNodesForSynthesis
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;'SynthesizedTestCase&gt;.</summary>
@@ -261,24 +261,24 @@ namespace NTestCaseBuilder
                         (factoryOne: ITypedFactory<'InputTestCase1>,
                          factoryTwo: ITypedFactory<'InputTestCase2>,
                          synthesisDelegate: Func<'InputTestCase1, 'InputTestCase2, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
-            let rec fixedCombinationOfSubtreeNodesForSynthesis node1
+            let rec fixedCombinationOfSubtreeRootNodesForSynthesis node1
                                                                node2 =
                 {
-                    new IFixedCombinationOfSubtreeNodesForSynthesis with
+                    new IFixedCombinationOfSubtreeRootNodesForSynthesis with
                         member this.Prune (deferralBudget,
                                            numberOfDeferralsSpent) =
                             Node.PruneAndCombine [node1; node2]
                                                  (function [node1; node2] ->
-                                                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                            fixedCombinationOfSubtreeRootNodesForSynthesis node1
                                                                                                        node2)
                                                  deferralBudget
                                                  numberOfDeferralsSpent
 
-                        member this.Nodes =
+                        member this.SubtreeRootNodes =
                             [|node1; node2|]
 
                         member this.BuildSimilarFrom [node1; node2] =
-                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                            fixedCombinationOfSubtreeRootNodesForSynthesis node1
                                                                        node2
 
                         member this.FinalValueCreator () =
@@ -296,7 +296,7 @@ namespace NTestCaseBuilder
                             false
                 }
             let fixedCombinationsOfNodesForSynthesis =
-                fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factoryOne)
+                fixedCombinationOfSubtreeRootNodesForSynthesis (extractNodeFrom factoryOne)
                                                            (extractNodeFrom factoryTwo)
             Synthesis.Create fixedCombinationsOfNodesForSynthesis
 
@@ -313,26 +313,26 @@ namespace NTestCaseBuilder
                          factoryTwo: ITypedFactory<'InputTestCase2>,
                          factoryThree: ITypedFactory<'InputTestCase3>,
                          synthesisDelegate: Func<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
-            let rec fixedCombinationOfSubtreeNodesForSynthesis node1
+            let rec fixedCombinationOfSubtreeRootNodesForSynthesis node1
                                                                node2
                                                                node3 =
                 {
-                    new IFixedCombinationOfSubtreeNodesForSynthesis with
+                    new IFixedCombinationOfSubtreeRootNodesForSynthesis with
                         member this.Prune (deferralBudget,
                                            numberOfDeferralsSpent) =
                             Node.PruneAndCombine [node1; node2; node3]
                                                  (function [node1; node2; node3] ->
-                                                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                            fixedCombinationOfSubtreeRootNodesForSynthesis node1
                                                                                                        node2
                                                                                                        node3)
                                                  deferralBudget
                                                  numberOfDeferralsSpent
 
-                        member this.Nodes =
+                        member this.SubtreeRootNodes =
                             [|node1; node2; node3|]
 
                         member this.BuildSimilarFrom [node1; node2; node3] =
-                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                            fixedCombinationOfSubtreeRootNodesForSynthesis node1
                                                                        node2
                                                                        node3
 
@@ -353,7 +353,7 @@ namespace NTestCaseBuilder
                             false
                 }
             let fixedCombinationsOfNodesForSynthesis =
-                fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factoryOne)
+                fixedCombinationOfSubtreeRootNodesForSynthesis (extractNodeFrom factoryOne)
                                                            (extractNodeFrom factoryTwo)
                                                            (extractNodeFrom factoryThree)
             Synthesis.Create fixedCombinationsOfNodesForSynthesis
@@ -372,28 +372,28 @@ namespace NTestCaseBuilder
                          factoryThree: ITypedFactory<'InputTestCase3>,
                          factoryFour: ITypedFactory<'InputTestCase4>,
                          synthesisDelegate: Func<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
-            let rec fixedCombinationOfSubtreeNodesForSynthesis node1
+            let rec fixedCombinationOfSubtreeRootNodesForSynthesis node1
                                                                node2
                                                                node3
                                                                node4 =
                 {
-                    new IFixedCombinationOfSubtreeNodesForSynthesis with
+                    new IFixedCombinationOfSubtreeRootNodesForSynthesis with
                         member this.Prune (deferralBudget,
                                            numberOfDeferralsSpent) =
                             Node.PruneAndCombine [node1; node2; node3; node4]
                                                  (function [node1; node2; node3; node4] ->
-                                                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                            fixedCombinationOfSubtreeRootNodesForSynthesis node1
                                                                                                        node2
                                                                                                        node3
                                                                                                        node4)
                                                  deferralBudget
                                                  numberOfDeferralsSpent
 
-                        member this.Nodes =
+                        member this.SubtreeRootNodes =
                             [|node1; node2; node3; node4|]
 
                         member this.BuildSimilarFrom [node1; node2; node3; node4] =
-                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                            fixedCombinationOfSubtreeRootNodesForSynthesis node1
                                                                        node2
                                                                        node3
                                                                        node4
@@ -417,7 +417,7 @@ namespace NTestCaseBuilder
                             false
                 }
             let fixedCombinationsOfNodesForSynthesis =
-                fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factoryOne)
+                fixedCombinationOfSubtreeRootNodesForSynthesis (extractNodeFrom factoryOne)
                                                            (extractNodeFrom factoryTwo)
                                                            (extractNodeFrom factoryThree)
                                                            (extractNodeFrom factoryFour)
@@ -438,18 +438,18 @@ namespace NTestCaseBuilder
                          factoryFour: ITypedFactory<'InputTestCase4>,
                          factoryFive: ITypedFactory<'InputTestCase5>,
                          synthesisDelegate: Func<'InputTestCase1, 'InputTestCase2, 'InputTestCase3, 'InputTestCase4, 'InputTestCase5, 'SynthesizedTestCase>): ITypedFactory<'SynthesizedTestCase> =
-            let rec fixedCombinationOfSubtreeNodesForSynthesis node1
+            let rec fixedCombinationOfSubtreeRootNodesForSynthesis node1
                                                                node2
                                                                node3
                                                                node4
                                                                node5 =
                 {
-                    new IFixedCombinationOfSubtreeNodesForSynthesis with
+                    new IFixedCombinationOfSubtreeRootNodesForSynthesis with
                         member this.Prune (deferralBudget,
                                            numberOfDeferralsSpent) =
                             Node.PruneAndCombine [node1; node2; node3; node4; node5]
                                                  (function [node1; node2; node3; node4; node5] ->
-                                                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                                                            fixedCombinationOfSubtreeRootNodesForSynthesis node1
                                                                                                        node2
                                                                                                        node3
                                                                                                        node4
@@ -457,11 +457,11 @@ namespace NTestCaseBuilder
                                                  deferralBudget
                                                  numberOfDeferralsSpent
 
-                        member this.Nodes =
+                        member this.SubtreeRootNodes =
                             [|node1; node2; node3; node4; node5|]
 
                         member this.BuildSimilarFrom [node1; node2; node3; node4; node5] =
-                            fixedCombinationOfSubtreeNodesForSynthesis node1
+                            fixedCombinationOfSubtreeRootNodesForSynthesis node1
                                                                        node2
                                                                        node3
                                                                        node4
@@ -488,7 +488,7 @@ namespace NTestCaseBuilder
                             false
                 }
             let fixedCombinationsOfNodesForSynthesis =
-                fixedCombinationOfSubtreeNodesForSynthesis (extractNodeFrom factoryOne)
+                fixedCombinationOfSubtreeRootNodesForSynthesis (extractNodeFrom factoryOne)
                                                            (extractNodeFrom factoryTwo)
                                                            (extractNodeFrom factoryThree)
                                                            (extractNodeFrom factoryFour)
@@ -522,23 +522,23 @@ namespace NTestCaseBuilder
                 sequenceOfFactoriesProvidingInputsToSynthesis
                 |> List.ofSeq
                 |> List.map extractNodeFrom
-            let fixedCombinationOfSubtreeNodesForSynthesis =
-                let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
+            let fixedCombinationOfSubtreeRootNodesForSynthesis =
+                let rec fixedCombinationOfSubtreeRootNodesForSynthesis subtreeRootNodes =
                     {
-                        new IFixedCombinationOfSubtreeNodesForSynthesis with
+                        new IFixedCombinationOfSubtreeRootNodesForSynthesis with
                             member this.Prune (deferralBudget,
                                                numberOfDeferralsSpent) =
                                 Node.PruneAndCombine subtreeRootNodes
-                                                     fixedCombinationOfSubtreeNodesForSynthesis
+                                                     fixedCombinationOfSubtreeRootNodesForSynthesis
                                                      deferralBudget
                                                      numberOfDeferralsSpent
 
-                            member this.Nodes =
+                            member this.SubtreeRootNodes =
                                 subtreeRootNodes
                                 |> Array.ofList
 
-                            member this.BuildSimilarFrom nodes =
-                                fixedCombinationOfSubtreeNodesForSynthesis nodes
+                            member this.BuildSimilarFrom subtreeRootNodes =
+                                fixedCombinationOfSubtreeRootNodesForSynthesis subtreeRootNodes
 
                             member this.FinalValueCreator () =
                                 fun slicesOfFullTestVector ->
@@ -557,8 +557,8 @@ namespace NTestCaseBuilder
                             member this.IsSubtreeHiddenFromFilters _ =
                                 false
                     }
-                fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesFromExplicitFactories
-            Synthesis.Create fixedCombinationOfSubtreeNodesForSynthesis
+                fixedCombinationOfSubtreeRootNodesForSynthesis subtreeRootNodesFromExplicitFactories
+            Synthesis.Create fixedCombinationOfSubtreeRootNodesForSynthesis
 
         /// <summary>Constructor function that creates an instance of ITypedFactory&lt;IEnumerable&lt;'TestCaseListElement&gt;&gt;.</summary>
         /// <remarks>The resulting factory yields a sequence of output test cases, each of which is synthesized
@@ -676,7 +676,7 @@ namespace NTestCaseBuilder
                 sequenceOfFactoriesProvidingInputsToSynthesis
                 |> List.ofSeq
                 |> List.map extractNodeFrom
-            let fixedCombinationOfSubtreeNodesForSynthesis =
+            let fixedCombinationOfSubtreeRootNodesForSynthesis =
                 let subtreeRootNodesIncludingImplicitFactoryForPermutation =
                     let numberOfExplicitlySuppliedFactories =
                         Seq.length sequenceOfFactoriesProvidingInputsToSynthesis
@@ -688,22 +688,22 @@ namespace NTestCaseBuilder
                         yield extractNodeFrom additionalFactoryForPermutations
                         yield! subtreeRootNodesFromExplicitFactories
                     ]
-                let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
+                let rec fixedCombinationOfSubtreeRootNodesForSynthesis subtreeRootNodes =
                     {
-                        new IFixedCombinationOfSubtreeNodesForSynthesis with
+                        new IFixedCombinationOfSubtreeRootNodesForSynthesis with
                             member this.Prune (deferralBudget,
                                                numberOfDeferralsSpent) =
                                 Node.PruneAndCombine subtreeRootNodes
-                                                     fixedCombinationOfSubtreeNodesForSynthesis
+                                                     fixedCombinationOfSubtreeRootNodesForSynthesis
                                                      deferralBudget
                                                      numberOfDeferralsSpent
 
-                            member this.Nodes =
+                            member this.SubtreeRootNodes =
                                 subtreeRootNodes
                                 |> Array.ofList
 
-                            member this.BuildSimilarFrom nodes =
-                                fixedCombinationOfSubtreeNodesForSynthesis nodes
+                            member this.BuildSimilarFrom subtreeRootNodes =
+                                fixedCombinationOfSubtreeRootNodesForSynthesis subtreeRootNodes
 
                             member this.FinalValueCreator () =
                                 fun slicesOfFullTestVector ->
@@ -736,6 +736,6 @@ namespace NTestCaseBuilder
                             member this.IsSubtreeHiddenFromFilters subtreeIndex =
                                 0 = subtreeIndex
                     }
-                fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodesIncludingImplicitFactoryForPermutation
+                fixedCombinationOfSubtreeRootNodesForSynthesis subtreeRootNodesIncludingImplicitFactoryForPermutation
 
-            Synthesis.Create fixedCombinationOfSubtreeNodesForSynthesis
+            Synthesis.Create fixedCombinationOfSubtreeRootNodesForSynthesis

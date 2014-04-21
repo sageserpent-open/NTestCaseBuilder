@@ -31,12 +31,12 @@ namespace NTestCaseBuilder
     type FullTestVector =
         array<TestVariable<Int32>>
 
-    type IFixedCombinationOfSubtreeNodesForSynthesis =
-        abstract Prune: Int32 * Int32 -> List<Int32 * List<IFixedCombinationOfSubtreeNodesForSynthesis>>
+    type IFixedCombinationOfSubtreeRootNodesForSynthesis =
+        abstract Prune: Int32 * Int32 -> List<Int32 * List<IFixedCombinationOfSubtreeRootNodesForSynthesis>>
 
-        abstract Nodes: array<Node>
+        abstract SubtreeRootNodes: array<Node>
 
-        abstract BuildSimilarFrom: List<Node> -> IFixedCombinationOfSubtreeNodesForSynthesis
+        abstract BuildSimilarFrom: List<Node> -> IFixedCombinationOfSubtreeRootNodesForSynthesis
 
         abstract FinalValueCreator: Unit -> (List<FullTestVector> -> 'CallerViewOfSynthesizedTestCase)
 
@@ -48,7 +48,7 @@ namespace NTestCaseBuilder
         TestVariable of array<Object>
       | Singleton of Object
       | Interleaving of List<Node>
-      | Synthesizing of IFixedCombinationOfSubtreeNodesForSynthesis
+      | Synthesizing of IFixedCombinationOfSubtreeRootNodesForSynthesis
       | Deferral of (unit -> Node)
 
     and Node (kind: NodeKind,
@@ -130,8 +130,8 @@ namespace NTestCaseBuilder
                     Choice2Of5 singletonTestCase
               | Interleaving subtreeRootNodes ->
                     Choice3Of5 subtreeRootNodes
-              | Synthesizing fixedCombinationOfSubtreeNodesForSynthesis ->
-                    Choice4Of5 fixedCombinationOfSubtreeNodesForSynthesis
+              | Synthesizing fixedCombinationOfSubtreeRootNodesForSynthesis ->
+                    Choice4Of5 fixedCombinationOfSubtreeRootNodesForSynthesis
               | Deferral deferredNode ->
                     Choice5Of5 deferredNode
 
@@ -144,8 +144,8 @@ namespace NTestCaseBuilder
         let inline InterleavingNode subtreeRootNodes =
             Node (Interleaving subtreeRootNodes)
 
-        let inline SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis =
-            Node (Synthesizing fixedCombinationOfSubtreeNodesForSynthesis)
+        let inline SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis =
+            Node (Synthesizing fixedCombinationOfSubtreeRootNodesForSynthesis)
 
         let inline DeferralNode deferredNode =
             Node (Deferral deferredNode)
@@ -165,8 +165,8 @@ namespace NTestCaseBuilder
                                                     subtreeRootNodes
                                                     |> List.map (fun subtreeHead -> memoizedCalculation subtreeHead)
                                                     |> nodeOperations.CombineResultsFromInterleavingNodeSubtrees
-                                              | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
-                                                    fixedCombinationOfSubtreeNodesForSynthesis.Nodes
+                                              | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
+                                                    fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
                                                     |> Array.map (fun subtreeHead -> memoizedCalculation subtreeHead)
                                                     |> nodeOperations.CombineResultsFromSynthesizingNodeSubtrees)
             memoizedCalculation
@@ -208,8 +208,8 @@ namespace NTestCaseBuilder
                             subtreeRootNodes
                             |> List.map walkTree
                             |> List.max
-                      | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
-                            fixedCombinationOfSubtreeNodesForSynthesis.Nodes
+                      | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
+                            fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
                             |> Array.map walkTree
                             |> Array.reduce (+)
                 match node.MaximumStrength with
@@ -232,10 +232,10 @@ namespace NTestCaseBuilder
                                           accumulated
                         folding node
                                 accumulatedFromSubtrees
-                  | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+                  | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
                         let accumulatedFromSubtrees =
                             Array.foldBack walkTree
-                                           fixedCombinationOfSubtreeNodesForSynthesis.Nodes
+                                           fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
                                            accumulated
                         folding node
                                 accumulatedFromSubtrees
@@ -283,13 +283,13 @@ namespace NTestCaseBuilder
                                                 (InterleavingNode subtreeRootNodesWithBudgetAppliedIfRequired
                                                  |> applyDeferralBudget)
                                                 :: remainingNodesWithBudgetAppliedIfRequired
-                                          | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+                                          | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
                                                 let numberOfSubtreeRootNodes =
-                                                    fixedCombinationOfSubtreeNodesForSynthesis.Nodes.Length
+                                                    fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes.Length
                                                 let subtreeRootNodesWithBudgetAppliedIfRequired
                                                     , remainingNodesWithBudgetAppliedIfRequired =
                                                     stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
-                                                (SynthesizingNode (fixedCombinationOfSubtreeNodesForSynthesis.BuildSimilarFrom subtreeRootNodesWithBudgetAppliedIfRequired)
+                                                (SynthesizingNode (fixedCombinationOfSubtreeRootNodesForSynthesis.BuildSimilarFrom subtreeRootNodesWithBudgetAppliedIfRequired)
                                                  |> applyDeferralBudget)
                                                 :: remainingNodesWithBudgetAppliedIfRequired
                                           | _ ->
@@ -337,15 +337,15 @@ namespace NTestCaseBuilder
                                           , prunedSubtreeRootNodes) ->
                                         deferralBudget
                                         , ((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
-                  | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
-                        fixedCombinationOfSubtreeNodesForSynthesis.Prune (desiredDeferralBudget,
+                  | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
+                        fixedCombinationOfSubtreeRootNodesForSynthesis.Prune (desiredDeferralBudget,
                                                                           numberOfDeferralsSpent)
                         |> List.map (fun (deferralBudget
                                           , fixedCombinationsOfSubtreeNodesForSynthesisConformingToThatBudget) ->
                                         let alternateSynthesesConformingToThatBudget =
                                             fixedCombinationsOfSubtreeNodesForSynthesisConformingToThatBudget
-                                            |> List.map (fun fixedCombinationOfSubtreeNodesForSynthesis ->
-                                                            ((SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
+                                            |> List.map (fun fixedCombinationOfSubtreeRootNodesForSynthesis ->
+                                                            ((SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
                                         deferralBudget
                                         , match alternateSynthesesConformingToThatBudget with
                                             [uniqueSynthesis] ->
@@ -419,7 +419,7 @@ namespace NTestCaseBuilder
                                         List.fold (walkTree false)
                                                   trampData
                                                   subtreeRootNodes
-                                  | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+                                  | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
                                         let walkTree trampData
                                                      (everythingInTreeIsHiddenFromFilters
                                                       , node) =
@@ -427,13 +427,13 @@ namespace NTestCaseBuilder
                                                      trampData
                                                      node
                                         let subtreeRootNodes =
-                                            fixedCombinationOfSubtreeNodesForSynthesis.Nodes
+                                            fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
                                         Array.fold walkTree
                                                    trampData
                                                    (subtreeRootNodes
                                                     |> Array.mapi (fun subtreeIndex
                                                                     subtreeRootNode ->
-                                                                        fixedCombinationOfSubtreeNodesForSynthesis.IsSubtreeHiddenFromFilters subtreeIndex
+                                                                        fixedCombinationOfSubtreeRootNodesForSynthesis.IsSubtreeHiddenFromFilters subtreeIndex
                                                                         , subtreeRootNode))
                             let filters =
                                 node.Filters
@@ -584,12 +584,12 @@ namespace NTestCaseBuilder
                                                                      , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt)
                         onePastIndexForRightmostTestVariable
                         , associationFromTestVariableIndexToVariablesThatAreInterleavedWithIt
-                  | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+                  | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
                         let mergeAssociationFromSubtree (indexForLeftmostTestVariable
                                                          , previouslyMergedAssociationList)
                                                         subtreeRootNode =
                             walkTree subtreeRootNode indexForLeftmostTestVariable interleavingTestVariableIndices previouslyMergedAssociationList
-                        fixedCombinationOfSubtreeNodesForSynthesis.Nodes
+                        fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
                         |> Seq.fold mergeAssociationFromSubtree (indexForLeftmostTestVariable
                                                                  , previousAssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt)
             let _,
@@ -653,7 +653,7 @@ namespace NTestCaseBuilder
                         subtreeRootNodes
                         |> List.fold mergeTestVariableCombinationsFromSubtree (Map.empty, indexForLeftmostTestVariable, [])
 
-                  | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+                  | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
                         let gatherTestVariableCombinationsFromSubtree (previousPerSubtreeAssociationsFromStrengthToTestVariableCombinations
                                                                        , indexForLeftmostTestVariable
                                                                        , previousAssociationFromTestVariableIndexToNumberOfItsLevels)
@@ -671,7 +671,7 @@ namespace NTestCaseBuilder
                             , onePastIndexForRightmostTestVariable
                             , associationFromTestVariableIndexToNumberOfItsLevels
                         let subtreeRootNodes =
-                            fixedCombinationOfSubtreeNodesForSynthesis.Nodes
+                            fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
                         // Using 'fold' causes 'perSubtreeAssociationsFromStrengthToTestVariableCombinations' to be built up in
                         // reverse to the subtree sequence, and this reversal propagates consistently through the code below. The
                         // only way it could cause a problem would be due to the order of processing the subtrees, but because the
@@ -722,7 +722,7 @@ namespace NTestCaseBuilder
                                                         let indexOfSubtree =
                                                             numberOfSubtrees - (1 + indexOfSubtreeCountingFromTheRight)
                                                         let subtreeIsZeroCost =
-                                                            fixedCombinationOfSubtreeNodesForSynthesis.IsSubtreeZeroCost indexOfSubtree
+                                                            fixedCombinationOfSubtreeRootNodesForSynthesis.IsSubtreeZeroCost indexOfSubtree
                                                             || subtreeRootNodes.[indexOfSubtree].IsZeroCost
                                                         let strength =
                                                             if subtreeIsZeroCost
@@ -926,9 +926,9 @@ namespace NTestCaseBuilder
                                                                                                                  indexForLeftmostTestVariableInSubtree
                                                         combinationsWithoutTheirExclusions
                                                         |> List.map (List.append exclusions))
-                      | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+                      | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
                             let subtreeRootNodes =
-                                fixedCombinationOfSubtreeNodesForSynthesis.Nodes
+                                fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
                             let chunks =
                                 chunksForRelevantNodes (subtreeRootNodes |> List.ofArray)
                             let perChunkCombinationsForEachChunk =
@@ -1091,9 +1091,9 @@ namespace NTestCaseBuilder
                                         let includedSubtree =
                                             subtreeRootNodes.[indexOfIncludedSubtree]
                                         includedSubtree.FinalValueCreator () sliceOfFullTestVectorCorrespondingToTheIncludedSubtree
-              | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+              | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
                     let subtreeRootNodes =
-                        fixedCombinationOfSubtreeNodesForSynthesis.Nodes
+                        fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
                     let indicesInVectorForLeftmostTestVariableInEachSubtree =
                         indicesInVectorForLeftmostTestVariableInEachSubtree subtreeRootNodes
                     let numberOfSubtrees =
@@ -1102,7 +1102,7 @@ namespace NTestCaseBuilder
                         Seq.pairwise indicesInVectorForLeftmostTestVariableInEachSubtree
                         |> List.ofSeq
                     let finalValueCreator =
-                        fixedCombinationOfSubtreeNodesForSynthesis.FinalValueCreator ()
+                        fixedCombinationOfSubtreeRootNodesForSynthesis.FinalValueCreator ()
                     fun fullTestVector ->
                         if Array.length fullTestVector > this.CountTestVariables
                         then
@@ -1156,22 +1156,22 @@ namespace NTestCaseBuilder
                 ]
         static member CreateSynthesizingNode subtreeRootNodes
                                              synthesisDelegate =
-            let rec fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes =
+            let rec fixedCombinationOfSubtreeRootNodesForSynthesis subtreeRootNodes =
                 {
-                    new IFixedCombinationOfSubtreeNodesForSynthesis with
+                    new IFixedCombinationOfSubtreeRootNodesForSynthesis with
                         member this.Prune (deferralBudget,
                                            numberOfDeferralsSpent) =
                             Node.PruneAndCombine subtreeRootNodes
-                                                 fixedCombinationOfSubtreeNodesForSynthesis
+                                                 fixedCombinationOfSubtreeRootNodesForSynthesis
                                                  deferralBudget
                                                  numberOfDeferralsSpent
 
-                        member this.Nodes =
+                        member this.SubtreeRootNodes =
                             subtreeRootNodes
                             |> Array.ofList
 
-                        member this.BuildSimilarFrom nodes =
-                            fixedCombinationOfSubtreeNodesForSynthesis nodes
+                        member this.BuildSimilarFrom subtreeRootNodes =
+                            fixedCombinationOfSubtreeRootNodesForSynthesis subtreeRootNodes
 
                         member this.FinalValueCreator () =
                             fun slicesOfFullTestVector ->
@@ -1193,5 +1193,5 @@ namespace NTestCaseBuilder
                         member this.IsSubtreeHiddenFromFilters _ =
                             false
                 }
-            fixedCombinationOfSubtreeNodesForSynthesis subtreeRootNodes
+            fixedCombinationOfSubtreeRootNodesForSynthesis subtreeRootNodes
             |> SynthesizingNode

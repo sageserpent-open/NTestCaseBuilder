@@ -44,11 +44,11 @@
                         treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
                         for subtree in subtrees do
                             dumpNode subtree subtreeGuiNode
-                  | SynthesizingNode fixedCombinationOfSubtreeNodesForSynthesis ->
+                  | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
                         let subtreeGuiNode =
                             TreeNode ("SynthesizingNode\n")
                         treeGuiNode.Nodes.Add subtreeGuiNode |> ignore
-                        for subtree in fixedCombinationOfSubtreeNodesForSynthesis.Nodes do
+                        for subtree in fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes do
                             dumpNode subtree subtreeGuiNode
             dumpNode tree treeGuiNode
             treeView.ExpandAll ()
