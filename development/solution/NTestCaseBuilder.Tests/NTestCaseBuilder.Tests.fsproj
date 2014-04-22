@@ -54,7 +54,6 @@
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
   <ItemGroup>
     <Compile Include="NodeTests.fs" />
-    <Compile Include="SetOfMergedPathTests.fs" />
     <Compile Include="FactoryTests.fs" />
     <Compile Include="Driver.fs" />
     <None Include="App.config">

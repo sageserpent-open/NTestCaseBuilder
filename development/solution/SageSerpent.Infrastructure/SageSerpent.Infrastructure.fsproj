@@ -57,6 +57,7 @@
     <Compile Include="OptionWorkflow.fs" />
     <Compile Include="ContinuationWorkflow.fs" />
     <Compile Include="ChunkedList.fs" />
+    <Compile Include="SetOfMergedPaths.fs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

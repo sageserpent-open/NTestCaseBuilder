@@ -3,10 +3,8 @@
     open NUnit.Framework
 
     open SageSerpent.Infrastructure
-    open NTestCaseBuilder
     open SageSerpent.Infrastructure.RandomExtensions
     open System
-    open System.Windows.Forms
     open System.Collections.Generic
     open Microsoft.FSharp.Collections
 
