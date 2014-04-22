@@ -14,7 +14,7 @@ namespace NTestCaseBuilder
     open SageSerpent.Infrastructure.ChunkedListExtensions
     open Microsoft.FSharp.Collections
 
-    module MergedPartialTestVectorRepresentationsDetail =
+    module SetOfMergedPathsDetail =
         type InternalNode<'Level when 'Level: comparison> =
             {
                 LevelForTestVariableIndex: 'Level
@@ -432,9 +432,9 @@ namespace NTestCaseBuilder
                                      , fromSharedPathPrefix) ->
                                fromPartialTestVectorRepresentation.OrElse fromSharedPathPrefix)
 
-    open MergedPartialTestVectorRepresentationsDetail
+    open SetOfMergedPathsDetail
 
-    type MergedPartialTestVectorRepresentations<'Level when 'Level: comparison>(testVectorPaths: TestVectorPaths<'Level>,
+    type SetOfMergedPaths<'Level when 'Level: comparison>(testVectorPaths: TestVectorPaths<'Level>,
                                                                                 maximumNumberOfTestVariables: Int32,
                                                                                 testVectorIsAcceptable: seq<Int32 * 'Level> -> Boolean) =
         let createPartialTestVectorSequence revealFullTestVectorsAgain =
@@ -1405,7 +1405,7 @@ namespace NTestCaseBuilder
 
         static member Initial maximumNumberOfTestVariablesOverall
                               testVectorIsAcceptable =
-            MergedPartialTestVectorRepresentations<'Level> (SingleTrivialPath,
+            SetOfMergedPaths<'Level> (SingleTrivialPath,
                                                             maximumNumberOfTestVariablesOverall,
                                                             testVectorIsAcceptable)
 
@@ -1615,7 +1615,7 @@ namespace NTestCaseBuilder
                     checkInvariant modifiedTestVectorPaths
                     // ... end of invariant check.
 
-                MergedPartialTestVectorRepresentations (modifiedTestVectorPaths,
+                SetOfMergedPaths (modifiedTestVectorPaths,
                                                         maximumNumberOfTestVariables,
                                                         testVectorIsAcceptable)
                 , fullTestVectorBeingOfferedNowForEarlyAccess
