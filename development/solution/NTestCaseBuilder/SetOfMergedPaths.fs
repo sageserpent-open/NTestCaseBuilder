@@ -15,30 +15,30 @@ namespace NTestCaseBuilder
     open Microsoft.FSharp.Collections
 
     module SetOfMergedPathsDetail =
-        type InternalNode<'Level when 'Level: comparison> =
+        type InternalNode<'Step when 'Step: comparison> =
             {
-                LevelForTestVariableIndex: 'Level
-                SubtreeWithLesserLevelsForSameTestVariableIndex: BinaryTreeOfLevelsForTestVariable<'Level>
-                SubtreeWithGreaterLevelsForSameTestVariableIndex: BinaryTreeOfLevelsForTestVariable<'Level>
-                TestVectorPathsForFollowingIndices: TestVectorPaths<'Level>
+                LevelForTestVariableIndex: 'Step
+                SubtreeWithLesserLevelsForSameTestVariableIndex: BinaryTreeOfLevelsForTestVariable<'Step>
+                SubtreeWithGreaterLevelsForSameTestVariableIndex: BinaryTreeOfLevelsForTestVariable<'Step>
+                TestVectorPathsForFollowingIndices: TestVectorPaths<'Step>
             }
-        and BinaryTreeOfLevelsForTestVariable<'Level when 'Level: comparison> =
+        and BinaryTreeOfLevelsForTestVariable<'Step when 'Step: comparison> =
             UnsuccessfulSearchTerminationNode
-          | InternalNode of InternalNode<'Level>
-        and WildcardNode<'Level when 'Level: comparison> =
+          | InternalNode of InternalNode<'Step>
+        and WildcardNode<'Step when 'Step: comparison> =
             {
-                SubtreeWithAllLevelsForSameTestVariableIndex: BinaryTreeOfLevelsForTestVariable<'Level>
-                TestVectorPathsForFollowingIndices: TestVectorPaths<'Level>
+                SubtreeWithAllLevelsForSameTestVariableIndex: BinaryTreeOfLevelsForTestVariable<'Step>
+                TestVectorPathsForFollowingIndices: TestVectorPaths<'Step>
             }
-        and TestVectorPaths<'Level when 'Level: comparison> =
+        and TestVectorPaths<'Step when 'Step: comparison> =
             {
-                SharedPathPrefix: ChunkedList<Option<'Level>>
-                BranchingRoot: TernarySearchTree<'Level>
+                SharedPathPrefix: ChunkedList<Option<'Step>>
+                BranchingRoot: TernarySearchTree<'Step>
             }
-        and TernarySearchTree<'Level when 'Level: comparison> =
+        and TernarySearchTree<'Step when 'Step: comparison> =
             SuccessfulSearchTerminationNode
-          | WildcardNode of WildcardNode<'Level>
-          | BinaryTreeOfLevelsForTestVariable of BinaryTreeOfLevelsForTestVariable<'Level>
+          | WildcardNode of WildcardNode<'Step>
+          | BinaryTreeOfLevelsForTestVariable of BinaryTreeOfLevelsForTestVariable<'Step>
 
         let inline (|EmptyTernarySearchTree|_|) ternarySearchTree =
             match ternarySearchTree with
@@ -87,7 +87,7 @@ namespace NTestCaseBuilder
                 BinaryTreeOfLevelsForTestVariable
                 (InternalNode
                 {
-                    LevelForTestVariableIndex = levelForTestVariableIndex
+                    LevelForTestVariableIndex = stepForTestVariableIndex
                     SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                     SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                     TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
@@ -95,7 +95,7 @@ namespace NTestCaseBuilder
                     {
                         testVectorPathsForFollowingIndices with
                             SharedPathPrefix =
-                                Cons (Some levelForTestVariableIndex
+                                Cons (Some stepForTestVariableIndex
                                       , testVectorPathsForFollowingIndices.SharedPathPrefix)
                     }
                     |> Some
@@ -152,7 +152,7 @@ namespace NTestCaseBuilder
                                internalNodeRepresentation
             |> InternalNode
 
-        type InternalNode<'Level when 'Level: comparison> with
+        type InternalNode<'Step when 'Step: comparison> with
             member this.NumberOfLevelsForLeadingTestVariable =
                 match !this.CacheOfNumberOfLevelsForLeadingTestVariable with
                     None ->
@@ -183,7 +183,7 @@ namespace NTestCaseBuilder
             member private this.CacheOfNumberOfLevelsForLeadingTestVariable =
                 ref None
 
-        and BinaryTreeOfLevelsForTestVariable<'Level when 'Level: comparison> with
+        and BinaryTreeOfLevelsForTestVariable<'Step when 'Step: comparison> with
             member this.NumberOfLevelsForLeadingTestVariable =
                 match this with
                     InternalNode internalNode ->
@@ -223,15 +223,15 @@ namespace NTestCaseBuilder
                         HasSuffixContextOfPossibleCompletePath = false
                 }
 
-        type SharedPathPrefixMatchResult<'Level> =
-            AgreesWithPrefixOfIncompletePath of List<Option<'Level>> * List<Option<'Level>>  // The prefix of partial test vector representation that agrees
+        type SharedPathPrefixMatchResult<'Step> =
+            AgreesWithPrefixOfIncompletePath of List<Option<'Step>> * List<Option<'Step>>  // The prefix of partial test vector representation that agrees
                                                                                                 // and the remainder of the partial test vector representation.
-          | ShortenedPrefixAgreesWithEntireIncompletePath of Int32 * List<Option<'Level>>    // Length of partial test vector representation and
+          | ShortenedPrefixAgreesWithEntireIncompletePath of Int32 * List<Option<'Step>>    // Length of partial test vector representation and
                                                                                                 // the partial test vector representation itself.
-          | CompleteMismatch of Int32 * List<Option<'Level>> * List<Option<'Level>> // Index of mismatch in the shared path prefix,
+          | CompleteMismatch of Int32 * List<Option<'Step>> * List<Option<'Step>> // Index of mismatch in the shared path prefix,
                                                                                     // the prefix of partial test vector representation that agrees
                                                                                     // and the remainder of the partial test vector representation
-                                                                                    // including the mismatching level at the head.
+                                                                                    // including the mismatching step at the head.
 
         let splayInternalNodeWithMatchingOrNeighbouringLevel internalNodeRepresentation
                                                              comparisonWrtImplicitLevel =
@@ -265,7 +265,7 @@ namespace NTestCaseBuilder
                     , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels rootSubtreeWithGreaterLevelsForSameTestVariableIndex
                 match comparisonWrtImplicitLevel rootLevelForTestVariableIndex with
                     0 ->
-                        // Degenerate root node only case (level has been found)...
+                        // Degenerate root node only case (step has been found)...
                         splayAtRootNode ()
                   | rootResult ->
                         // NOTE: comments for this section refer to the 'unmirrored' case. So in the mirrored case,
@@ -355,7 +355,7 @@ namespace NTestCaseBuilder
                                             addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
                                             localMirroring
                                   | _ ->
-                                        // Zig-only case (either the level has been found, or found least upper bound instead)...
+                                        // Zig-only case (either the step has been found, or found least upper bound instead)...
                                         let internalNodeRepresentationForSplayedZig =
                                             {
                                                 internalNodeRepresentationForZig with
@@ -382,7 +382,7 @@ namespace NTestCaseBuilder
                                             , flankingSubtreeWithLesserLevels
                                             , flankingSubtreeWithGreaterLevels
                           | _ ->
-                                // Degenerate root node only case (level has not been found, found least upper bound instead)...
+                                // Degenerate root node only case (step has not been found, found least upper bound instead)...
                                 splayAtRootNode ()
             accumulateFlankingSubtrees internalNodeRepresentation
                                        BargainBasement.Identity
@@ -434,9 +434,9 @@ namespace NTestCaseBuilder
 
     open SetOfMergedPathsDetail
 
-    type SetOfMergedPaths<'Level when 'Level: comparison>(testVectorPaths: TestVectorPaths<'Level>,
+    type SetOfMergedPaths<'Step when 'Step: comparison>(testVectorPaths: TestVectorPaths<'Step>,
                                                                                 maximumNumberOfTestVariables: Int32,
-                                                                                testVectorIsAcceptable: seq<Int32 * 'Level> -> Boolean) =
+                                                                                testVectorIsAcceptable: seq<Int32 * 'Step> -> Boolean) =
         let createIncompletePathSequence revealCompletePathsAgain =
             let rec traverseTestVectorPaths {
                                                 SharedPathPrefix = sharedPathPrefix
@@ -451,9 +451,9 @@ namespace NTestCaseBuilder
                                               , incompletePathBeingBuilt)
                                             sharedPathPrefixStep ->
                                                 match sharedPathPrefixStep with
-                                                    Some levelForTestVariableIndex ->
+                                                    Some stepForTestVariableIndex ->
                                                         treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
-                                                        , ((treeSearchContextParameters.TestVariableIndex, levelForTestVariableIndex) :: incompletePathBeingBuilt)
+                                                        , ((treeSearchContextParameters.TestVariableIndex, stepForTestVariableIndex) :: incompletePathBeingBuilt)
                                                   | None ->
                                                         treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
                                                         , incompletePathBeingBuilt)
@@ -475,7 +475,7 @@ namespace NTestCaseBuilder
                             Seq.empty
                       | (InternalNode
                         {
-                            LevelForTestVariableIndex = levelForTestVariableIndex
+                            LevelForTestVariableIndex = stepForTestVariableIndex
                             SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
                             SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
                             TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
@@ -486,7 +486,7 @@ namespace NTestCaseBuilder
                                                 yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithLesserLevelsForSameTestVariableIndex
                                                 yield! traverseTestVectorPaths testVectorPathsForFollowingIndices
                                                                                treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
-                                                                               ((treeSearchContextParameters.TestVariableIndex, levelForTestVariableIndex) :: incompletePathBeingBuilt)
+                                                                               ((treeSearchContextParameters.TestVariableIndex, stepForTestVariableIndex) :: incompletePathBeingBuilt)
                                                 yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
                                             })
                 match ternarySearchTree with
@@ -590,8 +590,8 @@ namespace NTestCaseBuilder
 
                 let sortedAssociationListFromTestVariableIndicesToLevels =
                     incompletePathRepresentation
-                    |> Map.map (fun _ level ->
-                                    Some level)
+                    |> Map.map (fun _ step ->
+                                    Some step)
                     |> Map.toList
 
                 let mergedAssociationList =
@@ -644,9 +644,9 @@ namespace NTestCaseBuilder
                                 }
                             let sharedPathPrefixSplit =
                                 match sharedPathPrefix.[indexOfMismatchOnSharedPathStep] with
-                                    Some levelFromMismatchingSharedPathStep ->
+                                    Some stepFromMismatchingSharedPathStep ->
                                         {
-                                            LevelForTestVariableIndex = levelFromMismatchingSharedPathStep
+                                            LevelForTestVariableIndex = stepFromMismatchingSharedPathStep
                                             SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                                             SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                                             TestVectorPathsForFollowingIndices = testVectorPathsAfterMismatch
@@ -671,12 +671,12 @@ namespace NTestCaseBuilder
             and addToTernarySearchTree ternarySearchTree
                                        newIncompletePathRepresentation =
                 let rec addLevelToBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                                                                    levelFromNewIncompletePathRepresentation
+                                                                    stepFromNewIncompletePathRepresentation
                                                                     tailFromNewIncompletePathRepresentation =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
                             {
-                                LevelForTestVariableIndex = levelFromNewIncompletePathRepresentation
+                                LevelForTestVariableIndex = stepFromNewIncompletePathRepresentation
                                 SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                                 SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
                                 TestVectorPathsForFollowingIndices =
@@ -685,7 +685,7 @@ namespace NTestCaseBuilder
                             |> InternalNode
                       | (InternalNode internalNodeRepresentation) ->
                             let comparisonWrtImplicitLevel =
-                                compare levelFromNewIncompletePathRepresentation
+                                compare stepFromNewIncompletePathRepresentation
                             let ({
                                     LevelForTestVariableIndex = splayedLevelForTestVariableIndex
                                     TestVectorPathsForFollowingIndices = splayedTestVectorPathsForFollowingIndices
@@ -703,7 +703,7 @@ namespace NTestCaseBuilder
                                         }
                                         |> InternalNode
                                     {
-                                        LevelForTestVariableIndex = levelFromNewIncompletePathRepresentation
+                                        LevelForTestVariableIndex = stepFromNewIncompletePathRepresentation
                                         SubtreeWithLesserLevelsForSameTestVariableIndex = flankingSubtreeWithLesserLevels
                                         SubtreeWithGreaterLevelsForSameTestVariableIndex = flankingSubtreeWithGreaterLevels
                                         TestVectorPathsForFollowingIndices =
@@ -718,7 +718,7 @@ namespace NTestCaseBuilder
                                         }
                                         |> InternalNode
                                     {
-                                        LevelForTestVariableIndex = levelFromNewIncompletePathRepresentation
+                                        LevelForTestVariableIndex = stepFromNewIncompletePathRepresentation
                                         SubtreeWithLesserLevelsForSameTestVariableIndex = flankingSubtreeWithLesserLevels
                                         SubtreeWithGreaterLevelsForSameTestVariableIndex = flankingSubtreeWithGreaterLevels
                                         TestVectorPathsForFollowingIndices =
@@ -741,15 +741,15 @@ namespace NTestCaseBuilder
                   | SuccessfulSearchTerminationNode
                     , _ ->
                         raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that has a previous one as a prefix or is the same as it.")
-                        // The above is really a precondition violation, but the precondition should have been enforced at a higher level within the implementation and not by the client.
+                        // The above is really a precondition violation, but the precondition should have been enforced at a higher step within the implementation and not by the client.
                   | WildcardNode
                     ({
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
                      } as wildcardNodeRepresentation)
-                    , Some levelFromNewIncompletePathRepresentation :: tailFromNewIncompletePathRepresentation ->
+                    , Some stepFromNewIncompletePathRepresentation :: tailFromNewIncompletePathRepresentation ->
                         let modifiedSubtreeWithAllLevelsForSameTestVariableIndex =
                             addLevelToBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
-                                                                        levelFromNewIncompletePathRepresentation
+                                                                        stepFromNewIncompletePathRepresentation
                                                                         tailFromNewIncompletePathRepresentation
                         {
                             wildcardNodeRepresentation with
@@ -770,9 +770,9 @@ namespace NTestCaseBuilder
                         }
                         |> WildcardNode
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                    , Some levelFromNewIncompletePathRepresentation :: tailFromNewIncompletePathRepresentation ->
+                    , Some stepFromNewIncompletePathRepresentation :: tailFromNewIncompletePathRepresentation ->
                         addLevelToBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                                                                    levelFromNewIncompletePathRepresentation
+                                                                    stepFromNewIncompletePathRepresentation
                                                                     tailFromNewIncompletePathRepresentation
                         |> BinaryTreeOfLevelsForTestVariable
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
@@ -786,7 +786,7 @@ namespace NTestCaseBuilder
                   | _
                     , [] ->
                         raise (InternalAssertionViolationException "Attempt to add a new partial test vector representation that is already mergeable with a previous one.")
-                        // The above is really a precondition violation, but the precondition should have been enforced at a higher level within the implementation and not by the client.
+                        // The above is really a precondition violation, but the precondition should have been enforced at a higher step within the implementation and not by the client.
             addToTestVectorPaths testVectorPaths
                                  newIncompletePathRepresentation
 
@@ -821,7 +821,7 @@ namespace NTestCaseBuilder
                 splayedLevelForTestVariableIndex
                 , splayedTestVectorPathsForFollowingIndices
                 , flankingSubtreeWithGreaterLevels
-            let buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+            let buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForTestVariableIndex
                                                                                         subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                         subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                         testVectorPathsForFollowingIndices =
@@ -846,13 +846,13 @@ namespace NTestCaseBuilder
                         if subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
                            > subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
                         then
-                            let levelForTestVariableIndexFromRemovedNode
+                            let stepForTestVariableIndexFromRemovedNode
                                 , testVectorPathsForFollowingIndicesFromRemovedNode
                                 , subtreeWithLesserLevelsForSameTestVariableIndexWithoutThatNode =
                                     removeInternalNodeWithGreatestLevelInSubtree subtreeWithLesserLevelsForSameTestVariableIndexInternalNodeRepresentation
                             ({
                                 LevelForTestVariableIndex =
-                                    levelForTestVariableIndexFromRemovedNode
+                                    stepForTestVariableIndexFromRemovedNode
                                 SubtreeWithLesserLevelsForSameTestVariableIndex =
                                     subtreeWithLesserLevelsForSameTestVariableIndexWithoutThatNode
                                 SubtreeWithGreaterLevelsForSameTestVariableIndex =
@@ -862,13 +862,13 @@ namespace NTestCaseBuilder
                             }
                             |> InternalNode)
                         else
-                            let levelForTestVariableIndexFromRemovedNode
+                            let stepForTestVariableIndexFromRemovedNode
                                 , testVectorPathsForFollowingIndicesFromRemovedNode
                                 , subtreeWithGreaterLevelsForSameTestVariableIndexWithoutThatNode =
                                     removeInternalNodeWithLeastLevelInSubtree subtreeWithGreaterLevelsForSameTestVariableIndexInternalNodeRepresentation
                             ({
                                 LevelForTestVariableIndex =
-                                    levelForTestVariableIndexFromRemovedNode
+                                    stepForTestVariableIndexFromRemovedNode
                                 SubtreeWithLesserLevelsForSameTestVariableIndex =
                                     subtreeWithLesserLevelsForSameTestVariableIndex
                                 SubtreeWithGreaterLevelsForSameTestVariableIndex =
@@ -880,7 +880,7 @@ namespace NTestCaseBuilder
                   | _ ->
                         ({
                             LevelForTestVariableIndex =
-                                levelForTestVariableIndex
+                                stepForTestVariableIndex
                             SubtreeWithLesserLevelsForSameTestVariableIndex =
                                 subtreeWithLesserLevelsForSameTestVariableIndex
                             SubtreeWithGreaterLevelsForSameTestVariableIndex =
@@ -919,7 +919,7 @@ namespace NTestCaseBuilder
                     |> ChunkedList.fold (fun (treeSearchContextParameters: TreeSearchContextParameters)
                                              sharedPathPrefixStep ->
                                             match sharedPathPrefixStep with
-                                                Some levelForTestVariableIndex ->
+                                                Some stepForTestVariableIndex ->
                                                     treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
                                               | None ->
                                                     treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable)
@@ -1005,12 +1005,12 @@ namespace NTestCaseBuilder
                                             (treeSearchContextParameters: TreeSearchContextParameters)
                                             removedIncompletePathInReverse =
                 let buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices tailFromQueryIncompletePathRepresentation
-                                                                                               levelForTestVariableIndex
+                                                                                               stepForTestVariableIndex
                                                                                                subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                testVectorPathsForFollowingIndices =
                     let removedIncompletePathWithNewLevelInReverse =
-                        LazyList.cons (Some levelForTestVariableIndex)
+                        LazyList.cons (Some stepForTestVariableIndex)
                                       removedIncompletePathInReverse
                     continuationWorkflow
                         {
@@ -1021,7 +1021,7 @@ namespace NTestCaseBuilder
                                                           treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
                                                           removedIncompletePathWithNewLevelInReverse
                             let modifiedBinarySearchTree =
-                                buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForTestVariableIndex
                                                                                                         subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                         subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                         modifiedSubtreeForFollowingTestVariableIndices
@@ -1052,7 +1052,7 @@ namespace NTestCaseBuilder
                         }
 
                 let removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                                                                     levelFromQueryIncompletePathRepresentation
+                                                                     stepFromQueryIncompletePathRepresentation
                                                                      tailFromQueryIncompletePathRepresentation =
                     match binaryTreeOfLevelsForTestVariable with
                         UnsuccessfulSearchTerminationNode ->
@@ -1063,7 +1063,7 @@ namespace NTestCaseBuilder
                             continuationWorkflow.Zero ()
                       | InternalNode internalNodeRepresentation ->
                             let comparisonWrtImplicitLevel =
-                                compare levelFromQueryIncompletePathRepresentation
+                                compare stepFromQueryIncompletePathRepresentation
                             let {
                                     LevelForTestVariableIndex = splayedLevelForTestVariableIndex
                                     TestVectorPathsForFollowingIndices = splayedTestVectorPathsForFollowingIndices
@@ -1093,13 +1093,13 @@ namespace NTestCaseBuilder
 
                       | InternalNode
                         {
-                            LevelForTestVariableIndex = levelForTestVariableIndex
+                            LevelForTestVariableIndex = stepForTestVariableIndex
                             SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
                             SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
                             TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
                         } ->
                             buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices tailFromQueryIncompletePathRepresentation
-                                                                                                       levelForTestVariableIndex
+                                                                                                       stepForTestVariableIndex
                                                                                                        subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                        subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                        testVectorPathsForFollowingIndices
@@ -1110,7 +1110,7 @@ namespace NTestCaseBuilder
                                         removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                  tailFromQueryIncompletePathRepresentation
                                     let modifiedBinaryTree =
-                                        buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                        buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForTestVariableIndex
                                                                                                                 modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                                 subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                                 testVectorPathsForFollowingIndices
@@ -1124,7 +1124,7 @@ namespace NTestCaseBuilder
                                         removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                  tailFromQueryIncompletePathRepresentation
                                     let modifiedBinaryTree =
-                                        buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees levelForTestVariableIndex
+                                        buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForTestVariableIndex
                                                                                                                 subtreeWithLesserLevelsForSameTestVariableIndex
                                                                                                                 modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
                                                                                                                 testVectorPathsForFollowingIndices
@@ -1182,13 +1182,13 @@ namespace NTestCaseBuilder
                         SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
                         TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
                     }
-                    , ((Some levelFromQueryIncompletePathRepresentation) as headFromQueryIncompletePathRepresentation) :: tailFromQueryIncompletePathRepresentation ->
+                    , ((Some stepFromQueryIncompletePathRepresentation) as headFromQueryIncompletePathRepresentation) :: tailFromQueryIncompletePathRepresentation ->
                         continuationWorkflow
                             {
                                 let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
                                      , removedIncompletePath =
                                     removeLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
-                                                                                     levelFromQueryIncompletePathRepresentation
+                                                                                     stepFromQueryIncompletePathRepresentation
                                                                                      tailFromQueryIncompletePathRepresentation
                                 let modifiedTernarySearchTree =
                                     buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
@@ -1223,13 +1223,13 @@ namespace NTestCaseBuilder
                                                                                                      subtreeWithAllLevelsForSameTestVariableIndex
                                                                                                      testVectorPathsForFollowingIndices
                   | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                    , Some levelFromQueryIncompletePathRepresentation :: tailFromQueryIncompletePathRepresentation ->
+                    , Some stepFromQueryIncompletePathRepresentation :: tailFromQueryIncompletePathRepresentation ->
                         continuationWorkflow
                             {
                                 let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
                                      , removedIncompletePath =
                                      removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
-                                                                                      levelFromQueryIncompletePathRepresentation
+                                                                                      stepFromQueryIncompletePathRepresentation
                                                                                       tailFromQueryIncompletePathRepresentation
                                 return BinaryTreeOfLevelsForTestVariable modifiedSubtreeWithAllLevelsForSameTestVariableIndex
                                        , removedIncompletePath
@@ -1286,13 +1286,13 @@ namespace NTestCaseBuilder
                             0
                       | InternalNode
                         {
-                            LevelForTestVariableIndex = levelForTestVariableIndex
+                            LevelForTestVariableIndex = stepForTestVariableIndex
                             SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
                             SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
                             TestVectorPathsForFollowingIndices = testVectorPathsForFollowingIndices
                         } ->
                             let liftedLevel =
-                                Finite levelForTestVariableIndex
+                                Finite stepForTestVariableIndex
                             if liftedLevel >= upperBound
                             then
                                 raise (InvariantViolationException "Level is greater than or equal to exclusive upper bound.")
@@ -1320,15 +1320,15 @@ namespace NTestCaseBuilder
                               | _
                                 , 0
                                 , 0 ->
-                                    raise (InvariantViolationException "Redundant internal node with all successful search paths leading via subtree for lesser levels.")
+                                    raise (InvariantViolationException "Redundant internal node with all successful search paths leading via subtree for lesser steps.")
                               | 0
                                 , _
                                 , 0 ->
-                                    raise (InvariantViolationException "Redundant internal node with all successful search paths leading via subtree for greater levels.")
+                                    raise (InvariantViolationException "Redundant internal node with all successful search paths leading via subtree for greater steps.")
                               | _
                                 , _
                                 , 0 ->
-                                    raise (InvariantViolationException "Redundant internal node with its own 'ghost' level that participates in no successful search paths.")
+                                    raise (InvariantViolationException "Redundant internal node with its own 'ghost' step that participates in no successful search paths.")
 //                              | 0
 //                                , _
 //                                , _ ->
@@ -1405,7 +1405,7 @@ namespace NTestCaseBuilder
 
         static member Initial maximumNumberOfTestVariablesOverall
                               testVectorIsAcceptable =
-            SetOfMergedPaths<'Level> (SingleTrivialPath,
+            SetOfMergedPaths<'Step> (SingleTrivialPath,
                                                             maximumNumberOfTestVariablesOverall,
                                                             testVectorIsAcceptable)
 
