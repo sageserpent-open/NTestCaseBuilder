@@ -436,7 +436,7 @@ namespace NTestCaseBuilder
 
     type SetOfMergedPaths<'Step when 'Step: comparison>(paths: Paths<'Step>,
                                                                                 maximumNumberOfTestVariables: Int32,
-                                                                                testVectorIsAcceptable: seq<Int32 * 'Step> -> Boolean) =
+                                                                                pathIsAcceptable: seq<Int32 * 'Step> -> Boolean) =
         let createIncompletePathSequence revealCompletePathsAgain =
             let rec traversePaths {
                                                 SharedPathPrefix = sharedPathPrefix
@@ -517,7 +517,7 @@ namespace NTestCaseBuilder
                                 incompletePathBeingBuilt
                                 |> Map.ofList
 
-                            if testVectorIsAcceptable (Map.toSeq incompletePath)
+                            if pathIsAcceptable (Map.toSeq incompletePath)
                                |> not
                             then
                                 raise (InternalAssertionViolationException "The path is not acceptable to the filter - it should neither have been added nor formed by merging.")
@@ -561,13 +561,13 @@ namespace NTestCaseBuilder
             then
                 raise (PreconditionViolationException "The incomplete path being either merged or added has a test variable index that is greater than the permitted maximum.")
 
-            let testVariableIndicesForFilledOutTestVector = // NOTE: only up to 'maximumTestVariableIndexHavingLevel' exclusive
+            let testVariableIndicesForFilledOutPath = // NOTE: only up to 'maximumTestVariableIndexHavingLevel' exclusive
                                                             // - this is to avoid having a tail of indeterminate entries.
                 List.init maximumTestVariableIndexHavingLevel BargainBasement.Identity
                 |> Set.ofList
 
             let testVariableIndicesForIndeterminates =
-                Set.difference testVariableIndicesForFilledOutTestVector testVariableIndicesHavingLevels
+                Set.difference testVariableIndicesForFilledOutPath testVariableIndicesHavingLevels
 
             let isPrefixOfCompletePath =
                 Set.isEmpty testVariableIndicesForIndeterminates
@@ -1170,7 +1170,7 @@ namespace NTestCaseBuilder
                                 ]
                             continuationWorkflow
                                 {
-                                    if testVectorIsAcceptable mergedIncompletePath
+                                    if pathIsAcceptable mergedIncompletePath
                                     then
                                         return EmptyTernarySearchTree
                                                , mergedIncompletePathRepresentation
@@ -1400,18 +1400,18 @@ namespace NTestCaseBuilder
         member this.MaximumNumberOfTestVariables =
             maximumNumberOfTestVariables
 
-        member this.EnumerationOfMergedTestVectors revealCompletePathsAgain =
+        member this.EnumerationOfMergedPaths revealCompletePathsAgain =
             createIncompletePathSequence revealCompletePathsAgain
 
         static member Initial maximumNumberOfTestVariablesOverall
-                              testVectorIsAcceptable =
+                              pathIsAcceptable =
             SetOfMergedPaths<'Step> (SingleTrivialPath,
                                                             maximumNumberOfTestVariablesOverall,
-                                                            testVectorIsAcceptable)
+                                                            pathIsAcceptable)
 
         member this.MergeOrAdd incompletePathRepresentationInExternalForm =
             if Map.isEmpty incompletePathRepresentationInExternalForm
-               || (testVectorIsAcceptable (incompletePathRepresentationInExternalForm
+               || (pathIsAcceptable (incompletePathRepresentationInExternalForm
                                            |> Map.toSeq)
                    |> not)
             then
@@ -1444,7 +1444,7 @@ namespace NTestCaseBuilder
                                               testVariableIndex
                                               , testVariableLevel)
                             |> Map.ofList
-                        if testVectorIsAcceptable (Map.toSeq completePath)
+                        if pathIsAcceptable (Map.toSeq completePath)
                            |> not
                         then
                             raise (InternalAssertionViolationException "The merged full path is not acceptable to the filter.")
@@ -1525,7 +1525,7 @@ namespace NTestCaseBuilder
                                                                                     externalFormFor mergedIncompletePathRepresentation
                                                                                 if mergedIncompletePathRepresentationInExternalForm
                                                                                    |> Map.toSeq
-                                                                                   |> testVectorIsAcceptable
+                                                                                   |> pathIsAcceptable
                                                                                    |> not
                                                                                 then
                                                                                     raise (InternalAssertionViolationException "The merged removed incomplete path should be passed by the filter.")
@@ -1548,15 +1548,15 @@ namespace NTestCaseBuilder
                                                                                                                |> Map.toSeq
                                                                                                         yield! sample
                                                                                                     }
-                                                                                            if testVectorIsAcceptable (incompletePathBetweenTheQueryAndTheMergeResult
+                                                                                            if pathIsAcceptable (incompletePathBetweenTheQueryAndTheMergeResult
                                                                                                                        |> Seq.sortBy fst)
                                                                                                |> not
                                                                                             then
-                                                                                                testVectorIsAcceptable (mergedIncompletePathRepresentationInExternalForm
+                                                                                                pathIsAcceptable (mergedIncompletePathRepresentationInExternalForm
                                                                                                                         |> Map.toSeq
                                                                                                                         |> Seq.sortBy fst)
                                                                                                 |> ignore
-                                                                                                testVectorIsAcceptable (incompletePathBetweenTheQueryAndTheMergeResult
+                                                                                                pathIsAcceptable (incompletePathBetweenTheQueryAndTheMergeResult
                                                                                                                         |> Seq.sortBy fst)
                                                                                                 |> ignore
                                                                                                 printf "incompletePathBetweenTheQueryAndTheMergeResult: %A\n" (List.ofSeq (incompletePathBetweenTheQueryAndTheMergeResult |> Seq.sortBy fst))
@@ -1617,5 +1617,5 @@ namespace NTestCaseBuilder
 
                 SetOfMergedPaths (modifiedPaths,
                                                         maximumNumberOfTestVariables,
-                                                        testVectorIsAcceptable)
+                                                        pathIsAcceptable)
                 , completePathBeingOfferedNowForEarlyAccess

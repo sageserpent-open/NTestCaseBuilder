@@ -454,7 +454,7 @@
                                 , None ->
                                     locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentations
 
-                        yield! (!locallyModifiedMergedPartialTestVectorRepresentations).EnumerationOfMergedTestVectors false
+                        yield! (!locallyModifiedMergedPartialTestVectorRepresentations).EnumerationOfMergedPaths false
                     }
 
             let lazilyProducedMergedPartialTestVectors =

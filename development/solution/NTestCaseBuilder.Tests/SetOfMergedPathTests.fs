@@ -222,7 +222,7 @@
             if revealFullTestVectorsAgain
             then
                 let setOfAllMergedTestVectors =
-                    mergedPartialTestVectors.EnumerationOfMergedTestVectors true
+                    mergedPartialTestVectors.EnumerationOfMergedPaths true
                     |> Set.ofSeq
 
                 let shouldBeTrue =
@@ -233,7 +233,7 @@
                 , setOfAllMergedTestVectors
             else
                 let setOfMergedPartialTestVectors =
-                    mergedPartialTestVectors.EnumerationOfMergedTestVectors false
+                    mergedPartialTestVectors.EnumerationOfMergedPaths false
                     |> Set.ofSeq
 
                 let shouldBeTrue =
@@ -285,7 +285,7 @@
                     Set.ofList partialTestVectorsThatDoNotOverlap = setOfMergedPartialTestVectors
                 if not shouldBeTrue
                 then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
-                     let merged = mergedPartialTestVectors.EnumerationOfMergedTestVectors true |> Set.ofSeq
+                     let merged = mergedPartialTestVectors.EnumerationOfMergedPaths true |> Set.ofSeq
                      let common = Set.intersect originals merged
                      printf "Only in originals:-\n"
                      (originals - common) |> Set.iter dumpPartialTestVector
@@ -344,7 +344,7 @@
                     (Set.ofList partialTestVectorsThatDoNotOverlap).Count = setOfMergedPartialTestVectorsFromRemerge.Count
                 if not shouldBeTrue
                 then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
-                     let remerged = remergedPartialTestVectors.EnumerationOfMergedTestVectors true |> Set.ofSeq
+                     let remerged = remergedPartialTestVectors.EnumerationOfMergedPaths true |> Set.ofSeq
                      let common = Set.intersect originals remerged
                      printf "Only in originals:-\n"
                      (originals - common) |> Set.iter dumpPartialTestVector
@@ -418,12 +418,12 @@
                     Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices = setOfMergedPartialTestVectorsFromRemerge
                 if not shouldBeTrue
                 then let originals = Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
-                     let remerged = remergedPartialTestVectors.EnumerationOfMergedTestVectors true |> Set.ofSeq
+                     let remerged = remergedPartialTestVectors.EnumerationOfMergedPaths true |> Set.ofSeq
                      let common = Set.intersect originals remerged
                      printf "remappedPartialTestVectors:\n"
                      Set.ofList remappedPartialTestVectors |> Set.iter dumpPartialTestVector
                      printf "mergedPartialTestVectors:\n"
-                     mergedPartialTestVectors.EnumerationOfMergedTestVectors true |> Set.ofSeq  |> Set.iter dumpPartialTestVector
+                     mergedPartialTestVectors.EnumerationOfMergedPaths true |> Set.ofSeq  |> Set.iter dumpPartialTestVector
                      printf "Only in originals:-\n"
                      (originals - common) |> Set.iter dumpPartialTestVector
                      printf "Only in remerged:-\n"
@@ -550,7 +550,7 @@
                     SetOfMergedPaths.Initial maximumNumberOfTestVariables
                                                                    passAllFilter
                 let containedPartialTestVectors =
-                    initial.EnumerationOfMergedTestVectors true
+                    initial.EnumerationOfMergedPaths true
                     |> List.ofSeq
                 let shouldBeTrue =
                     containedPartialTestVectors.Length = 0
