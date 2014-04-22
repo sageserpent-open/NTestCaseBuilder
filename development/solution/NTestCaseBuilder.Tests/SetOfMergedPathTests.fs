@@ -179,7 +179,7 @@
                                          randomBehaviour
                                          revealFullTestVectorsAgain =
             let maximumNumberOfTestVariables =
-                (initialCollection: SetOfMergedPaths<_>).MaximumNumberOfTestVariables
+                (initialCollection: SetOfMergedPaths<_>).NumberOfStepsInACompletePath
             let shuffledDuplicatedPartialTestVectors =
                 (randomBehaviour: Random).Shuffle (List.append partialTestVectors partialTestVectors)
                 |> List.ofArray

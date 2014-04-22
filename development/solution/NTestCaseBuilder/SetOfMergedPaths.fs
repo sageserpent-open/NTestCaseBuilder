@@ -17,17 +17,17 @@ namespace NTestCaseBuilder
     module SetOfMergedPathsDetail =
         type InternalNode<'Step when 'Step: comparison> =
             {
-                LevelForTestVariableIndex: 'Step
-                SubtreeWithLesserLevelsForSameTestVariableIndex: BinaryTreeOfLevelsForTestVariable<'Step>
-                SubtreeWithGreaterLevelsForSameTestVariableIndex: BinaryTreeOfLevelsForTestVariable<'Step>
+                StepForPathStepIndex: 'Step
+                SubtreeWithLesserStepsForSamePathStepIndex: BinaryTreeOfAlternateStepsForPathIndex<'Step>
+                SubtreeWithGreaterStepsForSamePathStepIndex: BinaryTreeOfAlternateStepsForPathIndex<'Step>
                 PathsForFollowingIndices: Paths<'Step>
             }
-        and BinaryTreeOfLevelsForTestVariable<'Step when 'Step: comparison> =
+        and BinaryTreeOfAlternateStepsForPathIndex<'Step when 'Step: comparison> =
             UnsuccessfulSearchTerminationNode
           | InternalNode of InternalNode<'Step>
         and WildcardNode<'Step when 'Step: comparison> =
             {
-                SubtreeWithAllLevelsForSameTestVariableIndex: BinaryTreeOfLevelsForTestVariable<'Step>
+                SubtreeWithAllStepsForSamePathStepIndex: BinaryTreeOfAlternateStepsForPathIndex<'Step>
                 PathsForFollowingIndices: Paths<'Step>
             }
         and Paths<'Step when 'Step: comparison> =
@@ -38,17 +38,17 @@ namespace NTestCaseBuilder
         and TernarySearchTree<'Step when 'Step: comparison> =
             SuccessfulSearchTerminationNode
           | WildcardNode of WildcardNode<'Step>
-          | BinaryTreeOfLevelsForTestVariable of BinaryTreeOfLevelsForTestVariable<'Step>
+          | BinaryTreeOfAlternateStepsForPathIndex of BinaryTreeOfAlternateStepsForPathIndex<'Step>
 
         let inline (|EmptyTernarySearchTree|_|) ternarySearchTree =
             match ternarySearchTree with
-                BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode ->
+                BinaryTreeOfAlternateStepsForPathIndex UnsuccessfulSearchTerminationNode ->
                     Some ()
               | _ ->
                     None
 
         let EmptyTernarySearchTree =
-            BinaryTreeOfLevelsForTestVariable UnsuccessfulSearchTerminationNode
+            BinaryTreeOfAlternateStepsForPathIndex UnsuccessfulSearchTerminationNode
 
         let inline (|NoPaths|_|) paths =
             match paths with
@@ -82,31 +82,31 @@ namespace NTestCaseBuilder
                 BranchingRoot = SuccessfulSearchTerminationNode
             }
 
-        let inline (|BranchingWithSingleLevelForLeadingTestVariable|_|) ternarySearchTree =
+        let inline (|BranchingWithSingleStepForLeadingPathIndex|_|) ternarySearchTree =
             match ternarySearchTree with
-                BinaryTreeOfLevelsForTestVariable
+                BinaryTreeOfAlternateStepsForPathIndex
                 (InternalNode
                 {
-                    LevelForTestVariableIndex = stepForTestVariableIndex
-                    SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                    SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                    StepForPathStepIndex = stepForPathStepIndex
+                    SubtreeWithLesserStepsForSamePathStepIndex = UnsuccessfulSearchTerminationNode
+                    SubtreeWithGreaterStepsForSamePathStepIndex = UnsuccessfulSearchTerminationNode
                     PathsForFollowingIndices = pathsForFollowingIndices
                 }) ->
                     {
                         pathsForFollowingIndices with
                             SharedPathPrefix =
-                                Cons (Some stepForTestVariableIndex
+                                Cons (Some stepForPathStepIndex
                                       , pathsForFollowingIndices.SharedPathPrefix)
                     }
                     |> Some
               | _ ->
                     None
 
-        let inline (|BranchingWithJustWildcardForLeadingTestVariable|_|) ternarySearchTree =
+        let inline (|BranchingWithJustWildcardForLeadingPathIndex|_|) ternarySearchTree =
             match ternarySearchTree with
                 WildcardNode
                 {
-                    SubtreeWithAllLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                    SubtreeWithAllStepsForSamePathStepIndex = UnsuccessfulSearchTerminationNode
                     PathsForFollowingIndices = pathsForFollowingIndices
                 } ->
                     {
@@ -125,13 +125,13 @@ namespace NTestCaseBuilder
             then
                 match internalNodeRepresentation with
                     {
-                        SubtreeWithLesserLevelsForSameTestVariableIndex = rootSubtreeWithLesserLevelsForSameTestVariableIndex
-                        SubtreeWithGreaterLevelsForSameTestVariableIndex = rootSubtreeWithGreaterLevelsForSameTestVariableIndex
+                        SubtreeWithLesserStepsForSamePathStepIndex = rootSubtreeWithLesserStepsForSamePathStepIndex
+                        SubtreeWithGreaterStepsForSamePathStepIndex = rootSubtreeWithGreaterStepsForSamePathStepIndex
                     } ->
                         {
                             internalNodeRepresentation with
-                                SubtreeWithLesserLevelsForSameTestVariableIndex = rootSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                SubtreeWithGreaterLevelsForSameTestVariableIndex = rootSubtreeWithLesserLevelsForSameTestVariableIndex
+                                SubtreeWithLesserStepsForSamePathStepIndex = rootSubtreeWithGreaterStepsForSamePathStepIndex
+                                SubtreeWithGreaterStepsForSamePathStepIndex = rootSubtreeWithLesserStepsForSamePathStepIndex
                         }
             else
                 internalNodeRepresentation
@@ -153,73 +153,73 @@ namespace NTestCaseBuilder
             |> InternalNode
 
         type InternalNode<'Step when 'Step: comparison> with
-            member this.NumberOfLevelsForLeadingTestVariable =
-                match !this.CacheOfNumberOfLevelsForLeadingTestVariable with
+            member this.NumberOfStepsForLeadingPathIndex =
+                match !this.CacheOfNumberOfStepsForLeadingPathIndex with
                     None ->
-                        let numberOfLevelsForLeadingTestVariable =
+                        let numberOfStepsForLeadingPathIndex =
                             match this with
                                 {
-                                    SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
-                                    SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                                    SubtreeWithLesserStepsForSamePathStepIndex = subtreeWithLesserStepsForSamePathStepIndex
+                                    SubtreeWithGreaterStepsForSamePathStepIndex = subtreeWithGreaterStepsForSamePathStepIndex
                                     PathsForFollowingIndices
                                         = NoPaths
                                 } ->
-                                    subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
-                                    + subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
+                                    subtreeWithLesserStepsForSamePathStepIndex.NumberOfStepsForLeadingPathIndex
+                                    + subtreeWithGreaterStepsForSamePathStepIndex.NumberOfStepsForLeadingPathIndex
                               | {
-                                    SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
-                                    SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                                    SubtreeWithLesserStepsForSamePathStepIndex = subtreeWithLesserStepsForSamePathStepIndex
+                                    SubtreeWithGreaterStepsForSamePathStepIndex = subtreeWithGreaterStepsForSamePathStepIndex
                                 } ->
                                     1
-                                    + subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
-                                    + subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
-                        this.CacheOfNumberOfLevelsForLeadingTestVariable :=
-                            Some numberOfLevelsForLeadingTestVariable
-                        numberOfLevelsForLeadingTestVariable
-                  | Some numberOfLevelsForLeadingTestVariable ->
-                        numberOfLevelsForLeadingTestVariable
+                                    + subtreeWithLesserStepsForSamePathStepIndex.NumberOfStepsForLeadingPathIndex
+                                    + subtreeWithGreaterStepsForSamePathStepIndex.NumberOfStepsForLeadingPathIndex
+                        this.CacheOfNumberOfStepsForLeadingPathIndex :=
+                            Some numberOfStepsForLeadingPathIndex
+                        numberOfStepsForLeadingPathIndex
+                  | Some numberOfStepsForLeadingPathIndex ->
+                        numberOfStepsForLeadingPathIndex
 
             // TODO: this is horrible - is this really giving any appreciable performance benefit?
-            member private this.CacheOfNumberOfLevelsForLeadingTestVariable =
+            member private this.CacheOfNumberOfStepsForLeadingPathIndex =
                 ref None
 
-        and BinaryTreeOfLevelsForTestVariable<'Step when 'Step: comparison> with
-            member this.NumberOfLevelsForLeadingTestVariable =
+        and BinaryTreeOfAlternateStepsForPathIndex<'Step when 'Step: comparison> with
+            member this.NumberOfStepsForLeadingPathIndex =
                 match this with
                     InternalNode internalNode ->
-                        internalNode.NumberOfLevelsForLeadingTestVariable
+                        internalNode.NumberOfStepsForLeadingPathIndex
                   | UnsuccessfulSearchTerminationNode ->
                         0
 
         type TreeSearchContextParameters =
             {
-                TestVariableIndex: Int32
+                PathStepIndex: Int32
                 HasSuffixContextOfPossibleCompletePath: Boolean
             }
 
             static member StartOfSearch =
                 {
-                    TestVariableIndex = 0
+                    PathStepIndex = 0
                     HasSuffixContextOfPossibleCompletePath = true
                 }
 
             member this.IsSpecialCaseDenotingInitialState =   // The tests define this special state as not possessing any paths, not even the trivial empty one.
-                0 = this.TestVariableIndex
+                0 = this.PathStepIndex
 
-            member this.IsCompletePath maximumNumberOfTestVariables =
+            member this.IsCompletePath maximumNumberOfPathIndexs =
                 this.HasSuffixContextOfPossibleCompletePath
-                && maximumNumberOfTestVariables = this.TestVariableIndex
+                && maximumNumberOfPathIndexs = this.PathStepIndex
 
-            member this.PropagateFromDefinedLevelToNextTestVariable =
+            member this.PropagateFromDefinedStepToNextPathIndex =
                 {
                     this with
-                        TestVariableIndex = this.TestVariableIndex + 1
+                        PathStepIndex = this.PathStepIndex + 1
                 }
 
-            member this.PropagateFromWildcardLevelToNextTestVariable =
+            member this.PropagateFromWildcardStepToNextPathIndex =
                 {
                     this with
-                        TestVariableIndex = this.TestVariableIndex + 1
+                        PathStepIndex = this.PathStepIndex + 1
                         HasSuffixContextOfPossibleCompletePath = false
                 }
 
@@ -233,37 +233,37 @@ namespace NTestCaseBuilder
                                                                                     // and the remainder of the incomplete path
                                                                                     // including the mismatching step at the head.
 
-        let splayInternalNodeWithMatchingOrNeighbouringLevel internalNodeRepresentation
-                                                             comparisonWrtImplicitLevel =
-            let mirroredComparisonWrtImplicitLevel =
-                comparisonWrtImplicitLevel
+        let splayInternalNodeWithMatchingOrNeighbouringStep internalNodeRepresentation
+                                                             comparisonWrtImplicitStep =
+            let mirroredComparisonWrtImplicitStep =
+                comparisonWrtImplicitStep
                 >> (~-)
             let rec accumulateFlankingSubtrees ({
-                                                    LevelForTestVariableIndex = rootLevelForTestVariableIndex
-                                                    SubtreeWithLesserLevelsForSameTestVariableIndex = rootSubtreeWithLesserLevelsForSameTestVariableIndex
-                                                    SubtreeWithGreaterLevelsForSameTestVariableIndex = rootSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                                    StepForPathStepIndex = rootStepForPathStepIndex
+                                                    SubtreeWithLesserStepsForSamePathStepIndex = rootSubtreeWithLesserStepsForSamePathStepIndex
+                                                    SubtreeWithGreaterStepsForSamePathStepIndex = rootSubtreeWithGreaterStepsForSamePathStepIndex
                                                 } as internalNodeRepresentationForRoot)
-                                               addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                               addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                               addNodeWithGreatestStepToFlankingSubtreeWithLesserSteps
+                                               addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps
                                                interchangeRolesOfFlankingSubtreesOnBehalfOfCaller =
-                let addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                    , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels =
+                let addNodeWithGreatestStepToFlankingSubtreeWithLesserSteps
+                    , addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps =
                     if interchangeRolesOfFlankingSubtreesOnBehalfOfCaller
                     then
-                        addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
-                        , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                        addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps
+                        , addNodeWithGreatestStepToFlankingSubtreeWithLesserSteps
                     else
-                        addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                        , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                        addNodeWithGreatestStepToFlankingSubtreeWithLesserSteps
+                        , addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps
                 let inline splayAtRootNode () =
                     {
                         internalNodeRepresentationForRoot with
-                            SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                            SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                            SubtreeWithLesserStepsForSamePathStepIndex = UnsuccessfulSearchTerminationNode
+                            SubtreeWithGreaterStepsForSamePathStepIndex = UnsuccessfulSearchTerminationNode
                     }
-                    , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels rootSubtreeWithLesserLevelsForSameTestVariableIndex
-                    , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels rootSubtreeWithGreaterLevelsForSameTestVariableIndex
-                match comparisonWrtImplicitLevel rootLevelForTestVariableIndex with
+                    , addNodeWithGreatestStepToFlankingSubtreeWithLesserSteps rootSubtreeWithLesserStepsForSamePathStepIndex
+                    , addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps rootSubtreeWithGreaterStepsForSamePathStepIndex
+                match comparisonWrtImplicitStep rootStepForPathStepIndex with
                     0 ->
                         // Degenerate root node only case (step has been found)...
                         splayAtRootNode ()
@@ -271,54 +271,54 @@ namespace NTestCaseBuilder
                         // NOTE: comments for this section refer to the 'unmirrored' case. So in the mirrored case,
                         // 'zig-zag' becomes 'zag-zig', 'least upper bound' becomes 'greatest lower bound', etc.
                         let localMirroring
-                            , comparisonWrtImplicitLevel
+                            , comparisonWrtImplicitStep
                             , internalNodeRepresentationForRoot
-                            , rootSubtreeWithLesserLevelsForSameTestVariableIndex
-                            , rootSubtreeWithGreaterLevelsForSameTestVariableIndex
-                            , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                            , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels =
+                            , rootSubtreeWithLesserStepsForSamePathStepIndex
+                            , rootSubtreeWithGreaterStepsForSamePathStepIndex
+                            , addNodeWithGreatestStepToFlankingSubtreeWithLesserSteps
+                            , addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps =
                             if rootResult > 0
                             then
                                 true
-                                , mirroredComparisonWrtImplicitLevel
+                                , mirroredComparisonWrtImplicitStep
                                 , mirrorInternalNode true
                                                      internalNodeRepresentationForRoot
-                                , rootSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                , rootSubtreeWithLesserLevelsForSameTestVariableIndex
-                                , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
-                                , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                                , rootSubtreeWithGreaterStepsForSamePathStepIndex
+                                , rootSubtreeWithLesserStepsForSamePathStepIndex
+                                , addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps
+                                , addNodeWithGreatestStepToFlankingSubtreeWithLesserSteps
                             else
                                 false
-                                , comparisonWrtImplicitLevel
+                                , comparisonWrtImplicitStep
                                 , internalNodeRepresentationForRoot
-                                , rootSubtreeWithLesserLevelsForSameTestVariableIndex
-                                , rootSubtreeWithGreaterLevelsForSameTestVariableIndex
-                                , addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                , addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
-                        match rootSubtreeWithLesserLevelsForSameTestVariableIndex with
+                                , rootSubtreeWithLesserStepsForSamePathStepIndex
+                                , rootSubtreeWithGreaterStepsForSamePathStepIndex
+                                , addNodeWithGreatestStepToFlankingSubtreeWithLesserSteps
+                                , addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps
+                        match rootSubtreeWithLesserStepsForSamePathStepIndex with
                             MirroredInternalNode localMirroring
                             ({
-                                LevelForTestVariableIndex = zigLevelForTestVariableIndex
-                                SubtreeWithLesserLevelsForSameTestVariableIndex = zigSubtreeWithLesserLevelsForSameTestVariableIndex
-                                SubtreeWithGreaterLevelsForSameTestVariableIndex = zigSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                StepForPathStepIndex = zigStepForPathStepIndex
+                                SubtreeWithLesserStepsForSamePathStepIndex = zigSubtreeWithLesserStepsForSamePathStepIndex
+                                SubtreeWithGreaterStepsForSamePathStepIndex = zigSubtreeWithGreaterStepsForSamePathStepIndex
                             } as internalNodeRepresentationForZig) ->
-                                match comparisonWrtImplicitLevel zigLevelForTestVariableIndex
-                                      , zigSubtreeWithLesserLevelsForSameTestVariableIndex
-                                      , zigSubtreeWithGreaterLevelsForSameTestVariableIndex with
+                                match comparisonWrtImplicitStep zigStepForPathStepIndex
+                                      , zigSubtreeWithLesserStepsForSamePathStepIndex
+                                      , zigSubtreeWithGreaterStepsForSamePathStepIndex with
                                     zigResult
                                     , InternalNode internalNodeRepresentationforZigZig
                                     , _ when zigResult < 0 ->
                                         // Zig-zig case...
-                                        let addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels =
-                                            (fun nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels ->
-                                                addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                        let addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps =
+                                            (fun nodeWithLeastStepToBeAddedToFlankingSubtreeWithGreaterSteps ->
+                                                addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps
                                                     ({
                                                         internalNodeRepresentationForZig with
-                                                            SubtreeWithLesserLevelsForSameTestVariableIndex = nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels
-                                                            SubtreeWithGreaterLevelsForSameTestVariableIndex =
+                                                            SubtreeWithLesserStepsForSamePathStepIndex = nodeWithLeastStepToBeAddedToFlankingSubtreeWithGreaterSteps
+                                                            SubtreeWithGreaterStepsForSamePathStepIndex =
                                                                 {
                                                                     internalNodeRepresentationForRoot with
-                                                                        SubtreeWithLesserLevelsForSameTestVariableIndex = zigSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                        SubtreeWithLesserStepsForSamePathStepIndex = zigSubtreeWithGreaterStepsForSamePathStepIndex
                                                                 }
                                                                 |> MirroredInternalNode localMirroring
 
@@ -326,61 +326,61 @@ namespace NTestCaseBuilder
                                                     |> MirroredInternalNode localMirroring))
                                         accumulateFlankingSubtrees
                                             internalNodeRepresentationforZigZig
-                                            addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                            addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                            addNodeWithGreatestStepToFlankingSubtreeWithLesserSteps
+                                            addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps
                                             localMirroring
                                   | zigResult
                                     , _
                                     , InternalNode internalNodeRepresentationforZigZag when zigResult > 0 ->
                                         // Zig-zag case...
-                                        let addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels =
-                                            (fun nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels ->
-                                                addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                        let addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps =
+                                            (fun nodeWithLeastStepToBeAddedToFlankingSubtreeWithGreaterSteps ->
+                                                addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps
                                                     ({
                                                         internalNodeRepresentationForRoot with
-                                                            SubtreeWithLesserLevelsForSameTestVariableIndex = nodeWithLeastLevelToBeAddedToFlankingSubtreeWithGreaterLevels
+                                                            SubtreeWithLesserStepsForSamePathStepIndex = nodeWithLeastStepToBeAddedToFlankingSubtreeWithGreaterSteps
                                                     }
                                                     |> MirroredInternalNode localMirroring))
-                                        let addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels =
-                                            (fun nodeWithGreatestLevelToBeAddedToFlankingSubtreeWithLesserLevels ->
-                                                addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
+                                        let addNodeWithGreatestStepToFlankingSubtreeWithLesserSteps =
+                                            (fun nodeWithGreatestStepToBeAddedToFlankingSubtreeWithLesserSteps ->
+                                                addNodeWithGreatestStepToFlankingSubtreeWithLesserSteps
                                                     ({
                                                         internalNodeRepresentationForZig with
-                                                            SubtreeWithGreaterLevelsForSameTestVariableIndex = nodeWithGreatestLevelToBeAddedToFlankingSubtreeWithLesserLevels
+                                                            SubtreeWithGreaterStepsForSamePathStepIndex = nodeWithGreatestStepToBeAddedToFlankingSubtreeWithLesserSteps
                                                     }
                                                     |> MirroredInternalNode localMirroring))
                                         accumulateFlankingSubtrees
                                             internalNodeRepresentationforZigZag
-                                            addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                            addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                            addNodeWithGreatestStepToFlankingSubtreeWithLesserSteps
+                                            addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps
                                             localMirroring
                                   | _ ->
                                         // Zig-only case (either the step has been found, or found least upper bound instead)...
                                         let internalNodeRepresentationForSplayedZig =
                                             {
                                                 internalNodeRepresentationForZig with
-                                                    SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                                    SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                                    SubtreeWithLesserStepsForSamePathStepIndex = UnsuccessfulSearchTerminationNode
+                                                    SubtreeWithGreaterStepsForSamePathStepIndex = UnsuccessfulSearchTerminationNode
                                             }
-                                        let flankingSubtreeWithLesserLevels
-                                            = addNodeWithGreatestLevelToFlankingSubtreeWithLesserLevels
-                                                zigSubtreeWithLesserLevelsForSameTestVariableIndex
-                                        let flankingSubtreeWithGreaterLevels
-                                            = addNodeWithLeastLevelToFlankingSubtreeWithGreaterLevels
+                                        let flankingSubtreeWithLesserSteps
+                                            = addNodeWithGreatestStepToFlankingSubtreeWithLesserSteps
+                                                zigSubtreeWithLesserStepsForSamePathStepIndex
+                                        let flankingSubtreeWithGreaterSteps
+                                            = addNodeWithLeastStepToFlankingSubtreeWithGreaterSteps
                                                 ({
                                                     internalNodeRepresentationForRoot with
-                                                        SubtreeWithLesserLevelsForSameTestVariableIndex = zigSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                                        SubtreeWithLesserStepsForSamePathStepIndex = zigSubtreeWithGreaterStepsForSamePathStepIndex
                                                  }
                                                 |> MirroredInternalNode localMirroring)
                                         if localMirroring
                                         then
                                             internalNodeRepresentationForSplayedZig
-                                            , flankingSubtreeWithGreaterLevels
-                                            , flankingSubtreeWithLesserLevels
+                                            , flankingSubtreeWithGreaterSteps
+                                            , flankingSubtreeWithLesserSteps
                                         else
                                             internalNodeRepresentationForSplayedZig
-                                            , flankingSubtreeWithLesserLevels
-                                            , flankingSubtreeWithGreaterLevels
+                                            , flankingSubtreeWithLesserSteps
+                                            , flankingSubtreeWithGreaterSteps
                           | _ ->
                                 // Degenerate root node only case (step has not been found, found least upper bound instead)...
                                 splayAtRootNode ()
@@ -435,7 +435,7 @@ namespace NTestCaseBuilder
     open SetOfMergedPathsDetail
 
     type SetOfMergedPaths<'Step when 'Step: comparison>(paths: Paths<'Step>,
-                                                                                maximumNumberOfTestVariables: Int32,
+                                                                                maximumNumberOfPathIndexs: Int32,
                                                                                 pathIsAcceptable: seq<Int32 * 'Step> -> Boolean) =
         let createIncompletePathSequence revealCompletePathsAgain =
             let rec traversePaths {
@@ -451,11 +451,11 @@ namespace NTestCaseBuilder
                                               , incompletePathBeingBuilt)
                                             sharedPathPrefixStep ->
                                                 match sharedPathPrefixStep with
-                                                    Some stepForTestVariableIndex ->
-                                                        treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
-                                                        , ((treeSearchContextParameters.TestVariableIndex, stepForTestVariableIndex) :: incompletePathBeingBuilt)
+                                                    Some stepForPathStepIndex ->
+                                                        treeSearchContextParameters.PropagateFromDefinedStepToNextPathIndex
+                                                        , ((treeSearchContextParameters.PathStepIndex, stepForPathStepIndex) :: incompletePathBeingBuilt)
                                                   | None ->
-                                                        treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
+                                                        treeSearchContextParameters.PropagateFromWildcardStepToNextPathIndex
                                                         , incompletePathBeingBuilt)
                                         (treeSearchContextParameters
                                          , incompletePathBeingBuilt)
@@ -465,42 +465,42 @@ namespace NTestCaseBuilder
             and traverseTernarySearchTree ternarySearchTree
                                           (treeSearchContextParameters: TreeSearchContextParameters)
                                           incompletePathBeingBuilt =
-                let rec traverseBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable =
-                    match binaryTreeOfLevelsForTestVariable with
+                let rec traverseBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex =
+                    match binaryTreeOfStepsForPathIndex with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfTestVariables <= treeSearchContextParameters.TestVariableIndex
+                            if maximumNumberOfPathIndexs <= treeSearchContextParameters.PathStepIndex
                             then
-                                raise (InternalAssertionViolationException "The path refers to test variable indices that are greater than the permitted maximum.")
+                                raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
                             Seq.empty
                       | (InternalNode
                         {
-                            LevelForTestVariableIndex = stepForTestVariableIndex
-                            SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
-                            SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                            StepForPathStepIndex = stepForPathStepIndex
+                            SubtreeWithLesserStepsForSamePathStepIndex = subtreeWithLesserStepsForSamePathStepIndex
+                            SubtreeWithGreaterStepsForSamePathStepIndex = subtreeWithGreaterStepsForSamePathStepIndex
                             PathsForFollowingIndices = pathsForFollowingIndices
                         }) ->
                             Seq.delay (fun() ->
                                         seq
                                             {
-                                                yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithLesserLevelsForSameTestVariableIndex
+                                                yield! traverseBinaryTreeOfAlternateStepsForPathIndex subtreeWithLesserStepsForSamePathStepIndex
                                                 yield! traversePaths pathsForFollowingIndices
-                                                                               treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
-                                                                               ((treeSearchContextParameters.TestVariableIndex, stepForTestVariableIndex) :: incompletePathBeingBuilt)
-                                                yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                               treeSearchContextParameters.PropagateFromDefinedStepToNextPathIndex
+                                                                               ((treeSearchContextParameters.PathStepIndex, stepForPathStepIndex) :: incompletePathBeingBuilt)
+                                                yield! traverseBinaryTreeOfAlternateStepsForPathIndex subtreeWithGreaterStepsForSamePathStepIndex
                                             })
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
-                        if maximumNumberOfTestVariables < treeSearchContextParameters.TestVariableIndex
-                            // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
+                        if maximumNumberOfPathIndexs < treeSearchContextParameters.PathStepIndex
+                            // NOTE: a subtlety - remember that 'pathStepIndex' can reach 'maximumNumberOfPathIndexsOverall'
                             // for a full (and possibly removed) path, because successful searches go through at least one
-                            // node corresponding to each test variable index, *then* land on a node indicating whether the search
+                            // node corresponding to each path step index, *then* land on a node indicating whether the search
                             // was successful or not: so the zero-relative index gets incremented one more time.
                         then
-                            raise (InternalAssertionViolationException "The path refers to test variable indices that are greater than the permitted maximum.")
+                            raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
                         if not revealCompletePathsAgain
-                           && treeSearchContextParameters.IsCompletePath maximumNumberOfTestVariables
+                           && treeSearchContextParameters.IsCompletePath maximumNumberOfPathIndexs
                            || treeSearchContextParameters.IsSpecialCaseDenotingInitialState
                         then
                             Seq.empty
@@ -509,9 +509,9 @@ namespace NTestCaseBuilder
                             then
                                 raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors should have resulted in the original collection.")
 
-                            if incompletePathBeingBuilt.Length > maximumNumberOfTestVariables
+                            if incompletePathBeingBuilt.Length > maximumNumberOfPathIndexs
                             then
-                                raise (InternalAssertionViolationException "The path has more entries than the permitted maximum number of test variables.")
+                                raise (InternalAssertionViolationException "The path has more steps than the permitted maximum number of steps.")
 
                             let incompletePath =
                                 incompletePathBeingBuilt
@@ -527,76 +527,76 @@ namespace NTestCaseBuilder
                             Seq.singleton incompletePath
                   | WildcardNode
                     {
-                        SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
+                        SubtreeWithAllStepsForSamePathStepIndex = subtreeWithAllStepsForSamePathStepIndex
                         PathsForFollowingIndices = pathsForFollowingIndices
                     } ->
                         Seq.delay (fun () ->
                                     seq
                                         {
-                                            yield! traverseBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
+                                            yield! traverseBinaryTreeOfAlternateStepsForPathIndex subtreeWithAllStepsForSamePathStepIndex
                                             yield! traversePaths pathsForFollowingIndices
-                                                                           treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
+                                                                           treeSearchContextParameters.PropagateFromWildcardStepToNextPathIndex
                                                                            incompletePathBeingBuilt
                                         })
-                  | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable ->
-                        traverseBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                  | BinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex ->
+                        traverseBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
             traversePaths paths
                                     TreeSearchContextParameters.StartOfSearch
                                     []
 
         let fillOutIncompletePathWithIndeterminates incompletePathRepresentation =
-            if (incompletePathRepresentation: Map<_, _>).Count > maximumNumberOfTestVariables
+            if (incompletePathRepresentation: Map<_, _>).Count > maximumNumberOfPathIndexs
             then
-                raise (InternalAssertionViolationException "The incomplete path being either merged or added has more entries than the permitted maximum number of test variables.")
+                raise (InternalAssertionViolationException "The incomplete path being either merged or added has more steps than the permitted maximum number of steps.")
 
-            let testVariableIndicesHavingLevels =
+            let pathStepIndicesHavingSteps =
                 incompletePathRepresentation
                 |> Seq.map (fun keyValuePair -> keyValuePair.Key)
                 |> Set.ofSeq
 
-            let maximumTestVariableIndexHavingLevel =
-                Seq.max testVariableIndicesHavingLevels
+            let maximumPathStepIndexHavingStep =
+                Seq.max pathStepIndicesHavingSteps
 
-            if maximumTestVariableIndexHavingLevel >= maximumNumberOfTestVariables
+            if maximumPathStepIndexHavingStep >= maximumNumberOfPathIndexs
             then
-                raise (PreconditionViolationException "The incomplete path being either merged or added has a test variable index that is greater than the permitted maximum.")
+                raise (PreconditionViolationException "The incomplete path being either merged or added has a path step index that is greater than the permitted maximum.")
 
-            let testVariableIndicesForFilledOutPath = // NOTE: only up to 'maximumTestVariableIndexHavingLevel' exclusive
-                                                            // - this is to avoid having a tail of indeterminate entries.
-                List.init maximumTestVariableIndexHavingLevel BargainBasement.Identity
+            let pathStepIndicesForFilledOutPath = // NOTE: only up to 'maximumPathStepIndexHavingStep' exclusive
+                                                            // - this is to avoid having a tail of indeterminate steps.
+                List.init maximumPathStepIndexHavingStep BargainBasement.Identity
                 |> Set.ofList
 
-            let testVariableIndicesForIndeterminates =
-                Set.difference testVariableIndicesForFilledOutPath testVariableIndicesHavingLevels
+            let pathStepIndicesForIndeterminates =
+                Set.difference pathStepIndicesForFilledOutPath pathStepIndicesHavingSteps
 
             let isPrefixOfCompletePath =
-                Set.isEmpty testVariableIndicesForIndeterminates
+                Set.isEmpty pathStepIndicesForIndeterminates
 
             if isPrefixOfCompletePath
             then
                 let isCompletePath =
-                    maximumNumberOfTestVariables = 1 + maximumTestVariableIndexHavingLevel
+                    maximumNumberOfPathIndexs = 1 + maximumPathStepIndexHavingStep
                 incompletePathRepresentation
                 |> Map.toList
                 |> List.map (snd >> Some)
                 , isCompletePath
             else
-                let sortedAssociationListFromTestVariableIndicesToIndeterminateMarkers =
-                    testVariableIndicesForIndeterminates
+                let sortedAssociationListFromPathStepIndicesToIndeterminateMarkers =
+                    pathStepIndicesForIndeterminates
                     |> Set.toList
-                    |> List.map (fun testVariableIndex ->
-                                     testVariableIndex
+                    |> List.map (fun pathStepIndex ->
+                                     pathStepIndex
                                      , None)
 
-                let sortedAssociationListFromTestVariableIndicesToLevels =
+                let sortedAssociationListFromPathStepIndicesToSteps =
                     incompletePathRepresentation
                     |> Map.map (fun _ step ->
                                     Some step)
                     |> Map.toList
 
                 let mergedAssociationList =
-                    BargainBasement.MergeDisjointSortedAssociationLists sortedAssociationListFromTestVariableIndicesToLevels
-                                                                        sortedAssociationListFromTestVariableIndicesToIndeterminateMarkers
+                    BargainBasement.MergeDisjointSortedAssociationLists sortedAssociationListFromPathStepIndicesToSteps
+                                                                        sortedAssociationListFromPathStepIndicesToIndeterminateMarkers
 
                 mergedAssociationList
                 |> List.map snd
@@ -646,16 +646,16 @@ namespace NTestCaseBuilder
                                 match sharedPathPrefix.[indexOfMismatchOnSharedPathStep] with
                                     Some stepFromMismatchingSharedPathStep ->
                                         {
-                                            LevelForTestVariableIndex = stepFromMismatchingSharedPathStep
-                                            SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                            SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                            StepForPathStepIndex = stepFromMismatchingSharedPathStep
+                                            SubtreeWithLesserStepsForSamePathStepIndex = UnsuccessfulSearchTerminationNode
+                                            SubtreeWithGreaterStepsForSamePathStepIndex = UnsuccessfulSearchTerminationNode
                                             PathsForFollowingIndices = pathsAfterMismatch
                                         }
                                         |> InternalNode
-                                        |> BinaryTreeOfLevelsForTestVariable
+                                        |> BinaryTreeOfAlternateStepsForPathIndex
                                   | None ->
                                         {
-                                            SubtreeWithAllLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                            SubtreeWithAllStepsForSamePathStepIndex = UnsuccessfulSearchTerminationNode
                                             PathsForFollowingIndices = pathsAfterMismatch
                                         }
                                         |> WildcardNode
@@ -670,57 +670,57 @@ namespace NTestCaseBuilder
                             raise (InternalAssertionViolationException "Attempt to add a new incomplete path that is a prefix of a previous one.")
             and addToTernarySearchTree ternarySearchTree
                                        newIncompletePathRepresentation =
-                let rec addLevelToBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                let rec addStepToBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                                                                     stepFromNewIncompletePathRepresentation
                                                                     tailFromNewIncompletePathRepresentation =
-                    match binaryTreeOfLevelsForTestVariable with
+                    match binaryTreeOfStepsForPathIndex with
                         UnsuccessfulSearchTerminationNode ->
                             {
-                                LevelForTestVariableIndex = stepFromNewIncompletePathRepresentation
-                                SubtreeWithLesserLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
-                                SubtreeWithGreaterLevelsForSameTestVariableIndex = UnsuccessfulSearchTerminationNode
+                                StepForPathStepIndex = stepFromNewIncompletePathRepresentation
+                                SubtreeWithLesserStepsForSamePathStepIndex = UnsuccessfulSearchTerminationNode
+                                SubtreeWithGreaterStepsForSamePathStepIndex = UnsuccessfulSearchTerminationNode
                                 PathsForFollowingIndices =
                                     justOnePathFrom tailFromNewIncompletePathRepresentation
                             }
                             |> InternalNode
                       | (InternalNode internalNodeRepresentation) ->
-                            let comparisonWrtImplicitLevel =
+                            let comparisonWrtImplicitStep =
                                 compare stepFromNewIncompletePathRepresentation
                             let ({
-                                    LevelForTestVariableIndex = splayedLevelForTestVariableIndex
+                                    StepForPathStepIndex = splayedStepForPathStepIndex
                                     PathsForFollowingIndices = splayedPathsForFollowingIndices
                                  } as splayedInternalNodeRepresentation)
-                                , flankingSubtreeWithLesserLevels
-                                , flankingSubtreeWithGreaterLevels =
-                                splayInternalNodeWithMatchingOrNeighbouringLevel internalNodeRepresentation
-                                                                                 comparisonWrtImplicitLevel
-                            match comparisonWrtImplicitLevel splayedLevelForTestVariableIndex with
+                                , flankingSubtreeWithLesserSteps
+                                , flankingSubtreeWithGreaterSteps =
+                                splayInternalNodeWithMatchingOrNeighbouringStep internalNodeRepresentation
+                                                                                 comparisonWrtImplicitStep
+                            match comparisonWrtImplicitStep splayedStepForPathStepIndex with
                                 result when result < 0 ->
-                                    let flankingSubtreeWithGreaterLevels =
+                                    let flankingSubtreeWithGreaterSteps =
                                         {
                                             splayedInternalNodeRepresentation with
-                                                SubtreeWithGreaterLevelsForSameTestVariableIndex = flankingSubtreeWithGreaterLevels
+                                                SubtreeWithGreaterStepsForSamePathStepIndex = flankingSubtreeWithGreaterSteps
                                         }
                                         |> InternalNode
                                     {
-                                        LevelForTestVariableIndex = stepFromNewIncompletePathRepresentation
-                                        SubtreeWithLesserLevelsForSameTestVariableIndex = flankingSubtreeWithLesserLevels
-                                        SubtreeWithGreaterLevelsForSameTestVariableIndex = flankingSubtreeWithGreaterLevels
+                                        StepForPathStepIndex = stepFromNewIncompletePathRepresentation
+                                        SubtreeWithLesserStepsForSamePathStepIndex = flankingSubtreeWithLesserSteps
+                                        SubtreeWithGreaterStepsForSamePathStepIndex = flankingSubtreeWithGreaterSteps
                                         PathsForFollowingIndices =
                                             justOnePathFrom tailFromNewIncompletePathRepresentation
                                     }
                                     |> InternalNode
                               | result when result > 0 ->
-                                    let flankingSubtreeWithLesserLevels =
+                                    let flankingSubtreeWithLesserSteps =
                                         {
                                             splayedInternalNodeRepresentation with
-                                                SubtreeWithLesserLevelsForSameTestVariableIndex = flankingSubtreeWithLesserLevels
+                                                SubtreeWithLesserStepsForSamePathStepIndex = flankingSubtreeWithLesserSteps
                                         }
                                         |> InternalNode
                                     {
-                                        LevelForTestVariableIndex = stepFromNewIncompletePathRepresentation
-                                        SubtreeWithLesserLevelsForSameTestVariableIndex = flankingSubtreeWithLesserLevels
-                                        SubtreeWithGreaterLevelsForSameTestVariableIndex = flankingSubtreeWithGreaterLevels
+                                        StepForPathStepIndex = stepFromNewIncompletePathRepresentation
+                                        SubtreeWithLesserStepsForSamePathStepIndex = flankingSubtreeWithLesserSteps
+                                        SubtreeWithGreaterStepsForSamePathStepIndex = flankingSubtreeWithGreaterSteps
                                         PathsForFollowingIndices =
                                             justOnePathFrom tailFromNewIncompletePathRepresentation
                                     }
@@ -731,8 +731,8 @@ namespace NTestCaseBuilder
                                                              tailFromNewIncompletePathRepresentation
                                     {
                                         splayedInternalNodeRepresentation with
-                                            SubtreeWithLesserLevelsForSameTestVariableIndex = flankingSubtreeWithLesserLevels
-                                            SubtreeWithGreaterLevelsForSameTestVariableIndex = flankingSubtreeWithGreaterLevels
+                                            SubtreeWithLesserStepsForSamePathStepIndex = flankingSubtreeWithLesserSteps
+                                            SubtreeWithGreaterStepsForSamePathStepIndex = flankingSubtreeWithGreaterSteps
                                             PathsForFollowingIndices = modifiedPathsForFollowingIndices
                                     }
                                     |> InternalNode
@@ -744,16 +744,16 @@ namespace NTestCaseBuilder
                         // The above is really a precondition violation, but the precondition should have been enforced at a higher step within the implementation and not by the client.
                   | WildcardNode
                     ({
-                        SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
+                        SubtreeWithAllStepsForSamePathStepIndex = subtreeWithAllStepsForSamePathStepIndex
                      } as wildcardNodeRepresentation)
                     , Some stepFromNewIncompletePathRepresentation :: tailFromNewIncompletePathRepresentation ->
-                        let modifiedSubtreeWithAllLevelsForSameTestVariableIndex =
-                            addLevelToBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
+                        let modifiedSubtreeWithAllStepsForSamePathStepIndex =
+                            addStepToBinaryTreeOfAlternateStepsForPathIndex subtreeWithAllStepsForSamePathStepIndex
                                                                         stepFromNewIncompletePathRepresentation
                                                                         tailFromNewIncompletePathRepresentation
                         {
                             wildcardNodeRepresentation with
-                                SubtreeWithAllLevelsForSameTestVariableIndex = modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                SubtreeWithAllStepsForSamePathStepIndex = modifiedSubtreeWithAllStepsForSamePathStepIndex
                         }
                         |> WildcardNode
                   | WildcardNode
@@ -769,16 +769,16 @@ namespace NTestCaseBuilder
                                 PathsForFollowingIndices = modifiedPathsForFollowingIndices
                         }
                         |> WildcardNode
-                  | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                  | BinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                     , Some stepFromNewIncompletePathRepresentation :: tailFromNewIncompletePathRepresentation ->
-                        addLevelToBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                        addStepToBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                                                                     stepFromNewIncompletePathRepresentation
                                                                     tailFromNewIncompletePathRepresentation
-                        |> BinaryTreeOfLevelsForTestVariable
-                  | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                        |> BinaryTreeOfAlternateStepsForPathIndex
+                  | BinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                     , None :: tailFromNewIncompletePathRepresentation ->
                         {
-                            SubtreeWithAllLevelsForSameTestVariableIndex = binaryTreeOfLevelsForTestVariable
+                            SubtreeWithAllStepsForSamePathStepIndex = binaryTreeOfStepsForPathIndex
                             PathsForFollowingIndices =
                                 justOnePathFrom tailFromNewIncompletePathRepresentation
                         }
@@ -793,40 +793,40 @@ namespace NTestCaseBuilder
         let remove paths
                    queryIncompletePathRepresentation
                    existingCompletePathBlockedRemovalContinuation =
-            let removeInternalNodeWithGreatestLevelInSubtree subtreeInternalNodeRepresentation =
+            let removeInternalNodeWithGreatestStepInSubtree subtreeInternalNodeRepresentation =
                 let comparisonWrtPositiveInfinity _ =
                     1
                 let {
-                        LevelForTestVariableIndex = splayedLevelForTestVariableIndex
+                        StepForPathStepIndex = splayedStepForPathStepIndex
                         PathsForFollowingIndices = splayedPathsForFollowingIndices
                     }
-                    , flankingSubtreeWithLesserLevels
+                    , flankingSubtreeWithLesserSteps
                     , _ =
-                    splayInternalNodeWithMatchingOrNeighbouringLevel subtreeInternalNodeRepresentation
+                    splayInternalNodeWithMatchingOrNeighbouringStep subtreeInternalNodeRepresentation
                                                                      comparisonWrtPositiveInfinity
-                splayedLevelForTestVariableIndex
+                splayedStepForPathStepIndex
                 , splayedPathsForFollowingIndices
-                , flankingSubtreeWithLesserLevels
-            let removeInternalNodeWithLeastLevelInSubtree subtreeInternalNodeRepresentation =
+                , flankingSubtreeWithLesserSteps
+            let removeInternalNodeWithLeastStepInSubtree subtreeInternalNodeRepresentation =
                 let comparisonWrtNegativeInfinity _ =
                     -1
                 let {
-                        LevelForTestVariableIndex = splayedLevelForTestVariableIndex
+                        StepForPathStepIndex = splayedStepForPathStepIndex
                         PathsForFollowingIndices = splayedPathsForFollowingIndices
                     }
                     , _
-                    , flankingSubtreeWithGreaterLevels =
-                    splayInternalNodeWithMatchingOrNeighbouringLevel subtreeInternalNodeRepresentation
+                    , flankingSubtreeWithGreaterSteps =
+                    splayInternalNodeWithMatchingOrNeighbouringStep subtreeInternalNodeRepresentation
                                                                      comparisonWrtNegativeInfinity
-                splayedLevelForTestVariableIndex
+                splayedStepForPathStepIndex
                 , splayedPathsForFollowingIndices
-                , flankingSubtreeWithGreaterLevels
-            let buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForTestVariableIndex
-                                                                                        subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                        subtreeWithGreaterLevelsForSameTestVariableIndex
+                , flankingSubtreeWithGreaterSteps
+            let buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForPathStepIndex
+                                                                                        subtreeWithLesserStepsForSamePathStepIndex
+                                                                                        subtreeWithGreaterStepsForSamePathStepIndex
                                                                                         pathsForFollowingIndices =
-                match subtreeWithLesserLevelsForSameTestVariableIndex
-                      , subtreeWithGreaterLevelsForSameTestVariableIndex
+                match subtreeWithLesserStepsForSamePathStepIndex
+                      , subtreeWithGreaterStepsForSamePathStepIndex
                       , pathsForFollowingIndices with
                   | UnsuccessfulSearchTerminationNode
                     , UnsuccessfulSearchTerminationNode
@@ -835,74 +835,74 @@ namespace NTestCaseBuilder
                   | UnsuccessfulSearchTerminationNode
                     , _
                     , NoPaths ->
-                        subtreeWithGreaterLevelsForSameTestVariableIndex
+                        subtreeWithGreaterStepsForSamePathStepIndex
                   | _
                     , UnsuccessfulSearchTerminationNode
                     , NoPaths ->
-                        subtreeWithLesserLevelsForSameTestVariableIndex
-                  | InternalNode subtreeWithLesserLevelsForSameTestVariableIndexInternalNodeRepresentation
-                    , InternalNode subtreeWithGreaterLevelsForSameTestVariableIndexInternalNodeRepresentation
+                        subtreeWithLesserStepsForSamePathStepIndex
+                  | InternalNode subtreeWithLesserStepsForSamePathStepIndexInternalNodeRepresentation
+                    , InternalNode subtreeWithGreaterStepsForSamePathStepIndexInternalNodeRepresentation
                     , NoPaths ->
-                        if subtreeWithLesserLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
-                           > subtreeWithGreaterLevelsForSameTestVariableIndex.NumberOfLevelsForLeadingTestVariable
+                        if subtreeWithLesserStepsForSamePathStepIndex.NumberOfStepsForLeadingPathIndex
+                           > subtreeWithGreaterStepsForSamePathStepIndex.NumberOfStepsForLeadingPathIndex
                         then
-                            let stepForTestVariableIndexFromRemovedNode
+                            let stepForPathStepIndexFromRemovedNode
                                 , pathsForFollowingIndicesFromRemovedNode
-                                , subtreeWithLesserLevelsForSameTestVariableIndexWithoutThatNode =
-                                    removeInternalNodeWithGreatestLevelInSubtree subtreeWithLesserLevelsForSameTestVariableIndexInternalNodeRepresentation
+                                , subtreeWithLesserStepsForSamePathStepIndexWithoutThatNode =
+                                    removeInternalNodeWithGreatestStepInSubtree subtreeWithLesserStepsForSamePathStepIndexInternalNodeRepresentation
                             ({
-                                LevelForTestVariableIndex =
-                                    stepForTestVariableIndexFromRemovedNode
-                                SubtreeWithLesserLevelsForSameTestVariableIndex =
-                                    subtreeWithLesserLevelsForSameTestVariableIndexWithoutThatNode
-                                SubtreeWithGreaterLevelsForSameTestVariableIndex =
-                                    subtreeWithGreaterLevelsForSameTestVariableIndex
+                                StepForPathStepIndex =
+                                    stepForPathStepIndexFromRemovedNode
+                                SubtreeWithLesserStepsForSamePathStepIndex =
+                                    subtreeWithLesserStepsForSamePathStepIndexWithoutThatNode
+                                SubtreeWithGreaterStepsForSamePathStepIndex =
+                                    subtreeWithGreaterStepsForSamePathStepIndex
                                 PathsForFollowingIndices =
                                     pathsForFollowingIndicesFromRemovedNode
                             }
                             |> InternalNode)
                         else
-                            let stepForTestVariableIndexFromRemovedNode
+                            let stepForPathStepIndexFromRemovedNode
                                 , pathsForFollowingIndicesFromRemovedNode
-                                , subtreeWithGreaterLevelsForSameTestVariableIndexWithoutThatNode =
-                                    removeInternalNodeWithLeastLevelInSubtree subtreeWithGreaterLevelsForSameTestVariableIndexInternalNodeRepresentation
+                                , subtreeWithGreaterStepsForSamePathStepIndexWithoutThatNode =
+                                    removeInternalNodeWithLeastStepInSubtree subtreeWithGreaterStepsForSamePathStepIndexInternalNodeRepresentation
                             ({
-                                LevelForTestVariableIndex =
-                                    stepForTestVariableIndexFromRemovedNode
-                                SubtreeWithLesserLevelsForSameTestVariableIndex =
-                                    subtreeWithLesserLevelsForSameTestVariableIndex
-                                SubtreeWithGreaterLevelsForSameTestVariableIndex =
-                                    subtreeWithGreaterLevelsForSameTestVariableIndexWithoutThatNode
+                                StepForPathStepIndex =
+                                    stepForPathStepIndexFromRemovedNode
+                                SubtreeWithLesserStepsForSamePathStepIndex =
+                                    subtreeWithLesserStepsForSamePathStepIndex
+                                SubtreeWithGreaterStepsForSamePathStepIndex =
+                                    subtreeWithGreaterStepsForSamePathStepIndexWithoutThatNode
                                 PathsForFollowingIndices =
                                     pathsForFollowingIndicesFromRemovedNode
                             }
                             |> InternalNode)
                   | _ ->
                         ({
-                            LevelForTestVariableIndex =
-                                stepForTestVariableIndex
-                            SubtreeWithLesserLevelsForSameTestVariableIndex =
-                                subtreeWithLesserLevelsForSameTestVariableIndex
-                            SubtreeWithGreaterLevelsForSameTestVariableIndex =
-                                subtreeWithGreaterLevelsForSameTestVariableIndex
+                            StepForPathStepIndex =
+                                stepForPathStepIndex
+                            SubtreeWithLesserStepsForSamePathStepIndex =
+                                subtreeWithLesserStepsForSamePathStepIndex
+                            SubtreeWithGreaterStepsForSamePathStepIndex =
+                                subtreeWithGreaterStepsForSamePathStepIndex
                             PathsForFollowingIndices =
                                 pathsForFollowingIndices
                         }
                         |> InternalNode)
-            let buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
+            let buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllStepsForSamePathStepIndex
                                                                                         pathsForFollowingIndices =
-                match subtreeWithAllLevelsForSameTestVariableIndex
+                match subtreeWithAllStepsForSamePathStepIndex
                       , pathsForFollowingIndices with
                     UnsuccessfulSearchTerminationNode
                     , NoPaths ->
                         EmptyTernarySearchTree
                   | _
                     , NoPaths ->
-                        BinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
+                        BinaryTreeOfAlternateStepsForPathIndex subtreeWithAllStepsForSamePathStepIndex
                   | _ ->
                         {
-                            SubtreeWithAllLevelsForSameTestVariableIndex =
-                                subtreeWithAllLevelsForSameTestVariableIndex
+                            SubtreeWithAllStepsForSamePathStepIndex =
+                                subtreeWithAllStepsForSamePathStepIndex
                             PathsForFollowingIndices =
                                 pathsForFollowingIndices
                         }
@@ -919,10 +919,10 @@ namespace NTestCaseBuilder
                     |> ChunkedList.fold (fun (treeSearchContextParameters: TreeSearchContextParameters)
                                              sharedPathPrefixStep ->
                                             match sharedPathPrefixStep with
-                                                Some stepForTestVariableIndex ->
-                                                    treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
+                                                Some stepForPathStepIndex ->
+                                                    treeSearchContextParameters.PropagateFromDefinedStepToNextPathIndex
                                               | None ->
-                                                    treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable)
+                                                    treeSearchContextParameters.PropagateFromWildcardStepToNextPathIndex)
                                         treeSearchContextParameters
                 let removeWhenSharedPathPrefixAgreesWithQuery agreeingPrefixOfQueryIncompletePathRepresentation
                                                               remainderOfQueryIncompletePathRepresentation =
@@ -949,7 +949,7 @@ namespace NTestCaseBuilder
                                 EmptyTernarySearchTree ->
                                     return NoPaths
                                            , removedIncompletePath
-                              | BranchingWithSingleLevelForLeadingTestVariable modifiedPathsEquivalentToBranchingRoot ->
+                              | BranchingWithSingleStepForLeadingPathIndex modifiedPathsEquivalentToBranchingRoot ->
                                     return {
                                                 modifiedPathsEquivalentToBranchingRoot with
                                                     SharedPathPrefix =
@@ -957,7 +957,7 @@ namespace NTestCaseBuilder
                                                                            modifiedPathsEquivalentToBranchingRoot.SharedPathPrefix
                                            }
                                            , removedIncompletePath
-                              | BranchingWithJustWildcardForLeadingTestVariable modifiedPathsEquivalentToBranchingRoot ->
+                              | BranchingWithJustWildcardForLeadingPathIndex modifiedPathsEquivalentToBranchingRoot ->
                                     return {
                                                 modifiedPathsEquivalentToBranchingRoot with
                                                     SharedPathPrefix =
@@ -980,9 +980,9 @@ namespace NTestCaseBuilder
                                             rhs ->
                                                 match lhs
                                                       , rhs with
-                                                    Some lhsLevel
-                                                    , Some rhsLevel ->
-                                                        lhsLevel = rhsLevel
+                                                    Some lhsStep
+                                                    , Some rhsStep ->
+                                                        lhsStep = rhsStep
                                                   | _ ->
                                                         true) with
                             AgreesWithPrefixOfIncompletePath (agreeingPrefixOfQueryIncompletePathRepresentation
@@ -1004,129 +1004,129 @@ namespace NTestCaseBuilder
                                             queryIncompletePathRepresentation
                                             (treeSearchContextParameters: TreeSearchContextParameters)
                                             removedIncompletePathInReverse =
-                let buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices tailFromQueryIncompletePathRepresentation
-                                                                                               stepForTestVariableIndex
-                                                                                               subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                               subtreeWithGreaterLevelsForSameTestVariableIndex
+                let buildResultFromInternalNodeModifyingSubtreeForFollowingPathStepIndices tailFromQueryIncompletePathRepresentation
+                                                                                               stepForPathStepIndex
+                                                                                               subtreeWithLesserStepsForSamePathStepIndex
+                                                                                               subtreeWithGreaterStepsForSamePathStepIndex
                                                                                                pathsForFollowingIndices =
-                    let removedIncompletePathWithNewLevelInReverse =
-                        LazyList.cons (Some stepForTestVariableIndex)
+                    let removedIncompletePathWithNewStepInReverse =
+                        LazyList.cons (Some stepForPathStepIndex)
                                       removedIncompletePathInReverse
                     continuationWorkflow
                         {
-                            let! modifiedSubtreeForFollowingTestVariableIndices
+                            let! modifiedSubtreeForFollowingPathStepIndices
                                  , removedIncompletePath =
                                 removeFromPaths pathsForFollowingIndices
                                                           tailFromQueryIncompletePathRepresentation
-                                                          treeSearchContextParameters.PropagateFromDefinedLevelToNextTestVariable
-                                                          removedIncompletePathWithNewLevelInReverse
+                                                          treeSearchContextParameters.PropagateFromDefinedStepToNextPathIndex
+                                                          removedIncompletePathWithNewStepInReverse
                             let modifiedBinarySearchTree =
-                                buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForTestVariableIndex
-                                                                                                        subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                        subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                                        modifiedSubtreeForFollowingTestVariableIndices
+                                buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForPathStepIndex
+                                                                                                        subtreeWithLesserStepsForSamePathStepIndex
+                                                                                                        subtreeWithGreaterStepsForSamePathStepIndex
+                                                                                                        modifiedSubtreeForFollowingPathStepIndices
                             return modifiedBinarySearchTree
                                    , removedIncompletePath
 
                         }
-                let buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices headFromQueryIncompletePathRepresentation
+                let buildResultFromWildcardNodeModifyingSubtreeForFollowingPathStepIndices headFromQueryIncompletePathRepresentation
                                                                                                tailFromQueryIncompletePathRepresentation
-                                                                                               subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                               subtreeWithAllStepsForSamePathStepIndex
                                                                                                pathsForFollowingIndices =
-                    let removedIncompletePathWithNewLevelInReverse =
+                    let removedIncompletePathWithNewStepInReverse =
                         LazyList.cons headFromQueryIncompletePathRepresentation
                                       removedIncompletePathInReverse
                     continuationWorkflow
                         {
-                            let! modifiedSubtreeForFollowingTestVariableIndices
+                            let! modifiedSubtreeForFollowingPathStepIndices
                                  , removedIncompletePath =
                                 removeFromPaths pathsForFollowingIndices
                                                           tailFromQueryIncompletePathRepresentation
-                                                          treeSearchContextParameters.PropagateFromWildcardLevelToNextTestVariable
-                                                          removedIncompletePathWithNewLevelInReverse
+                                                          treeSearchContextParameters.PropagateFromWildcardStepToNextPathIndex
+                                                          removedIncompletePathWithNewStepInReverse
                             let modifiedTernarySearchTree =
-                                buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllLevelsForSameTestVariableIndex
-                                                                                                        modifiedSubtreeForFollowingTestVariableIndices
+                                buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees subtreeWithAllStepsForSamePathStepIndex
+                                                                                                        modifiedSubtreeForFollowingPathStepIndices
                             return modifiedTernarySearchTree
                                    , removedIncompletePath
                         }
 
-                let removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                let removeStepFromBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                                                                      stepFromQueryIncompletePathRepresentation
                                                                      tailFromQueryIncompletePathRepresentation =
-                    match binaryTreeOfLevelsForTestVariable with
+                    match binaryTreeOfStepsForPathIndex with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfTestVariables <= treeSearchContextParameters.TestVariableIndex
+                            if maximumNumberOfPathIndexs <= treeSearchContextParameters.PathStepIndex
                             then
-                                raise (InternalAssertionViolationException "The path refers to test variable indices that are greater than the permitted maximum.")
+                                raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
                             continuationWorkflow.Zero ()
                       | InternalNode internalNodeRepresentation ->
-                            let comparisonWrtImplicitLevel =
+                            let comparisonWrtImplicitStep =
                                 compare stepFromQueryIncompletePathRepresentation
                             let {
-                                    LevelForTestVariableIndex = splayedLevelForTestVariableIndex
+                                    StepForPathStepIndex = splayedStepForPathStepIndex
                                     PathsForFollowingIndices = splayedPathsForFollowingIndices
                                 }
-                                , flankingSubtreeWithLesserLevels
-                                , flankingSubtreeWithGreaterLevels =
-                                splayInternalNodeWithMatchingOrNeighbouringLevel internalNodeRepresentation
-                                                                                 comparisonWrtImplicitLevel
-                            match comparisonWrtImplicitLevel splayedLevelForTestVariableIndex with
+                                , flankingSubtreeWithLesserSteps
+                                , flankingSubtreeWithGreaterSteps =
+                                splayInternalNodeWithMatchingOrNeighbouringStep internalNodeRepresentation
+                                                                                 comparisonWrtImplicitStep
+                            match comparisonWrtImplicitStep splayedStepForPathStepIndex with
                                 0 ->
-                                    buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices tailFromQueryIncompletePathRepresentation
-                                                                                                               splayedLevelForTestVariableIndex
-                                                                                                               flankingSubtreeWithLesserLevels
-                                                                                                               flankingSubtreeWithGreaterLevels
+                                    buildResultFromInternalNodeModifyingSubtreeForFollowingPathStepIndices tailFromQueryIncompletePathRepresentation
+                                                                                                               splayedStepForPathStepIndex
+                                                                                                               flankingSubtreeWithLesserSteps
+                                                                                                               flankingSubtreeWithGreaterSteps
                                                                                                                splayedPathsForFollowingIndices
                               | _ ->
                                     continuationWorkflow.Zero ()
-                let rec removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                let rec removeWildcardStepFromBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                                                                                  tailFromQueryIncompletePathRepresentation =
-                    match binaryTreeOfLevelsForTestVariable with
+                    match binaryTreeOfStepsForPathIndex with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfTestVariables <= treeSearchContextParameters.TestVariableIndex
+                            if maximumNumberOfPathIndexs <= treeSearchContextParameters.PathStepIndex
                             then
-                                raise (InternalAssertionViolationException "The path refers to test variable indices that are greater than the permitted maximum.")
+                                raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
                             continuationWorkflow.Zero ()
 
                       | InternalNode
                         {
-                            LevelForTestVariableIndex = stepForTestVariableIndex
-                            SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
-                            SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                            StepForPathStepIndex = stepForPathStepIndex
+                            SubtreeWithLesserStepsForSamePathStepIndex = subtreeWithLesserStepsForSamePathStepIndex
+                            SubtreeWithGreaterStepsForSamePathStepIndex = subtreeWithGreaterStepsForSamePathStepIndex
                             PathsForFollowingIndices = pathsForFollowingIndices
                         } ->
-                            buildResultFromInternalNodeModifyingSubtreeForFollowingTestVariableIndices tailFromQueryIncompletePathRepresentation
-                                                                                                       stepForTestVariableIndex
-                                                                                                       subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                       subtreeWithGreaterLevelsForSameTestVariableIndex
+                            buildResultFromInternalNodeModifyingSubtreeForFollowingPathStepIndices tailFromQueryIncompletePathRepresentation
+                                                                                                       stepForPathStepIndex
+                                                                                                       subtreeWithLesserStepsForSamePathStepIndex
+                                                                                                       subtreeWithGreaterStepsForSamePathStepIndex
                                                                                                        pathsForFollowingIndices
                             + continuationWorkflow
                                 {
-                                    let! modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
+                                    let! modifiedSubtreeWithLesserStepsForSamePathStepIndex
                                          , removedIncompletePath =
-                                        removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithLesserLevelsForSameTestVariableIndex
+                                        removeWildcardStepFromBinaryTreeOfAlternateStepsForPathIndex subtreeWithLesserStepsForSamePathStepIndex
                                                                                                  tailFromQueryIncompletePathRepresentation
                                     let modifiedBinaryTree =
-                                        buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForTestVariableIndex
-                                                                                                                modifiedSubtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                subtreeWithGreaterLevelsForSameTestVariableIndex
+                                        buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForPathStepIndex
+                                                                                                                modifiedSubtreeWithLesserStepsForSamePathStepIndex
+                                                                                                                subtreeWithGreaterStepsForSamePathStepIndex
                                                                                                                 pathsForFollowingIndices
                                     return modifiedBinaryTree
                                            , removedIncompletePath
                                 }
                             + continuationWorkflow
                                 {
-                                    let! modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                    let! modifiedSubtreeWithGreaterStepsForSamePathStepIndex
                                          , removedIncompletePath =
-                                        removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
+                                        removeWildcardStepFromBinaryTreeOfAlternateStepsForPathIndex subtreeWithGreaterStepsForSamePathStepIndex
                                                                                                  tailFromQueryIncompletePathRepresentation
                                     let modifiedBinaryTree =
-                                        buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForTestVariableIndex
-                                                                                                                subtreeWithLesserLevelsForSameTestVariableIndex
-                                                                                                                modifiedSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                        buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForPathStepIndex
+                                                                                                                subtreeWithLesserStepsForSamePathStepIndex
+                                                                                                                modifiedSubtreeWithGreaterStepsForSamePathStepIndex
                                                                                                                 pathsForFollowingIndices
                                     return modifiedBinaryTree
                                            , removedIncompletePath
@@ -1136,15 +1136,15 @@ namespace NTestCaseBuilder
                       , queryIncompletePathRepresentation with
                     SuccessfulSearchTerminationNode
                     , _ ->
-                        if maximumNumberOfTestVariables < treeSearchContextParameters.TestVariableIndex
-                            // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
+                        if maximumNumberOfPathIndexs < treeSearchContextParameters.PathStepIndex
+                            // NOTE: a subtlety - remember that 'pathStepIndex' can reach 'maximumNumberOfPathIndexsOverall'
                             // for a full (and possibly removed) path, because successful searches go through at least one
-                            // node corresponding to each test variable index, *then* land on a node indicating whether the search
+                            // node corresponding to each path step index, *then* land on a node indicating whether the search
                             // was successful or not: so the zero-relative index gets incremented one more time.
                         then
-                            raise (InternalAssertionViolationException "The path refers to test variable indices that are greater than the permitted maximum.")
+                            raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
-                        if treeSearchContextParameters.IsCompletePath maximumNumberOfTestVariables
+                        if treeSearchContextParameters.IsCompletePath maximumNumberOfPathIndexs
                         then
                             existingCompletePathBlockedRemovalContinuation ()
                         else
@@ -1155,16 +1155,16 @@ namespace NTestCaseBuilder
                                             queryIncompletePathRepresentation
                             let mergedIncompletePath =
                                 [
-                                    for testVariableIndex
-                                        , testVariableLevel in mergedIncompletePathRepresentation
-                                                               |> List.mapi (fun testVariableIndex
-                                                                                 testVariableLevel ->
-                                                                                    testVariableIndex
-                                                                                    , testVariableLevel) do
-                                        match testVariableLevel with
-                                            Some testVariableLevel ->
-                                                yield testVariableIndex
-                                                      , testVariableLevel
+                                    for pathStepIndex
+                                        , step in mergedIncompletePathRepresentation
+                                                               |> List.mapi (fun pathStepIndex
+                                                                                 step ->
+                                                                                    pathStepIndex
+                                                                                    , step) do
+                                        match step with
+                                            Some step ->
+                                                yield pathStepIndex
+                                                      , step
                                           | None ->
                                                 ()
                                 ]
@@ -1179,70 +1179,70 @@ namespace NTestCaseBuilder
                                 }
                   | WildcardNode
                     {
-                        SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
+                        SubtreeWithAllStepsForSamePathStepIndex = subtreeWithAllStepsForSamePathStepIndex
                         PathsForFollowingIndices = pathsForFollowingIndices
                     }
                     , ((Some stepFromQueryIncompletePathRepresentation) as headFromQueryIncompletePathRepresentation) :: tailFromQueryIncompletePathRepresentation ->
                         continuationWorkflow
                             {
-                                let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                let! modifiedSubtreeWithAllStepsForSamePathStepIndex
                                      , removedIncompletePath =
-                                    removeLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
+                                    removeStepFromBinaryTreeOfAlternateStepsForPathIndex subtreeWithAllStepsForSamePathStepIndex
                                                                                      stepFromQueryIncompletePathRepresentation
                                                                                      tailFromQueryIncompletePathRepresentation
                                 let modifiedTernarySearchTree =
-                                    buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                    buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllStepsForSamePathStepIndex
                                                                                                             pathsForFollowingIndices
                                 return modifiedTernarySearchTree
                                        , removedIncompletePath
                             }
-                        + buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices headFromQueryIncompletePathRepresentation
+                        + buildResultFromWildcardNodeModifyingSubtreeForFollowingPathStepIndices headFromQueryIncompletePathRepresentation
                                                                                                      tailFromQueryIncompletePathRepresentation
-                                                                                                     subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                     subtreeWithAllStepsForSamePathStepIndex
                                                                                                      pathsForFollowingIndices
                   | WildcardNode
                     {
-                        SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
+                        SubtreeWithAllStepsForSamePathStepIndex = subtreeWithAllStepsForSamePathStepIndex
                         PathsForFollowingIndices = pathsForFollowingIndices
                     }
                     , None :: tailFromQueryIncompletePathRepresentation ->
                         continuationWorkflow
                             {
-                                let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                let! modifiedSubtreeWithAllStepsForSamePathStepIndex
                                      , removedIncompletePath =
-                                    removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
+                                    removeWildcardStepFromBinaryTreeOfAlternateStepsForPathIndex subtreeWithAllStepsForSamePathStepIndex
                                                                                              tailFromQueryIncompletePathRepresentation
                                 let modifiedTernarySearchTree =
-                                    buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                    buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllStepsForSamePathStepIndex
                                                                                                             pathsForFollowingIndices
                                 return modifiedTernarySearchTree
                                        , removedIncompletePath
                             }
-                        + buildResultFromWildcardNodeModifyingSubtreeForFollowingTestVariableIndices None
+                        + buildResultFromWildcardNodeModifyingSubtreeForFollowingPathStepIndices None
                                                                                                      tailFromQueryIncompletePathRepresentation
-                                                                                                     subtreeWithAllLevelsForSameTestVariableIndex
+                                                                                                     subtreeWithAllStepsForSamePathStepIndex
                                                                                                      pathsForFollowingIndices
-                  | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                  | BinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                     , Some stepFromQueryIncompletePathRepresentation :: tailFromQueryIncompletePathRepresentation ->
                         continuationWorkflow
                             {
-                                let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                let! modifiedSubtreeWithAllStepsForSamePathStepIndex
                                      , removedIncompletePath =
-                                     removeLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                                     removeStepFromBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                                                                                       stepFromQueryIncompletePathRepresentation
                                                                                       tailFromQueryIncompletePathRepresentation
-                                return BinaryTreeOfLevelsForTestVariable modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                return BinaryTreeOfAlternateStepsForPathIndex modifiedSubtreeWithAllStepsForSamePathStepIndex
                                        , removedIncompletePath
                             }
-                  | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                  | BinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                     , None :: tailFromQueryIncompletePathRepresentation ->
                         continuationWorkflow
                             {
-                                let! modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                let! modifiedSubtreeWithAllStepsForSamePathStepIndex
                                      , removedIncompletePath =
-                                    removeWildcardLevelFromBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                                    removeWildcardStepFromBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                                                                                              tailFromQueryIncompletePathRepresentation
-                                return BinaryTreeOfLevelsForTestVariable modifiedSubtreeWithAllLevelsForSameTestVariableIndex
+                                return BinaryTreeOfAlternateStepsForPathIndex modifiedSubtreeWithAllStepsForSamePathStepIndex
                                        , removedIncompletePath
                             }
                   | _
@@ -1263,55 +1263,55 @@ namespace NTestCaseBuilder
                                                         SharedPathPrefix = sharedPathPrefix
                                                         BranchingRoot = branchingRoot
                                                     }
-                                                    testVariableIndex =
+                                                    pathStepIndex =
                 let numberOfSuccessfulPathsFromSubtreeForFollowingIndices =
                     checkInvariantOfTernarySearchTree branchingRoot
-                                                      (testVariableIndex + sharedPathPrefix.Length)
+                                                      (pathStepIndex + sharedPathPrefix.Length)
                 match numberOfSuccessfulPathsFromSubtreeForFollowingIndices with
                     0 when 0 < ChunkedList.length sharedPathPrefix ->
                         raise (InvariantViolationException "Redundant non-empty shared path prefix with no successful search paths leading through it.")
                   | _ ->
                         numberOfSuccessfulPathsFromSubtreeForFollowingIndices
             and checkInvariantOfTernarySearchTree ternarySearchTree
-                                                  testVariableIndex =
-                let rec checkInvariantOfBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                                                  pathStepIndex =
+                let rec checkInvariantOfBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                                                                           lowerBound
                                                                           upperBound =
-                    match binaryTreeOfLevelsForTestVariable with
+                    match binaryTreeOfStepsForPathIndex with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfTestVariables <= testVariableIndex
+                            if maximumNumberOfPathIndexs <= pathStepIndex
                             then
-                                raise (InternalAssertionViolationException "The path refers to test variable indices that are greater than the permitted maximum.")
+                                raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
                             0
                       | InternalNode
                         {
-                            LevelForTestVariableIndex = stepForTestVariableIndex
-                            SubtreeWithLesserLevelsForSameTestVariableIndex = subtreeWithLesserLevelsForSameTestVariableIndex
-                            SubtreeWithGreaterLevelsForSameTestVariableIndex = subtreeWithGreaterLevelsForSameTestVariableIndex
+                            StepForPathStepIndex = stepForPathStepIndex
+                            SubtreeWithLesserStepsForSamePathStepIndex = subtreeWithLesserStepsForSamePathStepIndex
+                            SubtreeWithGreaterStepsForSamePathStepIndex = subtreeWithGreaterStepsForSamePathStepIndex
                             PathsForFollowingIndices = pathsForFollowingIndices
                         } ->
-                            let liftedLevel =
-                                Finite stepForTestVariableIndex
-                            if liftedLevel >= upperBound
+                            let liftedStep =
+                                Finite stepForPathStepIndex
+                            if liftedStep >= upperBound
                             then
-                                raise (InvariantViolationException "Level is greater than or equal to exclusive upper bound.")
-                            if liftedLevel <= lowerBound
+                                raise (InvariantViolationException "Step is greater than or equal to exclusive upper bound.")
+                            if liftedStep <= lowerBound
                             then
-                                raise (InvariantViolationException "Level is less than or equal to exclusive lower bound.")
-                            let numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex =
-                                checkInvariantOfBinaryTreeOfLevelsForTestVariable subtreeWithLesserLevelsForSameTestVariableIndex
+                                raise (InvariantViolationException "Step is less than or equal to exclusive lower bound.")
+                            let numberOfSuccessfulPathsFromSubtreeWithLesserStepsForSamePathStepIndex =
+                                checkInvariantOfBinaryTreeOfAlternateStepsForPathIndex subtreeWithLesserStepsForSamePathStepIndex
                                                                                   lowerBound
-                                                                                  liftedLevel
-                            let numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex =
-                                checkInvariantOfBinaryTreeOfLevelsForTestVariable subtreeWithGreaterLevelsForSameTestVariableIndex
-                                                                                  liftedLevel
+                                                                                  liftedStep
+                            let numberOfSuccessfulPathsFromSubtreeWithGreaterStepsForSamePathStepIndex =
+                                checkInvariantOfBinaryTreeOfAlternateStepsForPathIndex subtreeWithGreaterStepsForSamePathStepIndex
+                                                                                  liftedStep
                                                                                   upperBound
                             let numberOfSuccessfulPathsFromPathsForFollowingIndices =
                                 checkInvariantOfPaths pathsForFollowingIndices
-                                                                (testVariableIndex + 1)
-                            match numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
-                                  , numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                                                (pathStepIndex + 1)
+                            match numberOfSuccessfulPathsFromSubtreeWithLesserStepsForSamePathStepIndex
+                                  , numberOfSuccessfulPathsFromSubtreeWithGreaterStepsForSamePathStepIndex
                                   , numberOfSuccessfulPathsFromPathsForFollowingIndices with
                                 0
                                 , 0
@@ -1332,55 +1332,55 @@ namespace NTestCaseBuilder
 //                              | 0
 //                                , _
 //                                , _ ->
-//                                    if numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex > 1
+//                                    if numberOfSuccessfulPathsFromSubtreeWithGreaterStepsForSamePathStepIndex > 1
 //                                    then
-//                                        Diagnostics.Debug.Print ("Lone greater subtree with: {0} successful paths through it.", numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex)
-//                                    numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
+//                                        Diagnostics.Debug.Print ("Lone greater subtree with: {0} successful paths through it.", numberOfSuccessfulPathsFromSubtreeWithGreaterStepsForSamePathStepIndex)
+//                                    numberOfSuccessfulPathsFromSubtreeWithGreaterStepsForSamePathStepIndex
 //                                    + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
 //                              | _
 //                                , 0
 //                                , _ ->
-//                                    if numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex > 1
+//                                    if numberOfSuccessfulPathsFromSubtreeWithLesserStepsForSamePathStepIndex > 1
 //                                    then
-//                                        Diagnostics.Debug.Print ("Lone lesser subtree with: {0} successful paths through it.", numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex)
-//                                    numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
+//                                        Diagnostics.Debug.Print ("Lone lesser subtree with: {0} successful paths through it.", numberOfSuccessfulPathsFromSubtreeWithLesserStepsForSamePathStepIndex)
+//                                    numberOfSuccessfulPathsFromSubtreeWithLesserStepsForSamePathStepIndex
 //                                    + numberOfSuccessfulPathsFromSubtreeForFollowingIndices
                               | _ ->
-                                    numberOfSuccessfulPathsFromSubtreeWithLesserLevelsForSameTestVariableIndex
-                                    + numberOfSuccessfulPathsFromSubtreeWithGreaterLevelsForSameTestVariableIndex
+                                    numberOfSuccessfulPathsFromSubtreeWithLesserStepsForSamePathStepIndex
+                                    + numberOfSuccessfulPathsFromSubtreeWithGreaterStepsForSamePathStepIndex
                                     + numberOfSuccessfulPathsFromPathsForFollowingIndices
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
-                        if maximumNumberOfTestVariables < testVariableIndex  // NOTE: a subtlety - remember that 'testVariableIndex' can reach 'maximumNumberOfTestVariablesOverall'
+                        if maximumNumberOfPathIndexs < pathStepIndex  // NOTE: a subtlety - remember that 'pathStepIndex' can reach 'maximumNumberOfPathIndexsOverall'
                                                                              // for a full (and possibly removed) path, because successful searches go through at least one
-                                                                             // node corresponding to each test variable index, *then* land on a node indicating whether the search
+                                                                             // node corresponding to each path step index, *then* land on a node indicating whether the search
                                                                              // was successful or not: so the zero-relative index gets incremented one more time.
                         then
-                            raise (InternalAssertionViolationException "The path refers to test variable indices that are greater than the permitted maximum.")
+                            raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
                         1
-                  | BinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable ->
-                        checkInvariantOfBinaryTreeOfLevelsForTestVariable binaryTreeOfLevelsForTestVariable
+                  | BinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex ->
+                        checkInvariantOfBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                                                                           NegativeInfinity
                                                                           PositiveInfinity
                   | WildcardNode
                     {
-                        SubtreeWithAllLevelsForSameTestVariableIndex = subtreeWithAllLevelsForSameTestVariableIndex
+                        SubtreeWithAllStepsForSamePathStepIndex = subtreeWithAllStepsForSamePathStepIndex
                         PathsForFollowingIndices = pathsForFollowingIndices
                     } ->
-                        let numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex =
-                            checkInvariantOfBinaryTreeOfLevelsForTestVariable subtreeWithAllLevelsForSameTestVariableIndex
+                        let numberOfSuccessfulPathsFromSubtreeWithAllStepsForSamePathStepIndex =
+                            checkInvariantOfBinaryTreeOfAlternateStepsForPathIndex subtreeWithAllStepsForSamePathStepIndex
                                                                               NegativeInfinity
                                                                               PositiveInfinity
                         match pathsForFollowingIndices with
-                            SingleTrivialPath when numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex > 0 ->
+                            SingleTrivialPath when numberOfSuccessfulPathsFromSubtreeWithAllStepsForSamePathStepIndex > 0 ->
                                 raise (LogicErrorException "Found wildcard path that always merges with at least one path using the non-wildcard match - should have been merged.")
                           | _ ->
                             ()
                         let numberOfSuccessfulPathsFromPathsForFollowingIndices =
                             checkInvariantOfPaths pathsForFollowingIndices
-                                                            (testVariableIndex + 1)
-                        match numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex
+                                                            (pathStepIndex + 1)
+                        match numberOfSuccessfulPathsFromSubtreeWithAllStepsForSamePathStepIndex
                               , numberOfSuccessfulPathsFromPathsForFollowingIndices with
                             0
                             , 0 ->
@@ -1389,7 +1389,7 @@ namespace NTestCaseBuilder
                             , 0 ->
                                 raise (LogicErrorException "Redundant wildcard node that has no successful paths using its wildcard match leading through it.")
                           | _ ->
-                                numberOfSuccessfulPathsFromSubtreeWithAllLevelsForSameTestVariableIndex
+                                numberOfSuccessfulPathsFromSubtreeWithAllStepsForSamePathStepIndex
                                 + numberOfSuccessfulPathsFromPathsForFollowingIndices
 
             if 0 = checkInvariantOfPaths paths
@@ -1397,16 +1397,16 @@ namespace NTestCaseBuilder
             then
                 raise (LogicErrorException "No successful search paths but tree should be non-empty.")
 
-        member this.MaximumNumberOfTestVariables =
-            maximumNumberOfTestVariables
+        member this.NumberOfStepsInACompletePath =
+            maximumNumberOfPathIndexs
 
         member this.EnumerationOfMergedPaths revealCompletePathsAgain =
             createIncompletePathSequence revealCompletePathsAgain
 
-        static member Initial maximumNumberOfTestVariablesOverall
+        static member Initial maximumNumberOfPathIndexsOverall
                               pathIsAcceptable =
             SetOfMergedPaths<'Step> (SingleTrivialPath,
-                                                            maximumNumberOfTestVariablesOverall,
+                                                            maximumNumberOfPathIndexsOverall,
                                                             pathIsAcceptable)
 
         member this.MergeOrAdd incompletePathRepresentationInExternalForm =
@@ -1424,25 +1424,25 @@ namespace NTestCaseBuilder
                 let detectAndConvertCompletePath incompletePathRepresentation =
                     let lengthOfIncompletePathRepresentation =
                         List.length incompletePathRepresentation
-                    if lengthOfIncompletePathRepresentation > maximumNumberOfTestVariables
+                    if lengthOfIncompletePathRepresentation > maximumNumberOfPathIndexs
                     then
-                        raise (InternalAssertionViolationException "The merged incomplete path has more entries than the permitted maximum number of test variables.")
+                        raise (InternalAssertionViolationException "The merged incomplete path has more steps than the permitted maximum number of steps.")
 
-                    if lengthOfIncompletePathRepresentation < maximumNumberOfTestVariables
+                    if lengthOfIncompletePathRepresentation < maximumNumberOfPathIndexs
                        || incompletePathRepresentation
                           |> List.exists Option.isNone
                     then
                         None
                     else
-                        let testVariableLevelsForCompletePath =
+                        let stepsForCompletePath =
                             incompletePathRepresentation
                             |> List.map Option.get
                         let completePath =
-                            testVariableLevelsForCompletePath
-                            |> List.mapi (fun testVariableIndex
-                                              testVariableLevel ->
-                                              testVariableIndex
-                                              , testVariableLevel)
+                            stepsForCompletePath
+                            |> List.mapi (fun pathStepIndex
+                                              step ->
+                                              pathStepIndex
+                                              , step)
                             |> Map.ofList
                         if pathIsAcceptable (Map.toSeq completePath)
                            |> not
@@ -1507,16 +1507,16 @@ namespace NTestCaseBuilder
                                                                                 let externalFormFor incompletePathRepresentation =
                                                                                     seq
                                                                                         {
-                                                                                            for testVariableIndex
-                                                                                                , testVariableLevel in incompletePathRepresentation
-                                                                                                                       |> List.mapi (fun testVariableIndex
-                                                                                                                                         testVariableLevel ->
-                                                                                                                                            testVariableIndex
-                                                                                                                                            , testVariableLevel) do
-                                                                                                match testVariableLevel with
-                                                                                                    Some testVariableLevel ->
-                                                                                                        yield testVariableIndex
-                                                                                                              , testVariableLevel
+                                                                                            for pathStepIndex
+                                                                                                , step in incompletePathRepresentation
+                                                                                                                       |> List.mapi (fun pathStepIndex
+                                                                                                                                         step ->
+                                                                                                                                            pathStepIndex
+                                                                                                                                            , step) do
+                                                                                                match step with
+                                                                                                    Some step ->
+                                                                                                        yield pathStepIndex
+                                                                                                              , step
                                                                                                   | None ->
                                                                                                         ()
                                                                                         }
@@ -1532,9 +1532,9 @@ namespace NTestCaseBuilder
                                                                                 let checkWhatHasBeenMergedInToMake mergedIncompletePathRepresentationInExternalForm =
                                                                                     let whatHasBeenMergedIn =
                                                                                         mergedIncompletePathRepresentationInExternalForm
-                                                                                        |> Map.filter (fun testVariableIndex
+                                                                                        |> Map.filter (fun pathStepIndex
                                                                                                            _ ->
-                                                                                                           Map.containsKey testVariableIndex
+                                                                                                           Map.containsKey pathStepIndex
                                                                                                                            incompletePathRepresentationInExternalForm
                                                                                                            |> not)
                                                                                         |> Map.toList
@@ -1616,6 +1616,6 @@ namespace NTestCaseBuilder
                     // ... end of invariant check.
 
                 SetOfMergedPaths (modifiedPaths,
-                                                        maximumNumberOfTestVariables,
+                                                        maximumNumberOfPathIndexs,
                                                         pathIsAcceptable)
                 , completePathBeingOfferedNowForEarlyAccess
