@@ -18,144 +18,144 @@
 
         let randomBehaviourSeed = 23
 
-        let reciprocalOfProbabilityOfTerminatingRandomlyGeneratedPartOfPartialTestVector = 10
+        let reciprocalOfProbabilityOfTerminatingRandomlyGeneratedPartOfIncompletePath = 10
 
-        let reciprocalOfProbabilityOfNotGeneratingAnyFurtherPartialTestVectors = 30
+        let reciprocalOfProbabilityOfNotGeneratingAnyFurtherPartialPaths = 30
 
-        let maximumNumberOfTestVariables = 70
+        let maximumNumberOfPathSteps = 70
 
-        let maximumNumberOfTestVectors = 1000
+        let maximumNumberOfPaths = 1000
 
         let maximumRandomWalkStep = 10
 
-        let maximumLevelDelta = 5
+        let maximumStepDelta = 5
 
         let overallTestRepeats = 300
 
         let maximumNumberOfIndicesToAvoid = 4
 
-        let createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff =
+        let createNonOverlappingPartialPathsAndHandEachOffToTest testHandoff =
             let randomBehaviour =
                 Random randomBehaviourSeed
-            let createPartialTestVectors () =
-                let createShuffledUniqueLevels () =
-                    randomBehaviour.Shuffle (seq {1 .. maximumNumberOfTestVectors})
-                let shuffleForEachTestVariableIndex =
-                    Array.init maximumNumberOfTestVariables (fun _ -> createShuffledUniqueLevels ())
-                let numberOfTestVectors =
-                    randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfTestVectors
-                let rec fillInPartialTestVectors incompletePartialTestVectors
-                                                 completedPartialTestVectors =
-                    match incompletePartialTestVectors with
+            let createPartialPaths () =
+                let createShuffledUniqueSteps () =
+                    randomBehaviour.Shuffle (seq {1 .. maximumNumberOfPaths})
+                let shuffleForEachPathStepIndex =
+                    Array.init maximumNumberOfPathSteps (fun _ -> createShuffledUniqueSteps ())
+                let numberOfPaths =
+                    randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfPaths
+                let rec fillInPartialPaths incompletePartialPaths
+                                                 completedPartialPaths =
+                    match incompletePartialPaths with
                         [] ->
-                            raise (InternalAssertionViolationException "Base case for recursion is for *one* incomplete vector.")
+                            raise (InternalAssertionViolationException "Base case for recursion is for *one* incomplete path.")
                       | head :: [] ->
-                            let rec ensureVectorIsNonEmpty vectorBeingCompleted =
-                                let testVariableIndex =
-                                    randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfTestVariables
-                                let shuffledLevels =
-                                    shuffleForEachTestVariableIndex.[testVariableIndex]
-                                let numberOfCompletedPartialTestVectors =
-                                    List.length completedPartialTestVectors
-                                let levelForVectorBeingCompleted =
-                                    shuffledLevels.[numberOfCompletedPartialTestVectors]
-                                Map.add testVariableIndex levelForVectorBeingCompleted
+                            let rec ensurePathIsNonEmpty pathBeingCompleted =
+                                let pathStepIndex =
+                                    randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfPathSteps
+                                let shuffledSteps =
+                                    shuffleForEachPathStepIndex.[pathStepIndex]
+                                let numberOfCompletedPartialPaths =
+                                    List.length completedPartialPaths
+                                let stepForPathBeingCompleted =
+                                    shuffledSteps.[numberOfCompletedPartialPaths]
+                                Map.add pathStepIndex stepForPathBeingCompleted
                                                           (if randomBehaviour.HeadsItIs ()
-                                                           then vectorBeingCompleted
-                                                           else ensureVectorIsNonEmpty vectorBeingCompleted)
-                            ensureVectorIsNonEmpty head
-                            :: completedPartialTestVectors
+                                                           then pathBeingCompleted
+                                                           else ensurePathIsNonEmpty pathBeingCompleted)
+                            ensurePathIsNonEmpty head
+                            :: completedPartialPaths
                       | head :: tail ->
-                            let forceDistinctionBetweenVectors vectorBeingExamined
-                                                               (modifiedCopiesOfVectorsBeingExamined
-                                                                , vectorBeingCompleted) =
-                                let testVariableIndex =
-                                    randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfTestVariables
-                                let shuffledLevels =
-                                    shuffleForEachTestVariableIndex.[testVariableIndex]
-                                let numberOfCompletedPartialTestVectors =
-                                    List.length completedPartialTestVectors
-                                let numberOfCopiesOfVectorsBeingExamined =
-                                    List.length modifiedCopiesOfVectorsBeingExamined
-                                let levelForVectorBeingExamined =
-                                    shuffledLevels.[numberOfTestVectors - (1 + numberOfCopiesOfVectorsBeingExamined)]
-                                let vectorBeingExamined =
-                                    Map.add testVariableIndex levelForVectorBeingExamined vectorBeingExamined
-                                let levelForVectorBeingCompleted =
-                                    shuffledLevels.[numberOfCompletedPartialTestVectors]
-                                let vectorBeingCompleted =
-                                    Map.add testVariableIndex levelForVectorBeingCompleted vectorBeingCompleted
-                                vectorBeingExamined :: modifiedCopiesOfVectorsBeingExamined
-                                , vectorBeingCompleted
-                            let modifiedIncompletePartialTestVectors
-                                , completedPartialTestVector =
-                                List.foldBack forceDistinctionBetweenVectors tail ([], head)
-                            fillInPartialTestVectors modifiedIncompletePartialTestVectors
-                                                     (completedPartialTestVector :: completedPartialTestVectors)
-                let partialTestVectors =
-                    fillInPartialTestVectors (List.replicate numberOfTestVectors Map.empty)
+                            let forceDistinctionBetweenPaths pathBeingExamined
+                                                               (modifiedCopiesOfPathsBeingExamined
+                                                                , pathBeingCompleted) =
+                                let pathStepIndex =
+                                    randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfPathSteps
+                                let shuffledSteps =
+                                    shuffleForEachPathStepIndex.[pathStepIndex]
+                                let numberOfCompletedPartialPaths =
+                                    List.length completedPartialPaths
+                                let numberOfCopiesOfPathsBeingExamined =
+                                    List.length modifiedCopiesOfPathsBeingExamined
+                                let stepForPathBeingExamined =
+                                    shuffledSteps.[numberOfPaths - (1 + numberOfCopiesOfPathsBeingExamined)]
+                                let pathBeingExamined =
+                                    Map.add pathStepIndex stepForPathBeingExamined pathBeingExamined
+                                let stepForPathBeingCompleted =
+                                    shuffledSteps.[numberOfCompletedPartialPaths]
+                                let pathBeingCompleted =
+                                    Map.add pathStepIndex stepForPathBeingCompleted pathBeingCompleted
+                                pathBeingExamined :: modifiedCopiesOfPathsBeingExamined
+                                , pathBeingCompleted
+                            let modifiedIncompletePartialPaths
+                                , completedIncompletePath =
+                                List.foldBack forceDistinctionBetweenPaths tail ([], head)
+                            fillInPartialPaths modifiedIncompletePartialPaths
+                                                     (completedIncompletePath :: completedPartialPaths)
+                let incompletePaths =
+                    fillInPartialPaths (List.replicate numberOfPaths Map.empty)
                                              []
-                randomBehaviour.Shuffle partialTestVectors
+                randomBehaviour.Shuffle incompletePaths
                 |> List.ofArray
             for _ in 1 .. overallTestRepeats do
-                testHandoff (createPartialTestVectors ())
+                testHandoff (createPartialPaths ())
 
-        let createOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff =
+        let createOverlappingPartialPathsAndHandEachOffToTest testHandoff =
             let randomBehaviour =
                 Random randomBehaviourSeed
-            let createPartialTestVectors () =
-                let rec createPartialTestVectors testVariableIndex =
-                    if testVariableIndex = maximumNumberOfTestVariables
-                       || 0 < testVariableIndex
-                          && randomBehaviour.ChooseAnyNumberFromOneTo reciprocalOfProbabilityOfNotGeneratingAnyFurtherPartialTestVectors = 1
+            let createPartialPaths () =
+                let rec createPartialPaths pathStepIndex =
+                    if pathStepIndex = maximumNumberOfPathSteps
+                       || 0 < pathStepIndex
+                          && randomBehaviour.ChooseAnyNumberFromOneTo reciprocalOfProbabilityOfNotGeneratingAnyFurtherPartialPaths = 1
                     then []
-                    else let rec chooseTestVariableIndicesAndTheirLevels recursionDepth =
+                    else let rec choosePathStepIndicesAndTheirSteps recursionDepth =
                             let maximumRecursionDepth = 50
                             if recursionDepth = maximumRecursionDepth
-                               || randomBehaviour.ChooseAnyNumberFromOneTo reciprocalOfProbabilityOfTerminatingRandomlyGeneratedPartOfPartialTestVector = 1
+                               || randomBehaviour.ChooseAnyNumberFromOneTo reciprocalOfProbabilityOfTerminatingRandomlyGeneratedPartOfIncompletePath = 1
                             then []
                             else let lowerBoundInclusive =
-                                    if testVariableIndex > maximumRandomWalkStep
-                                    then testVariableIndex - maximumRandomWalkStep
+                                    if pathStepIndex > maximumRandomWalkStep
+                                    then pathStepIndex - maximumRandomWalkStep
                                     else 0
                                  let upperBoundInclusive =
-                                    if testVariableIndex + maximumRandomWalkStep >= maximumNumberOfTestVariables
-                                    then maximumNumberOfTestVariables - 1
-                                    else testVariableIndex + maximumRandomWalkStep
-                                 let chosenAbitraryTestVariableIndex =
+                                    if pathStepIndex + maximumRandomWalkStep >= maximumNumberOfPathSteps
+                                    then maximumNumberOfPathSteps - 1
+                                    else pathStepIndex + maximumRandomWalkStep
+                                 let chosenAbitraryPathStepIndex =
                                     lowerBoundInclusive + randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (upperBoundInclusive + 1 - lowerBoundInclusive)
-                                 (chosenAbitraryTestVariableIndex
-                                  , randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumLevelDelta)
-                                 :: chooseTestVariableIndicesAndTheirLevels (recursionDepth + 1)
-                         let partialTestVector =
-                            chooseTestVariableIndicesAndTheirLevels 0
+                                 (chosenAbitraryPathStepIndex
+                                  , randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumStepDelta)
+                                 :: choosePathStepIndicesAndTheirSteps (recursionDepth + 1)
+                         let incompletePath =
+                            choosePathStepIndicesAndTheirSteps 0
                             |> Map.ofList
-                         partialTestVector :: createPartialTestVectors (testVariableIndex + 1)
-                createPartialTestVectors 0
-            let overlappingPartialTestVectors =
-                createPartialTestVectors ()
+                         incompletePath :: createPartialPaths (pathStepIndex + 1)
+                createPartialPaths 0
+            let overlappingPartialPaths =
+                createPartialPaths ()
 
-            let overlappingPartialTestVectorsWithSomeExtraFullTestVectors =
+            let overlappingPartialPathsWithSomeExtraCompletePaths =
                 seq
                     {
-                        for partialTestVector in overlappingPartialTestVectors do
-                            yield partialTestVector
+                        for incompletePath in overlappingPartialPaths do
+                            yield incompletePath
 
                             if randomBehaviour.HeadsItIs()
                             then
-                                let testVariableIndices =
-                                    partialTestVector
+                                let pathStepIndices =
+                                    incompletePath
                                     |> Map.toList
                                     |> List.map fst
-                                let unusedTestVariableIndices =
-                                    (List.init maximumNumberOfTestVariables BargainBasement.Identity
-                                     |> Set.ofList) - (testVariableIndices
+                                let unusedPathStepIndices =
+                                    (List.init maximumNumberOfPathSteps BargainBasement.Identity
+                                     |> Set.ofList) - (pathStepIndices
                                                        |> Set.ofList)
                                 let extraPadding =
-                                    unusedTestVariableIndices
-                                    |> Seq.map (fun testVariableIndex -> testVariableIndex, randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfTestVariables)
+                                    unusedPathStepIndices
+                                    |> Seq.map (fun pathStepIndex -> pathStepIndex, randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfPathSteps)
 
-                                yield partialTestVector
+                                yield incompletePath
                                 |> Map.toSeq
                                 |> Seq.append extraPadding
                                 |> Map.ofSeq
@@ -164,164 +164,164 @@
                 |> List.ofArray
 
             for _ in 1 .. overallTestRepeats do
-                testHandoff overlappingPartialTestVectorsWithSomeExtraFullTestVectors
+                testHandoff overlappingPartialPathsWithSomeExtraCompletePaths
 
 
-        let dumpPartialTestVector partialTestVector =
+        let dumpIncompletePath incompletePath =
             printf "[ "
-            partialTestVector
-            |> Map.iter (fun testVariableIndex testLevel ->
-                            printf "(%A, %A) " testVariableIndex testLevel)
+            incompletePath
+            |> Map.iter (fun pathStepIndex testStep ->
+                            printf "(%A, %A) " pathStepIndex testStep)
             printf "]\n"
 
-        let mergeOrAddPartialTestVectors partialTestVectors
+        let mergeOrAddPartialPaths incompletePaths
                                          initialCollection
                                          randomBehaviour
-                                         revealFullTestVectorsAgain =
-            let maximumNumberOfTestVariables =
+                                         revealCompletePathsAgain =
+            let maximumNumberOfPathSteps =
                 (initialCollection: SetOfMergedPaths<_>).NumberOfStepsInACompletePath
-            let shuffledDuplicatedPartialTestVectors =
-                (randomBehaviour: Random).Shuffle (List.append partialTestVectors partialTestVectors)
+            let shuffledDuplicatedPartialPaths =
+                (randomBehaviour: Random).Shuffle (List.append incompletePaths incompletePaths)
                 |> List.ofArray
-            let mergedPartialTestVectors
-                , setOfMergedFullTestVectors =
-                shuffledDuplicatedPartialTestVectors
-                |> List.fold (fun (mergedPartialTestVectors, setOfFullTestVectors) partialTestVector ->
-                                match (mergedPartialTestVectors: SetOfMergedPaths<_>).MergeOrAdd partialTestVector with
-                                    updatedSetOfMergedPathsWithFullTestCaseVectorSuppressed
-                                    , Some resultingFullTestCaseVector ->
+            let mergedPartialPaths
+                , setOfMergedCompletePaths =
+                shuffledDuplicatedPartialPaths
+                |> List.fold (fun (mergedPartialPaths, setOfCompletePaths) incompletePath ->
+                                match (mergedPartialPaths: SetOfMergedPaths<_>).MergeOrAdd incompletePath with
+                                    updatedSetOfMergedPathsWithCompleteTestCasePathSuppressed
+                                    , Some resultingCompleteTestCasePath ->
                                         let shouldBeTrue =
-                                            not (Set.contains resultingFullTestCaseVector
-                                                              setOfFullTestVectors)
+                                            not (Set.contains resultingCompleteTestCasePath
+                                                              setOfCompletePaths)
 
                                         Assert.IsTrue shouldBeTrue
 
-                                        updatedSetOfMergedPathsWithFullTestCaseVectorSuppressed
-                                        , Set.add resultingFullTestCaseVector
-                                                  setOfFullTestVectors
+                                        updatedSetOfMergedPathsWithCompleteTestCasePathSuppressed
+                                        , Set.add resultingCompleteTestCasePath
+                                                  setOfCompletePaths
                                   | updatedSetOfMergedPaths
                                     , None ->
                                         updatedSetOfMergedPaths
-                                        , setOfFullTestVectors)
+                                        , setOfCompletePaths)
                              (initialCollection, Set.empty)
-            let isFullTestVector partialTestVector =
-                let sumOfIndicesExpectedForFullTestVector =
-                    maximumNumberOfTestVariables * (maximumNumberOfTestVariables + 1) / 2
-                partialTestVector
+            let isCompletePath incompletePath =
+                let sumOfIndicesExpectedForCompletePath =
+                    maximumNumberOfPathSteps * (maximumNumberOfPathSteps + 1) / 2
+                incompletePath
                 |> Map.toSeq
-                |> Seq.map (fst >> (fun testVariableIndex -> 1 + testVariableIndex))   // NOTE: shift by one because otherwise the leading term for a sum of zero-relative indices would not show up in the sum!
+                |> Seq.map (fst >> (fun pathStepIndex -> 1 + pathStepIndex))   // NOTE: shift by one because otherwise the leading term for a sum of zero-relative indices would not show up in the sum!
                 |> Seq.reduce (+)
-                 = sumOfIndicesExpectedForFullTestVector
+                 = sumOfIndicesExpectedForCompletePath
 
             let shouldBeTrue =
-                setOfMergedFullTestVectors
-                |> Set.forall isFullTestVector
+                setOfMergedCompletePaths
+                |> Set.forall isCompletePath
 
             Assert.IsTrue shouldBeTrue
 
-            if revealFullTestVectorsAgain
+            if revealCompletePathsAgain
             then
-                let setOfAllMergedTestVectors =
-                    mergedPartialTestVectors.EnumerationOfMergedPaths true
+                let setOfAllMergedPaths =
+                    mergedPartialPaths.EnumerationOfMergedPaths true
                     |> Set.ofSeq
 
                 let shouldBeTrue =
-                    Set.isSubset setOfMergedFullTestVectors setOfAllMergedTestVectors
+                    Set.isSubset setOfMergedCompletePaths setOfAllMergedPaths
                 Assert.IsTrue shouldBeTrue
 
-                mergedPartialTestVectors
-                , setOfAllMergedTestVectors
+                mergedPartialPaths
+                , setOfAllMergedPaths
             else
-                let setOfMergedPartialTestVectors =
-                    mergedPartialTestVectors.EnumerationOfMergedPaths false
+                let setOfMergedPartialPaths =
+                    mergedPartialPaths.EnumerationOfMergedPaths false
                     |> Set.ofSeq
 
                 let shouldBeTrue =
-                    Set.isEmpty (Set.intersect setOfMergedFullTestVectors setOfMergedPartialTestVectors)
+                    Set.isEmpty (Set.intersect setOfMergedCompletePaths setOfMergedPartialPaths)
 
                 if not shouldBeTrue
-                then let common = Set.intersect setOfMergedFullTestVectors setOfMergedPartialTestVectors
-                     printf "setOfMergedFullTestVectors:\n"
-                     setOfMergedFullTestVectors |> Set.iter dumpPartialTestVector
-                     printf "setOfMergedPartialTestVectors:\n"
-                     setOfMergedPartialTestVectors  |> Set.iter dumpPartialTestVector
-                     printf "Only in setOfMergedFullTestVectors:-\n"
-                     (setOfMergedFullTestVectors - common) |> Set.iter dumpPartialTestVector
-                     printf "Only in setOfMergedPartialTestVectors:-\n"
-                     (setOfMergedPartialTestVectors - common) |> Set.iter dumpPartialTestVector
+                then let common = Set.intersect setOfMergedCompletePaths setOfMergedPartialPaths
+                     printf "setOfMergedCompletePaths:\n"
+                     setOfMergedCompletePaths |> Set.iter dumpIncompletePath
+                     printf "setOfMergedPartialPaths:\n"
+                     setOfMergedPartialPaths  |> Set.iter dumpIncompletePath
+                     printf "Only in setOfMergedCompletePaths:-\n"
+                     (setOfMergedCompletePaths - common) |> Set.iter dumpIncompletePath
+                     printf "Only in setOfMergedPartialPaths:-\n"
+                     (setOfMergedPartialPaths - common) |> Set.iter dumpIncompletePath
                      printf "Common:-\n"
-                     common |> Set.iter dumpPartialTestVector
+                     common |> Set.iter dumpIncompletePath
 
                 Assert.IsTrue shouldBeTrue
 
                 let shouldBeTrue =
-                    setOfMergedPartialTestVectors
-                    |> Set.forall (isFullTestVector >> not)
+                    setOfMergedPartialPaths
+                    |> Set.forall (isCompletePath >> not)
 
                 if not shouldBeTrue
                 then
-                    printf "Maximum number of test variables: %A\n" maximumNumberOfTestVariables
-                    printf "Got at least one full test vector that is just from the enumeration:-\n"
-                    setOfMergedPartialTestVectors |> Set.filter isFullTestVector |> Set.iter dumpPartialTestVector
+                    printf "Maximum number of steps: %A\n" maximumNumberOfPathSteps
+                    printf "Got at least one complete path that is just from the enumeration:-\n"
+                    setOfMergedPartialPaths |> Set.filter isCompletePath |> Set.iter dumpIncompletePath
 
                 Assert.IsTrue shouldBeTrue
 
-                mergedPartialTestVectors
-                , (setOfMergedPartialTestVectors
-                   |> Set.union setOfMergedFullTestVectors)
+                mergedPartialPaths
+                , (setOfMergedPartialPaths
+                   |> Set.union setOfMergedCompletePaths)
 
         [<Test>]
-        member this.TestAdditionOfUnmergeableVectorsPreservesIndividualVectors () =
+        member this.TestAdditionOfUnmergeablePathsPreservesIndividualPaths () =
             let randomBehaviour = Random randomBehaviourSeed
-            let testHandoff partialTestVectorsThatDoNotOverlap =
-                let mergedPartialTestVectors
-                    , setOfMergedPartialTestVectors =
-                    mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap
-                                                 (SetOfMergedPaths.Initial maximumNumberOfTestVariables
+            let testHandoff incompletePathsThatDoNotOverlap =
+                let mergedPartialPaths
+                    , setOfMergedPartialPaths =
+                    mergeOrAddPartialPaths incompletePathsThatDoNotOverlap
+                                                 (SetOfMergedPaths.Initial maximumNumberOfPathSteps
                                                                                                  passAllFilter)
                                                  randomBehaviour
                                                  true
                 let shouldBeTrue =
-                    Set.ofList partialTestVectorsThatDoNotOverlap = setOfMergedPartialTestVectors
+                    Set.ofList incompletePathsThatDoNotOverlap = setOfMergedPartialPaths
                 if not shouldBeTrue
-                then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
-                     let merged = mergedPartialTestVectors.EnumerationOfMergedPaths true |> Set.ofSeq
+                then let originals = Set.ofList incompletePathsThatDoNotOverlap
+                     let merged = mergedPartialPaths.EnumerationOfMergedPaths true |> Set.ofSeq
                      let common = Set.intersect originals merged
                      printf "Only in originals:-\n"
-                     (originals - common) |> Set.iter dumpPartialTestVector
+                     (originals - common) |> Set.iter dumpIncompletePath
                      printf "Only in merged:-\n"
-                     (merged - common) |> Set.iter dumpPartialTestVector
+                     (merged - common) |> Set.iter dumpIncompletePath
                      printf "Common:-\n"
-                     common |> Set.iter dumpPartialTestVector
+                     common |> Set.iter dumpIncompletePath
                 Assert.IsTrue shouldBeTrue
-            createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
+            createNonOverlappingPartialPathsAndHandEachOffToTest testHandoff
 
         [<Test>]
-        member this.TestAdditionOfPartialsOfExistingVectors () =
+        member this.TestAdditionOfPartialsOfExistingPaths () =
             let randomBehaviour = Random randomBehaviourSeed
-            let testHandoff partialTestVectorsThatDoNotOverlap =
-                let mergedPartialTestVectors
+            let testHandoff incompletePathsThatDoNotOverlap =
+                let mergedPartialPaths
                     , _ =
-                    mergeOrAddPartialTestVectors partialTestVectorsThatDoNotOverlap
-                                                 (SetOfMergedPaths.Initial maximumNumberOfTestVariables
+                    mergeOrAddPartialPaths incompletePathsThatDoNotOverlap
+                                                 (SetOfMergedPaths.Initial maximumNumberOfPathSteps
                                                                                                  passAllFilter)
                                                  randomBehaviour
                                                  true
-                let mutantsOrCopiesOf partialTestVector =
+                let mutantsOrCopiesOf incompletePath =
                     let maximumRecursionDepth = 50
                     let rec createMutantOrCopy recursionDepth =
                         let mutantOrCopy =
                             match randomBehaviour.ChooseAnyNumberFromOneTo 3 with
                                 1 ->
-                                    randomBehaviour.ChooseSeveralOf ((Map.toSeq partialTestVector)
-                                                                     , (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan partialTestVector.Count))
+                                    randomBehaviour.ChooseSeveralOf ((Map.toSeq incompletePath)
+                                                                     , (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan incompletePath.Count))
                                  |> Map.ofSeq
                               | 2 ->
-                                    Map.toSeq partialTestVector
-                                    |> Seq.take (randomBehaviour.ChooseAnyNumberFromOneTo (partialTestVector.Count - 1))
+                                    Map.toSeq incompletePath
+                                    |> Seq.take (randomBehaviour.ChooseAnyNumberFromOneTo (incompletePath.Count - 1))
                                     |> Map.ofSeq
                               | 3 ->
-                                    partialTestVector
+                                    incompletePath
                               | _ ->
                                     raise (InternalAssertionViolationException "This case should never be matched.")
                         mutantOrCopy
@@ -330,130 +330,130 @@
                            then []
                            else createMutantOrCopy (recursionDepth + 1)
                     createMutantOrCopy 0
-                let partialTestVectorsThatAddNoNewInformation =
-                    partialTestVectorsThatDoNotOverlap
+                let incompletePathsThatAddNoNewInformation =
+                    incompletePathsThatDoNotOverlap
                     |> List.map mutantsOrCopiesOf
                     |> List.concat
-                let remergedPartialTestVectors
-                    , setOfMergedPartialTestVectorsFromRemerge =
-                    mergeOrAddPartialTestVectors partialTestVectorsThatAddNoNewInformation
-                                                 mergedPartialTestVectors
+                let remergedPartialPaths
+                    , setOfMergedPartialPathsFromRemerge =
+                    mergeOrAddPartialPaths incompletePathsThatAddNoNewInformation
+                                                 mergedPartialPaths
                                                  randomBehaviour
                                                  true
                 let shouldBeTrue =
-                    (Set.ofList partialTestVectorsThatDoNotOverlap).Count = setOfMergedPartialTestVectorsFromRemerge.Count
+                    (Set.ofList incompletePathsThatDoNotOverlap).Count = setOfMergedPartialPathsFromRemerge.Count
                 if not shouldBeTrue
-                then let originals = Set.ofList partialTestVectorsThatDoNotOverlap
-                     let remerged = remergedPartialTestVectors.EnumerationOfMergedPaths true |> Set.ofSeq
+                then let originals = Set.ofList incompletePathsThatDoNotOverlap
+                     let remerged = remergedPartialPaths.EnumerationOfMergedPaths true |> Set.ofSeq
                      let common = Set.intersect originals remerged
                      printf "Only in originals:-\n"
-                     (originals - common) |> Set.iter dumpPartialTestVector
+                     (originals - common) |> Set.iter dumpIncompletePath
                      printf "Only in remerged:-\n"
-                     (remerged - common) |> Set.iter dumpPartialTestVector
+                     (remerged - common) |> Set.iter dumpIncompletePath
                      printf "Common:-\n"
-                     common |> Set.iter dumpPartialTestVector
+                     common |> Set.iter dumpIncompletePath
                 Assert.IsTrue shouldBeTrue
-            createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
+            createNonOverlappingPartialPathsAndHandEachOffToTest testHandoff
 
         [<Test>]
-        member this.TestMergingOfVectorsInWithExistingPartialVectors () =
+        member this.TestMergingOfPathsInWithExistingPartialPaths () =
             let randomBehaviour = Random randomBehaviourSeed
 
-            let testHandoff partialTestVectorsThatDoNotOverlap =
+            let testHandoff incompletePathsThatDoNotOverlap =
                 let numberOfIndicesToAvoid =
                     randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfIndicesToAvoid
                 let sortedIndicesToAvoid =
-                    randomBehaviour.ChooseSeveralOf ((List.init maximumNumberOfTestVariables BargainBasement.Identity)
+                    randomBehaviour.ChooseSeveralOf ((List.init maximumNumberOfPathSteps BargainBasement.Identity)
                                                      , numberOfIndicesToAvoid)
                     |> List.ofArray
                     |> List.sort
                 let mappingAvoidingIndices =
                     BargainBasement.MappingAvoidingIndices sortedIndicesToAvoid
-                let maximumNumberOfTestVariablesAfterRemapping =
-                    maximumNumberOfTestVariables + numberOfIndicesToAvoid
+                let maximumNumberOfPathStepsAfterRemapping =
+                    maximumNumberOfPathSteps + numberOfIndicesToAvoid
                 let rotationOffsetToAllowCoverageOfTrailingIndices =
                     randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumNumberOfIndicesToAvoid
                 let rotation =
-                    fun testVariableIndex -> (rotationOffsetToAllowCoverageOfTrailingIndices + testVariableIndex) % maximumNumberOfTestVariablesAfterRemapping
+                    fun pathStepIndex -> (rotationOffsetToAllowCoverageOfTrailingIndices + pathStepIndex) % maximumNumberOfPathStepsAfterRemapping
                 let mappingAvoidingIndicesThenRotation =
                     mappingAvoidingIndices >> rotation
-                let remappedPartialTestVectors =
-                    partialTestVectorsThatDoNotOverlap
+                let remappedPartialPaths =
+                    incompletePathsThatDoNotOverlap
                     |> List.map (Map.toList >> List.map (function index
-                                                                  , level ->
+                                                                  , step ->
                                                                     mappingAvoidingIndicesThenRotation index
-                                                                    , level) >> Map.ofList)
-                let mergedPartialTestVectors
+                                                                    , step) >> Map.ofList)
+                let mergedPartialPaths
                     , _ =
-                    mergeOrAddPartialTestVectors remappedPartialTestVectors
-                                                 (SetOfMergedPaths.Initial maximumNumberOfTestVariablesAfterRemapping
+                    mergeOrAddPartialPaths remappedPartialPaths
+                                                 (SetOfMergedPaths.Initial maximumNumberOfPathStepsAfterRemapping
                                                                                                  passAllFilter)
                                                  randomBehaviour
                                                  true
-                let possiblyAddLevelsForIndices indicesToAdd partialTestVector =
+                let possiblyAddStepsForIndices indicesToAdd incompletePath =
                     let chosenIndicesToAdd =
                         randomBehaviour.ChooseSeveralOf (indicesToAdd
                                                          , (randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (Seq.length indicesToAdd + 1)))
                     seq {for index in chosenIndicesToAdd do
-                            yield index, index + randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumLevelDelta}
-                    |> (let addIndexAndLevel partialTestVector
-                                             (testVariableIndex
-                                              , level)
+                            yield index, index + randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan maximumStepDelta}
+                    |> (let addIndexAndStep incompletePath
+                                             (pathStepIndex
+                                              , step)
                                              =
-                            Map.add testVariableIndex level partialTestVector
-                        Seq.fold addIndexAndLevel partialTestVector)
+                            Map.add pathStepIndex step incompletePath
+                        Seq.fold addIndexAndStep incompletePath)
                 let sortedIndicesToAvoidWithRotationApplied =
                     sortedIndicesToAvoid
                     |> List.map rotation
-                let partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices =
-                    remappedPartialTestVectors
-                    |> List.map (possiblyAddLevelsForIndices sortedIndicesToAvoidWithRotationApplied)
-                let remergedPartialTestVectors
-                    , setOfMergedPartialTestVectorsFromRemerge =
-                    mergeOrAddPartialTestVectors partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
-                                                 mergedPartialTestVectors
+                let incompletePathsWhichMayHaveThePreviouslyAvoidedIndices =
+                    remappedPartialPaths
+                    |> List.map (possiblyAddStepsForIndices sortedIndicesToAvoidWithRotationApplied)
+                let remergedPartialPaths
+                    , setOfMergedPartialPathsFromRemerge =
+                    mergeOrAddPartialPaths incompletePathsWhichMayHaveThePreviouslyAvoidedIndices
+                                                 mergedPartialPaths
                                                  randomBehaviour
                                                  true
                 let shouldBeTrue =
-                    Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices = setOfMergedPartialTestVectorsFromRemerge
+                    Set.ofList incompletePathsWhichMayHaveThePreviouslyAvoidedIndices = setOfMergedPartialPathsFromRemerge
                 if not shouldBeTrue
-                then let originals = Set.ofList partialTestVectorsWhichMayHaveThePreviouslyAvoidedIndices
-                     let remerged = remergedPartialTestVectors.EnumerationOfMergedPaths true |> Set.ofSeq
+                then let originals = Set.ofList incompletePathsWhichMayHaveThePreviouslyAvoidedIndices
+                     let remerged = remergedPartialPaths.EnumerationOfMergedPaths true |> Set.ofSeq
                      let common = Set.intersect originals remerged
-                     printf "remappedPartialTestVectors:\n"
-                     Set.ofList remappedPartialTestVectors |> Set.iter dumpPartialTestVector
-                     printf "mergedPartialTestVectors:\n"
-                     mergedPartialTestVectors.EnumerationOfMergedPaths true |> Set.ofSeq  |> Set.iter dumpPartialTestVector
+                     printf "remappedPartialPaths:\n"
+                     Set.ofList remappedPartialPaths |> Set.iter dumpIncompletePath
+                     printf "mergedPartialPaths:\n"
+                     mergedPartialPaths.EnumerationOfMergedPaths true |> Set.ofSeq  |> Set.iter dumpIncompletePath
                      printf "Only in originals:-\n"
-                     (originals - common) |> Set.iter dumpPartialTestVector
+                     (originals - common) |> Set.iter dumpIncompletePath
                      printf "Only in remerged:-\n"
-                     (remerged - common) |> Set.iter dumpPartialTestVector
+                     (remerged - common) |> Set.iter dumpIncompletePath
                      printf "Common:-\n"
-                     common |> Set.iter dumpPartialTestVector
+                     common |> Set.iter dumpIncompletePath
                      printf "Indices to avoid with rotation applied: %A\n" sortedIndicesToAvoidWithRotationApplied
                 Assert.IsTrue shouldBeTrue
-            createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
+            createNonOverlappingPartialPathsAndHandEachOffToTest testHandoff
 
         [<Test>]
-        member this.TestVectorsAreEitherAddedOrMerged () =
+        member this.PathsAreEitherAddedOrMerged () =
             let randomBehaviour = Random randomBehaviourSeed
-            let testHandoff partialTestVectors =
-                let mergedPartialTestVectors
-                    , setOfMergedPartialTestVectors =
-                        mergeOrAddPartialTestVectors partialTestVectors
-                                                     (SetOfMergedPaths.Initial maximumNumberOfTestVariables
+            let testHandoff incompletePaths =
+                let mergedPartialPaths
+                    , setOfMergedPartialPaths =
+                        mergeOrAddPartialPaths incompletePaths
+                                                     (SetOfMergedPaths.Initial maximumNumberOfPathSteps
                                                                                                      passAllFilter)
                                                      randomBehaviour
                                                      true
-                let numberOfMergedPartialTestVectors =
-                    setOfMergedPartialTestVectors.Count
-                let shouldBeTrue = numberOfMergedPartialTestVectors <= partialTestVectors.Length
+                let numberOfMergedPartialPaths =
+                    setOfMergedPartialPaths.Count
+                let shouldBeTrue = numberOfMergedPartialPaths <= incompletePaths.Length
                 Assert.IsTrue shouldBeTrue
-                let partialVectorsThatWereChanged =
-                    partialTestVectors
-                    |> List.filter (fun partialTestVector -> not (setOfMergedPartialTestVectors.Contains partialTestVector))
+                let incompletePathsThatWereChanged =
+                    incompletePaths
+                    |> List.filter (fun incompletePath -> not (setOfMergedPartialPaths.Contains incompletePath))
                     |> Set.ofSeq
-                let checkInclusionInAtLeastOneMergedPartialTestVector partialTestVector =
+                let checkInclusionInAtLeastOneMergedIncompletePath incompletePath =
                     let firstIncludesSecond first second =
                         (first
                          |> Map.toList
@@ -461,97 +461,97 @@
                                                        |> Map.toList
                                                        |> Set.ofList)
                     let shouldBeTrue =
-                        setOfMergedPartialTestVectors
-                        |> Set.exists (fun mergedPartialTestVector
-                                            -> firstIncludesSecond mergedPartialTestVector partialTestVector)
+                        setOfMergedPartialPaths
+                        |> Set.exists (fun mergedIncompletePath
+                                            -> firstIncludesSecond mergedIncompletePath incompletePath)
                     Assert.IsTrue shouldBeTrue
-                partialVectorsThatWereChanged
-                |> Seq.iter checkInclusionInAtLeastOneMergedPartialTestVector
-            createOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
+                incompletePathsThatWereChanged
+                |> Seq.iter checkInclusionInAtLeastOneMergedIncompletePath
+            createOverlappingPartialPathsAndHandEachOffToTest testHandoff
 
         [<Test>]
-        member this.TestAdditionOfTrivialEmptyPartialTestVectorsLeavesCollectionUnchanged () =
+        member this.TestAdditionOfTrivialEmptyPartialPathsLeavesCollectionUnchanged () =
             let randomBehaviour = Random randomBehaviourSeed
-            let testHandoff partialTestVectors =
-                let mergedPartialTestVectors
-                    , setOfMergedPartialTestVectors =
-                    mergeOrAddPartialTestVectors partialTestVectors
-                                                 (SetOfMergedPaths.Initial maximumNumberOfTestVariables
+            let testHandoff incompletePaths =
+                let mergedPartialPaths
+                    , setOfMergedPartialPaths =
+                    mergeOrAddPartialPaths incompletePaths
+                                                 (SetOfMergedPaths.Initial maximumNumberOfPathSteps
                                                                                                  passAllFilter)
                                                  randomBehaviour
                                                  true
-                let remergedPartialTestVectors
-                    , setOfMergedPartialTestVectorsFromRemerge =
-                    mergeOrAddPartialTestVectors [Map.empty]
-                                                 mergedPartialTestVectors
+                let remergedPartialPaths
+                    , setOfMergedPartialPathsFromRemerge =
+                    mergeOrAddPartialPaths [Map.empty]
+                                                 mergedPartialPaths
                                                  randomBehaviour
                                                  true
                 let shouldBeTrue =
-                    setOfMergedPartialTestVectors = setOfMergedPartialTestVectorsFromRemerge
+                    setOfMergedPartialPaths = setOfMergedPartialPathsFromRemerge
                 Assert.IsTrue shouldBeTrue
-            createOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
+            createOverlappingPartialPathsAndHandEachOffToTest testHandoff
 
         [<Test>]
-        member this.TestThatNotRevealingFullTestVectorsSuppressesThemFromTheEnumerationButNotTheEarlyAccessApi () =
+        member this.TestThatNotRevealingCompletePathsSuppressesThemFromTheEnumerationButNotTheEarlyAccessApi () =
             let randomBehaviour = Random randomBehaviourSeed
-            let testHandoff partialTestVectors =
+            let testHandoff incompletePaths =
                 let commonSeedForRandomBehaviourClones =
                     randomBehaviour.Next()  // Need to clone the random behaviour instances passed to the two calls to
-                                            // 'mergeOrAddPartialTestVectors', because this function shuffles the partial
-                                            // test vectors internally - which would otherwise legitimately result in
+                                            // 'mergeOrAddPartialPaths', because this function shuffles the incomplete
+                                            // paths internally - which would otherwise legitimately result in
                                             // different merges in the two calls, and therefore different results.
                 let randomBehaviourCloneOne =
                     Random(commonSeedForRandomBehaviourClones)
                 let randomBehaviourCloneTwo =
                     Random(commonSeedForRandomBehaviourClones)
-                let mergedPartialTestVectors
-                    , setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration =
-                    mergeOrAddPartialTestVectors partialTestVectors
-                                                 (SetOfMergedPaths.Initial maximumNumberOfTestVariables
+                let mergedPartialPaths
+                    , setOfMergedPartialPathsRevealingCompletePathsInEnumeration =
+                    mergeOrAddPartialPaths incompletePaths
+                                                 (SetOfMergedPaths.Initial maximumNumberOfPathSteps
                                                                                                  passAllFilter)
                                                  randomBehaviourCloneOne
                                                  true
-                let mergedPartialTestVectors
-                    , setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration =
-                    mergeOrAddPartialTestVectors partialTestVectors
-                                                 (SetOfMergedPaths.Initial maximumNumberOfTestVariables
+                let mergedPartialPaths
+                    , setOfMergedPartialPathsNotRevealingCompletePathsInEnumeration =
+                    mergeOrAddPartialPaths incompletePaths
+                                                 (SetOfMergedPaths.Initial maximumNumberOfPathSteps
                                                                                                  passAllFilter)
                                                  randomBehaviourCloneTwo
                                                  false
 
                 let shouldBeTrue =
-                    setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration = setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration
-                    // NOTE: this looks odd, but bear in mind that the result from the helper 'mergeOrAddPartialTestVectors' also
+                    setOfMergedPartialPathsRevealingCompletePathsInEnumeration = setOfMergedPartialPathsNotRevealingCompletePathsInEnumeration
+                    // NOTE: this looks odd, but bear in mind that the result from the helper 'mergeOrAddPartialPaths' also
                     // includes the early access API results - so we are saying that nothing is lost overall at this point.
 
-                    // NOTE: the check for suppression of the full test vectors is performed in the helper 'mergeOrAddPartialTestVectors'.
+                    // NOTE: the check for suppression of the complete paths is performed in the helper 'mergeOrAddPartialPaths'.
 
                 if not shouldBeTrue
-                then let common = Set.intersect setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration
-                     printf "setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration:\n"
-                     setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration |> Set.iter dumpPartialTestVector
-                     printf "setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration:\n"
-                     setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration  |> Set.iter dumpPartialTestVector
-                     printf "Only in setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration:-\n"
-                     (setOfMergedPartialTestVectorsRevealingFullTestVectorsInEnumeration - common) |> Set.iter dumpPartialTestVector
-                     printf "Only in setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration:-\n"
-                     (setOfMergedPartialTestVectorsNotRevealingFullTestVectorsInEnumeration - common) |> Set.iter dumpPartialTestVector
+                then let common = Set.intersect setOfMergedPartialPathsRevealingCompletePathsInEnumeration setOfMergedPartialPathsNotRevealingCompletePathsInEnumeration
+                     printf "setOfMergedPartialPathsRevealingCompletePathsInEnumeration:\n"
+                     setOfMergedPartialPathsRevealingCompletePathsInEnumeration |> Set.iter dumpIncompletePath
+                     printf "setOfMergedPartialPathsNotRevealingCompletePathsInEnumeration:\n"
+                     setOfMergedPartialPathsNotRevealingCompletePathsInEnumeration  |> Set.iter dumpIncompletePath
+                     printf "Only in setOfMergedPartialPathsRevealingCompletePathsInEnumeration:-\n"
+                     (setOfMergedPartialPathsRevealingCompletePathsInEnumeration - common) |> Set.iter dumpIncompletePath
+                     printf "Only in setOfMergedPartialPathsNotRevealingCompletePathsInEnumeration:-\n"
+                     (setOfMergedPartialPathsNotRevealingCompletePathsInEnumeration - common) |> Set.iter dumpIncompletePath
                      printf "Common:-\n"
-                     common |> Set.iter dumpPartialTestVector
+                     common |> Set.iter dumpIncompletePath
 
                 Assert.IsTrue shouldBeTrue
-            createOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
-            createNonOverlappingPartialTestVectorsAndHandEachOffToTest testHandoff
+            createOverlappingPartialPathsAndHandEachOffToTest testHandoff
+            createNonOverlappingPartialPathsAndHandEachOffToTest testHandoff
 
         [<Test>]
-        member this.TestInitialStateIsEmptyAndDoesNotContainATrivialEmptyPartialTestVector () =
-            for maximumNumberOfTestVariables in 0 .. maximumNumberOfTestVariables do   // NOTE: includes the boundary case of no test variables whatsover.
+        member this.TestInitialStateIsEmptyAndDoesNotContainATrivialEmptyIncompletePath () =
+            for maximumNumberOfPathSteps in 0 .. maximumNumberOfPathSteps do   // NOTE: includes the boundary case of no steps whatsover.
                 let initial =
-                    SetOfMergedPaths.Initial maximumNumberOfTestVariables
+                    SetOfMergedPaths.Initial maximumNumberOfPathSteps
                                                                    passAllFilter
-                let containedPartialTestVectors =
+                let containedPartialPaths =
                     initial.EnumerationOfMergedPaths true
                     |> List.ofSeq
                 let shouldBeTrue =
-                    containedPartialTestVectors.Length = 0
+                    containedPartialPaths.Length = 0
                 Assert.IsTrue shouldBeTrue
