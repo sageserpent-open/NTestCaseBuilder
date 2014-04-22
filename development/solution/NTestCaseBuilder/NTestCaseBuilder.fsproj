@@ -30,7 +30,7 @@
     <OtherFlags>
     </OtherFlags>
     <DocumentationFile>bin\Debug\NTestCaseBuilder.XML</DocumentationFile>
-    <Tailcalls>true</Tailcalls>
+    <Tailcalls>false</Tailcalls>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

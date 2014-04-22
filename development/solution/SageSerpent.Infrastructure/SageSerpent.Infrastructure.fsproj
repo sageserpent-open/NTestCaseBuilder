@@ -30,6 +30,7 @@
     <OtherFlags>
     </OtherFlags>
     <DocumentationFile>bin\Debug\SageSerpent.Infrastructure.XML</DocumentationFile>
+    <Tailcalls>true</Tailcalls>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
