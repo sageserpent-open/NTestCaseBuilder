@@ -206,9 +206,9 @@ namespace SageSerpent.Infrastructure
             member this.IsSpecialCaseDenotingInitialState =   // The tests define this special state as not possessing any paths, not even the trivial empty one.
                 0 = this.PathStepIndex
 
-            member this.IsCompletePath maximumNumberOfPathIndexs =
+            member this.IsCompletePath maximumNumberOfPathIndices =
                 this.HasSuffixContextOfPossibleCompletePath
-                && maximumNumberOfPathIndexs = this.PathStepIndex
+                && maximumNumberOfPathIndices = this.PathStepIndex
 
             member this.PropagateFromDefinedStepToNextPathIndex =
                 {
@@ -435,7 +435,7 @@ namespace SageSerpent.Infrastructure
     open SetOfMergedPathsDetail
 
     type SetOfMergedPaths<'Step when 'Step: comparison>(paths: Paths<'Step>,
-                                                                                maximumNumberOfPathIndexs: Int32,
+                                                                                maximumNumberOfPathIndices: Int32,
                                                                                 pathIsAcceptable: seq<Int32 * 'Step> -> Boolean) =
         let createIncompletePathSequence revealCompletePathsAgain =
             let rec traversePaths {
@@ -468,7 +468,7 @@ namespace SageSerpent.Infrastructure
                 let rec traverseBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex =
                     match binaryTreeOfStepsForPathIndex with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfPathIndexs <= treeSearchContextParameters.PathStepIndex
+                            if maximumNumberOfPathIndices <= treeSearchContextParameters.PathStepIndex
                             then
                                 raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
@@ -491,8 +491,8 @@ namespace SageSerpent.Infrastructure
                                             })
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
-                        if maximumNumberOfPathIndexs < treeSearchContextParameters.PathStepIndex
-                            // NOTE: a subtlety - remember that 'pathStepIndex' can reach 'maximumNumberOfPathIndexsOverall'
+                        if maximumNumberOfPathIndices < treeSearchContextParameters.PathStepIndex
+                            // NOTE: a subtlety - remember that 'pathStepIndex' can reach 'maximumNumberOfPathIndicesOverall'
                             // for a full (and possibly removed) path, because successful searches go through at least one
                             // node corresponding to each path step index, *then* land on a node indicating whether the search
                             // was successful or not: so the zero-relative index gets incremented one more time.
@@ -500,7 +500,7 @@ namespace SageSerpent.Infrastructure
                             raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
                         if not revealCompletePathsAgain
-                           && treeSearchContextParameters.IsCompletePath maximumNumberOfPathIndexs
+                           && treeSearchContextParameters.IsCompletePath maximumNumberOfPathIndices
                            || treeSearchContextParameters.IsSpecialCaseDenotingInitialState
                         then
                             Seq.empty
@@ -509,7 +509,7 @@ namespace SageSerpent.Infrastructure
                             then
                                 raise (InternalAssertionViolationException "Should not contain an empty partial vector: attempts to merge in empty partial vectors should have resulted in the original collection.")
 
-                            if incompletePathBeingBuilt.Length > maximumNumberOfPathIndexs
+                            if incompletePathBeingBuilt.Length > maximumNumberOfPathIndices
                             then
                                 raise (InternalAssertionViolationException "The path has more steps than the permitted maximum number of steps.")
 
@@ -545,7 +545,7 @@ namespace SageSerpent.Infrastructure
                                     []
 
         let fillOutIncompletePathWithIndeterminates incompletePathRepresentation =
-            if (incompletePathRepresentation: Map<_, _>).Count > maximumNumberOfPathIndexs
+            if (incompletePathRepresentation: Map<_, _>).Count > maximumNumberOfPathIndices
             then
                 raise (InternalAssertionViolationException "The incomplete path being either merged or added has more steps than the permitted maximum number of steps.")
 
@@ -557,7 +557,7 @@ namespace SageSerpent.Infrastructure
             let maximumPathStepIndexHavingStep =
                 Seq.max pathStepIndicesHavingSteps
 
-            if maximumPathStepIndexHavingStep >= maximumNumberOfPathIndexs
+            if maximumPathStepIndexHavingStep >= maximumNumberOfPathIndices
             then
                 raise (PreconditionViolationException "The incomplete path being either merged or added has a path step index that is greater than the permitted maximum.")
 
@@ -575,7 +575,7 @@ namespace SageSerpent.Infrastructure
             if isPrefixOfCompletePath
             then
                 let isCompletePath =
-                    maximumNumberOfPathIndexs = 1 + maximumPathStepIndexHavingStep
+                    maximumNumberOfPathIndices = 1 + maximumPathStepIndexHavingStep
                 incompletePathRepresentation
                 |> Map.toList
                 |> List.map (snd >> Some)
@@ -1056,7 +1056,7 @@ namespace SageSerpent.Infrastructure
                                                                      tailFromQueryIncompletePathRepresentation =
                     match binaryTreeOfStepsForPathIndex with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfPathIndexs <= treeSearchContextParameters.PathStepIndex
+                            if maximumNumberOfPathIndices <= treeSearchContextParameters.PathStepIndex
                             then
                                 raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
@@ -1085,7 +1085,7 @@ namespace SageSerpent.Infrastructure
                                                                                  tailFromQueryIncompletePathRepresentation =
                     match binaryTreeOfStepsForPathIndex with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfPathIndexs <= treeSearchContextParameters.PathStepIndex
+                            if maximumNumberOfPathIndices <= treeSearchContextParameters.PathStepIndex
                             then
                                 raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
@@ -1136,15 +1136,15 @@ namespace SageSerpent.Infrastructure
                       , queryIncompletePathRepresentation with
                     SuccessfulSearchTerminationNode
                     , _ ->
-                        if maximumNumberOfPathIndexs < treeSearchContextParameters.PathStepIndex
-                            // NOTE: a subtlety - remember that 'pathStepIndex' can reach 'maximumNumberOfPathIndexsOverall'
+                        if maximumNumberOfPathIndices < treeSearchContextParameters.PathStepIndex
+                            // NOTE: a subtlety - remember that 'pathStepIndex' can reach 'maximumNumberOfPathIndicesOverall'
                             // for a full (and possibly removed) path, because successful searches go through at least one
                             // node corresponding to each path step index, *then* land on a node indicating whether the search
                             // was successful or not: so the zero-relative index gets incremented one more time.
                         then
                             raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
-                        if treeSearchContextParameters.IsCompletePath maximumNumberOfPathIndexs
+                        if treeSearchContextParameters.IsCompletePath maximumNumberOfPathIndices
                         then
                             existingCompletePathBlockedRemovalContinuation ()
                         else
@@ -1279,7 +1279,7 @@ namespace SageSerpent.Infrastructure
                                                                           upperBound =
                     match binaryTreeOfStepsForPathIndex with
                         UnsuccessfulSearchTerminationNode ->
-                            if maximumNumberOfPathIndexs <= pathStepIndex
+                            if maximumNumberOfPathIndices <= pathStepIndex
                             then
                                 raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
@@ -1351,7 +1351,7 @@ namespace SageSerpent.Infrastructure
                                     + numberOfSuccessfulPathsFromPathsForFollowingIndices
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
-                        if maximumNumberOfPathIndexs < pathStepIndex  // NOTE: a subtlety - remember that 'pathStepIndex' can reach 'maximumNumberOfPathIndexsOverall'
+                        if maximumNumberOfPathIndices < pathStepIndex  // NOTE: a subtlety - remember that 'pathStepIndex' can reach 'maximumNumberOfPathIndicesOverall'
                                                                              // for a full (and possibly removed) path, because successful searches go through at least one
                                                                              // node corresponding to each path step index, *then* land on a node indicating whether the search
                                                                              // was successful or not: so the zero-relative index gets incremented one more time.
@@ -1398,15 +1398,15 @@ namespace SageSerpent.Infrastructure
                 raise (LogicErrorException "No successful search paths but tree should be non-empty.")
 
         member this.NumberOfStepsInACompletePath =
-            maximumNumberOfPathIndexs
+            maximumNumberOfPathIndices
 
         member this.EnumerationOfMergedPaths revealCompletePathsAgain =
             createIncompletePathSequence revealCompletePathsAgain
 
-        static member Initial maximumNumberOfPathIndexsOverall
+        static member Initial maximumNumberOfPathIndicesOverall
                               pathIsAcceptable =
             SetOfMergedPaths<'Step> (SingleTrivialPath,
-                                                            maximumNumberOfPathIndexsOverall,
+                                                            maximumNumberOfPathIndicesOverall,
                                                             pathIsAcceptable)
 
         member this.MergeOrAdd incompletePathRepresentationInExternalForm =
@@ -1424,11 +1424,11 @@ namespace SageSerpent.Infrastructure
                 let detectAndConvertCompletePath incompletePathRepresentation =
                     let lengthOfIncompletePathRepresentation =
                         List.length incompletePathRepresentation
-                    if lengthOfIncompletePathRepresentation > maximumNumberOfPathIndexs
+                    if lengthOfIncompletePathRepresentation > maximumNumberOfPathIndices
                     then
                         raise (InternalAssertionViolationException "The merged incomplete path has more steps than the permitted maximum number of steps.")
 
-                    if lengthOfIncompletePathRepresentation < maximumNumberOfPathIndexs
+                    if lengthOfIncompletePathRepresentation < maximumNumberOfPathIndices
                        || incompletePathRepresentation
                           |> List.exists Option.isNone
                     then
@@ -1616,6 +1616,6 @@ namespace SageSerpent.Infrastructure
                     // ... end of invariant check.
 
                 SetOfMergedPaths (modifiedPaths,
-                                                        maximumNumberOfPathIndexs,
+                                                        maximumNumberOfPathIndices,
                                                         pathIsAcceptable)
                 , completePathBeingOfferedNowForEarlyAccess
