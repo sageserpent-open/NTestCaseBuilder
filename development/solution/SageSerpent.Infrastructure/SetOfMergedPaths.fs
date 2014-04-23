@@ -436,7 +436,7 @@ namespace SageSerpent.Infrastructure
 
     type SetOfMergedPaths<'Step when 'Step: comparison>(paths: Paths<'Step>,
                                                         maximumNumberOfPathIndices: Int32,
-                                                        pathIsAcceptable: seq<Int32 * 'Step> -> Boolean) =
+                                                        pathIsAcceptable: Map<Int32, 'Step> -> Boolean) =
         let createIncompletePathSequence revealCompletePathsAgain =
             let rec traversePaths {
                                     SharedPathPrefix = sharedPathPrefix
@@ -517,7 +517,7 @@ namespace SageSerpent.Infrastructure
                                 incompletePathBeingBuilt
                                 |> Map.ofList
 
-                            if pathIsAcceptable (Map.toSeq incompletePath)
+                            if pathIsAcceptable incompletePath
                                |> not
                             then
                                 raise (InternalAssertionViolationException "The path is not acceptable to the filter - it should neither have been added nor formed by merging.")
@@ -1168,6 +1168,7 @@ namespace SageSerpent.Infrastructure
                                           | None ->
                                                 ()
                                 ]
+                                |> Map.ofList
                             continuationWorkflow
                                 {
                                     if pathIsAcceptable mergedIncompletePath
@@ -1411,8 +1412,7 @@ namespace SageSerpent.Infrastructure
 
         member this.MergeOrAdd incompletePathRepresentationInExternalForm =
             if Map.isEmpty incompletePathRepresentationInExternalForm
-               || (pathIsAcceptable (incompletePathRepresentationInExternalForm
-                                     |> Map.toSeq)
+               || (pathIsAcceptable incompletePathRepresentationInExternalForm
                    |> not)
             then
                 this
@@ -1444,7 +1444,7 @@ namespace SageSerpent.Infrastructure
                                               pathStepIndex
                                               , step)
                             |> Map.ofList
-                        if pathIsAcceptable (Map.toSeq completePath)
+                        if pathIsAcceptable completePath
                            |> not
                         then
                             raise (InternalAssertionViolationException "The merged full path is not acceptable to the filter.")
@@ -1524,7 +1524,6 @@ namespace SageSerpent.Infrastructure
                                                                                 let mergedIncompletePathRepresentationInExternalForm =
                                                                                     externalFormFor mergedIncompletePathRepresentation
                                                                                 if mergedIncompletePathRepresentationInExternalForm
-                                                                                   |> Map.toSeq
                                                                                    |> pathIsAcceptable
                                                                                    |> not
                                                                                 then
@@ -1549,15 +1548,13 @@ namespace SageSerpent.Infrastructure
                                                                                                         yield! sample
                                                                                                     }
                                                                                             if pathIsAcceptable (incompletePathBetweenTheQueryAndTheMergeResult
-                                                                                                                 |> Seq.sortBy fst)
+                                                                                                                 |>Map.ofSeq)
                                                                                                |> not
                                                                                             then
-                                                                                                pathIsAcceptable (mergedIncompletePathRepresentationInExternalForm
-                                                                                                                  |> Map.toSeq
-                                                                                                                  |> Seq.sortBy fst)
+                                                                                                pathIsAcceptable mergedIncompletePathRepresentationInExternalForm
                                                                                                 |> ignore
                                                                                                 pathIsAcceptable (incompletePathBetweenTheQueryAndTheMergeResult
-                                                                                                                  |> Seq.sortBy fst)
+                                                                                                                  |> Map.ofSeq)
                                                                                                 |> ignore
                                                                                                 printf "incompletePathBetweenTheQueryAndTheMergeResult: %A\n" (List.ofSeq (incompletePathBetweenTheQueryAndTheMergeResult |> Seq.sortBy fst))
                                                                                                 raise (PreconditionViolationException "The filter is inconsistent - it forbids a vector that is a subset of a larger vector that is passed.")
