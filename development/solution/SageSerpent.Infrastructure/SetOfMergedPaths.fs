@@ -435,15 +435,15 @@ namespace SageSerpent.Infrastructure
     open SetOfMergedPathsDetail
 
     type SetOfMergedPaths<'Step when 'Step: comparison>(paths: Paths<'Step>,
-                                                                                maximumNumberOfPathIndices: Int32,
-                                                                                pathIsAcceptable: seq<Int32 * 'Step> -> Boolean) =
+                                                        maximumNumberOfPathIndices: Int32,
+                                                        pathIsAcceptable: seq<Int32 * 'Step> -> Boolean) =
         let createIncompletePathSequence revealCompletePathsAgain =
             let rec traversePaths {
-                                                SharedPathPrefix = sharedPathPrefix
-                                                BranchingRoot = branchingRoot
-                                            }
-                                            (treeSearchContextParameters: TreeSearchContextParameters)
-                                            incompletePathBeingBuilt =
+                                    SharedPathPrefix = sharedPathPrefix
+                                    BranchingRoot = branchingRoot
+                                  }
+                                  (treeSearchContextParameters: TreeSearchContextParameters)
+                                  incompletePathBeingBuilt =
                 let treeSearchContextParameters
                     , incompletePathBeingBuilt =
                     sharedPathPrefix
@@ -485,8 +485,8 @@ namespace SageSerpent.Infrastructure
                                             {
                                                 yield! traverseBinaryTreeOfAlternateStepsForPathIndex subtreeWithLesserStepsForSamePathStepIndex
                                                 yield! traversePaths pathsForFollowingIndices
-                                                                               treeSearchContextParameters.PropagateFromDefinedStepToNextPathIndex
-                                                                               ((treeSearchContextParameters.PathStepIndex, stepForPathStepIndex) :: incompletePathBeingBuilt)
+                                                                     treeSearchContextParameters.PropagateFromDefinedStepToNextPathIndex
+                                                                     ((treeSearchContextParameters.PathStepIndex, stepForPathStepIndex) :: incompletePathBeingBuilt)
                                                 yield! traverseBinaryTreeOfAlternateStepsForPathIndex subtreeWithGreaterStepsForSamePathStepIndex
                                             })
                 match ternarySearchTree with
@@ -535,14 +535,14 @@ namespace SageSerpent.Infrastructure
                                         {
                                             yield! traverseBinaryTreeOfAlternateStepsForPathIndex subtreeWithAllStepsForSamePathStepIndex
                                             yield! traversePaths pathsForFollowingIndices
-                                                                           treeSearchContextParameters.PropagateFromWildcardStepToNextPathIndex
-                                                                           incompletePathBeingBuilt
+                                                                 treeSearchContextParameters.PropagateFromWildcardStepToNextPathIndex
+                                                                 incompletePathBeingBuilt
                                         })
                   | BinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex ->
                         traverseBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
             traversePaths paths
-                                    TreeSearchContextParameters.StartOfSearch
-                                    []
+                          TreeSearchContextParameters.StartOfSearch
+                          []
 
         let fillOutIncompletePathWithIndeterminates incompletePathRepresentation =
             if (incompletePathRepresentation: Map<_, _>).Count > maximumNumberOfPathIndices
@@ -614,15 +614,15 @@ namespace SageSerpent.Infrastructure
                         SuccessfulSearchTerminationNode
                 }
             let rec addToPaths ({
-                                            SharedPathPrefix = sharedPathPrefix
-                                            BranchingRoot = branchingRoot
-                                         } as paths)
-                                         newIncompletePathRepresentation =
+                                    SharedPathPrefix = sharedPathPrefix
+                                    BranchingRoot = branchingRoot
+                                } as paths)
+                                newIncompletePathRepresentation =
                     match mismatch sharedPathPrefix
                                    newIncompletePathRepresentation
                                    (=) with
                         AgreesWithPrefixOfIncompletePath (agreeingPrefixOfNewIncompletePathRepresentation
-                                                             , remainderOfNewIncompletePathRepresentation) ->
+                                                          , remainderOfNewIncompletePathRepresentation) ->
                             match branchingRoot with
                                 EmptyTernarySearchTree ->
                                     justOnePathFrom newIncompletePathRepresentation
@@ -671,8 +671,8 @@ namespace SageSerpent.Infrastructure
             and addToTernarySearchTree ternarySearchTree
                                        newIncompletePathRepresentation =
                 let rec addStepToBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
-                                                                    stepFromNewIncompletePathRepresentation
-                                                                    tailFromNewIncompletePathRepresentation =
+                                                                        stepFromNewIncompletePathRepresentation
+                                                                        tailFromNewIncompletePathRepresentation =
                     match binaryTreeOfStepsForPathIndex with
                         UnsuccessfulSearchTerminationNode ->
                             {
@@ -693,7 +693,7 @@ namespace SageSerpent.Infrastructure
                                 , flankingSubtreeWithLesserSteps
                                 , flankingSubtreeWithGreaterSteps =
                                 splayInternalNodeWithMatchingOrNeighbouringStep internalNodeRepresentation
-                                                                                 comparisonWrtImplicitStep
+                                                                                comparisonWrtImplicitStep
                             match comparisonWrtImplicitStep splayedStepForPathStepIndex with
                                 result when result < 0 ->
                                     let flankingSubtreeWithGreaterSteps =
@@ -749,8 +749,8 @@ namespace SageSerpent.Infrastructure
                     , Some stepFromNewIncompletePathRepresentation :: tailFromNewIncompletePathRepresentation ->
                         let modifiedSubtreeWithAllStepsForSamePathStepIndex =
                             addStepToBinaryTreeOfAlternateStepsForPathIndex subtreeWithAllStepsForSamePathStepIndex
-                                                                        stepFromNewIncompletePathRepresentation
-                                                                        tailFromNewIncompletePathRepresentation
+                                                                            stepFromNewIncompletePathRepresentation
+                                                                            tailFromNewIncompletePathRepresentation
                         {
                             wildcardNodeRepresentation with
                                 SubtreeWithAllStepsForSamePathStepIndex = modifiedSubtreeWithAllStepsForSamePathStepIndex
@@ -763,7 +763,7 @@ namespace SageSerpent.Infrastructure
                     , None :: tailFromNewIncompletePathRepresentation ->
                         let modifiedPathsForFollowingIndices =
                             addToPaths pathsForFollowingIndices
-                                                 tailFromNewIncompletePathRepresentation
+                                       tailFromNewIncompletePathRepresentation
                         {
                             wildcardNodeRepresentation with
                                 PathsForFollowingIndices = modifiedPathsForFollowingIndices
@@ -772,8 +772,8 @@ namespace SageSerpent.Infrastructure
                   | BinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                     , Some stepFromNewIncompletePathRepresentation :: tailFromNewIncompletePathRepresentation ->
                         addStepToBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
-                                                                    stepFromNewIncompletePathRepresentation
-                                                                    tailFromNewIncompletePathRepresentation
+                                                                        stepFromNewIncompletePathRepresentation
+                                                                        tailFromNewIncompletePathRepresentation
                         |> BinaryTreeOfAlternateStepsForPathIndex
                   | BinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                     , None :: tailFromNewIncompletePathRepresentation ->
@@ -788,7 +788,7 @@ namespace SageSerpent.Infrastructure
                         raise (InternalAssertionViolationException "Attempt to add a new incomplete path that is already mergeable with a previous one.")
                         // The above is really a precondition violation, but the precondition should have been enforced at a higher step within the implementation and not by the client.
             addToPaths paths
-                                 newIncompletePathRepresentation
+                       newIncompletePathRepresentation
 
         let remove paths
                    queryIncompletePathRepresentation
@@ -803,7 +803,7 @@ namespace SageSerpent.Infrastructure
                     , flankingSubtreeWithLesserSteps
                     , _ =
                     splayInternalNodeWithMatchingOrNeighbouringStep subtreeInternalNodeRepresentation
-                                                                     comparisonWrtPositiveInfinity
+                                                                    comparisonWrtPositiveInfinity
                 splayedStepForPathStepIndex
                 , splayedPathsForFollowingIndices
                 , flankingSubtreeWithLesserSteps
@@ -817,7 +817,7 @@ namespace SageSerpent.Infrastructure
                     , _
                     , flankingSubtreeWithGreaterSteps =
                     splayInternalNodeWithMatchingOrNeighbouringStep subtreeInternalNodeRepresentation
-                                                                     comparisonWrtNegativeInfinity
+                                                                    comparisonWrtNegativeInfinity
                 splayedStepForPathStepIndex
                 , splayedPathsForFollowingIndices
                 , flankingSubtreeWithGreaterSteps
@@ -908,12 +908,12 @@ namespace SageSerpent.Infrastructure
                         }
                         |> WildcardNode
             let rec removeFromPaths {
-                                                SharedPathPrefix = sharedPathPrefix
-                                                BranchingRoot = branchingRoot
-                                              }
-                                              queryIncompletePathRepresentation
-                                              treeSearchContextParameters
-                                              removedIncompletePathInReverse =
+                                        SharedPathPrefix = sharedPathPrefix
+                                        BranchingRoot = branchingRoot
+                                    }
+                                    queryIncompletePathRepresentation
+                                    treeSearchContextParameters
+                                    removedIncompletePathInReverse =
                 let treeSearchContextParametersAfter sharedPathPrefix =
                     sharedPathPrefix
                     |> ChunkedList.fold (fun (treeSearchContextParameters: TreeSearchContextParameters)
@@ -986,7 +986,7 @@ namespace SageSerpent.Infrastructure
                                                   | _ ->
                                                         true) with
                             AgreesWithPrefixOfIncompletePath (agreeingPrefixOfQueryIncompletePathRepresentation
-                                                                 , remainderOfQueryIncompletePathRepresentation) ->
+                                                              , remainderOfQueryIncompletePathRepresentation) ->
                                 return! removeWhenSharedPathPrefixAgreesWithQuery agreeingPrefixOfQueryIncompletePathRepresentation
                                                                                   remainderOfQueryIncompletePathRepresentation
                           | ShortenedPrefixAgreesWithEntireIncompletePath (lengthOfQueryIncompletePathRepresentation
@@ -1005,10 +1005,10 @@ namespace SageSerpent.Infrastructure
                                             (treeSearchContextParameters: TreeSearchContextParameters)
                                             removedIncompletePathInReverse =
                 let buildResultFromInternalNodeModifyingSubtreeForFollowingPathStepIndices tailFromQueryIncompletePathRepresentation
-                                                                                               stepForPathStepIndex
-                                                                                               subtreeWithLesserStepsForSamePathStepIndex
-                                                                                               subtreeWithGreaterStepsForSamePathStepIndex
-                                                                                               pathsForFollowingIndices =
+                                                                                           stepForPathStepIndex
+                                                                                           subtreeWithLesserStepsForSamePathStepIndex
+                                                                                           subtreeWithGreaterStepsForSamePathStepIndex
+                                                                                           pathsForFollowingIndices =
                     let removedIncompletePathWithNewStepInReverse =
                         LazyList.cons (Some stepForPathStepIndex)
                                       removedIncompletePathInReverse
@@ -1030,9 +1030,9 @@ namespace SageSerpent.Infrastructure
 
                         }
                 let buildResultFromWildcardNodeModifyingSubtreeForFollowingPathStepIndices headFromQueryIncompletePathRepresentation
-                                                                                               tailFromQueryIncompletePathRepresentation
-                                                                                               subtreeWithAllStepsForSamePathStepIndex
-                                                                                               pathsForFollowingIndices =
+                                                                                           tailFromQueryIncompletePathRepresentation
+                                                                                           subtreeWithAllStepsForSamePathStepIndex
+                                                                                           pathsForFollowingIndices =
                     let removedIncompletePathWithNewStepInReverse =
                         LazyList.cons headFromQueryIncompletePathRepresentation
                                       removedIncompletePathInReverse
@@ -1052,8 +1052,8 @@ namespace SageSerpent.Infrastructure
                         }
 
                 let removeStepFromBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
-                                                                     stepFromQueryIncompletePathRepresentation
-                                                                     tailFromQueryIncompletePathRepresentation =
+                                                                         stepFromQueryIncompletePathRepresentation
+                                                                         tailFromQueryIncompletePathRepresentation =
                     match binaryTreeOfStepsForPathIndex with
                         UnsuccessfulSearchTerminationNode ->
                             if maximumNumberOfPathIndices <= treeSearchContextParameters.PathStepIndex
@@ -1075,14 +1075,14 @@ namespace SageSerpent.Infrastructure
                             match comparisonWrtImplicitStep splayedStepForPathStepIndex with
                                 0 ->
                                     buildResultFromInternalNodeModifyingSubtreeForFollowingPathStepIndices tailFromQueryIncompletePathRepresentation
-                                                                                                               splayedStepForPathStepIndex
-                                                                                                               flankingSubtreeWithLesserSteps
-                                                                                                               flankingSubtreeWithGreaterSteps
-                                                                                                               splayedPathsForFollowingIndices
+                                                                                                           splayedStepForPathStepIndex
+                                                                                                           flankingSubtreeWithLesserSteps
+                                                                                                           flankingSubtreeWithGreaterSteps
+                                                                                                           splayedPathsForFollowingIndices
                               | _ ->
                                     continuationWorkflow.Zero ()
                 let rec removeWildcardStepFromBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
-                                                                                 tailFromQueryIncompletePathRepresentation =
+                                                                                     tailFromQueryIncompletePathRepresentation =
                     match binaryTreeOfStepsForPathIndex with
                         UnsuccessfulSearchTerminationNode ->
                             if maximumNumberOfPathIndices <= treeSearchContextParameters.PathStepIndex
@@ -1099,16 +1099,16 @@ namespace SageSerpent.Infrastructure
                             PathsForFollowingIndices = pathsForFollowingIndices
                         } ->
                             buildResultFromInternalNodeModifyingSubtreeForFollowingPathStepIndices tailFromQueryIncompletePathRepresentation
-                                                                                                       stepForPathStepIndex
-                                                                                                       subtreeWithLesserStepsForSamePathStepIndex
-                                                                                                       subtreeWithGreaterStepsForSamePathStepIndex
-                                                                                                       pathsForFollowingIndices
+                                                                                                   stepForPathStepIndex
+                                                                                                   subtreeWithLesserStepsForSamePathStepIndex
+                                                                                                   subtreeWithGreaterStepsForSamePathStepIndex
+                                                                                                   pathsForFollowingIndices
                             + continuationWorkflow
                                 {
                                     let! modifiedSubtreeWithLesserStepsForSamePathStepIndex
                                          , removedIncompletePath =
                                         removeWildcardStepFromBinaryTreeOfAlternateStepsForPathIndex subtreeWithLesserStepsForSamePathStepIndex
-                                                                                                 tailFromQueryIncompletePathRepresentation
+                                                                                                     tailFromQueryIncompletePathRepresentation
                                     let modifiedBinaryTree =
                                         buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForPathStepIndex
                                                                                                                 modifiedSubtreeWithLesserStepsForSamePathStepIndex
@@ -1122,7 +1122,7 @@ namespace SageSerpent.Infrastructure
                                     let! modifiedSubtreeWithGreaterStepsForSamePathStepIndex
                                          , removedIncompletePath =
                                         removeWildcardStepFromBinaryTreeOfAlternateStepsForPathIndex subtreeWithGreaterStepsForSamePathStepIndex
-                                                                                                 tailFromQueryIncompletePathRepresentation
+                                                                                                     tailFromQueryIncompletePathRepresentation
                                     let modifiedBinaryTree =
                                         buildResultSubtreeFromInternalNodeWithPruningOfDegenerateLinearSubtrees stepForPathStepIndex
                                                                                                                 subtreeWithLesserStepsForSamePathStepIndex
@@ -1188,8 +1188,8 @@ namespace SageSerpent.Infrastructure
                                 let! modifiedSubtreeWithAllStepsForSamePathStepIndex
                                      , removedIncompletePath =
                                     removeStepFromBinaryTreeOfAlternateStepsForPathIndex subtreeWithAllStepsForSamePathStepIndex
-                                                                                     stepFromQueryIncompletePathRepresentation
-                                                                                     tailFromQueryIncompletePathRepresentation
+                                                                                         stepFromQueryIncompletePathRepresentation
+                                                                                         tailFromQueryIncompletePathRepresentation
                                 let modifiedTernarySearchTree =
                                     buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllStepsForSamePathStepIndex
                                                                                                             pathsForFollowingIndices
@@ -1197,9 +1197,9 @@ namespace SageSerpent.Infrastructure
                                        , removedIncompletePath
                             }
                         + buildResultFromWildcardNodeModifyingSubtreeForFollowingPathStepIndices headFromQueryIncompletePathRepresentation
-                                                                                                     tailFromQueryIncompletePathRepresentation
-                                                                                                     subtreeWithAllStepsForSamePathStepIndex
-                                                                                                     pathsForFollowingIndices
+                                                                                                 tailFromQueryIncompletePathRepresentation
+                                                                                                 subtreeWithAllStepsForSamePathStepIndex
+                                                                                                 pathsForFollowingIndices
                   | WildcardNode
                     {
                         SubtreeWithAllStepsForSamePathStepIndex = subtreeWithAllStepsForSamePathStepIndex
@@ -1211,7 +1211,7 @@ namespace SageSerpent.Infrastructure
                                 let! modifiedSubtreeWithAllStepsForSamePathStepIndex
                                      , removedIncompletePath =
                                     removeWildcardStepFromBinaryTreeOfAlternateStepsForPathIndex subtreeWithAllStepsForSamePathStepIndex
-                                                                                             tailFromQueryIncompletePathRepresentation
+                                                                                                 tailFromQueryIncompletePathRepresentation
                                 let modifiedTernarySearchTree =
                                     buildResultSubtreeFromWildcardNodeWithPruningOfDegenerateLinearSubtrees modifiedSubtreeWithAllStepsForSamePathStepIndex
                                                                                                             pathsForFollowingIndices
@@ -1219,9 +1219,9 @@ namespace SageSerpent.Infrastructure
                                        , removedIncompletePath
                             }
                         + buildResultFromWildcardNodeModifyingSubtreeForFollowingPathStepIndices None
-                                                                                                     tailFromQueryIncompletePathRepresentation
-                                                                                                     subtreeWithAllStepsForSamePathStepIndex
-                                                                                                     pathsForFollowingIndices
+                                                                                                 tailFromQueryIncompletePathRepresentation
+                                                                                                 subtreeWithAllStepsForSamePathStepIndex
+                                                                                                 pathsForFollowingIndices
                   | BinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
                     , Some stepFromQueryIncompletePathRepresentation :: tailFromQueryIncompletePathRepresentation ->
                         continuationWorkflow
@@ -1229,8 +1229,8 @@ namespace SageSerpent.Infrastructure
                                 let! modifiedSubtreeWithAllStepsForSamePathStepIndex
                                      , removedIncompletePath =
                                      removeStepFromBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
-                                                                                      stepFromQueryIncompletePathRepresentation
-                                                                                      tailFromQueryIncompletePathRepresentation
+                                                                                          stepFromQueryIncompletePathRepresentation
+                                                                                          tailFromQueryIncompletePathRepresentation
                                 return BinaryTreeOfAlternateStepsForPathIndex modifiedSubtreeWithAllStepsForSamePathStepIndex
                                        , removedIncompletePath
                             }
@@ -1241,7 +1241,7 @@ namespace SageSerpent.Infrastructure
                                 let! modifiedSubtreeWithAllStepsForSamePathStepIndex
                                      , removedIncompletePath =
                                     removeWildcardStepFromBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
-                                                                                             tailFromQueryIncompletePathRepresentation
+                                                                                                 tailFromQueryIncompletePathRepresentation
                                 return BinaryTreeOfAlternateStepsForPathIndex modifiedSubtreeWithAllStepsForSamePathStepIndex
                                        , removedIncompletePath
                             }
@@ -1254,16 +1254,16 @@ namespace SageSerpent.Infrastructure
                                                     treeSearchContextParameters
                                                     removedIncompletePathInReverse
             removeFromPaths paths
-                                      queryIncompletePathRepresentation
-                                      TreeSearchContextParameters.StartOfSearch
-                                      LazyList.empty
+                            queryIncompletePathRepresentation
+                            TreeSearchContextParameters.StartOfSearch
+                            LazyList.empty
 
         let checkInvariant paths =
             let rec checkInvariantOfPaths {
-                                                        SharedPathPrefix = sharedPathPrefix
-                                                        BranchingRoot = branchingRoot
-                                                    }
-                                                    pathStepIndex =
+                                            SharedPathPrefix = sharedPathPrefix
+                                            BranchingRoot = branchingRoot
+                                          }
+                                          pathStepIndex =
                 let numberOfSuccessfulPathsFromSubtreeForFollowingIndices =
                     checkInvariantOfTernarySearchTree branchingRoot
                                                       (pathStepIndex + sharedPathPrefix.Length)
@@ -1275,8 +1275,8 @@ namespace SageSerpent.Infrastructure
             and checkInvariantOfTernarySearchTree ternarySearchTree
                                                   pathStepIndex =
                 let rec checkInvariantOfBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
-                                                                          lowerBound
-                                                                          upperBound =
+                                                                               lowerBound
+                                                                               upperBound =
                     match binaryTreeOfStepsForPathIndex with
                         UnsuccessfulSearchTerminationNode ->
                             if maximumNumberOfPathIndices <= pathStepIndex
@@ -1301,15 +1301,15 @@ namespace SageSerpent.Infrastructure
                                 raise (InvariantViolationException "Step is less than or equal to exclusive lower bound.")
                             let numberOfSuccessfulPathsFromSubtreeWithLesserStepsForSamePathStepIndex =
                                 checkInvariantOfBinaryTreeOfAlternateStepsForPathIndex subtreeWithLesserStepsForSamePathStepIndex
-                                                                                  lowerBound
-                                                                                  liftedStep
+                                                                                       lowerBound
+                                                                                       liftedStep
                             let numberOfSuccessfulPathsFromSubtreeWithGreaterStepsForSamePathStepIndex =
                                 checkInvariantOfBinaryTreeOfAlternateStepsForPathIndex subtreeWithGreaterStepsForSamePathStepIndex
-                                                                                  liftedStep
-                                                                                  upperBound
+                                                                                       liftedStep
+                                                                                       upperBound
                             let numberOfSuccessfulPathsFromPathsForFollowingIndices =
                                 checkInvariantOfPaths pathsForFollowingIndices
-                                                                (pathStepIndex + 1)
+                                                      (pathStepIndex + 1)
                             match numberOfSuccessfulPathsFromSubtreeWithLesserStepsForSamePathStepIndex
                                   , numberOfSuccessfulPathsFromSubtreeWithGreaterStepsForSamePathStepIndex
                                   , numberOfSuccessfulPathsFromPathsForFollowingIndices with
@@ -1351,18 +1351,18 @@ namespace SageSerpent.Infrastructure
                                     + numberOfSuccessfulPathsFromPathsForFollowingIndices
                 match ternarySearchTree with
                     SuccessfulSearchTerminationNode ->
-                        if maximumNumberOfPathIndices < pathStepIndex  // NOTE: a subtlety - remember that 'pathStepIndex' can reach 'maximumNumberOfPathIndicesOverall'
-                                                                             // for a full (and possibly removed) path, because successful searches go through at least one
-                                                                             // node corresponding to each path step index, *then* land on a node indicating whether the search
-                                                                             // was successful or not: so the zero-relative index gets incremented one more time.
+                        if maximumNumberOfPathIndices < pathStepIndex   // NOTE: a subtlety - remember that 'pathStepIndex' can reach 'maximumNumberOfPathIndicesOverall'
+                                                                        // for a full (and possibly removed) path, because successful searches go through at least one
+                                                                        // node corresponding to each path step index, *then* land on a node indicating whether the search
+                                                                        // was successful or not: so the zero-relative index gets incremented one more time.
                         then
                             raise (InternalAssertionViolationException "The path refers to path step indices that are greater than the permitted maximum.")
 
                         1
                   | BinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex ->
                         checkInvariantOfBinaryTreeOfAlternateStepsForPathIndex binaryTreeOfStepsForPathIndex
-                                                                          NegativeInfinity
-                                                                          PositiveInfinity
+                                                                               NegativeInfinity
+                                                                               PositiveInfinity
                   | WildcardNode
                     {
                         SubtreeWithAllStepsForSamePathStepIndex = subtreeWithAllStepsForSamePathStepIndex
@@ -1370,8 +1370,8 @@ namespace SageSerpent.Infrastructure
                     } ->
                         let numberOfSuccessfulPathsFromSubtreeWithAllStepsForSamePathStepIndex =
                             checkInvariantOfBinaryTreeOfAlternateStepsForPathIndex subtreeWithAllStepsForSamePathStepIndex
-                                                                              NegativeInfinity
-                                                                              PositiveInfinity
+                                                                                   NegativeInfinity
+                                                                                   PositiveInfinity
                         match pathsForFollowingIndices with
                             SingleTrivialPath when numberOfSuccessfulPathsFromSubtreeWithAllStepsForSamePathStepIndex > 0 ->
                                 raise (LogicErrorException "Found wildcard path that always merges with at least one path using the non-wildcard match - should have been merged.")
@@ -1379,7 +1379,7 @@ namespace SageSerpent.Infrastructure
                             ()
                         let numberOfSuccessfulPathsFromPathsForFollowingIndices =
                             checkInvariantOfPaths pathsForFollowingIndices
-                                                            (pathStepIndex + 1)
+                                                  (pathStepIndex + 1)
                         match numberOfSuccessfulPathsFromSubtreeWithAllStepsForSamePathStepIndex
                               , numberOfSuccessfulPathsFromPathsForFollowingIndices with
                             0
@@ -1406,13 +1406,13 @@ namespace SageSerpent.Infrastructure
         static member Initial maximumNumberOfPathIndicesOverall
                               pathIsAcceptable =
             SetOfMergedPaths<'Step> (SingleTrivialPath,
-                                                            maximumNumberOfPathIndicesOverall,
-                                                            pathIsAcceptable)
+                                     maximumNumberOfPathIndicesOverall,
+                                     pathIsAcceptable)
 
         member this.MergeOrAdd incompletePathRepresentationInExternalForm =
             if Map.isEmpty incompletePathRepresentationInExternalForm
                || (pathIsAcceptable (incompletePathRepresentationInExternalForm
-                                           |> Map.toSeq)
+                                     |> Map.toSeq)
                    |> not)
             then
                 this
@@ -1549,15 +1549,15 @@ namespace SageSerpent.Infrastructure
                                                                                                         yield! sample
                                                                                                     }
                                                                                             if pathIsAcceptable (incompletePathBetweenTheQueryAndTheMergeResult
-                                                                                                                       |> Seq.sortBy fst)
+                                                                                                                 |> Seq.sortBy fst)
                                                                                                |> not
                                                                                             then
                                                                                                 pathIsAcceptable (mergedIncompletePathRepresentationInExternalForm
-                                                                                                                        |> Map.toSeq
-                                                                                                                        |> Seq.sortBy fst)
+                                                                                                                  |> Map.toSeq
+                                                                                                                  |> Seq.sortBy fst)
                                                                                                 |> ignore
                                                                                                 pathIsAcceptable (incompletePathBetweenTheQueryAndTheMergeResult
-                                                                                                                        |> Seq.sortBy fst)
+                                                                                                                  |> Seq.sortBy fst)
                                                                                                 |> ignore
                                                                                                 printf "incompletePathBetweenTheQueryAndTheMergeResult: %A\n" (List.ofSeq (incompletePathBetweenTheQueryAndTheMergeResult |> Seq.sortBy fst))
                                                                                                 raise (PreconditionViolationException "The filter is inconsistent - it forbids a vector that is a subset of a larger vector that is passed.")
