@@ -96,7 +96,6 @@
     <Reference Include="mscorlib" />
     <Reference Include="System" />
     <Reference Include="System.Numerics" />
-    <Reference Include="System.Workflow.ComponentModel" />
     <ProjectReference Include="..\SageSerpent.Infrastructure\SageSerpent.Infrastructure.fsproj">
       <Name>SageSerpent.Infrastructure</Name>
       <Project>{35dfa6a2-9439-4e92-8d73-540c36d3beae}</Project>
