@@ -1,4 +1,4 @@
-﻿namespace NTestCaseBuilder.Tests
+﻿namespace SageSerpent.Infrastructure.Tests
 
     open NUnit.Framework
 
