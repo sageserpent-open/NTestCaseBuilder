@@ -30,6 +30,7 @@
     <OtherFlags>
     </OtherFlags>
     <DocumentationFile>bin\Debug\SageSerpent.Infrastructure.XML</DocumentationFile>
+    <Tailcalls>true</Tailcalls>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -57,6 +58,7 @@
     <Compile Include="OptionWorkflow.fs" />
     <Compile Include="ContinuationWorkflow.fs" />
     <Compile Include="ChunkedList.fs" />
+    <Compile Include="SetOfMergedPaths.fs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

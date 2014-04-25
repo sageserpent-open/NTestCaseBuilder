@@ -444,7 +444,7 @@
                             ref mergedPartialTestVectorRepresentations
 
                         for partialTestVector in partialTestVectors do
-                            match (!locallyModifiedMergedPartialTestVectorRepresentations: MergedPartialTestVectorRepresentations<_>).MergeOrAdd partialTestVector with
+                            match (!locallyModifiedMergedPartialTestVectorRepresentations: SetOfMergedPaths<_>).MergeOrAdd partialTestVector with
                                 updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
                                 , Some resultingFullTestCaseVector ->
                                     yield resultingFullTestCaseVector
@@ -454,12 +454,12 @@
                                 , None ->
                                     locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentations
 
-                        yield! (!locallyModifiedMergedPartialTestVectorRepresentations).EnumerationOfMergedTestVectors false
+                        yield! (!locallyModifiedMergedPartialTestVectorRepresentations).EnumerationOfMergedPaths false
                     }
 
             let lazilyProducedMergedPartialTestVectors =
-                lazilyProduceMergedPartialTestVectors (MergedPartialTestVectorRepresentations.Initial overallNumberOfTestVariables
-                                                                                                      prunedNode.CombinedFilter)
+                lazilyProduceMergedPartialTestVectors (SetOfMergedPaths.Initial overallNumberOfTestVariables
+                                                                                prunedNode.CombinedFilter)
                                                       partialTestVectorsInOrderOfDecreasingStrength
 
             let finalValueCreator =

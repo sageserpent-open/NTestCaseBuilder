@@ -464,14 +464,14 @@ namespace NTestCaseBuilder
                                     true    // If there are no filters in the entire subtree headed by 'this',
                                             // then the resulting trivial case is to pass all possible inputs.
                             else
-                                fun (testVariableIndexAndValuePairs: seq<Int32 * TestVariable<Int32>>) ->
+                                fun (testVariableIndexAndValuePairs: Map<Int32, TestVariable<Int32>>) ->
                                     let nonSingletonAdjustedTestVariableIndexAndLevelPairs =
                                         seq
                                             {
                                                 for testVariableIndexAndValue in testVariableIndexAndValuePairs do
                                                     match testVariableIndexAndValue with
-                                                        testVariableIndex
-                                                        , Level levelIndex ->
+                                                        KeyValue(testVariableIndex
+                                                                 , Level levelIndex) ->
                                                             match Map.tryFind testVariableIndex
                                                                               testVariableIndexToLevelsAndAdjustedIndexMap with
                                                                 Some (levels
@@ -944,7 +944,7 @@ namespace NTestCaseBuilder
                                                                      testVariableIndices
                                                                      0
             let combinedFilter =
-                this.CombinedFilter
+                Map.ofList >> this.CombinedFilter
             let fillOutFrom combinationOfTestVariablesAssociatedWithTheirLevels =
                 let testVariableIndices =
                     combinationOfTestVariablesAssociatedWithTheirLevels
@@ -985,7 +985,7 @@ namespace NTestCaseBuilder
                         let! chosenFullTestVectorRepresentation =
                             fullTestVectorRepresentations
                             |> Seq.tryFind (fun fullTestVectorRepresentation ->
-                                                combinedFilter (fullTestVectorRepresentation :> seq<_>))
+                                                combinedFilter fullTestVectorRepresentation)
                         return chosenFullTestVectorRepresentation
                                |> List.map snd
                                |> List.toArray
