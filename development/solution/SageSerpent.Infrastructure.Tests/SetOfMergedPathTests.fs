@@ -275,8 +275,8 @@
                 let mergedPartialPaths
                     , setOfMergedPartialPaths =
                     mergeOrAddPartialPaths incompletePathsThatDoNotOverlap
-                                                 (SetOfMergedPaths.Initial maximumNumberOfPathSteps
-                                                                                                 passAllFilter)
+                                                 (SetOfMergedPaths.Initial (maximumNumberOfPathSteps,
+                                                                            passAllFilter))
                                                  randomBehaviour
                                                  true
                 let shouldBeTrue =
@@ -301,8 +301,8 @@
                 let mergedPartialPaths
                     , _ =
                     mergeOrAddPartialPaths incompletePathsThatDoNotOverlap
-                                                 (SetOfMergedPaths.Initial maximumNumberOfPathSteps
-                                                                                                 passAllFilter)
+                                                 (SetOfMergedPaths.Initial (maximumNumberOfPathSteps,
+                                                                            passAllFilter))
                                                  randomBehaviour
                                                  true
                 let mutantsOrCopiesOf incompletePath =
@@ -384,8 +384,8 @@
                 let mergedPartialPaths
                     , _ =
                     mergeOrAddPartialPaths remappedPartialPaths
-                                                 (SetOfMergedPaths.Initial maximumNumberOfPathStepsAfterRemapping
-                                                                                                 passAllFilter)
+                                                 (SetOfMergedPaths.Initial (maximumNumberOfPathStepsAfterRemapping,
+                                                                            passAllFilter))
                                                  randomBehaviour
                                                  true
                 let possiblyAddStepsForIndices indicesToAdd incompletePath =
@@ -439,8 +439,8 @@
                 let mergedPartialPaths
                     , setOfMergedPartialPaths =
                         mergeOrAddPartialPaths incompletePaths
-                                                     (SetOfMergedPaths.Initial maximumNumberOfPathSteps
-                                                                                                     passAllFilter)
+                                                     (SetOfMergedPaths.Initial (maximumNumberOfPathSteps,
+                                                                                passAllFilter))
                                                      randomBehaviour
                                                      true
                 let numberOfMergedPartialPaths =
@@ -474,8 +474,8 @@
                 let mergedPartialPaths
                     , setOfMergedPartialPaths =
                     mergeOrAddPartialPaths incompletePaths
-                                                 (SetOfMergedPaths.Initial maximumNumberOfPathSteps
-                                                                                                 passAllFilter)
+                                                 (SetOfMergedPaths.Initial (maximumNumberOfPathSteps,
+                                                                            passAllFilter))
                                                  randomBehaviour
                                                  true
                 let remergedPartialPaths
@@ -505,15 +505,15 @@
                 let mergedPartialPaths
                     , setOfMergedPartialPathsRevealingCompletePathsInEnumeration =
                     mergeOrAddPartialPaths incompletePaths
-                                                 (SetOfMergedPaths.Initial maximumNumberOfPathSteps
-                                                                                                 passAllFilter)
+                                                 (SetOfMergedPaths.Initial (maximumNumberOfPathSteps,
+                                                                            passAllFilter))
                                                  randomBehaviourCloneOne
                                                  true
                 let mergedPartialPaths
                     , setOfMergedPartialPathsNotRevealingCompletePathsInEnumeration =
                     mergeOrAddPartialPaths incompletePaths
-                                                 (SetOfMergedPaths.Initial maximumNumberOfPathSteps
-                                                                                                 passAllFilter)
+                                                 (SetOfMergedPaths.Initial (maximumNumberOfPathSteps,
+                                                                            passAllFilter))
                                                  randomBehaviourCloneTwo
                                                  false
 
@@ -545,8 +545,8 @@
         member this.TestInitialStateIsEmptyAndDoesNotContainATrivialEmptyIncompletePath () =
             for maximumNumberOfPathSteps in 0 .. maximumNumberOfPathSteps do   // NOTE: includes the boundary case of no steps whatsover.
                 let initial =
-                    SetOfMergedPaths.Initial maximumNumberOfPathSteps
-                                                                   passAllFilter
+                    SetOfMergedPaths.Initial (maximumNumberOfPathSteps,
+                                              passAllFilter)
                 let containedPartialPaths =
                     initial.EnumerationOfMergedPaths true
                     |> List.ofSeq

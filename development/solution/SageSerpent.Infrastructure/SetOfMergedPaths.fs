@@ -1404,11 +1404,17 @@ namespace SageSerpent.Infrastructure
         member this.EnumerationOfMergedPaths revealCompletePathsAgain =
             createIncompletePathSequence revealCompletePathsAgain
 
-        static member Initial maximumNumberOfPathIndicesOverall
-                              pathIsAcceptable =
+        static member Initial (maximumNumberOfPathIndicesOverall,
+                               pathIsAcceptable) =
             SetOfMergedPaths<'Step> (SingleTrivialPath,
                                      maximumNumberOfPathIndicesOverall,
                                      pathIsAcceptable)
+
+        static member Initial maximumNumberOfPathIndicesOverall =
+            SetOfMergedPaths<'Step> (SingleTrivialPath,
+                                     maximumNumberOfPathIndicesOverall,
+                                     (fun _ ->
+                                        true))
 
         member this.MergeOrAdd incompletePathRepresentationInExternalForm =
             if Map.isEmpty incompletePathRepresentationInExternalForm
