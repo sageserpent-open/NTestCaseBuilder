@@ -1455,138 +1455,137 @@ namespace SageSerpent.Infrastructure
                         then
                             raise (InternalAssertionViolationException "The merged full path is not acceptable to the filter.")
                         Some completePath
-                let modifiedPaths
-                    , completePathBeingOfferedNowForEarlyAccess =
-                    ContinuationMonad<_, _>.CallCC ((fun () ->
-                                                        continuationWorkflow
-                                                            {
-                                                                return paths
-                                                                       , None
-                                                            }),
-                                                    (fun existingCompletePathBlockedRemovalContinuation ->
-                                                        continuationWorkflow
-                                                            {
-                                                                let! pathsWithoutMergeCandidate
-                                                                     , mergedIncompletePathRepresentation =
-                                                                    remove paths
-                                                                           incompletePathRepresentation
-                                                                           existingCompletePathBlockedRemovalContinuation
+                let existingCompletePathBlockedRemovalExceptionHandler () =
+                    continuationWorkflow
+                        {
+                            return paths
+                                    , None
+                        }
+                let mergePathIfPossible existingCompletePathBlockedRemovalContinuation =
+                    continuationWorkflow
+                        {
+                            let! pathsWithoutMergeCandidate
+                                 , mergedIncompletePathRepresentation =
+                                remove paths
+                                       incompletePathRepresentation
+                                       existingCompletePathBlockedRemovalContinuation
 
-                                                                do! continuationWorkflow
-                                                                        {
-                                                                            let lengthOfIncompletePathRepresentation =
-                                                                                incompletePathRepresentation
-                                                                                |> List.length
-                                                                            let lengthOfMergedIncompletePathRepresentation =
-                                                                                mergedIncompletePathRepresentation
-                                                                                |> List.length
-                                                                            if lengthOfMergedIncompletePathRepresentation < lengthOfIncompletePathRepresentation
-                                                                            then
-                                                                                raise (InternalAssertionViolationException "The merged removed incomplete path should be as least as long as the original.")
-                                                                            let truncatedMergedIncompletePathRepresentation
-                                                                                , _ =
-                                                                                mergedIncompletePathRepresentation.BreakOff lengthOfIncompletePathRepresentation
-                                                                            List.zip incompletePathRepresentation
-                                                                                     truncatedMergedIncompletePathRepresentation
-                                                                            |> List.iter (fun (original
-                                                                                               , merged) ->
-                                                                                            let consistent =
-                                                                                                match original
-                                                                                                      , merged with
-                                                                                                    Some fromOriginal
-                                                                                                    , Some fromMerged ->
-                                                                                                        fromOriginal = fromMerged
-                                                                                                  | Some _
-                                                                                                    , None ->
-                                                                                                        false
-                                                                                                  | _ ->
-                                                                                                        true
-                                                                                            if not consistent
-                                                                                            then
-                                                                                                raise (InternalAssertionViolationException "The merged removed incomplete path is not acceptable to the filter."))
-                                                                            let! _
-                                                                                , remergedIncompletePathRepresentation =
-                                                                                remove pathsWithoutMergeCandidate
-                                                                                       mergedIncompletePathRepresentation
-                                                                                       (fun _ -> raise (InternalAssertionViolationException "This should not be called."))
-                                                                            do
-                                                                                let externalFormFor incompletePathRepresentation =
-                                                                                    seq
-                                                                                        {
-                                                                                            for pathStepIndex
-                                                                                                , step in incompletePathRepresentation
-                                                                                                                       |> List.mapi (fun pathStepIndex
-                                                                                                                                         step ->
-                                                                                                                                            pathStepIndex
-                                                                                                                                            , step) do
-                                                                                                match step with
-                                                                                                    Some step ->
-                                                                                                        yield pathStepIndex
-                                                                                                              , step
-                                                                                                  | None ->
-                                                                                                        ()
-                                                                                        }
-                                                                                    |> Map.ofSeq
-                                                                                let mergedIncompletePathRepresentationInExternalForm =
-                                                                                    externalFormFor mergedIncompletePathRepresentation
-                                                                                if mergedIncompletePathRepresentationInExternalForm
-                                                                                   |> pathIsAcceptable
-                                                                                   |> not
-                                                                                then
-                                                                                    raise (InternalAssertionViolationException "The merged removed incomplete path should be passed by the filter.")
-                                                                                let checkWhatHasBeenMergedInToMake mergedIncompletePathRepresentationInExternalForm =
-                                                                                    let whatHasBeenMergedIn =
-                                                                                        mergedIncompletePathRepresentationInExternalForm
-                                                                                        |> Map.filter (fun pathStepIndex
-                                                                                                           _ ->
-                                                                                                           Map.containsKey pathStepIndex
-                                                                                                                           incompletePathRepresentationInExternalForm
-                                                                                                           |> not)
-                                                                                        |> Map.toList
-                                                                                    for sampleSize in 1 .. List.length whatHasBeenMergedIn - 1 do
-                                                                                        for sample in CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder sampleSize
-                                                                                                                                                                           whatHasBeenMergedIn do
-                                                                                            let incompletePathBetweenTheQueryAndTheMergeResult =
-                                                                                                seq
-                                                                                                    {
-                                                                                                        yield! incompletePathRepresentationInExternalForm
-                                                                                                               |> Map.toSeq
-                                                                                                        yield! sample
-                                                                                                    }
-                                                                                            if pathIsAcceptable (incompletePathBetweenTheQueryAndTheMergeResult
-                                                                                                                 |>Map.ofSeq)
-                                                                                               |> not
-                                                                                            then
-                                                                                                pathIsAcceptable mergedIncompletePathRepresentationInExternalForm
-                                                                                                |> ignore
-                                                                                                pathIsAcceptable (incompletePathBetweenTheQueryAndTheMergeResult
-                                                                                                                  |> Map.ofSeq)
-                                                                                                |> ignore
-                                                                                                printf "incompletePathBetweenTheQueryAndTheMergeResult: %A\n" (List.ofSeq (incompletePathBetweenTheQueryAndTheMergeResult |> Seq.sortBy fst))
-                                                                                                raise (PreconditionViolationException "The filter is inconsistent - it forbids a vector that is a subset of a larger vector that is passed.")
+                            do! continuationWorkflow
+                                    {
+                                        let lengthOfIncompletePathRepresentation =
+                                            incompletePathRepresentation
+                                            |> List.length
+                                        let lengthOfMergedIncompletePathRepresentation =
+                                            mergedIncompletePathRepresentation
+                                            |> List.length
+                                        if lengthOfMergedIncompletePathRepresentation < lengthOfIncompletePathRepresentation
+                                        then
+                                            raise (InternalAssertionViolationException "The merged removed incomplete path should be as least as long as the original.")
+                                        let truncatedMergedIncompletePathRepresentation
+                                            , _ =
+                                            mergedIncompletePathRepresentation.BreakOff lengthOfIncompletePathRepresentation
+                                        List.zip incompletePathRepresentation
+                                                    truncatedMergedIncompletePathRepresentation
+                                        |> List.iter (fun (original
+                                                            , merged) ->
+                                                        let consistent =
+                                                            match original
+                                                                  , merged with
+                                                                Some fromOriginal
+                                                                , Some fromMerged ->
+                                                                       fromOriginal = fromMerged
+                                                              | Some _
+                                                                , None ->
+                                                                    false
+                                                              | _ ->
+                                                                    true
+                                                        if not consistent
+                                                        then
+                                                            raise (InternalAssertionViolationException "The merged removed incomplete path is not acceptable to the filter."))
+                                        let! _
+                                            , remergedIncompletePathRepresentation =
+                                            remove pathsWithoutMergeCandidate
+                                                   mergedIncompletePathRepresentation
+                                                   (fun _ -> raise (InternalAssertionViolationException "This should not be called."))
+                                        do
+                                            let externalFormFor incompletePathRepresentation =
+                                                seq
+                                                    {
+                                                        for pathStepIndex
+                                                            , step in incompletePathRepresentation
+                                                                      |> List.mapi (fun pathStepIndex
+                                                                                        step ->
+                                                                                        pathStepIndex
+                                                                                        , step) do
+                                                            match step with
+                                                                Some step ->
+                                                                    yield pathStepIndex
+                                                                          , step
+                                                              | None ->
+                                                                    ()
+                                                    }
+                                                |> Map.ofSeq
+                                            let mergedIncompletePathRepresentationInExternalForm =
+                                                externalFormFor mergedIncompletePathRepresentation
+                                            if mergedIncompletePathRepresentationInExternalForm
+                                               |> pathIsAcceptable
+                                               |> not
+                                            then
+                                                raise (InternalAssertionViolationException "The merged removed incomplete path should be passed by the filter.")
+                                            let checkWhatHasBeenMergedInToMake mergedIncompletePathRepresentationInExternalForm =
+                                                let whatHasBeenMergedIn =
+                                                    mergedIncompletePathRepresentationInExternalForm
+                                                    |> Map.filter (fun pathStepIndex
+                                                                       _ ->
+                                                                        Map.containsKey pathStepIndex
+                                                                                        incompletePathRepresentationInExternalForm
+                                                                        |> not)
+                                                    |> Map.toList
+                                                for sampleSize in 1 .. List.length whatHasBeenMergedIn - 1 do
+                                                    for sample in CombinatoricUtilities.GenerateCombinationsOfGivenSizePreservingOrder sampleSize
+                                                                                                                                       whatHasBeenMergedIn do
+                                                        let incompletePathBetweenTheQueryAndTheMergeResult =
+                                                            seq
+                                                                {
+                                                                    yield! incompletePathRepresentationInExternalForm
+                                                                           |> Map.toSeq
+                                                                    yield! sample
+                                                                }
+                                                        if pathIsAcceptable (incompletePathBetweenTheQueryAndTheMergeResult
+                                                                             |>Map.ofSeq)
+                                                           |> not
+                                                        then
+                                                            pathIsAcceptable mergedIncompletePathRepresentationInExternalForm
+                                                            |> ignore
+                                                            pathIsAcceptable (incompletePathBetweenTheQueryAndTheMergeResult
+                                                                              |> Map.ofSeq)
+                                                            |> ignore
+                                                            printf "incompletePathBetweenTheQueryAndTheMergeResult: %A\n" (List.ofSeq (incompletePathBetweenTheQueryAndTheMergeResult |> Seq.sortBy fst))
+                                                            raise (PreconditionViolationException "The filter is inconsistent - it forbids a vector that is a subset of a larger vector that is passed.")
 
-                                                                                let remergedIncompletePathRepresentationInExternalForm =
-                                                                                    externalFormFor remergedIncompletePathRepresentation
+                                            let remergedIncompletePathRepresentationInExternalForm =
+                                                externalFormFor remergedIncompletePathRepresentation
                                                                                 
-                                                                                printf "incompletePathRepresentationInExternalForm: %A\n" (Map.toList incompletePathRepresentationInExternalForm)
-                                                                                printf "mergedIncompletePathRepresentationInExternalForm: %A\n" (Map.toList mergedIncompletePathRepresentationInExternalForm)
-                                                                                printf "remergedIncompletePathRepresentationInExternalForm: %A\n" (Map.toList remergedIncompletePathRepresentationInExternalForm)
+                                            printf "incompletePathRepresentationInExternalForm: %A\n" (Map.toList incompletePathRepresentationInExternalForm)
+                                            printf "mergedIncompletePathRepresentationInExternalForm: %A\n" (Map.toList mergedIncompletePathRepresentationInExternalForm)
+                                            printf "remergedIncompletePathRepresentationInExternalForm: %A\n" (Map.toList remergedIncompletePathRepresentationInExternalForm)
 
-                                                                                checkWhatHasBeenMergedInToMake mergedIncompletePathRepresentationInExternalForm
-                                                                                checkWhatHasBeenMergedInToMake remergedIncompletePathRepresentationInExternalForm
+                                            checkWhatHasBeenMergedInToMake mergedIncompletePathRepresentationInExternalForm
+                                            checkWhatHasBeenMergedInToMake remergedIncompletePathRepresentationInExternalForm
 
-                                                                                raise (InternalAssertionViolationException "The merged removed incomplete path still matches with something left behind!")
-                                                                        }
-                                                                    + continuationWorkflow
-                                                                        {
-                                                                            return ()
-                                                                        }
+                                            raise (InternalAssertionViolationException "The merged removed incomplete path still matches with something left behind!")
+                                    }
+                                + continuationWorkflow
+                                    {
+                                        return ()
+                                    }
 
-                                                                return add pathsWithoutMergeCandidate
-                                                                           mergedIncompletePathRepresentation
-                                                                       , detectAndConvertCompletePath mergedIncompletePathRepresentation
-                                                            }))
-                    + continuationWorkflow
+                            return add pathsWithoutMergeCandidate
+                                       mergedIncompletePathRepresentation
+                                    , detectAndConvertCompletePath mergedIncompletePathRepresentation
+                        }
+                let addPath =
+                    continuationWorkflow
                         {
                             let modifiedPaths =
                                 add paths
@@ -1611,6 +1610,11 @@ namespace SageSerpent.Infrastructure
                                      else
                                         None
                         }
+                let modifiedPaths
+                    , completePathBeingOfferedNowForEarlyAccess =
+                    ContinuationMonad<_, _>.CallCC (existingCompletePathBlockedRemovalExceptionHandler,
+                                                    mergePathIfPossible)
+                    + addPath
                     |> ContinuationMonad<_, _>.Execute
                 if 7 = (hash this) % 100
                 then
