@@ -102,10 +102,6 @@ namespace NTestCaseBuilder
                 this with IsZeroCost = true
             }
 
-    and LevelCombinationFilter =
-        delegate of IDictionary<Int32, Int32 * Object> -> Boolean   // NOTE: the test variable index keys map to pairs of the
-                                                                    // test variable level index and the corresponding
-                                                                    // test variable level for the key's test variable.
     module NodeExtensions =
         let inline (|TestVariableNode|SingletonNode|InterleavingNode|SynthesizingNode|DeferralNode|) (node: Node) =
             // NASTY HACK: I wish this was written in Scala! There, I said it.

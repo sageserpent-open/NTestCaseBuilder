@@ -206,14 +206,20 @@
         /// variable in the combination, together with the value of the test level itself. Must return true to signify that the combination of levels is permitted, false if the combination
         /// must be excluded.</param>
         /// <returns>A new factory that is a copy of 'this' but with the additional filter included.</returns>
+        /// <seealso cref="LevelCombinationFilter">The filter delegate type.</seealso>
+        /// <seealso cref="ITaggedFilterInputs">An additional interface that can be used by a filter's implementation.</seealso>
+        /// <seealso cref="WithTag">A method on this class that sets up tags that can be used by filter implementations.</seealso>
         abstract WithFilter: LevelCombinationFilter -> IFactory
 
         abstract WithMaximumStrength: Int32 -> IFactory
 
         abstract WithZeroStrengthCost: unit -> IFactory
 
+        /// <remarks>By default, the deferral budget is zero - no deferred factories are taken into consideration at all.</remarks>
         abstract WithDeferralBudgetOf: Int32 -> IFactory
-        // By default, the deferral budget is zero - no deferred factories are taken into consideration at all.
+
+        /// <seealso cref="ITaggedFilterInputs">The interface that makes use of tags.</seealso>
+        abstract WithTag: Object -> IFactory
 
     /// <summary>This extends the API provided by IFactory to deal with test cases of a specific type given
     /// by the type parameter TestCase.</summary>
@@ -234,6 +240,8 @@
         abstract WithZeroStrengthCost: unit -> ITypedFactory<'TestCase>
 
         abstract WithDeferralBudgetOf: Int32 -> ITypedFactory<'TestCase>
+
+        abstract WithTag: Object -> ITypedFactory<'TestCase>
 
     type internal INodeWrapper =
         abstract Node: Node
@@ -283,6 +291,10 @@
                 (this :> ITypedFactory<'TestCase>).WithDeferralBudgetOf deferralBudget
                 :> IFactory
 
+            member this.WithTag tag =
+                (this :> ITypedFactory<'TestCase>).WithTag tag
+                :> IFactory
+
         interface ITypedFactory<'TestCase> with
             member this.CreateEnumerable maximumDesiredStrength =
                 seq
@@ -318,6 +330,10 @@
 
             member this.WithDeferralBudgetOf deferralBudget =
                 TypedFactoryImplementation<'TestCase>(node.WithDeferralBudget (Some deferralBudget))
+                :> ITypedFactory<'TestCase>
+
+            member this.WithTag tag =
+                this
                 :> ITypedFactory<'TestCase>
 
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
