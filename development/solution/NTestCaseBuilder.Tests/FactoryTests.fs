@@ -383,6 +383,72 @@
                                     let additionalFilterForThisFactory (dictionary: IDictionary<Int32, Int32 * Object>) =
                                         let taggedFilterInputs =
                                             dictionary :?> ITaggedFilterInputs
+                                        let evenTaggedFilterInputs =
+                                            taggedFilterInputs.FilterInputsForMatchingTags (fun tag ->
+                                                                                                0 = unbox tag % 2)
+                                        if Seq.isEmpty evenTaggedFilterInputs
+                                           |> not
+                                        then
+                                            let evenTags =
+                                                evenTaggedFilterInputs.Values
+                                                |> Seq.map (fst >> unbox)
+                                            let minimumEvenTag =
+                                                evenTags
+                                                |> Seq.min
+                                            let shouldBeTrue =
+                                                evenTags
+                                                |> Seq.map (fun evenTag ->
+                                                                (evenTag - minimumEvenTag) / 2)
+                                                |> Seq.zip evenTaggedFilterInputs.Keys
+                                                |> Seq.forall (function lhs
+                                                                        , rhs ->
+                                                                        lhs = rhs)
+                                            Assert.IsTrue shouldBeTrue
+                                        let shouldBeTrue =
+                                            evenTaggedFilterInputs.Values
+                                            |> Seq.map snd
+                                            |> Seq.forall (fun filterInput ->
+                                                            match filterInput.TryGetValue 0 with
+                                                                false
+                                                                , _ ->
+                                                                    true
+                                                              | true
+                                                                , (_
+                                                                   , level) ->
+                                                                    0 = (unbox level |> fst) % 2)
+                                        let oddTaggedFilterInputs =
+                                            taggedFilterInputs.FilterInputsForMatchingTags (fun tag ->
+                                                                                               1 = unbox tag % 2)
+                                        if Seq.isEmpty oddTaggedFilterInputs
+                                           |> not
+                                        then
+                                            let oddTags =
+                                                oddTaggedFilterInputs.Values
+                                                |> Seq.map (fst >> unbox)
+                                            let minimumOddTag =
+                                                oddTags
+                                                |> Seq.min
+                                            let shouldBeTrue =
+                                                oddTags
+                                                |> Seq.map (fun oddTag ->
+                                                                (oddTag - minimumOddTag) / 2)
+                                                |> Seq.zip oddTaggedFilterInputs.Keys
+                                                |> Seq.forall (function lhs
+                                                                        , rhs ->
+                                                                        lhs = rhs)
+                                            Assert.IsTrue shouldBeTrue
+                                        let shouldBeTrue =
+                                            oddTaggedFilterInputs.Values
+                                            |> Seq.map snd
+                                            |> Seq.forall (fun filterInput ->
+                                                            match filterInput.TryGetValue 0 with
+                                                                false
+                                                                , _ ->
+                                                                    true
+                                                              | true
+                                                                , (_
+                                                                   , level) ->
+                                                                    1 = (unbox level |> fst) % 2)
                                         let relevantTestVariableLevelEncodedIndices =
                                             seq
                                                 {
