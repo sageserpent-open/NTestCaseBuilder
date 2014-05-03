@@ -208,35 +208,36 @@ namespace NTestCaseBuilder
                         maximumPossibleStrength
             walkTree this
 
-        member private this.FoldRightPostOrder folding
-                                               accumulated =
-            let rec walkTree node
-                             accumulated =
+        member private this.FoldLeftPostOrder folding
+                                              accumulated =
+            let rec walkTree accumulated
+                             node =
                 match node with
                     InterleavingNode subtreeRootNodes ->
                         let accumulatedFromSubtrees =
-                            List.foldBack walkTree
-                                          subtreeRootNodes
-                                          accumulated
-                        folding node
-                                accumulatedFromSubtrees
+                            List.fold walkTree
+                                      accumulated
+                                      subtreeRootNodes
+                        folding accumulatedFromSubtrees
+                                node
                   | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
                         let accumulatedFromSubtrees =
-                            Array.foldBack walkTree
-                                           fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
-                                           accumulated
-                        folding node
-                                accumulatedFromSubtrees
+                            Array.fold walkTree
+                                       accumulated
+                                       fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
+                        folding accumulatedFromSubtrees
+                                node
+                                
                   | _ ->
-                        folding node
-                                accumulated
-            walkTree this
-                     accumulated
+                        folding accumulated
+                                node
+            walkTree accumulated
+                     this
 
         member this.DeferralBudgetsOverSubtree () =
-            this.FoldRightPostOrder (fun node
-                                         (nodeIndex
-                                          , nodeIndexToDeferralBudgetMap) ->
+            this.FoldLeftPostOrder (fun (nodeIndex
+                                         , nodeIndexToDeferralBudgetMap)
+                                        node ->
                                         1 + nodeIndex
                                         , match node.DeferralBudget with
                                             Some deferralBudget ->
@@ -250,9 +251,9 @@ namespace NTestCaseBuilder
             |> snd
 
         member this.ApplyDeferralBudgetsOverSubtree nodeIndexToDeferralBudgetMap =
-            this.FoldRightPostOrder (fun node
-                                         (nodeIndex
-                                          , stackOfNodesWithBudgetAppliedIfRequired: List<_>) ->
+            this.FoldLeftPostOrder (fun (nodeIndex
+                                         , stackOfNodesWithBudgetAppliedIfRequired: List<_>)
+                                        node ->
                                         let applyDeferralBudget (node: Node) =
                                             match Map.tryFind nodeIndex
                                                               nodeIndexToDeferralBudgetMap with
@@ -265,19 +266,21 @@ namespace NTestCaseBuilder
                                             InterleavingNode subtreeRootNodes ->
                                                 let numberOfSubtreeRootNodes =
                                                     subtreeRootNodes.Length
-                                                let subtreeRootNodesWithBudgetAppliedIfRequired
+                                                let subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
                                                     , remainingNodesWithBudgetAppliedIfRequired =
                                                     stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
-                                                (InterleavingNode subtreeRootNodesWithBudgetAppliedIfRequired
+                                                (InterleavingNode (subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
+                                                                   |> List.rev)
                                                  |> applyDeferralBudget)
                                                 :: remainingNodesWithBudgetAppliedIfRequired
                                           | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
                                                 let numberOfSubtreeRootNodes =
                                                     fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes.Length
-                                                let subtreeRootNodesWithBudgetAppliedIfRequired
+                                                let subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
                                                     , remainingNodesWithBudgetAppliedIfRequired =
                                                     stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
-                                                (SynthesizingNode (fixedCombinationOfSubtreeRootNodesForSynthesis.BuildSimilarFrom subtreeRootNodesWithBudgetAppliedIfRequired)
+                                                (SynthesizingNode (fixedCombinationOfSubtreeRootNodesForSynthesis.BuildSimilarFrom (subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
+                                                                                                                                    |> List.rev))
                                                  |> applyDeferralBudget)
                                                 :: remainingNodesWithBudgetAppliedIfRequired
                                           | _ ->
