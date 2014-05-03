@@ -65,6 +65,7 @@ namespace NTestCaseBuilder
             MaximumStrength: Option<Int32>
             DeferralBudget: Option<Int32>
             IsZeroCost: Boolean
+            Tag: Option<Object>
         }
         
         static member For kind =
@@ -74,11 +75,12 @@ namespace NTestCaseBuilder
                 MaximumStrength = None
                 DeferralBudget = None
                 IsZeroCost = false
+                Tag = None
             }
 
         member this.WithFilter additionalFilter =
             {
-                this with Filters = additionalFilter ::this.Filters
+                this with Filters = additionalFilter :: this.Filters
             }
 
         member private this.WithFilters additionalFilters =
@@ -100,6 +102,11 @@ namespace NTestCaseBuilder
         member this.WithZeroCost () =
             {
                 this with IsZeroCost = true
+            }
+
+        member this.WithTag tag =
+            {
+                this with Tag = tag
             }
 
     module NodeExtensions =

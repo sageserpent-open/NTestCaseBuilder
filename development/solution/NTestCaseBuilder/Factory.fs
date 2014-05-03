@@ -333,7 +333,7 @@
                 :> ITypedFactory<'TestCase>
 
             member this.WithTag tag =
-                this
+                TypedFactoryImplementation<'TestCase>(node.WithTag (Some tag))
                 :> ITypedFactory<'TestCase>
 
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
