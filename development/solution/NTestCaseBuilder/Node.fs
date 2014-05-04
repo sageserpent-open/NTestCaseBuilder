@@ -384,97 +384,114 @@ namespace NTestCaseBuilder
                             hash index
                 }
 
-            let rec walkTree everythingInTreeIsHiddenFromFilters
-                             trampData
-                             node =
-                optionWorkflow
-                    {
-                        let! indexForLeftmostTestVariable
-                             , adjustedIndexForLeftmostTestVariable
-                             , testVariableIndexToLevelsAndAdjustedIndexMap
-                             , filtersGroupedByNodeAndTheirBracketingIndices =
-                            trampData
-                        if everythingInTreeIsHiddenFromFilters
-                        then
-                            return (node: Node).CountTestVariables + indexForLeftmostTestVariable
-                                   , adjustedIndexForLeftmostTestVariable
-                                   , testVariableIndexToLevelsAndAdjustedIndexMap
-                                   , filtersGroupedByNodeAndTheirBracketingIndices
-                        else
-                            let! onePastIndexForRightmostTestVariable
-                                , onePastAdjustedIndexForRightmostTestVariable
-                                , testVariableIndexToLevelsAndAdjustedIndexMap
-                                , filtersGroupedByNodeAndTheirBracketingIndices =
-                                match node with
-                                    TestVariableNode levels ->
-                                        (1 + indexForLeftmostTestVariable
-                                         , 1 + adjustedIndexForLeftmostTestVariable
-                                         , Map.add indexForLeftmostTestVariable
-                                                   (levels
-                                                    , adjustedIndexForLeftmostTestVariable)
-                                                   testVariableIndexToLevelsAndAdjustedIndexMap
-                                         , filtersGroupedByNodeAndTheirBracketingIndices)
-                                        |> Some
-                                  | SingletonNode thing ->
-                                        (1 + indexForLeftmostTestVariable
-                                         , 1 + adjustedIndexForLeftmostTestVariable
-                                         , testVariableIndexToLevelsAndAdjustedIndexMap
-                                         , filtersGroupedByNodeAndTheirBracketingIndices)
-                                        |> Some
-                                  | InterleavingNode subtreeRootNodes ->
-                                        List.fold (walkTree false)
-                                                  trampData
-                                                  subtreeRootNodes
-                                  | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
-                                        let walkTree trampData
-                                                     (everythingInTreeIsHiddenFromFilters
-                                                      , node) =
-                                            walkTree everythingInTreeIsHiddenFromFilters
-                                                     trampData
-                                                     node
-                                        let subtreeRootNodes =
-                                            fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
-                                        Array.fold walkTree
-                                                   trampData
-                                                   (subtreeRootNodes
-                                                    |> Array.mapi (fun subtreeIndex
-                                                                    subtreeRootNode ->
-                                                                        fixedCombinationOfSubtreeRootNodesForSynthesis.IsSubtreeHiddenFromFilters subtreeIndex
-                                                                        , subtreeRootNode))
-                            let filters =
-                                node.Filters
-                            let isInsane (filter: Filter) =
-                                filter.Invoke Map.empty
-                                |> not
-                            if filters
-                               |> List.exists isInsane
+            let walkTree trampData
+                         addContributionFrom =
+                let rec walkTree everythingInTreeIsHiddenFromFilters
+                                 trampData
+                                 node =
+                    optionWorkflow
+                        {
+                            let! indexForLeftmostTestVariable
+                                 , adjustedIndexForLeftmostTestVariable
+                                 , testVariableIndexToLevelsAndAdjustedIndexMap
+                                 , contributionsFromNodes =
+                                trampData
+                            if everythingInTreeIsHiddenFromFilters
                             then
-                                return! optionWorkflow.Zero()
+                                return (node: Node).CountTestVariables + indexForLeftmostTestVariable
+                                       , adjustedIndexForLeftmostTestVariable
+                                       , testVariableIndexToLevelsAndAdjustedIndexMap
+                                       , contributionsFromNodes
                             else
+                                let! onePastIndexForRightmostTestVariable
+                                    , onePastAdjustedIndexForRightmostTestVariable
+                                    , testVariableIndexToLevelsAndAdjustedIndexMap
+                                    , contributionsFromNodes =
+                                    match node with
+                                        TestVariableNode levels ->
+                                            (1 + indexForLeftmostTestVariable
+                                             , 1 + adjustedIndexForLeftmostTestVariable
+                                             , Map.add indexForLeftmostTestVariable
+                                                       (levels
+                                                        , adjustedIndexForLeftmostTestVariable)
+                                                       testVariableIndexToLevelsAndAdjustedIndexMap
+                                             , contributionsFromNodes)
+                                            |> Some
+                                      | SingletonNode thing ->
+                                            (1 + indexForLeftmostTestVariable
+                                             , 1 + adjustedIndexForLeftmostTestVariable
+                                             , testVariableIndexToLevelsAndAdjustedIndexMap
+                                             , contributionsFromNodes)
+                                            |> Some
+                                      | InterleavingNode subtreeRootNodes ->
+                                            List.fold (walkTree false)
+                                                      trampData
+                                                      subtreeRootNodes
+                                      | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
+                                            let walkTree trampData
+                                                         (everythingInTreeIsHiddenFromFilters
+                                                          , node) =
+                                                walkTree everythingInTreeIsHiddenFromFilters
+                                                         trampData
+                                                         node
+                                            let subtreeRootNodes =
+                                                fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
+                                            Array.fold walkTree
+                                                       trampData
+                                                       (subtreeRootNodes
+                                                        |> Array.mapi (fun subtreeIndex
+                                                                        subtreeRootNode ->
+                                                                            fixedCombinationOfSubtreeRootNodesForSynthesis.IsSubtreeHiddenFromFilters subtreeIndex
+                                                                            , subtreeRootNode))
+                                let! contributionFromNode =
+                                    addContributionFrom node
+                                                        adjustedIndexForLeftmostTestVariable
+                                                        onePastAdjustedIndexForRightmostTestVariable
+                                                        contributionsFromNodes
                                 return onePastIndexForRightmostTestVariable
                                        , onePastAdjustedIndexForRightmostTestVariable
                                        , testVariableIndexToLevelsAndAdjustedIndexMap
-                                       , if filters.IsEmpty
-                                         then
-                                            filtersGroupedByNodeAndTheirBracketingIndices
-                                         else
-                                            (filters
-                                             , adjustedIndexForLeftmostTestVariable
-                                             , onePastAdjustedIndexForRightmostTestVariable) :: filtersGroupedByNodeAndTheirBracketingIndices
-                   }
+                                       , contributionFromNode
+                       }
+                walkTree false
+                         trampData
+                         this
+            let addFiltersFrom node
+                               adjustedIndexForLeftmostTestVariable
+                               onePastAdjustedIndexForRightmostTestVariable
+                               filtersGroupedByNodeAndTheirBracketingIndices =
+                optionWorkflow
+                    {
+                        let filters =
+                            node.Filters
+                        let isInsane (filter: Filter) =
+                            filter.Invoke Map.empty
+                            |> not
+                        if filters
+                            |> List.exists isInsane
+                        then
+                            return! optionWorkflow.Zero()
+                        else
+                            return if filters.IsEmpty
+                                   then
+                                    filtersGroupedByNodeAndTheirBracketingIndices
+                                   else
+                                    (filters
+                                     , adjustedIndexForLeftmostTestVariable
+                                     , onePastAdjustedIndexForRightmostTestVariable) :: filtersGroupedByNodeAndTheirBracketingIndices
+                    }
             optionWorkflow
                 {
                     let! _
                          , _
                          , testVariableIndexToLevelsAndAdjustedIndexMap
                          , filtersGroupedByNodeAndTheirBracketingIndices =
-                        walkTree false
-                                 ((0
+                        walkTree ((0
                                    , 0
                                    , Map.empty
                                    , List.Empty)
                                   |> Some)
-                                 this
+                                 addFiltersFrom
 
                     return if filtersGroupedByNodeAndTheirBracketingIndices.IsEmpty
                             then
