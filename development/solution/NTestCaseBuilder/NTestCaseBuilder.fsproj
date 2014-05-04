@@ -60,7 +60,7 @@
   <ItemGroup>
     <None Include="Script.fsx" />
     <Compile Include="AssemblyInformation.fs" />
-    <Compile Include="LevelCombinationFilter.fs" />
+    <Compile Include="Filter.fs" />
     <Compile Include="Node.fs" />
     <Compile Include="Factory.fs" />
     <Compile Include="Interleaving.fs" />

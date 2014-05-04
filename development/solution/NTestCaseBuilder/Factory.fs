@@ -206,10 +206,16 @@
         /// variable in the combination, together with the value of the test level itself. Must return true to signify that the combination of levels is permitted, false if the combination
         /// must be excluded.</param>
         /// <returns>A new factory that is a copy of 'this' but with the additional filter included.</returns>
-        /// <seealso cref="LevelCombinationFilter">The filter delegate type.</seealso>
-        /// <seealso cref="ITaggedFilterInputs">An additional interface that can be used by a filter's implementation.</seealso>
+        /// <seealso cref="Filter">The filter delegate type.</seealso>
+        abstract WithFilter: Filter -> IFactory
+
+        /// <summary>Creates a new factory based on 'this' with the addition of a filter; the filter uses tags to categorise its inputs. Any existing
+        /// filters will continue to be honoured as well; the operation adds the filter without replacing any previous ones. The internal implementation
+        /// will call the filters to decide whether or not to accept a combination of levels for some set of test variables - if a filter call returns
+        /// false, the combination considered by that call will be blocked.</summary>.
         /// <seealso cref="WithTag">A method on this class that sets up tags that can be used by filter implementations.</seealso>
-        abstract WithFilter: LevelCombinationFilter -> IFactory
+        /// <seealso cref="ITaggedFilterInputs">The interface that allows a filter to use tags.</seealso>
+        abstract WithFilter: FilterUsingTaggedInputs -> IFactory
 
         abstract WithMaximumStrength: Int32 -> IFactory
 
@@ -218,7 +224,7 @@
         /// <remarks>By default, the deferral budget is zero - no deferred factories are taken into consideration at all.</remarks>
         abstract WithDeferralBudgetOf: Int32 -> IFactory
 
-        /// <seealso cref="ITaggedFilterInputs">The interface that makes use of tags.</seealso>
+        /// <seealso cref="ITaggedFilterInputs">The interface that allows a filter to use tags.</seealso>
         abstract WithTag: Object -> IFactory
 
     /// <summary>This extends the API provided by IFactory to deal with test cases of a specific type given
@@ -233,7 +239,9 @@
 
         abstract CreateEnumerable: Int32 -> IEnumerable<'TestCase>
 
-        abstract WithFilter: LevelCombinationFilter -> ITypedFactory<'TestCase>
+        abstract WithFilter: Filter -> ITypedFactory<'TestCase>
+
+        abstract WithFilter: FilterUsingTaggedInputs -> ITypedFactory<'TestCase>
 
         abstract WithMaximumStrength: Int32 -> ITypedFactory<'TestCase>
 
@@ -265,7 +273,11 @@
                     }
                 |> Seq.max
 
-            member this.WithFilter filter =
+            member this.WithFilter (filter: Filter) =
+                (this :> ITypedFactory<'TestCase>).WithFilter filter
+                :> IFactory
+
+            member this.WithFilter (filter: FilterUsingTaggedInputs) =
                 (this :> ITypedFactory<'TestCase>).WithFilter filter
                 :> IFactory
 
@@ -316,7 +328,11 @@
                 this.ExecuteParameterisedUnitTestForReproducedTypedTestCaseWorkaroundForDelegateNonCovariance (parameterisedUnitTest.Invoke
                                                                                                                , reproductionString)
 
-            member this.WithFilter (filter: LevelCombinationFilter): ITypedFactory<'TestCase> =
+            member this.WithFilter (filter: Filter): ITypedFactory<'TestCase> =
+                TypedFactoryImplementation<'TestCase> (node.WithFilter filter)
+                :> ITypedFactory<'TestCase>
+
+            member this.WithFilter (filter: FilterUsingTaggedInputs): ITypedFactory<'TestCase> =
                 TypedFactoryImplementation<'TestCase> (node.WithFilter filter)
                 :> ITypedFactory<'TestCase>
 

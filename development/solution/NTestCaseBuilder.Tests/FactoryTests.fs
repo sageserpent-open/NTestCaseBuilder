@@ -150,7 +150,7 @@
 
     type FactoryConstructors<'Factory, 'TestCase> =
         {
-            FactoryWithFilterFrom: 'Factory -> LevelCombinationFilter -> 'Factory
+            FactoryWithFilterFrom: 'Factory -> Filter -> FilterUsingTaggedInputs -> 'Factory
             TestVariableFrom: List<'TestCase> -> 'Factory
             SingletonFrom: 'TestCase -> 'Factory
             SynthesisFrom: 'Factory [] -> (List<'TestCase> -> 'TestCase) -> Boolean -> 'Factory
@@ -180,8 +180,9 @@
             {
                 FactoryWithFilterFrom =
                     (fun (factory: IFactory)
-                         filter ->
-                         factory.WithFilter filter)
+                         filter
+                         filterUsingTaggedInputs ->
+                         (factory.WithFilter filter).WithFilter filterUsingTaggedInputs)
                 TestVariableFrom =
                     (fun testVariableLevels ->
                         TestVariable.Create testVariableLevels
@@ -221,8 +222,9 @@
             {
                 FactoryWithFilterFrom =
                     (fun (factory: ITypedFactory<_>)
-                         filter ->
-                         factory.WithFilter filter)
+                         filter
+                         filterUsingTaggedInputs ->
+                         (factory.WithFilter filter).WithFilter filterUsingTaggedInputs)
                 TestVariableFrom =
                     (fun testVariableLevels ->
                         TestVariable.Create testVariableLevels)
@@ -380,9 +382,7 @@
                                 Set.count targetNonSingletonTestVariableCombination
                             match randomBehaviour.ChooseAnyNumberFromOneTo 4 with
                                 1 when 1 < numberOfTestVariablesInTargetNonSingletonTestVariableCombination ->
-                                    let additionalFilterForThisFactory (dictionary: IDictionary<Int32, Int32 * Object>) =
-                                        let taggedFilterInputs =
-                                            dictionary :?> ITaggedFilterInputs
+                                    let additionalFilterUsingTaggedInputsForThisFactory (taggedFilterInputs: ITaggedFilterInputs) =
                                         let evenTaggedFilterInputs =
                                             taggedFilterInputs.FilterInputsForMatchingTags (fun tag ->
                                                                                                 0 = unbox tag % 2)
@@ -449,6 +449,8 @@
                                                                 , (_
                                                                    , level) ->
                                                                     1 = (unbox level |> fst) % 2)
+                                        true
+                                    let additionalFilterForThisFactory (dictionary: IFilterInput) =
                                         let relevantTestVariableLevelEncodedIndices =
                                             seq
                                                 {
@@ -483,7 +485,8 @@
                                         testVariableEncodedIndicesPass relevantTestVariableLevelEncodedIndices
                                                                        numberOfTestVariablesInTargetNonSingletonTestVariableCombination
                                     return factoryConstructors.FactoryWithFilterFrom factory
-                                                                                     (LevelCombinationFilter additionalFilterForThisFactory)
+                                                                                     (Filter additionalFilterForThisFactory)
+                                                                                     (FilterUsingTaggedInputs additionalFilterUsingTaggedInputsForThisFactory)
                                            , targetNonSingletonTestVariableCombination :: targetNonSingletonTestVariableCombinations
                               | _ ->
                                     return! optionWorkflow.Zero ()

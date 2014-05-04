@@ -61,7 +61,8 @@ namespace NTestCaseBuilder
     and Node =
         {
             Kind: NodeKind
-            Filters: List<LevelCombinationFilter>
+            Filters: List<Filter>
+            FiltersForTaggedInputs: List<FilterUsingTaggedInputs>
             MaximumStrength: Option<Int32>
             DeferralBudget: Option<Int32>
             IsZeroCost: Boolean
@@ -72,6 +73,7 @@ namespace NTestCaseBuilder
             {
                 Kind = kind
                 Filters = List.empty
+                FiltersForTaggedInputs = List.Empty
                 MaximumStrength = None
                 DeferralBudget = None
                 IsZeroCost = false
@@ -83,10 +85,9 @@ namespace NTestCaseBuilder
                 this with Filters = additionalFilter :: this.Filters
             }
 
-        member private this.WithFilters additionalFilters =
+        member this.WithFilter additionalFilter =
             {
-                this with Filters = List.append additionalFilters
-                                                this.Filters
+                this with FiltersForTaggedInputs = additionalFilter :: this.FiltersForTaggedInputs
             }
 
         member this.WithMaximumStrength maximumStrength =
@@ -107,6 +108,17 @@ namespace NTestCaseBuilder
         member this.WithTag tag =
             {
                 this with Tag = tag
+            }
+
+        member this.TakePropertiesFrom another =
+            {
+                this with
+                    Filters = another.Filters
+                    FiltersForTaggedInputs = another.FiltersForTaggedInputs
+                    MaximumStrength = another.MaximumStrength
+                    DeferralBudget = another.DeferralBudget
+                    IsZeroCost = another.IsZeroCost
+                    Tag = another.Tag                    
             }
 
     module NodeExtensions =
@@ -272,8 +284,8 @@ namespace NTestCaseBuilder
                                                 let subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
                                                     , remainingNodesWithBudgetAppliedIfRequired =
                                                     stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
-                                                (InterleavingNode (subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
-                                                                   |> List.rev)
+                                                ((InterleavingNode (subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
+                                                                    |> List.rev)).TakePropertiesFrom node
                                                  |> applyDeferralBudget)
                                                 :: remainingNodesWithBudgetAppliedIfRequired
                                           | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
@@ -282,8 +294,8 @@ namespace NTestCaseBuilder
                                                 let subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
                                                     , remainingNodesWithBudgetAppliedIfRequired =
                                                     stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
-                                                (SynthesizingNode (fixedCombinationOfSubtreeRootNodesForSynthesis.BuildSimilarFrom (subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
-                                                                                                                                    |> List.rev))
+                                                ((SynthesizingNode (fixedCombinationOfSubtreeRootNodesForSynthesis.BuildSimilarFrom (subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
+                                                                                                                                     |> List.rev))).TakePropertiesFrom node
                                                  |> applyDeferralBudget)
                                                 :: remainingNodesWithBudgetAppliedIfRequired
                                           | _ ->
@@ -330,16 +342,16 @@ namespace NTestCaseBuilder
                         |> List.map (fun (deferralBudget
                                           , prunedSubtreeRootNodes) ->
                                         deferralBudget
-                                        , ((InterleavingNode prunedSubtreeRootNodes).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
+                                        , (InterleavingNode prunedSubtreeRootNodes).TakePropertiesFrom node)
                   | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
                         fixedCombinationOfSubtreeRootNodesForSynthesis.Prune (desiredDeferralBudget,
-                                                                          numberOfDeferralsSpent)
+                                                                              numberOfDeferralsSpent)
                         |> List.map (fun (deferralBudget
                                           , fixedCombinationsOfSubtreeNodesForSynthesisConformingToThatBudget) ->
                                         let alternateSynthesesConformingToThatBudget =
                                             fixedCombinationsOfSubtreeNodesForSynthesisConformingToThatBudget
                                             |> List.map (fun fixedCombinationOfSubtreeRootNodesForSynthesis ->
-                                                            ((SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis).WithFilters node.Filters).WithMaximumStrength node.MaximumStrength)
+                                                            (SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis).TakePropertiesFrom node)
                                         deferralBudget
                                         , match alternateSynthesesConformingToThatBudget with
                                             [uniqueSynthesis] ->
@@ -431,7 +443,7 @@ namespace NTestCaseBuilder
                                                                         , subtreeRootNode))
                             let filters =
                                 node.Filters
-                            let isInsane (filter: LevelCombinationFilter) =
+                            let isInsane (filter: Filter) =
                                 filter.Invoke Map.empty
                                 |> not
                             if filters
@@ -517,7 +529,7 @@ namespace NTestCaseBuilder
                                                 |> Map.ofSeq
                                                 :> IDictionary<_, _>
                                             filters
-                                            |> List.forall (fun (filter: LevelCombinationFilter) ->
+                                            |> List.forall (fun (filter: Filter) ->
                                                                 filter.Invoke filterInput)
                                     filtersGroupedByNodeAndTheirBracketingIndices
                                     |> List.forall vectorIsAcceptedBy

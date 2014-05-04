@@ -3,19 +3,17 @@
     open System
     open System.Collections.Generic
 
-    type FilterInput =
+    type IFilterInput =
         IDictionary<Int32, Int32 * Object>
 
     /// <summary>Delegate for a filter that can be applied to a factory.</summary>
     /// <remarks>The test variable index keys map to pairs of the
     /// test variable level index and the corresponding
     /// test variable level for the key's test variable.</remarks>
-    type LevelCombinationFilter =
-        delegate of FilterInput -> Boolean
+    type Filter =
+        delegate of IFilterInput -> Boolean
 
-    /// <summary>Alternative interface for an input passed to a call on a LevelCombinationFilter allowing breakdown of the input by tags.</summary>
-    /// <remarks>The interface is accessed by casting the filter's input within its
-    /// implementation - it is always available as an option for filters to use.</remarks>
+    /// <summary>Interface for an input passed to a call on a Filter allowing breakdown of the input by tags.</summary>
     type ITaggedFilterInputs =
         /// <summary>For the filter that received the input this method is being called in, examine the
         /// tree of factories whose root is the factory the filter was applied to. For each factory in that
@@ -37,6 +35,9 @@
         /// <remarks>Each tagged filter input in the result dictionary is restricted to
         /// the factory whose tag matches. The test variable indices are taken relative
         /// to that factory, as opposed to the factory that the filter was applied to.</remarks>
-        /// <remarks>A filter input for a tagged factory in the result does not support the interface ITaggedFilterInputs.</remarks>
         /// <remarks>If no tagged factory is found, an empty dictionary is returned.</remarks>
-        abstract FilterInputsForMatchingTags: (Object -> Boolean) -> IDictionary<Int32, Object * FilterInput>
+        abstract FilterInputsForMatchingTags: (Object -> Boolean) -> IDictionary<Int32, Object * IFilterInput>
+
+    /// <summary>Delegate for a filter that can be applied to a factory; the filter uses tags to categorise its inputs.</summary>
+    type FilterUsingTaggedInputs =
+        delegate of ITaggedFilterInputs -> Boolean
