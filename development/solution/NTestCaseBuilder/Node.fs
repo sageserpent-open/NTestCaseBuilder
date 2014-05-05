@@ -525,29 +525,29 @@ namespace NTestCaseBuilder
                                                           equalityForSlicing)
                                         :> IIndexedSorted<_>
                                     vectorOfAdjustedNonSingletonTestVariableIndexAndLevelPairs.AddSorted(nonSingletonAdjustedTestVariableIndexAndLevelPairs)
-                                    let vectorIsAcceptedBy (filters
-                                                            , adjustedIndexForLeftmostTestVariable
-                                                            , onePastAdjustedIndexForRightmostTestVariable) =
+                                    let buildFilterInput adjustedIndexForLeftmostTestVariable
+                                                         onePastAdjustedIndexForRightmostTestVariable =
                                         let sliceOfVector =
                                             vectorOfAdjustedNonSingletonTestVariableIndexAndLevelPairs.RangeFromTo((adjustedIndexForLeftmostTestVariable
                                                                                                                     , Unchecked.defaultof<_>),
                                                                                                                    (onePastAdjustedIndexForRightmostTestVariable
                                                                                                                     , Unchecked.defaultof<_>))
-                                        if sliceOfVector.IsEmpty
-                                        then
-                                            true
-                                        else
-                                            let filterInput =
-                                                sliceOfVector
-                                                |> Seq.map (function adjustedTestVariableIndex
-                                                                     , level ->
-                                                                        adjustedTestVariableIndex - adjustedIndexForLeftmostTestVariable
-                                                                        , level)
-                                                |> Map.ofSeq
-                                                :> IDictionary<_, _>
-                                            filters
-                                            |> List.forall (fun (filter: Filter) ->
-                                                                filter.Invoke filterInput)
+                                        sliceOfVector
+                                        |> Seq.map (function adjustedTestVariableIndex
+                                                             , level ->
+                                                                adjustedTestVariableIndex - adjustedIndexForLeftmostTestVariable
+                                                                , level)
+                                        |> Map.ofSeq
+                                        :> IFilterInput
+                                    let vectorIsAcceptedBy (filters
+                                                            , adjustedIndexForLeftmostTestVariable
+                                                            , onePastAdjustedIndexForRightmostTestVariable) =
+                                        let filterInput =
+                                            buildFilterInput adjustedIndexForLeftmostTestVariable
+                                                             onePastAdjustedIndexForRightmostTestVariable
+                                        filters
+                                        |> List.forall (fun (filter: Filter) ->
+                                                            filter.Invoke filterInput)
                                     filtersGroupedByNodeAndTheirBracketingIndices
                                     |> List.forall vectorIsAcceptedBy
                 }
