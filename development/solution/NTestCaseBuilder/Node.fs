@@ -404,9 +404,9 @@ namespace NTestCaseBuilder
                                        , contributionsFromNodes
                             else
                                 let! onePastIndexForRightmostTestVariable
-                                    , onePastAdjustedIndexForRightmostTestVariable
-                                    , testVariableIndexToLevelsAndAdjustedIndexMap
-                                    , contributionsFromNodes =
+                                     , onePastAdjustedIndexForRightmostTestVariable
+                                     , testVariableIndexToLevelsAndAdjustedIndexMap
+                                     , contributionsFromNodes =
                                     match node with
                                         TestVariableNode levels ->
                                             (1 + indexForLeftmostTestVariable
