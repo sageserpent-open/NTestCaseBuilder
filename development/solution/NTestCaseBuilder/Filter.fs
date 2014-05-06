@@ -26,12 +26,11 @@
         /// also includes those factories that are excluded in the test case by interleaves.</remarks>
         /// <remarks>A predicate is used to define what tags match, so changing
         /// the predicate permits tags to be flexibly grouped.</remarks>
-        /// <remarks>If a matching tagged factory is excluded by an interleave
-        /// for a test case being considered, it will not have an entry in the result's
-        /// dictionary. This will create gaps in the dequence of the result's dictionary's key indices.</remarks>
-        /// <remarks>If a matching tagged factory is included by an interleave for the test case being considered,
-        /// but none of its test variable's have levels assigned, this will be represented by an empty filter input
-        /// to distinguish it from an excluded factory whose tag matched.</remarks>
+        /// <remarks>A matching tagged factory always has an entry in the result's
+        /// dictionary; this can lead to an empty filter input being associated with a tag.
+        /// This occurs on the one hand for a tagged factory whose test variables are all
+        /// excluded by an interleave and on the other hand for a tagged factory whose test
+        /// variables are included by an interleave, but none of which have levels assigned.</remarks>
         /// <remarks>Each tagged filter input in the result dictionary is restricted to
         /// the factory whose tag matches. The test variable indices are taken relative
         /// to that factory, as opposed to the factory that the filter was applied to.</remarks>

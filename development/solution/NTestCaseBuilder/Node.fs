@@ -81,15 +81,17 @@ namespace NTestCaseBuilder
             }
 
         member this.WithFilter additionalFilter =
-            if Node.IsInsane additionalFilter
+            if Node.IsInsane (additionalFilter: Filter)
             then
                 raise (PreconditionViolationException "Insane filter detected that rejects an empty filter input.")
-            else
-                {
-                    this with Filters = additionalFilter :: this.Filters
-                }
+            {
+                this with Filters = additionalFilter :: this.Filters
+            }
 
         member this.WithFilter additionalFilter =
+            if Node.IsInsane (additionalFilter: FilterUsingTaggedInputs)
+            then
+                raise (PreconditionViolationException "Insane filter detected that rejects an empty filter input.")
             {
                 this with FiltersForTaggedInputs = additionalFilter :: this.FiltersForTaggedInputs
             }
@@ -128,6 +130,15 @@ namespace NTestCaseBuilder
 
         static member IsInsane (filter: Filter) =
             filter.Invoke Map.empty
+            |> not
+
+        static member IsInsane (filter: FilterUsingTaggedInputs) =
+            filter.Invoke {
+                            new ITaggedFilterInputs with
+                                member this.FilterInputsForMatchingTags _ =
+                                    Map.empty
+                                    :> IDictionary<_, _>
+                          }
             |> not
 
     module NodeExtensions =
@@ -393,8 +404,8 @@ namespace NTestCaseBuilder
                             hash index
                 }
 
-            let walkTree trampData
-                         addContributionFrom =
+            let testVariableIndexToLevelsAndAdjustedIndexMapWithNodeContributions trampData
+                                                                                  addContributionFrom =
                 let rec walkTree everythingInTreeIsHiddenFromFilters
                                  trampData
                                  node =
@@ -460,35 +471,43 @@ namespace NTestCaseBuilder
                 walkTree false
                          trampData
                          this
-            let addFiltersFrom node
-                               adjustedIndexForLeftmostTestVariable
-                               onePastAdjustedIndexForRightmostTestVariable
-                               filtersGroupedByNodeAndTheirBracketingIndices =
-                let filters =
-                    node.Filters
-                if filters
-                   |> List.exists Node.IsInsane
-                then
-                    raise (InternalAssertionViolationException "Insane filters should be prohibited by precondition checking on 'Node.WithFilter'.")
-                else
-                    if filters.IsEmpty
+            let addNodesWithFiltersFrom node
+                                        adjustedIndexForLeftmostTestVariable
+                                        onePastAdjustedIndexForRightmostTestVariable
+                                        (nodesWithFiltersAndTheirBracketingIndices
+                                         , nodesWithFiltersForTaggedInputsAndTheirBracketingIndices) =
+                let nodesWithFiltersAndTheirBracketingIndices =
+                    if node.Filters.IsEmpty
                     then
-                        filtersGroupedByNodeAndTheirBracketingIndices
+                        nodesWithFiltersAndTheirBracketingIndices
                     else
-                        (filters
+                        (node
                          , adjustedIndexForLeftmostTestVariable
-                         , onePastAdjustedIndexForRightmostTestVariable) :: filtersGroupedByNodeAndTheirBracketingIndices
+                         , onePastAdjustedIndexForRightmostTestVariable) :: nodesWithFiltersAndTheirBracketingIndices
+                let nodesWithFiltersForTaggedInputsAndTheirBracketingIndices =
+                    if node.FiltersForTaggedInputs.IsEmpty
+                    then
+                        nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
+                    else
+                        (node
+                         , adjustedIndexForLeftmostTestVariable
+                         , onePastAdjustedIndexForRightmostTestVariable) :: nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
+                nodesWithFiltersAndTheirBracketingIndices
+                , nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
             let _
                 , _
                 , testVariableIndexToLevelsAndAdjustedIndexMap
-                , filtersGroupedByNodeAndTheirBracketingIndices =
-                walkTree (0
-                          , 0
-                          , Map.empty
-                          , List.Empty)
-                         addFiltersFrom
+                , (nodesWithFiltersAndTheirBracketingIndices
+                   , nodesWithFiltersForTaggedInputsAndTheirBracketingIndices) =
+                testVariableIndexToLevelsAndAdjustedIndexMapWithNodeContributions (0
+                                                                                   , 0
+                                                                                   , Map.empty
+                                                                                   , (List.Empty
+                                                                                      , List.Empty))
+                                                                                  addNodesWithFiltersFrom
 
-            if filtersGroupedByNodeAndTheirBracketingIndices.IsEmpty
+            if nodesWithFiltersAndTheirBracketingIndices.IsEmpty
+               && nodesWithFiltersForTaggedInputsAndTheirBracketingIndices.IsEmpty
             then
                 fun _ ->
                     true    // If there are no filters in the entire subtree headed by 'this',
@@ -534,17 +553,35 @@ namespace NTestCaseBuilder
                                                 , level)
                         |> Map.ofSeq
                         :> IFilterInput
-                    let vectorIsAcceptedBy (filters
-                                            , adjustedIndexForLeftmostTestVariable
-                                            , onePastAdjustedIndexForRightmostTestVariable) =
+                    let vectorIsAcceptedByFilters (nodeWithFilters
+                                                   , adjustedIndexForLeftmostTestVariable
+                                                   , onePastAdjustedIndexForRightmostTestVariable) =
+                        let filters =
+                            nodeWithFilters.Filters
+                        if filters
+                           |> List.exists Node.IsInsane
+                        then
+                            raise (InternalAssertionViolationException "Insane filters should be prohibited by precondition checking on 'Node.WithFilter'.")
                         let filterInput =
                             buildFilterInput adjustedIndexForLeftmostTestVariable
                                              onePastAdjustedIndexForRightmostTestVariable
                         filters
                         |> List.forall (fun (filter: Filter) ->
                                             filter.Invoke filterInput)
-                    filtersGroupedByNodeAndTheirBracketingIndices
-                    |> List.forall vectorIsAcceptedBy
+                    let vectorIsAcceptedByFiltersForTaggedInputs (nodeWithFiltersForTaggedInputs
+                                                                  , adjustedIndexForLeftmostTestVariable
+                                                                  , onePastAdjustedIndexForRightmostTestVariable) =
+                        let filtersForTaggedInputs =
+                            nodeWithFiltersForTaggedInputs.FiltersForTaggedInputs
+                        if filtersForTaggedInputs
+                           |> List.exists Node.IsInsane
+                        then
+                            raise (InternalAssertionViolationException "Insane filters should be prohibited by precondition checking on 'Node.WithFilter'.")
+                        raise (NotImplementedException ())  // Erm - what happens here..? Build an ITaggedFilterInputs using slicing, then dole it out to the filters....
+                    (nodesWithFiltersAndTheirBracketingIndices
+                     |> List.forall vectorIsAcceptedByFilters)
+                    && (nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
+                        |> List.forall vectorIsAcceptedByFiltersForTaggedInputs)
 
         member this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
             let rec walkTree node
