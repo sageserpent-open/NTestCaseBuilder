@@ -234,7 +234,8 @@ namespace NTestCaseBuilder
                                                                      , tagIndexToTaggedFilterInputMap))
                                                           (0
                                                            , Map.empty)
-                                    tagIndexToTaggedFilterInputMap :> IDictionary<_, _>
+                                    tagIndexToTaggedFilterInputMap
+                                    :> IDictionary<_, _>
                           }
             |> not
 
@@ -587,7 +588,7 @@ namespace NTestCaseBuilder
                             buildFilterInput adjustedIndexForLeftmostTestVariable
                                              onePastAdjustedIndexForRightmostTestVariable
                         filters
-                        |> List.forall (fun (filter: Filter) ->
+                        |> List.forall (fun filter ->
                                             filter.Invoke filterInput)
                     let vectorIsAcceptedByFiltersForTaggedInputs (nodeWithFiltersForTaggedInputs
                                                                   , adjustedIndexForLeftmostTestVariable
@@ -598,7 +599,44 @@ namespace NTestCaseBuilder
                            |> List.exists (filterUsingTaggedInputsIsInsane nodeWithFiltersForTaggedInputs)
                         then
                             raise (InternalAssertionViolationException "Insane filters should be prohibited by precondition checking on 'Node.WithFilter'.")
-                        raise (NotImplementedException ())  // Erm - what happens here..? Build an ITaggedFilterInputs using slicing, then dole it out to the filters....
+                        let taggedFilterInputs =
+                            {
+                                new ITaggedFilterInputs with
+                                    member this.FilterInputsForMatchingTags tagMatchPredicate =
+                                        let addTaggedFilterInput node
+                                                                 adjustedIndexForLeftmostTestVariable
+                                                                 onePastAdjustedIndexForRightmostTestVariable
+                                                                 tagIndexToTaggedFilterInputMap =
+                                            match node.Tag with
+                                                Some tag when tagMatchPredicate tag ->
+                                                    let tagIndex =
+                                                        (tagIndexToTaggedFilterInputMap
+                                                         :> IDictionary<_, _>).Count
+                                                    let filterInputForTag =
+                                                        buildFilterInput adjustedIndexForLeftmostTestVariable
+                                                                         onePastAdjustedIndexForRightmostTestVariable
+                                                    Map.add tagIndex
+                                                            (tag
+                                                             , filterInputForTag)
+                                                            tagIndexToTaggedFilterInputMap
+                                                | _ ->
+                                                    tagIndexToTaggedFilterInputMap
+                                        let _
+                                            , _
+                                            , _
+                                            , tagIndexToTaggedFilterInputMap =
+                                            testVariableIndexToLevelsAndAdjustedIndexMapWithNodeContributions (0
+                                                                                                               , adjustedIndexForLeftmostTestVariable   // NOTE: have to bias this as we are starting
+                                                                                                                                                        // from a node within a subtree of 'this'.
+                                                                                                               , Map.empty
+                                                                                                               , Map.empty)
+                                                                                                              addTaggedFilterInput
+                                        tagIndexToTaggedFilterInputMap
+                                        :> IDictionary<_, _>
+                            }
+                        filtersForTaggedInputs
+                        |> List.forall (fun filterForTaggedInputs ->
+                                            filterForTaggedInputs.Invoke taggedFilterInputs)
                     (nodesWithFiltersAndTheirBracketingIndices
                      |> List.forall vectorIsAcceptedByFilters)
                     && (nodesWithFiltersForTaggedInputsAndTheirBracketingIndices

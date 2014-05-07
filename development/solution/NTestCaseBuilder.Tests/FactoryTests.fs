@@ -417,7 +417,9 @@
                                                               | true
                                                                 , (_
                                                                    , level) ->
-                                                                    0 = (unbox level |> fst) % 2)
+                                                                    0 = (unbox level
+                                                                         |> (function [shouldBeEven, _: Option<Int32>] ->
+                                                                                        shouldBeEven % 2)))
                                         Assert.IsTrue shouldBeTrue
                                         let oddTaggedFilterInputs =
                                             taggedFilterInputs.FilterInputsForMatchingTags (fun tag ->
@@ -453,7 +455,9 @@
                                                               | true
                                                                 , (_
                                                                    , level) ->
-                                                                    1 = (unbox level |> fst) % 2)
+                                                                    1 = (unbox level
+                                                                         |> (function [shouldBeOdd, _: Option<Int32>] ->
+                                                                                        shouldBeOdd % 2)))
                                         Assert.IsTrue shouldBeTrue
                                         true
                                     let additionalFilterForThisFactory (dictionary: IFilterInput) =
