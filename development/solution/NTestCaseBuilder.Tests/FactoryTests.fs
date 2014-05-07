@@ -392,7 +392,7 @@
                                             let evenTags =
                                                 evenTaggedFilterInputs.Values
                                                 |> Seq.map (fst >> unbox)
-                                                |> Seq.sort // NOTE: this is necesary because of the shuffling of subtrees of
+                                                |> Seq.sort // NOTE: this is necessary because of the shuffling of subtrees of
                                                             // synthesizing factories done during factory tree generation.
                                             let minimumEvenTag =
                                                 evenTags
