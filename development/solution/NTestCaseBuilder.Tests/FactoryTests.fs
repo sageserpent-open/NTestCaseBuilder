@@ -392,6 +392,8 @@
                                             let evenTags =
                                                 evenTaggedFilterInputs.Values
                                                 |> Seq.map (fst >> unbox)
+                                                |> Seq.sort // NOTE: this is necesary because of the shuffling of subtrees of
+                                                            // synthesizing factories done during factory tree generation.
                                             let minimumEvenTag =
                                                 evenTags
                                                 |> Seq.min
@@ -416,6 +418,7 @@
                                                                 , (_
                                                                    , level) ->
                                                                     0 = (unbox level |> fst) % 2)
+                                        Assert.IsTrue shouldBeTrue
                                         let oddTaggedFilterInputs =
                                             taggedFilterInputs.FilterInputsForMatchingTags (fun tag ->
                                                                                                1 = unbox tag % 2)
@@ -425,6 +428,8 @@
                                             let oddTags =
                                                 oddTaggedFilterInputs.Values
                                                 |> Seq.map (fst >> unbox)
+                                                |> Seq.sort // NOTE: this is necesary because of the shuffling of subtrees of
+                                                            // synthesizing factories done during factory tree generation.
                                             let minimumOddTag =
                                                 oddTags
                                                 |> Seq.min
@@ -449,6 +454,7 @@
                                                                 , (_
                                                                    , level) ->
                                                                     1 = (unbox level |> fst) % 2)
+                                        Assert.IsTrue shouldBeTrue
                                         true
                                     let additionalFilterForThisFactory (dictionary: IFilterInput) =
                                         let relevantTestVariableLevelEncodedIndices =

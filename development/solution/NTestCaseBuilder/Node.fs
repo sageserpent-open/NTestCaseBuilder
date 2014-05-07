@@ -80,22 +80,6 @@ namespace NTestCaseBuilder
                 Tag = None
             }
 
-        member this.WithFilter additionalFilter =
-            if Node.IsInsane (additionalFilter: Filter)
-            then
-                raise (PreconditionViolationException "Insane filter detected that rejects an empty filter input.")
-            {
-                this with Filters = additionalFilter :: this.Filters
-            }
-
-        member this.WithFilter additionalFilter =
-            if Node.IsInsane (additionalFilter: FilterUsingTaggedInputs)
-            then
-                raise (PreconditionViolationException "Insane filter detected that rejects an empty filter input.")
-            {
-                this with FiltersForTaggedInputs = additionalFilter :: this.FiltersForTaggedInputs
-            }
-
         member this.WithMaximumStrength maximumStrength =
             {
                 this with MaximumStrength = maximumStrength
@@ -126,20 +110,6 @@ namespace NTestCaseBuilder
                     IsZeroCost = another.IsZeroCost
                     Tag = another.Tag                    
             }
-
-
-        static member IsInsane (filter: Filter) =
-            filter.Invoke Map.empty
-            |> not
-
-        static member IsInsane (filter: FilterUsingTaggedInputs) =
-            filter.Invoke {
-                            new ITaggedFilterInputs with
-                                member this.FilterInputsForMatchingTags _ =
-                                    Map.empty
-                                    :> IDictionary<_, _>
-                          }
-            |> not
 
     module NodeExtensions =
         let inline (|TestVariableNode|SingletonNode|InterleavingNode|SynthesizingNode|DeferralNode|) (node: Node) =
@@ -210,9 +180,84 @@ namespace NTestCaseBuilder
                                 CombineResultsFromSynthesizingNodeSubtrees = Array.reduce (+)
                             }
 
+        let foldLeftPostOrder node
+                              folding
+                              accumulated =
+            let rec walkTree accumulated
+                             node =
+                match node with
+                    InterleavingNode subtreeRootNodes ->
+                        let accumulatedFromSubtrees =
+                            List.fold walkTree
+                                      accumulated
+                                      subtreeRootNodes
+                        folding accumulatedFromSubtrees
+                                node
+                  | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
+                        let accumulatedFromSubtrees =
+                            Array.fold walkTree
+                                       accumulated
+                                       fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
+                        folding accumulatedFromSubtrees
+                                node
+                                
+                  | _ ->
+                        folding accumulated
+                                node
+            walkTree accumulated
+                     node
+
+        let filterIsInsane (filter: Filter) =
+            filter.Invoke Map.empty
+            |> not
+
+        let filterUsingTaggedInputsIsInsane node
+                                            (filter: FilterUsingTaggedInputs) =
+            filter.Invoke {
+                            new ITaggedFilterInputs with
+                                member this.FilterInputsForMatchingTags tagMatchPredicate =
+                                    let _
+                                        , tagIndexToTaggedFilterInputMap =
+                                        foldLeftPostOrder node
+                                                          (fun (tagIndex
+                                                                , tagIndexToTaggedFilterInputMap)
+                                                               node ->
+                                                            match node.Tag with
+                                                                Some tag when tagMatchPredicate tag ->
+                                                                    (1 + tagIndex
+                                                                     , Map.add tagIndex
+                                                                               (tag
+                                                                                , Map.empty :> IDictionary<_, _>)
+                                                                               tagIndexToTaggedFilterInputMap)
+                                                              | _ ->
+                                                                    (tagIndex
+                                                                     , tagIndexToTaggedFilterInputMap))
+                                                          (0
+                                                           , Map.empty)
+                                    tagIndexToTaggedFilterInputMap :> IDictionary<_, _>
+                          }
+            |> not
+
     open NodeDetail
 
     type Node with
+        member this.WithFilter additionalFilter =
+            if filterIsInsane additionalFilter
+            then
+                raise (PreconditionViolationException "Insane filter detected that rejects an empty filter input.")
+            {
+                this with Filters = additionalFilter :: this.Filters
+            }
+
+        member this.WithFilter additionalFilter =
+            if filterUsingTaggedInputsIsInsane this
+                                               additionalFilter
+            then
+                raise (PreconditionViolationException "Insane filter detected that rejects an empty filter input.")
+            {
+                this with FiltersForTaggedInputs = additionalFilter :: this.FiltersForTaggedInputs
+            }
+
         member this.CountTestVariables =
             countTestVariables this
 
@@ -243,87 +288,63 @@ namespace NTestCaseBuilder
                         maximumPossibleStrength
             walkTree this
 
-        member private this.FoldLeftPostOrder folding
-                                              accumulated =
-            let rec walkTree accumulated
-                             node =
-                match node with
-                    InterleavingNode subtreeRootNodes ->
-                        let accumulatedFromSubtrees =
-                            List.fold walkTree
-                                      accumulated
-                                      subtreeRootNodes
-                        folding accumulatedFromSubtrees
-                                node
-                  | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
-                        let accumulatedFromSubtrees =
-                            Array.fold walkTree
-                                       accumulated
-                                       fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes
-                        folding accumulatedFromSubtrees
-                                node
-                                
-                  | _ ->
-                        folding accumulated
-                                node
-            walkTree accumulated
-                     this
-
         member this.DeferralBudgetsOverSubtree () =
-            this.FoldLeftPostOrder (fun (nodeIndex
-                                         , nodeIndexToDeferralBudgetMap)
-                                        node ->
-                                        1 + nodeIndex
-                                        , match node.DeferralBudget with
-                                            Some deferralBudget ->
-                                                Map.add nodeIndex
-                                                        deferralBudget
-                                                        nodeIndexToDeferralBudgetMap
-                                          | None ->
-                                                nodeIndexToDeferralBudgetMap)
-                                   (0
-                                    , Map.empty)
+            foldLeftPostOrder this
+                              (fun (nodeIndex
+                                    , nodeIndexToDeferralBudgetMap)
+                                   node ->
+                                1 + nodeIndex
+                                , match node.DeferralBudget with
+                                    Some deferralBudget ->
+                                        Map.add nodeIndex
+                                                deferralBudget
+                                                nodeIndexToDeferralBudgetMap
+                                  | None ->
+                                        nodeIndexToDeferralBudgetMap)
+                              (0
+                               , Map.empty)
             |> snd
 
         member this.ApplyDeferralBudgetsOverSubtree nodeIndexToDeferralBudgetMap =
-            this.FoldLeftPostOrder (fun (nodeIndex
-                                         , stackOfNodesWithBudgetAppliedIfRequired: List<_>)
-                                        node ->
-                                        let applyDeferralBudget (node: Node) =
-                                            match Map.tryFind nodeIndex
-                                                              nodeIndexToDeferralBudgetMap with
-                                                Some deferralBudget ->
-                                                    node.WithDeferralBudget (Some deferralBudget)
-                                              | None ->
-                                                    node.WithDeferralBudget None
-                                        1 + nodeIndex
-                                        , match node with
-                                            InterleavingNode subtreeRootNodes ->
-                                                let numberOfSubtreeRootNodes =
-                                                    subtreeRootNodes.Length
-                                                let subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
-                                                    , remainingNodesWithBudgetAppliedIfRequired =
-                                                    stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
-                                                ((InterleavingNode (subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
-                                                                    |> List.rev)).TakePropertiesFrom node
-                                                 |> applyDeferralBudget)
-                                                :: remainingNodesWithBudgetAppliedIfRequired
-                                          | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
-                                                let numberOfSubtreeRootNodes =
-                                                    fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes.Length
-                                                let subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
-                                                    , remainingNodesWithBudgetAppliedIfRequired =
-                                                    stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
-                                                ((SynthesizingNode (fixedCombinationOfSubtreeRootNodesForSynthesis.BuildSimilarFrom (subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
-                                                                                                                                     |> List.rev))).TakePropertiesFrom node
-                                                 |> applyDeferralBudget)
-                                                :: remainingNodesWithBudgetAppliedIfRequired
-                                          | _ ->
-                                            (node
-                                             |> applyDeferralBudget)
-                                            :: stackOfNodesWithBudgetAppliedIfRequired)
-                                    (0,
-                                     List.Empty)
+            foldLeftPostOrder this
+                              (fun (nodeIndex
+                                    , stackOfNodesWithBudgetAppliedIfRequired: List<_>)
+                                   node ->
+                                let applyDeferralBudget (node: Node) =
+                                    match Map.tryFind nodeIndex
+                                                      nodeIndexToDeferralBudgetMap with
+                                        Some deferralBudget ->
+                                            node.WithDeferralBudget (Some deferralBudget)
+                                      | None ->
+                                            node.WithDeferralBudget None
+                                1 + nodeIndex
+                                , match node with
+                                    InterleavingNode subtreeRootNodes ->
+                                        let numberOfSubtreeRootNodes =
+                                            subtreeRootNodes.Length
+                                        let subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
+                                            , remainingNodesWithBudgetAppliedIfRequired =
+                                            stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
+                                        ((InterleavingNode (subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
+                                                            |> List.rev)).TakePropertiesFrom node
+                                         |> applyDeferralBudget)
+                                        :: remainingNodesWithBudgetAppliedIfRequired
+                                  | SynthesizingNode fixedCombinationOfSubtreeRootNodesForSynthesis ->
+                                        let numberOfSubtreeRootNodes =
+                                            fixedCombinationOfSubtreeRootNodesForSynthesis.SubtreeRootNodes.Length
+                                        let subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
+                                            , remainingNodesWithBudgetAppliedIfRequired =
+                                            stackOfNodesWithBudgetAppliedIfRequired.BreakOff numberOfSubtreeRootNodes
+                                        ((SynthesizingNode (fixedCombinationOfSubtreeRootNodesForSynthesis.BuildSimilarFrom (subtreeRootNodesWithBudgetAppliedIfRequiredInReverseOrder
+                                                                                                                             |> List.rev))).TakePropertiesFrom node
+                                         |> applyDeferralBudget)
+                                        :: remainingNodesWithBudgetAppliedIfRequired
+                                  | _ ->
+                                    (node
+                                     |> applyDeferralBudget)
+                                    :: stackOfNodesWithBudgetAppliedIfRequired)
+                              (0
+                               , List.Empty)
             |> snd
             |> List.head
 
@@ -559,7 +580,7 @@ namespace NTestCaseBuilder
                         let filters =
                             nodeWithFilters.Filters
                         if filters
-                           |> List.exists Node.IsInsane
+                           |> List.exists filterIsInsane
                         then
                             raise (InternalAssertionViolationException "Insane filters should be prohibited by precondition checking on 'Node.WithFilter'.")
                         let filterInput =
@@ -574,7 +595,7 @@ namespace NTestCaseBuilder
                         let filtersForTaggedInputs =
                             nodeWithFiltersForTaggedInputs.FiltersForTaggedInputs
                         if filtersForTaggedInputs
-                           |> List.exists Node.IsInsane
+                           |> List.exists (filterUsingTaggedInputsIsInsane nodeWithFiltersForTaggedInputs)
                         then
                             raise (InternalAssertionViolationException "Insane filters should be prohibited by precondition checking on 'Node.WithFilter'.")
                         raise (NotImplementedException ())  // Erm - what happens here..? Build an ITaggedFilterInputs using slicing, then dole it out to the filters....
