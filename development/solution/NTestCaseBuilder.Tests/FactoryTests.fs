@@ -373,17 +373,17 @@
                                             (testVariableIndexToLevelsMapping
                                              : Map<_, _>).Count
                                         let checkWith tagPredicate =
-                                            let taggedFilterInputs =
+                                            let taggedFilterInputsForMatchingTags =
                                                 taggedFilterInputs.FilterInputsForMatchingTags (unbox >> tagPredicate)
                                             let tags =
-                                                taggedFilterInputs.Values
+                                                taggedFilterInputsForMatchingTags.Values
                                                 |> Seq.map (fst >> unbox)
                                                 |> Seq.sort // NOTE: this is necessary because of the shuffling of subtrees of
                                                             // synthesizing factories done during factory tree generation.
                                             let shouldBeTrue =
                                                 tags
                                                 |> Seq.forall tagPredicate
-                                            if Seq.isEmpty taggedFilterInputs
+                                            if Seq.isEmpty taggedFilterInputsForMatchingTags
                                                |> not
                                             then
                                                 let minimumTag =
@@ -398,6 +398,24 @@
                                                 let shouldBeTrue =
                                                     snd maximumTag <= onePastIndexForRightmostTestVariable
                                                 Assert.IsTrue shouldBeTrue
+                                            let checkFilterInput (tag
+                                                                  , filterInput) =
+                                                let (indexForLeftmostTestVariable
+                                                     , onePastIndexForRightmostTestVariable) =
+                                                    unbox tag
+                                                let testVariableIndicesEncodedInLevels =
+                                                    (filterInput
+                                                     : IFilterInput).Values
+                                                    |> Seq.map (snd >> unbox<List<Int32 * Option<Int32>>> >> (List.map fst))
+                                                    |> Seq.concat
+                                                let shouldBeTrue =
+                                                    testVariableIndicesEncodedInLevels
+                                                    |> Seq.forall (fun testVariableIndexEncodedAsLevel ->
+                                                                    indexForLeftmostTestVariable <= testVariableIndexEncodedAsLevel
+                                                                    && testVariableIndexEncodedAsLevel < onePastIndexForRightmostTestVariable)
+                                                Assert.IsTrue shouldBeTrue
+                                            taggedFilterInputsForMatchingTags.Values
+                                            |> Seq.iter checkFilterInput
                                         let anyTagWillMatch _ =
                                             true
                                         checkWith anyTagWillMatch
