@@ -224,7 +224,7 @@ namespace NTestCaseBuilder
                                                                 Some tag when tagMatchPredicate tag ->
                                                                     let tagIndex =
                                                                         (tagIndexToTaggedFilterInputMap
-                                                                         :> IDictionary<_, _>).Count
+                                                                         : Map<_, _>).Count
                                                                     Map.add tagIndex
                                                                             (tag
                                                                              , Map.empty :> IDictionary<_, _>)
@@ -610,7 +610,7 @@ namespace NTestCaseBuilder
                                                 Some tag when tagMatchPredicate tag ->
                                                     let tagIndex =
                                                         (tagIndexToTaggedFilterInputMap
-                                                         :> IDictionary<_, _>).Count
+                                                         : Map<_, _>).Count
                                                     let filterInputForTag =
                                                         buildFilterInput adjustedIndexForLeftmostTestVariable
                                                                          onePastAdjustedIndexForRightmostTestVariable

@@ -156,7 +156,7 @@
             SynthesisFrom: 'Factory [] -> (List<'TestCase> -> 'TestCase) -> Boolean -> 'Factory
             InterleavingFrom: List<'Factory> -> 'Factory
             DeferralFrom: 'Factory -> 'Factory
-            ApplyTagTo: 'Factory -> Int32 -> 'Factory
+            ApplyTagTo: 'Factory -> Int32 * Int32 -> 'Factory
         }
 
     type PermutationCreation =
@@ -305,38 +305,27 @@
                 (randomBehaviour: Random).ChooseAnyNumberFromOneTo maximumCombinationStrength
             let rec tagAndThenDecorateWithDeferralIfRequired combinationStrength
                                                              testVariableIndexToLevelsMapping
-                                                             tagToPostorderDepthFirstIndexMapping
                                                              numberOfAncestorFactories
                                                              allowEmptyValueNodes
                                                              mustHavePermutingSynthesisInTree =
                 let indexForLeftmostTestVariable =
                     (testVariableIndexToLevelsMapping: Map<_, _>).Count
-                let taggedAsEven =
-                    (0 = indexForLeftmostTestVariable % 2)
                 let factory
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping
-                    , tagToPostorderDepthFirstIndexMapping
                     , permutationExample
                     , targetNonSingletonTestVariableCombinations =
                     constructFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                              testVariableIndexToLevelsMapping
-                                                                             tagToPostorderDepthFirstIndexMapping
                                                                              numberOfAncestorFactories
                                                                              allowEmptyValueNodes
                                                                              mustHavePermutingSynthesisInTree
-                let postorderDepthFirstIndex =
-                    Map.tryFind taggedAsEven
-                                tagToPostorderDepthFirstIndexMapping
-                    |> BargainBasement.Flip defaultArg
-                                            0
+                let onePastIndexForRightmostTestVariable =
+                    (testVariableIndexToLevelsMapping
+                     : Map<_, _>).Count
                 let tag =
-                    2 * postorderDepthFirstIndex
-                    + if taggedAsEven
-                      then
-                        0
-                      else
-                        1
+                    indexForLeftmostTestVariable
+                    , onePastIndexForRightmostTestVariable
                 let taggedFactory =
                     factoryConstructors.ApplyTagTo factory
                                                    tag
@@ -344,19 +333,16 @@
                    && numberOfAncestorFactories < maximumNumberOfDeferrals
                    && randomBehaviour.HeadsItIs()
                 then
-                    factoryConstructors.DeferralFrom taggedFactory
+                    factoryConstructors.ApplyTagTo (factoryConstructors.DeferralFrom taggedFactory)
+                                                   tag
                 else
                     taggedFactory
                 , testVariableCombination
                 , testVariableIndexToLevelsMapping
-                , (Map.add taggedAsEven
-                           (1 + postorderDepthFirstIndex)
-                           tagToPostorderDepthFirstIndexMapping)
                 , permutationExample
                 , targetNonSingletonTestVariableCombinations
             and constructFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                          testVariableIndexToLevelsMapping
-                                                                         tagToPostorderDepthFirstIndexMapping
                                                                          numberOfAncestorFactories
                                                                          allowEmptyValueNodes
                                                                          mustHavePermutingSynthesisInTree =
@@ -383,82 +369,41 @@
                             match randomBehaviour.ChooseAnyNumberFromOneTo 4 with
                                 1 when 1 < numberOfTestVariablesInTargetNonSingletonTestVariableCombination ->
                                     let additionalFilterUsingTaggedInputsForThisFactory (taggedFilterInputs: ITaggedFilterInputs) =
-                                        let evenTaggedFilterInputs =
-                                            taggedFilterInputs.FilterInputsForMatchingTags (fun tag ->
-                                                                                                0 = unbox tag % 2)
-                                        if Seq.isEmpty evenTaggedFilterInputs
-                                           |> not
-                                        then
-                                            let evenTags =
-                                                evenTaggedFilterInputs.Values
+                                        let onePastIndexForRightmostTestVariable =
+                                            (testVariableIndexToLevelsMapping
+                                             : Map<_, _>).Count
+                                        let checkWith tagPredicate =
+                                            let taggedFilterInputs =
+                                                taggedFilterInputs.FilterInputsForMatchingTags (unbox >> tagPredicate)
+                                            let tags =
+                                                taggedFilterInputs.Values
                                                 |> Seq.map (fst >> unbox)
                                                 |> Seq.sort // NOTE: this is necessary because of the shuffling of subtrees of
                                                             // synthesizing factories done during factory tree generation.
-                                            let minimumEvenTag =
-                                                evenTags
-                                                |> Seq.min
                                             let shouldBeTrue =
-                                                evenTags
-                                                |> Seq.map (fun evenTag ->
-                                                                (evenTag - minimumEvenTag) / 2)
-                                                |> Seq.zip evenTaggedFilterInputs.Keys
-                                                |> Seq.forall (function lhs
-                                                                        , rhs ->
-                                                                        lhs = rhs)
-                                            Assert.IsTrue shouldBeTrue
-                                        let shouldBeTrue =
-                                            evenTaggedFilterInputs.Values
-                                            |> Seq.map snd
-                                            |> Seq.forall (fun filterInput ->
-                                                            match filterInput.TryGetValue 0 with
-                                                                false
-                                                                , _ ->
-                                                                    true
-                                                              | true
-                                                                , (_
-                                                                   , level) ->
-                                                                    0 = (unbox level
-                                                                         |> (function [shouldBeEven, _: Option<Int32>] ->
-                                                                                        shouldBeEven % 2)))
-                                        Assert.IsTrue shouldBeTrue
-                                        let oddTaggedFilterInputs =
-                                            taggedFilterInputs.FilterInputsForMatchingTags (fun tag ->
-                                                                                               1 = unbox tag % 2)
-                                        if Seq.isEmpty oddTaggedFilterInputs
-                                           |> not
-                                        then
-                                            let oddTags =
-                                                oddTaggedFilterInputs.Values
-                                                |> Seq.map (fst >> unbox)
-                                                |> Seq.sort // NOTE: this is necesary because of the shuffling of subtrees of
-                                                            // synthesizing factories done during factory tree generation.
-                                            let minimumOddTag =
-                                                oddTags
-                                                |> Seq.min
-                                            let shouldBeTrue =
-                                                oddTags
-                                                |> Seq.map (fun oddTag ->
-                                                                (oddTag - minimumOddTag) / 2)
-                                                |> Seq.zip oddTaggedFilterInputs.Keys
-                                                |> Seq.forall (function lhs
-                                                                        , rhs ->
-                                                                        lhs = rhs)
-                                            Assert.IsTrue shouldBeTrue
-                                        let shouldBeTrue =
-                                            oddTaggedFilterInputs.Values
-                                            |> Seq.map snd
-                                            |> Seq.forall (fun filterInput ->
-                                                            match filterInput.TryGetValue 0 with
-                                                                false
-                                                                , _ ->
-                                                                    true
-                                                              | true
-                                                                , (_
-                                                                   , level) ->
-                                                                    1 = (unbox level
-                                                                         |> (function [shouldBeOdd, _: Option<Int32>] ->
-                                                                                        shouldBeOdd % 2)))
-                                        Assert.IsTrue shouldBeTrue
+                                                tags
+                                                |> Seq.forall tagPredicate
+                                            if Seq.isEmpty taggedFilterInputs
+                                               |> not
+                                            then
+                                                let minimumTag =
+                                                    tags
+                                                    |> Seq.minBy fst 
+                                                let shouldBeTrue =
+                                                    fst minimumTag >= indexForLeftmostTestVariable
+                                                Assert.IsTrue shouldBeTrue
+                                                let maximumTag =
+                                                    tags
+                                                    |> Seq.maxBy snd
+                                                let shouldBeTrue =
+                                                    snd maximumTag <= onePastIndexForRightmostTestVariable
+                                                Assert.IsTrue shouldBeTrue
+                                        let anyTagWillMatch _ =
+                                            true
+                                        checkWith anyTagWillMatch
+                                        let tagMustHaveEvenLeftmostTestVariable (indexForLeftmostTestVariable, _) =
+                                            0 = indexForLeftmostTestVariable % 2
+                                        checkWith tagMustHaveEvenLeftmostTestVariable
                                         true
                                     let additionalFilterForThisFactory (dictionary: IFilterInput) =
                                         let relevantTestVariableLevelEncodedIndices =
@@ -548,7 +493,6 @@
                             , Map.add indexForLeftmostTestVariable
                                       testVariableLevels
                                       testVariableIndexToLevelsMapping
-                            , tagToPostorderDepthFirstIndexMapping
                             , None
                             , []
                         else
@@ -562,7 +506,6 @@
                             , Map.add indexForLeftmostTestVariable
                                       testVariableLevels
                                       testVariableIndexToLevelsMapping
-                            , tagToPostorderDepthFirstIndexMapping
                             , None
                             , []
                   | _ ->
@@ -630,14 +573,12 @@
 
                         let rec createSubtrees triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                testVariableIndexToLevelsMapping
-                                               tagToPostorderDepthFirstIndexMapping
                                                permutationExtentsForSubtrees =
                             match triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice with
                                 [] ->
                                     []
                                     , []
                                     , testVariableIndexToLevelsMapping
-                                    , tagToPostorderDepthFirstIndexMapping
                                     , permutationExtentsForSubtrees
                                     , []
                               | (subtreeCombinationStrength
@@ -646,12 +587,10 @@
                                     let subtree
                                         , testVariableCombinationFromSubtree
                                         , testVariableIndexToLevelsMappingFromSubtree
-                                        , tagToPostorderDepthFirstIndexMappingFromSubtree
                                         , permutationExtentFromSubtree
                                         , targetNonSingletonTestVariableCombinationsFromSubtree =
                                         tagAndThenDecorateWithDeferralIfRequired subtreeCombinationStrength
                                                                                  testVariableIndexToLevelsMapping
-                                                                                 tagToPostorderDepthFirstIndexMapping
                                                                                  (numberOfAncestorFactories + 1)
                                                                                  (allowEmptyValueNodeInSubtree
                                                                                   && not permuteInputsAndForbidPruning)
@@ -660,28 +599,23 @@
                                     let remainingSubtrees
                                         , testVariableCombinationsFromRemainingSubtrees
                                         , testVariableIndexToLevelsMappingFromRemainingSubtrees
-                                        , tagToPostorderDepthFirstIndexMappingFromRemainingSubtrees
                                         , permutationExtentsFromRemainingSubtrees
                                         , targetNonSingletonTestVariableCombinationsFromRemainingSubtrees =
                                         createSubtrees tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                        testVariableIndexToLevelsMappingFromSubtree
-                                                       tagToPostorderDepthFirstIndexMappingFromSubtree
                                                        permutationExtentsForSubtrees
                                     subtree :: remainingSubtrees
                                     , testVariableCombinationFromSubtree :: testVariableCombinationsFromRemainingSubtrees
                                     , testVariableIndexToLevelsMappingFromRemainingSubtrees
-                                    , tagToPostorderDepthFirstIndexMappingFromRemainingSubtrees
                                     , permutationExtentFromSubtree :: permutationExtentsFromRemainingSubtrees
                                     , List.append targetNonSingletonTestVariableCombinationsFromSubtree targetNonSingletonTestVariableCombinationsFromRemainingSubtrees
                         let subtrees
                             , testVariableCombinationsFromSubtrees
                             , testVariableIndexToLevelsMappingFromSubtrees
-                            , tagToPostorderDepthFirstIndexMappingFromSubtrees
                             , permutationExtentsForSubtrees
                             , targetNonSingletonTestVariableCombinationsFromSubtrees =
                             createSubtrees triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                            testVariableIndexToLevelsMapping
-                                           tagToPostorderDepthFirstIndexMapping
                                            []
                         let shuffledSubtrees    // NOTE: to make it clear, this has *nothing* to do with 'allowSynthesisToPermuteInputs';
                                                 // rather this is the setup for a separate, explicit *inverse* permutation that is always
@@ -781,7 +715,6 @@
                         factory
                         , testVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
-                        , tagToPostorderDepthFirstIndexMappingFromSubtrees
                         , chosenPermutationExample
                         , targetNonSingletonTestVariableCombinations
                     else
@@ -821,14 +754,12 @@
 
                         let rec createSubtrees triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                testVariableIndexToLevelsMapping
-                                               tagToPostorderDepthFirstIndexMapping
                                                permutationExtentsForSubtrees =
                             match triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice with
                                 [] ->
                                     []
                                     , []
                                     , testVariableIndexToLevelsMapping
-                                    , tagToPostorderDepthFirstIndexMapping
                                     , permutationExtentsForSubtrees
                                     , []
                               | (subtreeCombinationStrength
@@ -837,42 +768,35 @@
                                     let subtree
                                         , testVariableCombinationFromSubtree
                                         , testVariableIndexToLevelsMappingFromSubtree
-                                        , tagToPostorderDepthFirstIndexMappingFromSubtree
                                         , permutationExtentFromSubtree
                                         , targetNonSingletonTestVariableCombinationsFromSubtree =
                                         tagAndThenDecorateWithDeferralIfRequired subtreeCombinationStrength
                                                                                  testVariableIndexToLevelsMapping
-                                                                                 tagToPostorderDepthFirstIndexMapping
                                                                                  (numberOfAncestorFactories + 1)
                                                                                  allowEmptyValueNodeInSubtree
                                                                                  mustHavePermutingSynthesisInTreeInSubtree
                                     let remainingSubtrees
                                         , testVariableCombinationsFromRemainingSubtrees
                                         , testVariableIndexToLevelsMappingFromRemainingSubtrees
-                                        , tagToPostorderDepthFirstIndexMappingFromRemainingSubtrees
                                         , permutationExtentsFromRemainingSubtrees
                                         , targetNonSingletonTestVariableCombinationsFromRemainingSubtrees =
                                         createSubtrees tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                        testVariableIndexToLevelsMappingFromSubtree
-                                                       tagToPostorderDepthFirstIndexMappingFromSubtree
                                                        permutationExtentsForSubtrees
                                     subtree :: remainingSubtrees
                                     , testVariableCombinationFromSubtree :: testVariableCombinationsFromRemainingSubtrees
                                     , testVariableIndexToLevelsMappingFromRemainingSubtrees
-                                    , tagToPostorderDepthFirstIndexMappingFromRemainingSubtrees
                                     , permutationExtentFromSubtree :: permutationExtentsFromRemainingSubtrees
                                     , List.append targetNonSingletonTestVariableCombinationsFromSubtree targetNonSingletonTestVariableCombinationsFromRemainingSubtrees
                         let subtrees
                             , testVariableCombinationsFromSubtrees
                             , testVariableIndexToLevelsMappingFromSubtrees
-                            , tagToPostorderDepthFirstIndexMappingFromSubtrees
                             , permutationExtentsForSubtrees
                             , targetNonSingletonTestVariableCombinationsFromSubtrees =
                             createSubtrees (List.zip3 combinationStrengths
                                                       whetherToAllowEmptyValueNodeChoices
                                                       mustHavePermutingSynthesisInTreeChoices)
                                            testVariableIndexToLevelsMapping
-                                           tagToPostorderDepthFirstIndexMapping
                                            []
                         let achievableTestVariableCombinationsFromSubtrees =
                             testVariableCombinationsFromSubtrees
@@ -910,18 +834,15 @@
                         factory
                         , chosenTestVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
-                        , tagToPostorderDepthFirstIndexMappingFromSubtrees
                         , chosenPermutationExample
                         , targetNonSingletonTestVariableCombinations
 
             let factory
                 , testVariableCombination
                 , testVariableIndexToLevelsMapping
-                , _
                 , permutationExample
                 , targetNonSingletonTestVariableCombinations =
                 tagAndThenDecorateWithDeferralIfRequired combinationStrength
-                                                         Map.empty
                                                          Map.empty
                                                          0
                                                          false
