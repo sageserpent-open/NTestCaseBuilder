@@ -216,24 +216,27 @@ namespace NTestCaseBuilder
             filter.Invoke {
                             new ITaggedFilterInputs with
                                 member this.FilterInputsForMatchingTags tagMatchPredicate =
-                                    let _
-                                        , tagIndexToTaggedFilterInputMap =
+                                    let tagIndexToTaggedFilterInputMap =
                                         foldLeftPostOrder node
-                                                          (fun (tagIndex
-                                                                , tagIndexToTaggedFilterInputMap)
+                                                          (fun tagIndexToTaggedFilterInputMap
                                                                node ->
                                                             match node.Tag with
-                                                                Some tag when tagMatchPredicate tag ->
-                                                                    (1 + tagIndex
-                                                                     , Map.add tagIndex
-                                                                               (tag
-                                                                                , Map.empty :> IDictionary<_, _>)
-                                                                               tagIndexToTaggedFilterInputMap)
+                                                                Some tag ->
+                                                                    printf "%A\n" (unbox<Int32> tag)
                                                               | _ ->
-                                                                    (tagIndex
-                                                                     , tagIndexToTaggedFilterInputMap))
-                                                          (0
-                                                           , Map.empty)
+                                                                    ()
+                                                            match node.Tag with
+                                                                Some tag when tagMatchPredicate tag ->
+                                                                    let tagIndex =
+                                                                        (tagIndexToTaggedFilterInputMap
+                                                                         :> IDictionary<_, _>).Count
+                                                                    Map.add tagIndex
+                                                                            (tag
+                                                                             , Map.empty :> IDictionary<_, _>)
+                                                                            tagIndexToTaggedFilterInputMap
+                                                              | _ ->
+                                                                    tagIndexToTaggedFilterInputMap)
+                                                          Map.empty
                                     tagIndexToTaggedFilterInputMap
                                     :> IDictionary<_, _>
                           }
@@ -427,7 +430,8 @@ namespace NTestCaseBuilder
                 }
 
             let testVariableIndexToLevelsAndAdjustedIndexMapWithNodeContributions trampData
-                                                                                  addContributionFrom =
+                                                                                  addContributionFrom
+                                                                                  node =
                 let rec walkTree everythingInTreeIsHiddenFromFilters
                                  trampData
                                  node =
@@ -492,7 +496,7 @@ namespace NTestCaseBuilder
                         , contributionFromNode
                 walkTree false
                          trampData
-                         this
+                         node
             let addNodesWithFiltersFrom node
                                         adjustedIndexForLeftmostTestVariable
                                         onePastAdjustedIndexForRightmostTestVariable
@@ -527,7 +531,7 @@ namespace NTestCaseBuilder
                                                                                    , (List.Empty
                                                                                       , List.Empty))
                                                                                   addNodesWithFiltersFrom
-
+                                                                                  this
             if nodesWithFiltersAndTheirBracketingIndices.IsEmpty
                && nodesWithFiltersForTaggedInputsAndTheirBracketingIndices.IsEmpty
             then
@@ -619,10 +623,10 @@ namespace NTestCaseBuilder
                                                             (tag
                                                              , filterInputForTag)
                                                             tagIndexToTaggedFilterInputMap
-                                                | _ ->
+                                              | _ ->
                                                     tagIndexToTaggedFilterInputMap
                                         let _
-                                            , _
+                                            , shouldBeOnePastAdjustedIndexForRightmostTestVariable
                                             , _
                                             , tagIndexToTaggedFilterInputMap =
                                             testVariableIndexToLevelsAndAdjustedIndexMapWithNodeContributions (0
@@ -631,6 +635,10 @@ namespace NTestCaseBuilder
                                                                                                                , Map.empty
                                                                                                                , Map.empty)
                                                                                                               addTaggedFilterInput
+                                                                                                              nodeWithFiltersForTaggedInputs
+                                        if shouldBeOnePastAdjustedIndexForRightmostTestVariable <> onePastAdjustedIndexForRightmostTestVariable
+                                        then
+                                            raise (InternalAssertionViolationException "Walking the subtree of the filters' node has yielded adjusted indices that are not consistent with the tree walk performed on 'this'.")
                                         tagIndexToTaggedFilterInputMap
                                         :> IDictionary<_, _>
                             }
