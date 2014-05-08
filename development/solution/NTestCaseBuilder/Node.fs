@@ -221,11 +221,6 @@ namespace NTestCaseBuilder
                                                           (fun tagIndexToTaggedFilterInputMap
                                                                node ->
                                                             match node.Tag with
-                                                                Some tag ->
-                                                                    printf "%A\n" (unbox<Int32> tag)
-                                                              | _ ->
-                                                                    ()
-                                                            match node.Tag with
                                                                 Some tag when tagMatchPredicate tag ->
                                                                     let tagIndex =
                                                                         (tagIndexToTaggedFilterInputMap
