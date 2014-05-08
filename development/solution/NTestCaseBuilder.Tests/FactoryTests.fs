@@ -457,7 +457,8 @@
                                                 Assert.IsTrue shouldBeTrue
                                                 relevantTestVariableLevelEncodedIndices filterInput
                                                                                         indexForLeftmostTestVariable
-                                                |> ignore   // NOTE: this is purely do carry out internal verification, the result is not used here.
+                                                |> ignore   // NOTE: this is purely to carry out internal verification, the result
+                                                            // is not used here (in contrast with the case for plain filters below).
                                             taggedFilterInputsForMatchingTags.Values
                                             |> Seq.iter checkFilterInput
                                         let anyTagWillMatch _ =
@@ -469,10 +470,11 @@
                                         if ensureContiguousSortedTestVariableIndicesAfterPruning
                                         then
                                             let shouldBeTrue =
-                                                (taggedFilterInputs.FilterInputsForMatchingTags (fun _ ->
-                                                                                                    true)
-                                                 |> Seq.length)
-                                                 = numberOfFactoriesInSubtreeOfFactoryInclusiveOfRoot
+                                                let numberOfTagsCoveredByTheFilter =
+                                                    taggedFilterInputs.FilterInputsForMatchingTags (fun _ ->
+                                                                                                        true)
+                                                    |> Seq.length
+                                                numberOfTagsCoveredByTheFilter = numberOfFactoriesInSubtreeOfFactoryInclusiveOfRoot
                                             Assert.IsTrue shouldBeTrue
                                         true
                                     let additionalFilterForThisFactory dictionary =

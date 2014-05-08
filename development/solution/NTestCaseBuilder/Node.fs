@@ -241,18 +241,11 @@ namespace NTestCaseBuilder
 
     type Node with
         member this.WithFilter additionalFilter =
-            if filterIsInsane additionalFilter
-            then
-                raise (PreconditionViolationException "Insane filter detected that rejects an empty filter input.")
             {
                 this with Filters = additionalFilter :: this.Filters
             }
 
         member this.WithFilter additionalFilter =
-            if filterUsingTaggedInputsIsInsane this
-                                               additionalFilter
-            then
-                raise (PreconditionViolationException "Insane filter detected that rejects an empty filter input.")
             {
                 this with FiltersForTaggedInputs = additionalFilter :: this.FiltersForTaggedInputs
             }
@@ -283,7 +276,7 @@ namespace NTestCaseBuilder
                     Some maximumStrength ->
                         min maximumPossibleStrength
                             maximumStrength
-                    | _ ->
+                  | _ ->
                         maximumPossibleStrength
             walkTree this
 
@@ -405,6 +398,12 @@ namespace NTestCaseBuilder
                         else
                             (deferredNode ()).PruneTree (desiredDeferralBudget,
                                                          (1 + numberOfDeferralsSpent))
+                            |> List.map (fun (deferralBudget
+                                              , deferredSubtree) ->
+                                            let standInForDeferralNode =
+                                                InterleavingNode [deferredSubtree]
+                                            deferralBudget
+                                            , standInForDeferralNode.TakePropertiesFrom node)
             walkTree this
 
         member this.CombinedFilter =
@@ -582,7 +581,7 @@ namespace NTestCaseBuilder
                         if filters
                            |> List.exists filterIsInsane
                         then
-                            raise (InternalAssertionViolationException "Insane filters should be prohibited by precondition checking on 'Node.WithFilter'.")
+                            raise (PreconditionViolationException "Insane filter detected.")
                         let filterInput =
                             buildFilterInput adjustedIndexForLeftmostTestVariable
                                              onePastAdjustedIndexForRightmostTestVariable
@@ -597,7 +596,7 @@ namespace NTestCaseBuilder
                         if filtersForTaggedInputs
                            |> List.exists (filterUsingTaggedInputsIsInsane nodeWithFiltersForTaggedInputs)
                         then
-                            raise (InternalAssertionViolationException "Insane filters should be prohibited by precondition checking on 'Node.WithFilter'.")
+                            raise (PreconditionViolationException "Insane filter using tagged inputs detected.")
                         let taggedFilterInputs =
                             {
                                 new ITaggedFilterInputs with
