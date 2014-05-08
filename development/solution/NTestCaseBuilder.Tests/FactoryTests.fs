@@ -368,6 +368,38 @@
                                 Set.count targetNonSingletonTestVariableCombination
                             match randomBehaviour.ChooseAnyNumberFromOneTo 4 with
                                 1 when 1 < numberOfTestVariablesInTargetNonSingletonTestVariableCombination ->
+                                    let relevantTestVariableLevelEncodedIndices (dictionary: IFilterInput)
+                                                                                indexForLeftmostTestVariable =
+                                        seq
+                                            {
+                                                for KeyValue (relativeTestVariableIndexPassedExplicitlyToFilter
+                                                              , (testVariableLevelIndex
+                                                                 , testVariableLevelValue)) in dictionary do
+                                                    match (unbox testVariableLevelValue): List<TestVariableLevel> with
+                                                        [testVariableIndexForNonSingletonTestVariable
+                                                            , Some testVariableLevelEncodedIndex] ->
+                                                            if ensureContiguousSortedTestVariableIndicesAfterPruning
+                                                            then
+                                                                let relativeTestVariableIndex =
+                                                                    testVariableIndexForNonSingletonTestVariable - indexForLeftmostTestVariable
+                                                                let shouldBeTrue =
+                                                                    relativeTestVariableIndexPassedExplicitlyToFilter
+                                                                        = relativeTestVariableIndex
+                                                                Assert.IsTrue shouldBeTrue
+                                                            if not allowDuplicatedLevels
+                                                            then
+                                                                let shouldBeTrue =
+                                                                    testVariableLevelIndex = testVariableLevelEncodedIndex
+                                                                Assert.IsTrue shouldBeTrue
+                                                            if targetNonSingletonTestVariableCombination.Contains testVariableIndexForNonSingletonTestVariable
+                                                            then
+                                                                yield testVariableLevelIndex        
+                                                      | [testVariableIndexForNonSingletonTestVariable
+                                                         , None] ->
+                                                            Assert.Fail ("Level value is from a singleton test variable - this is not permitted.")
+                                                      | _ ->
+                                                            Assert.Fail ("Level value passed to filter is not well-formed.")
+                                            }
                                     let additionalFilterUsingTaggedInputsForThisFactory (taggedFilterInputs: ITaggedFilterInputs) =
                                         let onePastIndexForRightmostTestVariable =
                                             (testVariableIndexToLevelsMapping
@@ -414,6 +446,9 @@
                                                                     indexForLeftmostTestVariable <= testVariableIndexEncodedAsLevel
                                                                     && testVariableIndexEncodedAsLevel < onePastIndexForRightmostTestVariable)
                                                 Assert.IsTrue shouldBeTrue
+                                                relevantTestVariableLevelEncodedIndices filterInput
+                                                                                        indexForLeftmostTestVariable
+                                                |> ignore   // NOTE: this is purely do carry out internal verification, the result is not used here.
                                             taggedFilterInputsForMatchingTags.Values
                                             |> Seq.iter checkFilterInput
                                         let anyTagWillMatch _ =
@@ -423,38 +458,10 @@
                                             0 = indexForLeftmostTestVariable % 2
                                         checkWith tagMustHaveEvenLeftmostTestVariable
                                         true
-                                    let additionalFilterForThisFactory (dictionary: IFilterInput) =
+                                    let additionalFilterForThisFactory dictionary =
                                         let relevantTestVariableLevelEncodedIndices =
-                                            seq
-                                                {
-                                                    for KeyValue (relativeTestVariableIndexPassedExplicitlyToFilter
-                                                                  , (testVariableLevelIndex
-                                                                     , testVariableLevelValue)) in dictionary do
-                                                        match (unbox testVariableLevelValue): List<TestVariableLevel> with
-                                                            [testVariableIndexForNonSingletonTestVariable
-                                                             , Some testVariableLevelEncodedIndex] ->
-                                                                if ensureContiguousSortedTestVariableIndicesAfterPruning
-                                                                then
-                                                                    let relativeTestVariableIndex =
-                                                                        testVariableIndexForNonSingletonTestVariable - indexForLeftmostTestVariable
-                                                                    let shouldBeTrue =
-                                                                        relativeTestVariableIndexPassedExplicitlyToFilter
-                                                                         = relativeTestVariableIndex
-                                                                    Assert.IsTrue shouldBeTrue
-                                                                if not allowDuplicatedLevels
-                                                                then
-                                                                    let shouldBeTrue =
-                                                                        testVariableLevelIndex = testVariableLevelEncodedIndex
-                                                                    Assert.IsTrue shouldBeTrue
-                                                                if targetNonSingletonTestVariableCombination.Contains testVariableIndexForNonSingletonTestVariable
-                                                                then
-                                                                    yield testVariableLevelIndex        
-                                                          | [testVariableIndexForNonSingletonTestVariable
-                                                             , None] ->
-                                                                Assert.Fail ("Level value is from a singleton test variable - this is not permitted.")
-                                                          | _ ->
-                                                                Assert.Fail ("Level value passed to filter is not well-formed.")
-                                                }
+                                            relevantTestVariableLevelEncodedIndices dictionary
+                                                                                    indexForLeftmostTestVariable
                                         testVariableEncodedIndicesPass relevantTestVariableLevelEncodedIndices
                                                                        numberOfTestVariablesInTargetNonSingletonTestVariableCombination
                                     return factoryConstructors.FactoryWithFilterFrom factory
