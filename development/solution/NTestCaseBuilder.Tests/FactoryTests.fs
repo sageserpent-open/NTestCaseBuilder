@@ -314,7 +314,8 @@
                     , testVariableCombination
                     , testVariableIndexToLevelsMapping
                     , permutationExample
-                    , targetNonSingletonTestVariableCombinations =
+                    , targetNonSingletonTestVariableCombinations
+                    , numberOfFactories =
                     constructFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                              testVariableIndexToLevelsMapping
                                                                              numberOfAncestorFactories
@@ -329,9 +330,11 @@
                 let taggedFactory =
                     factoryConstructors.ApplyTagTo factory
                                                    tag
-                if allowDeferrals
-                   && numberOfAncestorFactories < maximumNumberOfDeferrals
-                   && randomBehaviour.HeadsItIs()
+                let addInADeferral =
+                    allowDeferrals
+                    && numberOfAncestorFactories < maximumNumberOfDeferrals
+                    && randomBehaviour.HeadsItIs()
+                if addInADeferral
                 then
                     factoryConstructors.ApplyTagTo (factoryConstructors.DeferralFrom taggedFactory)
                                                    tag
@@ -341,6 +344,11 @@
                 , testVariableIndexToLevelsMapping
                 , permutationExample
                 , targetNonSingletonTestVariableCombinations
+                , if addInADeferral
+                  then
+                    1 + numberOfFactories
+                  else
+                    numberOfFactories
             and constructFactoryWithAccompanyingTestVariableCombinations combinationStrength
                                                                          testVariableIndexToLevelsMapping
                                                                          numberOfAncestorFactories
@@ -351,7 +359,8 @@
                 let considerAddingFilterToFactory factory
                                                   testVariableIndexToLevelsMapping
                                                   feasibleTestVariableCombination
-                                                  targetNonSingletonTestVariableCombinations =
+                                                  targetNonSingletonTestVariableCombinations
+                                                  numberOfFactoriesInSubtreeOfFactoryInclusiveOfRoot =
                     optionWorkflow
                         {
                             let! feasibleTestVariableCombination =
@@ -457,6 +466,14 @@
                                         let tagMustHaveEvenLeftmostTestVariable (indexForLeftmostTestVariable, _) =
                                             0 = indexForLeftmostTestVariable % 2
                                         checkWith tagMustHaveEvenLeftmostTestVariable
+                                        if ensureContiguousSortedTestVariableIndicesAfterPruning
+                                        then
+                                            let shouldBeTrue =
+                                                (taggedFilterInputs.FilterInputsForMatchingTags (fun _ ->
+                                                                                                    true)
+                                                 |> Seq.length)
+                                                 = numberOfFactoriesInSubtreeOfFactoryInclusiveOfRoot
+                                            Assert.IsTrue shouldBeTrue
                                         true
                                     let additionalFilterForThisFactory dictionary =
                                         let relevantTestVariableLevelEncodedIndices =
@@ -520,6 +537,7 @@
                                       testVariableIndexToLevelsMapping
                             , None
                             , []
+                            , 1
                         else
                             let testVariableLevel =
                                 [(indexForLeftmostTestVariable, None)]: List<TestVariableLevel>
@@ -533,6 +551,7 @@
                                       testVariableIndexToLevelsMapping
                             , None
                             , []
+                            , 1
                   | _ ->
                     if randomBehaviour.ChooseAnyNumberFromZeroToOneLessThan (2 * maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving)
                        < max maximumNumberOfAncestorFactoriesAllowingFairChanceOfInterleaving
@@ -606,6 +625,7 @@
                                     , testVariableIndexToLevelsMapping
                                     , permutationExtentsForSubtrees
                                     , []
+                                    , 0
                               | (subtreeCombinationStrength
                                  , allowEmptyValueNodeInSubtree
                                  , mustHavePermutingSynthesisInTreeInSubtree) :: tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice ->
@@ -613,7 +633,8 @@
                                         , testVariableCombinationFromSubtree
                                         , testVariableIndexToLevelsMappingFromSubtree
                                         , permutationExtentFromSubtree
-                                        , targetNonSingletonTestVariableCombinationsFromSubtree =
+                                        , targetNonSingletonTestVariableCombinationsFromSubtree
+                                        , numberOfFactoriesInSubtree =
                                         tagAndThenDecorateWithDeferralIfRequired subtreeCombinationStrength
                                                                                  testVariableIndexToLevelsMapping
                                                                                  (numberOfAncestorFactories + 1)
@@ -625,7 +646,8 @@
                                         , testVariableCombinationsFromRemainingSubtrees
                                         , testVariableIndexToLevelsMappingFromRemainingSubtrees
                                         , permutationExtentsFromRemainingSubtrees
-                                        , targetNonSingletonTestVariableCombinationsFromRemainingSubtrees =
+                                        , targetNonSingletonTestVariableCombinationsFromRemainingSubtrees
+                                        , numberOfFactoriesInRemainingSubtrees =
                                         createSubtrees tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                        testVariableIndexToLevelsMappingFromSubtree
                                                        permutationExtentsForSubtrees
@@ -634,11 +656,13 @@
                                     , testVariableIndexToLevelsMappingFromRemainingSubtrees
                                     , permutationExtentFromSubtree :: permutationExtentsFromRemainingSubtrees
                                     , List.append targetNonSingletonTestVariableCombinationsFromSubtree targetNonSingletonTestVariableCombinationsFromRemainingSubtrees
+                                    , numberOfFactoriesInSubtree + numberOfFactoriesInRemainingSubtrees
                         let subtrees
                             , testVariableCombinationsFromSubtrees
                             , testVariableIndexToLevelsMappingFromSubtrees
                             , permutationExtentsForSubtrees
-                            , targetNonSingletonTestVariableCombinationsFromSubtrees =
+                            , targetNonSingletonTestVariableCombinationsFromSubtrees
+                            , numberOfFactoriesInSubtrees =
                             createSubtrees triplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                            testVariableIndexToLevelsMapping
                                            []
@@ -730,18 +754,23 @@
                                                                   | Randomly ->
                                                                         randomBehaviour.HeadsItIs ())
 
+                        let numberOfFactoriesInSubtrees =
+                            1 + numberOfFactoriesInSubtrees
+
                         let factory
                             , targetNonSingletonTestVariableCombinations =
                             considerAddingFilterToFactory factory
                                                           testVariableIndexToLevelsMappingFromSubtrees
                                                           testVariableCombination
                                                           targetNonSingletonTestVariableCombinationsFromSubtrees
+                                                          numberOfFactoriesInSubtrees
 
                         factory
                         , testVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
                         , chosenPermutationExample
                         , targetNonSingletonTestVariableCombinations
+                        , numberOfFactoriesInSubtrees
                     else
                         let numberOfSubtrees =
                             randomBehaviour.ChooseAnyNumberFromOneTo maximumNumberOfNonZeroCombinationStrengthSubtrees
@@ -787,6 +816,7 @@
                                     , testVariableIndexToLevelsMapping
                                     , permutationExtentsForSubtrees
                                     , []
+                                    , 0
                               | (subtreeCombinationStrength
                                  , allowEmptyValueNodeInSubtree
                                  , mustHavePermutingSynthesisInTreeInSubtree) :: tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice ->
@@ -794,7 +824,8 @@
                                         , testVariableCombinationFromSubtree
                                         , testVariableIndexToLevelsMappingFromSubtree
                                         , permutationExtentFromSubtree
-                                        , targetNonSingletonTestVariableCombinationsFromSubtree =
+                                        , targetNonSingletonTestVariableCombinationsFromSubtree
+                                        , numberOfFactoriesInSubtree =
                                         tagAndThenDecorateWithDeferralIfRequired subtreeCombinationStrength
                                                                                  testVariableIndexToLevelsMapping
                                                                                  (numberOfAncestorFactories + 1)
@@ -804,7 +835,8 @@
                                         , testVariableCombinationsFromRemainingSubtrees
                                         , testVariableIndexToLevelsMappingFromRemainingSubtrees
                                         , permutationExtentsFromRemainingSubtrees
-                                        , targetNonSingletonTestVariableCombinationsFromRemainingSubtrees =
+                                        , targetNonSingletonTestVariableCombinationsFromRemainingSubtrees
+                                        , numberOfFactoriesInRemainingSubtrees =
                                         createSubtrees tailTriplesOfCombinationStrengthAndWhetherToAllowEmptyValueNodeChoiceAndMustHavePermutingSynthesisInTreeChoice
                                                        testVariableIndexToLevelsMappingFromSubtree
                                                        permutationExtentsForSubtrees
@@ -813,11 +845,13 @@
                                     , testVariableIndexToLevelsMappingFromRemainingSubtrees
                                     , permutationExtentFromSubtree :: permutationExtentsFromRemainingSubtrees
                                     , List.append targetNonSingletonTestVariableCombinationsFromSubtree targetNonSingletonTestVariableCombinationsFromRemainingSubtrees
+                                    , numberOfFactoriesInSubtree + numberOfFactoriesInRemainingSubtrees
                         let subtrees
                             , testVariableCombinationsFromSubtrees
                             , testVariableIndexToLevelsMappingFromSubtrees
                             , permutationExtentsForSubtrees
-                            , targetNonSingletonTestVariableCombinationsFromSubtrees =
+                            , targetNonSingletonTestVariableCombinationsFromSubtrees
+                            , numberOfFactoriesInSubtrees =
                             createSubtrees (List.zip3 combinationStrengths
                                                       whetherToAllowEmptyValueNodeChoices
                                                       mustHavePermutingSynthesisInTreeChoices)
@@ -849,24 +883,30 @@
                         let factory =
                             factoryConstructors.InterleavingFrom subtrees
 
+                        let numberOfFactoriesInSubtrees =
+                            1 + numberOfFactoriesInSubtrees
+
                         let factory
                             , targetNonSingletonTestVariableCombinations =
                             considerAddingFilterToFactory factory
                                                           testVariableIndexToLevelsMappingFromSubtrees
                                                           chosenTestVariableCombination
                                                           targetNonSingletonTestVariableCombinationsFromSubtrees
+                                                          numberOfFactoriesInSubtrees
 
                         factory
                         , chosenTestVariableCombination
                         , testVariableIndexToLevelsMappingFromSubtrees
                         , chosenPermutationExample
                         , targetNonSingletonTestVariableCombinations
+                        , numberOfFactoriesInSubtrees
 
             let factory
                 , testVariableCombination
                 , testVariableIndexToLevelsMapping
                 , permutationExample
-                , targetNonSingletonTestVariableCombinations =
+                , targetNonSingletonTestVariableCombinations
+                , _ =
                 tagAndThenDecorateWithDeferralIfRequired combinationStrength
                                                          Map.empty
                                                          0
