@@ -67,6 +67,7 @@ namespace NTestCaseBuilder
             DeferralBudget: Option<Int32>
             IsZeroCost: Boolean
             Tag: Option<Object>
+            AutoFilterEnabled: Boolean
         }
         
         static member For kind =
@@ -78,6 +79,7 @@ namespace NTestCaseBuilder
                 DeferralBudget = None
                 IsZeroCost = false
                 Tag = None
+                AutoFilterEnabled = false
             }
 
         member this.WithMaximumStrength maximumStrength =
@@ -100,6 +102,11 @@ namespace NTestCaseBuilder
                 this with Tag = tag
             }
 
+        member this.WithAutoFilter () =
+            {
+                this with AutoFilterEnabled = true
+            }
+
         member this.TakePropertiesFrom another =
             {
                 this with
@@ -108,7 +115,8 @@ namespace NTestCaseBuilder
                     MaximumStrength = another.MaximumStrength
                     DeferralBudget = another.DeferralBudget
                     IsZeroCost = another.IsZeroCost
-                    Tag = another.Tag                    
+                    Tag = another.Tag
+                    AutoFilterEnabled = another.AutoFilterEnabled
             }
 
     module NodeExtensions =

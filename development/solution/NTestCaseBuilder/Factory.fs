@@ -227,6 +227,21 @@
         /// <seealso cref="ITaggedFilterInputs">The interface that allows a filter to use tags.</seealso>
         abstract WithTag: Object -> IFactory
 
+        /// <summary>Creates a new factory with an additional automatic filter that ensures that any test case it produces
+        /// in the final sequence of test cases will not cause an exception to thrown as it is built. Put another way, if
+        /// an attempt to make a test case either by this factory or elsewhere in the factory's subtree throws an exception,
+        /// this causes the implementation to filter out the combination of test variable levels that caused the failure.</summary>
+        /// <remarks>Like the explicit filters, a failure to build a test case will cause the implementation to try re-packing
+        /// the combinations of test variable levels: this is not simply a post-processing operation.</remarks>
+        /// <remarks>As the auto filter holds for all stages of construction in the factory's subtree, it can be applied to
+        /// any kind of factory, not just a synthesizing factory.</remarks>
+        /// <remarks>This method is idempotent - successive calls on successive results have not further effect; the auto filter
+        /// remains enabled and cannot be disabled.</remarks>
+        /// <summary>Several auto filters may be applied at different levels within an overall factory tree - they cooperate,
+        /// so that auto filters applied further away from the tree root get the first chance to vet parts of the overall test
+        /// case that is eventually built up and yielded by the tree root.</summary>
+        abstract WithAutoFilter: Unit -> IFactory
+
     /// <summary>This extends the API provided by IFactory to deal with test cases of a specific type given
     /// by the type parameter TestCase.</summary>
     /// <seealso cref="IFactory">The core API provided by the baseclass.</seealso>
@@ -250,6 +265,8 @@
         abstract WithDeferralBudgetOf: Int32 -> ITypedFactory<'TestCase>
 
         abstract WithTag: Object -> ITypedFactory<'TestCase>
+
+        abstract WithAutoFilter: Unit -> ITypedFactory<'TestCase>
 
     type internal INodeWrapper =
         abstract Node: Node
@@ -307,6 +324,10 @@
                 (this :> ITypedFactory<'TestCase>).WithTag tag
                 :> IFactory
 
+            member this.WithAutoFilter () =
+                (this :> ITypedFactory<'TestCase>).WithAutoFilter ()
+                :> IFactory
+
         interface ITypedFactory<'TestCase> with
             member this.CreateEnumerable maximumDesiredStrength =
                 seq
@@ -350,6 +371,10 @@
 
             member this.WithTag tag =
                 TypedFactoryImplementation<'TestCase>(node.WithTag (Some tag))
+                :> ITypedFactory<'TestCase>
+
+            member this.WithAutoFilter () =
+                TypedFactoryImplementation<'TestCase>(node.WithAutoFilter ())
                 :> ITypedFactory<'TestCase>
 
         member private this.ExecuteParameterisedUnitTestForAllTypedTestCasesWorkaroundForDelegateNonCovariance (maximumDesiredStrength
