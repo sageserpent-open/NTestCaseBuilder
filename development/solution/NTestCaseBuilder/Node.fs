@@ -207,36 +207,40 @@ namespace NTestCaseBuilder
             walkTree accumulated
                      node
 
-        let filterIsInsane (filter: Filter) =
-            filter.Invoke Map.empty
-            |> not
-
-        let filterUsingTaggedInputsIsInsane node
-                                            (filter: FilterUsingTaggedInputs) =
-            filter.Invoke {
-                            new ITaggedFilterInputs with
-                                member this.FilterInputsForMatchingTags tagMatchPredicate =
-                                    let taggedFilterInputsInReverseOrder =
-                                        foldLeftPostOrder node
-                                                          (fun taggedFilterInputsInReverseOrder
-                                                               node ->
-                                                            match node.Tag with
-                                                                Some tag when tagMatchPredicate tag ->
-                                                                    (tag
-                                                                     , Map.empty :> IFilterInput)
-                                                                    :: taggedFilterInputsInReverseOrder
-                                                              | _ ->
-                                                                    taggedFilterInputsInReverseOrder)
-                                                          List.empty
-                                    taggedFilterInputsInReverseOrder
-                                    |> List.rev
-                                    |> Array.ofList
-                          }
-            |> not
-
     open NodeDetail
 
     type Node with
+        member this.HasInsaneFilter () =
+            this.Filters
+            |> List.exists (fun filter ->
+                                filter.Invoke Map.empty
+                                |> not)
+
+        member thisNode.HasInsaneFilterUsingTaggedInputs () =
+            thisNode.FiltersForTaggedInputs
+            |> List.exists (fun filterUsingTaggedInputs ->
+                                filterUsingTaggedInputs.Invoke
+                                    {
+                                        new ITaggedFilterInputs with
+                                            member thisTaggedFilterInputs.FilterInputsForMatchingTags tagMatchPredicate =
+                                                let taggedFilterInputsInReverseOrder =
+                                                    foldLeftPostOrder thisNode
+                                                                      (fun taggedFilterInputsInReverseOrder
+                                                                           node ->
+                                                                        match node.Tag with
+                                                                            Some tag when tagMatchPredicate tag ->
+                                                                                (tag
+                                                                                 , Map.empty :> IFilterInput)
+                                                                                :: taggedFilterInputsInReverseOrder
+                                                                          | _ ->
+                                                                                taggedFilterInputsInReverseOrder)
+                                                                      List.empty
+                                                taggedFilterInputsInReverseOrder
+                                                |> List.rev
+                                                |> Array.ofList
+                                    }
+                                |> not)
+
         member this.WithFilter additionalFilter =
             {
                 this with Filters = additionalFilter :: this.Filters
@@ -534,16 +538,14 @@ namespace NTestCaseBuilder
                    |> List.exists (function nodeWithFilters
                                             , _
                                             , _ ->
-                                                nodeWithFilters.Filters
-                                                |> List.exists filterIsInsane)
+                                                nodeWithFilters.HasInsaneFilter ())
                 then
                     raise (PreconditionViolationException "Insane filter detected.")
                 if nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
                    |> List.exists (function nodeWithFiltersForTaggedInputs
                                             , _
                                             , _ ->
-                                                nodeWithFiltersForTaggedInputs.FiltersForTaggedInputs
-                                                |> List.exists (filterUsingTaggedInputsIsInsane nodeWithFiltersForTaggedInputs))
+                                                nodeWithFiltersForTaggedInputs.HasInsaneFilterUsingTaggedInputs ())
                 then
                     raise (PreconditionViolationException "Insane filter using tagged inputs detected.")
                 fun (testVariableIndexAndValuePairs: Map<Int32, TestVariable<Int32>>) ->
