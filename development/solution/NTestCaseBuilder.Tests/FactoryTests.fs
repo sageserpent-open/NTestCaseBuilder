@@ -417,14 +417,20 @@
                                             let taggedFilterInputsForMatchingTags =
                                                 taggedFilterInputs.FilterInputsForMatchingTags (unbox >> tagPredicate)
                                             let tags =
-                                                taggedFilterInputsForMatchingTags.Values
-                                                |> Seq.map (fst >> unbox)
-                                                |> Seq.sort // NOTE: this is necessary because of the shuffling of subtrees of
-                                                            // synthesizing factories done during factory tree generation.
+                                                taggedFilterInputsForMatchingTags
+                                                |> Array.map (fst >> unbox)
+                                            let tags =
+                                                if ensureContiguousSortedTestVariableIndicesAfterPruning
+                                                then
+                                                    tags
+                                                else
+                                                    tags
+                                                    |> Array.sort   // NOTE: this is necessary because of the shuffling of subtrees of
+                                                                    // synthesizing factories done during factory tree generation.
                                             let shouldBeTrue =
                                                 tags
                                                 |> Seq.forall tagPredicate
-                                            if Seq.isEmpty taggedFilterInputsForMatchingTags
+                                            if Array.isEmpty taggedFilterInputsForMatchingTags
                                                |> not
                                             then
                                                 let minimumTag =
@@ -435,7 +441,7 @@
                                                 Assert.IsTrue shouldBeTrue
                                                 let maximumTag =
                                                     tags
-                                                    |> Seq.maxBy snd
+                                                    |> Array.maxBy snd
                                                 let shouldBeTrue =
                                                     snd maximumTag <= onePastIndexForRightmostTestVariable
                                                 Assert.IsTrue shouldBeTrue
@@ -459,8 +465,8 @@
                                                                                         indexForLeftmostTestVariable
                                                 |> ignore   // NOTE: this is purely to carry out internal verification, the result
                                                             // is not used here (in contrast with the case for plain filters below).
-                                            taggedFilterInputsForMatchingTags.Values
-                                            |> Seq.iter checkFilterInput
+                                            taggedFilterInputsForMatchingTags
+                                            |> Array.iter checkFilterInput
                                         let anyTagWillMatch _ =
                                             true
                                         checkWith anyTagWillMatch

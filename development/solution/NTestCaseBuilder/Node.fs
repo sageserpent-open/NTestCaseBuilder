@@ -216,24 +216,21 @@ namespace NTestCaseBuilder
             filter.Invoke {
                             new ITaggedFilterInputs with
                                 member this.FilterInputsForMatchingTags tagMatchPredicate =
-                                    let tagIndexToTaggedFilterInputMap =
+                                    let taggedFilterInputsInReverseOrder =
                                         foldLeftPostOrder node
-                                                          (fun tagIndexToTaggedFilterInputMap
+                                                          (fun taggedFilterInputsInReverseOrder
                                                                node ->
                                                             match node.Tag with
                                                                 Some tag when tagMatchPredicate tag ->
-                                                                    let tagIndex =
-                                                                        (tagIndexToTaggedFilterInputMap
-                                                                         : Map<_, _>).Count
-                                                                    Map.add tagIndex
-                                                                            (tag
-                                                                             , Map.empty :> IDictionary<_, _>)
-                                                                            tagIndexToTaggedFilterInputMap
+                                                                    (tag
+                                                                     , Map.empty :> IFilterInput)
+                                                                    :: taggedFilterInputsInReverseOrder
                                                               | _ ->
-                                                                    tagIndexToTaggedFilterInputMap)
-                                                          Map.empty
-                                    tagIndexToTaggedFilterInputMap
-                                    :> IDictionary<_, _>
+                                                                    taggedFilterInputsInReverseOrder)
+                                                          List.empty
+                                    taggedFilterInputsInReverseOrder
+                                    |> List.rev
+                                    |> Array.ofList
                           }
             |> not
 
@@ -604,37 +601,34 @@ namespace NTestCaseBuilder
                                         let addTaggedFilterInput node
                                                                  adjustedIndexForLeftmostTestVariable
                                                                  onePastAdjustedIndexForRightmostTestVariable
-                                                                 tagIndexToTaggedFilterInputMap =
+                                                                 taggedFilterInputsInReverseOrder =
                                             match node.Tag with
                                                 Some tag when tagMatchPredicate tag ->
-                                                    let tagIndex =
-                                                        (tagIndexToTaggedFilterInputMap
-                                                         : Map<_, _>).Count
                                                     let filterInputForTag =
                                                         buildFilterInput adjustedIndexForLeftmostTestVariable
                                                                          onePastAdjustedIndexForRightmostTestVariable
-                                                    Map.add tagIndex
-                                                            (tag
-                                                             , filterInputForTag)
-                                                            tagIndexToTaggedFilterInputMap
+                                                    (tag
+                                                     , filterInputForTag)
+                                                    :: taggedFilterInputsInReverseOrder
                                               | _ ->
-                                                    tagIndexToTaggedFilterInputMap
+                                                    taggedFilterInputsInReverseOrder
                                         let _
                                             , shouldBeOnePastAdjustedIndexForRightmostTestVariable
                                             , _
-                                            , tagIndexToTaggedFilterInputMap =
+                                            , taggedFilterInputsInReverseOrder =
                                             testVariableIndexToLevelsAndAdjustedIndexMapWithNodeContributions (0
                                                                                                                , adjustedIndexForLeftmostTestVariable   // NOTE: have to bias this as we are starting
                                                                                                                                                         // from a node within a subtree of 'this'.
                                                                                                                , Map.empty
-                                                                                                               , Map.empty)
+                                                                                                               , List.empty)
                                                                                                               addTaggedFilterInput
                                                                                                               nodeWithFiltersForTaggedInputs
                                         if shouldBeOnePastAdjustedIndexForRightmostTestVariable <> onePastAdjustedIndexForRightmostTestVariable
                                         then
                                             raise (InternalAssertionViolationException "Walking the subtree of the filters' node has yielded adjusted indices that are not consistent with the tree walk performed on 'this'.")
-                                        tagIndexToTaggedFilterInputMap
-                                        :> IDictionary<_, _>
+                                        taggedFilterInputsInReverseOrder
+                                        |> List.rev
+                                        |> Array.ofList
                             }
                         filtersForTaggedInputs
                         |> List.forall (fun filterForTaggedInputs ->

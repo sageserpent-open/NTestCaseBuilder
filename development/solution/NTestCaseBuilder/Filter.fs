@@ -19,23 +19,23 @@
         /// tree of factories whose root is the factory the filter was applied to. For each factory in that
         /// tree marked with a matching tag, produce a pair of the matching tag and a restricted filter input
         /// for that factory.</summary>
-        /// <remarks>The result dictionary's key in the result is the index of the tagged factory
+        /// <remarks>The result array's index in the result is the index of the tagged factory
         /// within the group of factories whose tags match within a filter's tree, ordering the
-        /// group according to a *post-order* depth-first search of all of the the tree's
+        /// group according to a *post-order* left-to-right, depth-first search of all of the the tree's
         /// factories. When calculating the indices, *all* matching tagged factories are considered; this
         /// also includes those factories that are excluded in the test case by interleaves.</remarks>
         /// <remarks>A predicate is used to define what tags match, so changing
         /// the predicate permits tags to be flexibly grouped.</remarks>
         /// <remarks>A matching tagged factory always has an entry in the result's
-        /// dictionary; this can lead to an empty filter input being associated with a tag.
+        /// array; this can lead to an empty filter input being paired with a tag.
         /// This occurs on the one hand for a tagged factory whose test variables are all
         /// excluded by an interleave and on the other hand for a tagged factory whose test
         /// variables are included by an interleave, but none of which have levels assigned.</remarks>
-        /// <remarks>Each tagged filter input in the result dictionary is restricted to
+        /// <remarks>Each tagged filter input in the result array is restricted to
         /// the factory whose tag matches. The test variable indices are taken relative
         /// to that factory, as opposed to the factory that the filter was applied to.</remarks>
-        /// <remarks>If no tagged factory is found, an empty dictionary is returned.</remarks>
-        abstract FilterInputsForMatchingTags: (Object -> Boolean) -> IDictionary<Int32, Object * IFilterInput>
+        /// <remarks>If no tagged factory is found, an empty array is returned.</remarks>
+        abstract FilterInputsForMatchingTags: (Object -> Boolean) -> array<Object * IFilterInput>
 
     /// <summary>Delegate for a filter that can be applied to a factory; the filter uses tags to categorise its inputs.</summary>
     type FilterUsingTaggedInputs =
