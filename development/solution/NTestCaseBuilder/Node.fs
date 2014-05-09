@@ -530,6 +530,22 @@ namespace NTestCaseBuilder
                     true    // If there are no filters in the entire subtree headed by 'this',
                             // then the resulting trivial case is to pass all possible inputs.
             else
+                if nodesWithFiltersAndTheirBracketingIndices
+                   |> List.exists (function nodeWithFilters
+                                            , _
+                                            , _ ->
+                                                nodeWithFilters.Filters
+                                                |> List.exists filterIsInsane)
+                then
+                    raise (PreconditionViolationException "Insane filter detected.")
+                if nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
+                   |> List.exists (function nodeWithFiltersForTaggedInputs
+                                            , _
+                                            , _ ->
+                                                nodeWithFiltersForTaggedInputs.FiltersForTaggedInputs
+                                                |> List.exists (filterUsingTaggedInputsIsInsane nodeWithFiltersForTaggedInputs))
+                then
+                    raise (PreconditionViolationException "Insane filter using tagged inputs detected.")
                 fun (testVariableIndexAndValuePairs: Map<Int32, TestVariable<Int32>>) ->
                     let nonSingletonAdjustedTestVariableIndexAndLevelPairs =
                         seq
@@ -573,27 +589,15 @@ namespace NTestCaseBuilder
                     let vectorIsAcceptedByFilters (nodeWithFilters
                                                    , adjustedIndexForLeftmostTestVariable
                                                    , onePastAdjustedIndexForRightmostTestVariable) =
-                        let filters =
-                            nodeWithFilters.Filters
-                        if filters
-                           |> List.exists filterIsInsane
-                        then
-                            raise (PreconditionViolationException "Insane filter detected.")
                         let filterInput =
                             buildFilterInput adjustedIndexForLeftmostTestVariable
                                              onePastAdjustedIndexForRightmostTestVariable
-                        filters
+                        nodeWithFilters.Filters
                         |> List.forall (fun filter ->
                                             filter.Invoke filterInput)
                     let vectorIsAcceptedByFiltersForTaggedInputs (nodeWithFiltersForTaggedInputs
                                                                   , adjustedIndexForLeftmostTestVariable
                                                                   , onePastAdjustedIndexForRightmostTestVariable) =
-                        let filtersForTaggedInputs =
-                            nodeWithFiltersForTaggedInputs.FiltersForTaggedInputs
-                        if filtersForTaggedInputs
-                           |> List.exists (filterUsingTaggedInputsIsInsane nodeWithFiltersForTaggedInputs)
-                        then
-                            raise (PreconditionViolationException "Insane filter using tagged inputs detected.")
                         let taggedFilterInputs =
                             {
                                 new ITaggedFilterInputs with
@@ -630,7 +634,7 @@ namespace NTestCaseBuilder
                                         |> List.rev
                                         |> Array.ofList
                             }
-                        filtersForTaggedInputs
+                        nodeWithFiltersForTaggedInputs.FiltersForTaggedInputs
                         |> List.forall (fun filterForTaggedInputs ->
                                             filterForTaggedInputs.Invoke taggedFilterInputs)
                     (nodesWithFiltersAndTheirBracketingIndices
