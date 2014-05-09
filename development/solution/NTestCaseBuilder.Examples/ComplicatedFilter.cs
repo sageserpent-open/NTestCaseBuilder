@@ -22,7 +22,7 @@ namespace NTestCaseBuilder.Examples
                         numberOfRejectionsBeforeWithdrawal));
         }
 
-        public LevelCombinationFilter ThingsShareItemsEfficiently(int numberOfThings)
+        public Filter ThingsShareItemsEfficiently(int numberOfThings)
         {
             return testVariableIndexToLevelNumberAndItemIndexMap =>
             {
