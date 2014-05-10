@@ -1894,9 +1894,9 @@
             let strength =
                 2
             let delayedTestCases =
-                ((interpreterFactory true).WithDeferralBudgetOf deferralBudget).CreateEnumerable(strength)
+                ((interpreterFactory true).WithDeferralBudgetOf deferralBudget).CreateEnumerable strength
             let autoFilteredTestCases =
-                ((interpreterFactory false).WithDeferralBudgetOf deferralBudget).CreateEnumerable(strength)
+                ((interpreterFactory false).WithDeferralBudgetOf deferralBudget).CreateEnumerable strength
             let numberOfDelayedTestCases =
                 delayedTestCases
                 |> Seq.length
@@ -1923,3 +1923,95 @@
                                                                                     // optimally packed before the failures, so more test cases have to be made to find space for
                                                                                     // the 'orphaned' combinations.
             Assert.IsTrue shouldBeTrue
+
+        [<Test>]
+        member this.TestThatAutoFiltersCoverAllCombinationsApartFromThoseThatCauseExceptionsToBeThrown () =
+            let oddPrimes
+                = [3; 5; 7; 11; 13]
+            let leafValuesFactory =
+                2 :: oddPrimes
+                |> List.map (fun prime ->
+                                prime
+                                , false)
+                |> TestVariable.Create
+            let provokeExceptionFactory =
+                [true; false]
+                |> TestVariable.Create
+            let rec productsFactory depth =
+                if 0 < depth
+                then
+                    let depth =
+                        depth - 1
+                    let combinationOfFactoriesForSynthesis =
+                        SynthesisInputs<_, _>.StartWithLeftmostFactory (productsFactory depth)
+                    let combinationOfFactoriesForSynthesis =
+                        SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
+                                                                   productsFactory depth)
+                    let combinationOfFactoriesForSynthesis =
+                        SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
+                                                                   provokeExceptionFactory)
+                    FixedCombinationOfFactoriesForSynthesis(combinationOfFactoriesForSynthesis,
+                                                            (fun (lhsFactor
+                                                                  , lhsProvokesException)
+                                                                  (rhsFactor
+                                                                   , rhsProvokesException)
+                                                                  provokeException ->
+                                                                    let result =
+                                                                        lhsFactor * rhsFactor
+                                                                    if provokeException
+                                                                       && 0 = result % 2
+                                                                    then
+                                                                        raise (PreconditionViolationException "Even product detected.")
+                                                                    else
+                                                                        result
+                                                                        , provokeException || lhsProvokesException || rhsProvokesException))
+                    |> Synthesis.Create
+                else
+                    leafValuesFactory
+            let deferralBudget =
+                3
+            let strength =
+                2
+            let depth =
+                4
+            let oddPrimesWithDuplicates =
+                oddPrimes
+                |> List.replicate strength
+                |> List.concat
+            let randomBehaviour =
+               Random 83893089
+            let combinationsOfOddPrimes =
+                [
+                    for _ in [1 .. 20] do
+                        yield randomBehaviour.ChooseSeveralOf(oddPrimesWithDuplicates,
+                                                              strength)
+                              |> Set.ofArray
+                ]
+                |> Set.ofList
+            let numberOfLeafValues =
+                1 <<< depth
+            let minimalNumberOfOccurrancesRequiredByCoverageGuarantee =
+                BargainBasement.NumberOfCombinations numberOfLeafValues
+                                                     strength
+            let productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct =
+                (((productsFactory depth).WithAutoFilter ()).WithDeferralBudgetOf deferralBudget).CreateEnumerable strength
+                |> Seq.filter snd
+                |> Seq.map fst
+            let shouldBeTrue =
+                productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct
+                |> Seq.tryFind (fun product ->
+                                    0 = product % 2)
+                |> Option.isNone
+            Assert.IsTrue shouldBeTrue
+            for combinationOfOddPrimes in combinationsOfOddPrimes do
+                let shouldBeTrue =
+                    let subProduct =
+                        combinationOfOddPrimes
+                        |> Seq.reduce (*)
+                    let numberOfProductsWithSubProductAsFactor =
+                        productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct
+                        |> Seq.filter (fun product ->
+                                        0 = product % subProduct)
+                        |> Seq.length
+                    numberOfProductsWithSubProductAsFactor >= minimalNumberOfOccurrancesRequiredByCoverageGuarantee
+                Assert.IsTrue shouldBeTrue
