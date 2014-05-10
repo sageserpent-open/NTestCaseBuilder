@@ -1927,13 +1927,16 @@
         [<Test>]
         member this.TestThatAutoFiltersCoverAllCombinationsApartFromThoseThatCauseExceptionsToBeThrown () =
             let oddPrimes
-                = [3; 5; 7; 11; 13]
+                = [3; 5]//; 7; 11; 13]
             let leafValuesFactory =
                 2 :: oddPrimes
                 |> List.map (fun prime ->
                                 prime
+                                , prime.ToString()
                                 , false)
                 |> TestVariable.Create
+            let randomBehaviour =
+               Random 83893089
             let provokeExceptionFactory =
                 [true; false]
                 |> TestVariable.Create
@@ -1946,46 +1949,53 @@
                         SynthesisInputs<_, _>.StartWithLeftmostFactory (productsFactory depth)
                     let combinationOfFactoriesForSynthesis =
                         SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                                   productsFactory depth)
+                                                                   provokeExceptionFactory)
                     let combinationOfFactoriesForSynthesis =
                         SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
-                                                                   provokeExceptionFactory)
-                    FixedCombinationOfFactoriesForSynthesis(combinationOfFactoriesForSynthesis,
-                                                            (fun (lhsFactor
-                                                                  , lhsProvokesException)
-                                                                  (rhsFactor
-                                                                   , rhsProvokesException)
-                                                                  provokeException ->
-                                                                    let result =
-                                                                        lhsFactor * rhsFactor
-                                                                    if provokeException
-                                                                       && 0 = result % 2
-                                                                    then
-                                                                        raise (PreconditionViolationException "Even product detected.")
-                                                                    else
-                                                                        result
-                                                                        , provokeException || lhsProvokesException || rhsProvokesException))
-                    |> Synthesis.Create
+                                                                   productsFactory depth)
+                    let productFactory =
+                        FixedCombinationOfFactoriesForSynthesis(combinationOfFactoriesForSynthesis,
+                                                                (fun (lhsFactor
+                                                                      , lhsFactorText
+                                                                      , lhsProvokesException)
+                                                                      provokeException
+                                                                      (rhsFactor
+                                                                       , rhsFactorText
+                                                                       , rhsProvokesException) ->
+                                                                        let result =
+                                                                            lhsFactor * rhsFactor
+                                                                        if provokeException
+                                                                           && (0 = lhsFactor % 2
+                                                                               || 0 = rhsFactor % 2)
+                                                                        then
+                                                                            raise (PreconditionViolationException "Even factors detected.")
+                                                                        else
+                                                                            result
+                                                                            , String.Format("{0} * {1}", lhsFactorText, rhsFactorText)
+                                                                            , provokeException
+                                                                              || lhsProvokesException && rhsProvokesException))
+                        |> Synthesis.Create
+                    if randomBehaviour.HeadsItIs ()
+                    then
+                        productFactory.WithAutoFilter ()
+                    else
+                        productFactory
                 else
                     leafValuesFactory
-            let deferralBudget =
-                3
             let strength =
                 2
             let depth =
-                4
+                2//4
             let oddPrimesWithDuplicates =
                 oddPrimes
                 |> List.replicate strength
                 |> List.concat
-            let randomBehaviour =
-               Random 83893089
             let combinationsOfOddPrimes =
                 [
                     for _ in [1 .. 20] do
                         yield randomBehaviour.ChooseSeveralOf(oddPrimesWithDuplicates,
                                                               strength)
-                              |> Set.ofArray
+                              |> Array.sort
                 ]
                 |> Set.ofList
             let numberOfLeafValues =
@@ -1993,14 +2003,23 @@
             let minimalNumberOfOccurrancesRequiredByCoverageGuarantee =
                 BargainBasement.NumberOfCombinations numberOfLeafValues
                                                      strength
+            let rootFactoryToApplyFilterTo =
+                Synthesis.Create(productsFactory depth,
+                                 (function product
+                                           , productText
+                                           , true ->
+                                           product
+                                           , productText))
             let productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct =
-                (((productsFactory depth).WithAutoFilter ()).WithDeferralBudgetOf deferralBudget).CreateEnumerable strength
-                |> Seq.filter snd
-                |> Seq.map fst
+                (rootFactoryToApplyFilterTo.WithAutoFilter ()).CreateEnumerable strength
+            printf "%A\n" (String.Join("," , productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct
+                                             |> Seq.map (fun product -> product.ToString())
+                                             |> Array.ofSeq))
             let shouldBeTrue =
                 productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct
-                |> Seq.tryFind (fun product ->
-                                    0 = product % 2)
+                |> Seq.tryFind (function product
+                                         , _ ->
+                                            0 = product % 2)
                 |> Option.isNone
             Assert.IsTrue shouldBeTrue
             for combinationOfOddPrimes in combinationsOfOddPrimes do
@@ -2010,8 +2029,9 @@
                         |> Seq.reduce (*)
                     let numberOfProductsWithSubProductAsFactor =
                         productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct
-                        |> Seq.filter (fun product ->
-                                        0 = product % subProduct)
+                        |> Seq.filter (function product
+                                                , _ ->
+                                                0 = product % subProduct)
                         |> Seq.length
                     numberOfProductsWithSubProductAsFactor >= minimalNumberOfOccurrancesRequiredByCoverageGuarantee
                 Assert.IsTrue shouldBeTrue
