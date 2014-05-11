@@ -424,42 +424,50 @@ namespace NTestCaseBuilder
                             hash index
                 }
 
-            let testVariableIndexToValueInterpreterAndAdjustedIndexMapWithNodeContributions trampData
-                                                                                            addContributionFrom
-                                                                                            node =
+            let testVariableIndexToAdjustedIndexMapWithNodeContributions trampData
+                                                                         addContributionFrom
+                                                                         node =
                 let rec walkTree everythingInTreeIsHiddenFromFilters
                                  trampData
                                  node =
                     let indexForLeftmostTestVariable
                         , adjustedIndexForLeftmostTestVariable
-                        , testVariableIndexToValueInterpreterAndAdjustedIndexMap
+                        , testVariableIndexToAdjustedIndexMap
+                        , adjustedIndexToLevelInterpreterMap
                         , contributionsFromNodes =
                         trampData
                     if everythingInTreeIsHiddenFromFilters
                     then
                         (node: Node).CountTestVariables + indexForLeftmostTestVariable
                         , adjustedIndexForLeftmostTestVariable
-                        , testVariableIndexToValueInterpreterAndAdjustedIndexMap
+                        , testVariableIndexToAdjustedIndexMap
+                        , adjustedIndexToLevelInterpreterMap
                         , contributionsFromNodes
                     else
                         let onePastIndexForRightmostTestVariable
                             , onePastAdjustedIndexForRightmostTestVariable
-                            , testVariableIndexToValueInterpreterAndAdjustedIndexMap
+                            , testVariableIndexToAdjustedIndexMap
+                            , adjustedIndexToLevelInterpreterMap
                             , contributionsFromNodes =
                             match node with
                                 TestVariableNode levels ->
                                     (1 + indexForLeftmostTestVariable
                                      , 1 + adjustedIndexForLeftmostTestVariable
                                      , Map.add indexForLeftmostTestVariable
-                                               (function Level levelIndex ->
-                                                            levels.[levelIndex]
-                                                , adjustedIndexForLeftmostTestVariable)
-                                                testVariableIndexToValueInterpreterAndAdjustedIndexMap
+                                               adjustedIndexForLeftmostTestVariable
+                                               testVariableIndexToAdjustedIndexMap
+                                     , Map.add adjustedIndexForLeftmostTestVariable
+                                               (fun levelIndex ->
+                                                    levels.[levelIndex])
+                                               adjustedIndexToLevelInterpreterMap
                                      , contributionsFromNodes)
                               | SingletonNode thing ->
                                     (1 + indexForLeftmostTestVariable
                                      , 1 + adjustedIndexForLeftmostTestVariable
-                                     , testVariableIndexToValueInterpreterAndAdjustedIndexMap
+                                     , Map.add indexForLeftmostTestVariable
+                                               adjustedIndexForLeftmostTestVariable
+                                               testVariableIndexToAdjustedIndexMap
+                                     , adjustedIndexToLevelInterpreterMap
                                      , contributionsFromNodes)
                               | InterleavingNode subtreeRootNodes ->
                                     List.fold (walkTree false)
@@ -488,7 +496,8 @@ namespace NTestCaseBuilder
                                                 contributionsFromNodes
                         onePastIndexForRightmostTestVariable
                         , onePastAdjustedIndexForRightmostTestVariable
-                        , testVariableIndexToValueInterpreterAndAdjustedIndexMap
+                        , testVariableIndexToAdjustedIndexMap
+                        , adjustedIndexToLevelInterpreterMap
                         , contributionFromNode
                 walkTree false
                          trampData
@@ -515,16 +524,18 @@ namespace NTestCaseBuilder
                                                     nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
             let _
                 , _
-                , testVariableIndexToValueInterpreterAndAdjustedIndexMap
+                , testVariableIndexToAdjustedIndexMap
+                , adjustedIndexToLevelInterpreterMap
                 , (nodesWithFiltersAndTheirBracketingIndices
                    , nodesWithFiltersForTaggedInputsAndTheirBracketingIndices) =
-                testVariableIndexToValueInterpreterAndAdjustedIndexMapWithNodeContributions (0
-                                                                                             , 0
-                                                                                             , Map.empty
-                                                                                             , (List.Empty
-                                                                                                , List.Empty))
-                                                                                            addNodesWithFiltersFrom
-                                                                                            this
+                testVariableIndexToAdjustedIndexMapWithNodeContributions (0
+                                                                          , 0
+                                                                          , Map.empty
+                                                                          , Map.empty
+                                                                          , (List.Empty
+                                                                             , List.Empty))
+                                                                         addNodesWithFiltersFrom
+                                                                         this
             if nodesWithFiltersAndTheirBracketingIndices.IsEmpty
                && nodesWithFiltersForTaggedInputsAndTheirBracketingIndices.IsEmpty
             then
@@ -547,43 +558,48 @@ namespace NTestCaseBuilder
                 then
                     raise (PreconditionViolationException "Insane filter using tagged inputs detected.")
                 fun (testVariableIndexAndValuePairs: Map<Int32, TestVariable<Int32>>) ->
-                    let nonSingletonAdjustedTestVariableIndexAndLevelPairs =
+                    let adjustedTestVariableIndexAndTestVariablePairs =
                         seq
                             {
-                                for testVariableIndexAndValue in testVariableIndexAndValuePairs do
-                                    match testVariableIndexAndValue with
-                                        KeyValue(testVariableIndex
-                                                 , ((Level levelIndex) as testVariable)) ->
-                                            match Map.tryFind testVariableIndex
-                                                              testVariableIndexToValueInterpreterAndAdjustedIndexMap with
-                                                Some (valueInterpreter
-                                                      , adjustedTestVariableIndex) ->
-                                                    yield adjustedTestVariableIndex
-                                                          , (levelIndex
-                                                             , valueInterpreter testVariable)
-                                              | None ->
-                                                    ()
-                                        | _ ->
+                                for KeyValue(testVariableIndex
+                                             , testVariable) in testVariableIndexAndValuePairs do
+                                    match Map.tryFind testVariableIndex
+                                                      testVariableIndexToAdjustedIndexMap with
+                                        Some adjustedTestVariableIndex ->
+                                            yield adjustedTestVariableIndex
+                                                  , testVariable
+                                      | None ->
                                             ()
                             }
                     let vectorOfAdjustedNonSingletonTestVariableIndexAndLevelPairs =
-                        C5.SortedArray<_>(Seq.length nonSingletonAdjustedTestVariableIndexAndLevelPairs,
+                        C5.SortedArray<_>(Seq.length adjustedTestVariableIndexAndTestVariablePairs,
                                           comparisonForSlicing,
                                           equalityForSlicing)
                         :> IIndexedSorted<_>
-                    vectorOfAdjustedNonSingletonTestVariableIndexAndLevelPairs.AddSorted(nonSingletonAdjustedTestVariableIndexAndLevelPairs)
+                    vectorOfAdjustedNonSingletonTestVariableIndexAndLevelPairs.AddSorted(adjustedTestVariableIndexAndTestVariablePairs)
+                    let sliceFrom adjustedIndexForLeftmostTestVariable
+                                  onePastAdjustedIndexForRightmostTestVariable =
+                        vectorOfAdjustedNonSingletonTestVariableIndexAndLevelPairs.RangeFromTo((adjustedIndexForLeftmostTestVariable
+                                                                                                , Unchecked.defaultof<_>),
+                                                                                               (onePastAdjustedIndexForRightmostTestVariable
+                                                                                                , Unchecked.defaultof<_>))
                     let buildFilterInput adjustedIndexForLeftmostTestVariable
                                          onePastAdjustedIndexForRightmostTestVariable =
                         let sliceOfVector =
-                            vectorOfAdjustedNonSingletonTestVariableIndexAndLevelPairs.RangeFromTo((adjustedIndexForLeftmostTestVariable
-                                                                                                    , Unchecked.defaultof<_>),
-                                                                                                   (onePastAdjustedIndexForRightmostTestVariable
-                                                                                                    , Unchecked.defaultof<_>))
-                        sliceOfVector
-                        |> Seq.map (function adjustedTestVariableIndex
-                                             , level ->
-                                                adjustedTestVariableIndex - adjustedIndexForLeftmostTestVariable
-                                                , level)
+                            sliceFrom adjustedIndexForLeftmostTestVariable
+                                      onePastAdjustedIndexForRightmostTestVariable
+                        seq
+                            {
+                                for adjustedTestVariableIndex
+                                    , testVariable in sliceOfVector do
+                                    match testVariable with
+                                        Level levelIndex ->
+                                            yield adjustedTestVariableIndex - adjustedIndexForLeftmostTestVariable
+                                                  , (levelIndex
+                                                     , adjustedIndexToLevelInterpreterMap.[adjustedTestVariableIndex] levelIndex)
+                                      | _ ->
+                                            ()
+                            }
                         |> Map.ofSeq
                         :> IFilterInput
                     let vectorIsAcceptedByFilters (nodeWithFilters
@@ -619,14 +635,16 @@ namespace NTestCaseBuilder
                                         let _
                                             , shouldBeOnePastAdjustedIndexForRightmostTestVariable
                                             , _
+                                            , _
                                             , taggedFilterInputsInReverseOrder =
-                                            testVariableIndexToValueInterpreterAndAdjustedIndexMapWithNodeContributions (0
-                                                                                                                         , adjustedIndexForLeftmostTestVariable // NOTE: have to bias this as we are starting
-                                                                                                                                                                // from a node within a subtree of 'this'.
-                                                                                                                         , Map.empty
-                                                                                                                         , List.empty)
-                                                                                                                        addTaggedFilterInput
-                                                                                                                        nodeWithFiltersForTaggedInputs
+                                            testVariableIndexToAdjustedIndexMapWithNodeContributions (0
+                                                                                                      , adjustedIndexForLeftmostTestVariable    // NOTE: have to bias this as we are starting
+                                                                                                                                                // from a node within a subtree of 'this'.
+                                                                                                      , Map.empty
+                                                                                                      , Map.empty
+                                                                                                      , List.empty)
+                                                                                                     addTaggedFilterInput
+                                                                                                     nodeWithFiltersForTaggedInputs
                                         if shouldBeOnePastAdjustedIndexForRightmostTestVariable <> onePastAdjustedIndexForRightmostTestVariable
                                         then
                                             raise (InternalAssertionViolationException "Walking the subtree of the filters' node has yielded adjusted indices that are not consistent with the tree walk performed on 'this'.")
