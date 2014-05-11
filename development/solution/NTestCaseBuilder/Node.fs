@@ -572,6 +572,15 @@ namespace NTestCaseBuilder
                                                 nodeWithFiltersForTaggedInputs.HasInsaneFilterUsingTaggedInputs ())
                 then
                     raise (PreconditionViolationException "Insane filter using tagged inputs detected.")
+                let nodesWithAnAutoFilterAndTheirBracketingIndicesAndFinalValueCreators =
+                    nodesWithAnAutoFilterAndTheirBracketingIndices
+                    |> List.map (function nodeWithAutoFilter: Node
+                                          , adjustedIndexForLeftmostTestVariable
+                                          , onePastAdjustedIndexForRightmostTestVariable ->
+                                          nodeWithAutoFilter
+                                          , adjustedIndexForLeftmostTestVariable
+                                          , onePastAdjustedIndexForRightmostTestVariable
+                                          , nodeWithAutoFilter.FinalValueCreator ())
                 fun (testVariableIndexAndValuePairs: Map<Int32, TestVariable<Int32>>) ->
                     let adjustedTestVariableIndexAndTestVariablePairs =
                         seq
@@ -672,12 +681,11 @@ namespace NTestCaseBuilder
                                             filterForTaggedInputs.Invoke taggedFilterInputs)
                     let vectorIsAcceptedByAutoFilter (nodeWithAutoFilter: Node
                                                       , adjustedIndexForLeftmostTestVariable
-                                                      , onePastAdjustedIndexForRightmostTestVariable) =
+                                                      , onePastAdjustedIndexForRightmostTestVariable
+                                                      , finalValueCreator) =
                         let filterInput =
                             sliceFrom adjustedIndexForLeftmostTestVariable
                                       onePastAdjustedIndexForRightmostTestVariable
-                        let finalValueCreator =
-                            nodeWithAutoFilter.FinalValueCreator ()
                         let haveACompleteTestVector =
                             filterInput.Count
                              = this.CountTestVariables
@@ -697,7 +705,7 @@ namespace NTestCaseBuilder
                      |> List.forall vectorIsAcceptedByFilters)
                     && (nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
                         |> List.forall vectorIsAcceptedByFiltersForTaggedInputs)
-                    && (nodesWithAnAutoFilterAndTheirBracketingIndices
+                    && (nodesWithAnAutoFilterAndTheirBracketingIndicesAndFinalValueCreators
                         |> List.forall vectorIsAcceptedByAutoFilter)
 
         member this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
