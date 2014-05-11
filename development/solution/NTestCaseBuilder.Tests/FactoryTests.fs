@@ -164,6 +164,11 @@
       | Yes
       | Randomly
 
+    type BinaryOperationKind =
+        Addition
+      | Subtraction
+      | Multiplication
+      | Division
 
     [<TestFixture>]
     type FactoryTestFixture () =
@@ -1818,7 +1823,7 @@
                 printf "%A\n" testCase
 
         [<Test>]
-        member this.AdaptedFsCheckExample() =
+        member this.AdaptedFsCheckExample () =
             let rec createFactory (): ITypedFactory<_> =
                 Interleaving.Create [
                                         Synthesis.Create(TestVariable.Create [0 .. 3], Leaf);
@@ -1834,3 +1839,171 @@
                 (createFactory().WithDeferralBudgetOf maximumDepthOfTree).ExecuteParameterisedUnitTestForAllTestCases(combinationStrength, Action<Tree>(fun tree -> printf "Tree: %A\n" tree))
 
             printf "Exercised %A test cases." numberOfTestCasesGenerated
+
+        [<Test>]
+        member this.TestThatAutoFiltersCauseRepackingOfNonForbiddenTestLevelCombinations () =
+            let binaryOperationKindFactory =
+                TestVariable.Create [Addition; Subtraction; Multiplication; Division]
+
+            let leafValueFactory =
+                TestVariable.Create ([0 .. 2]
+                                     |> List.map Lazy.CreateFromValue)
+
+            let interpreterFactory delayEvaluation =
+                let rec interpreterFactory () =
+                    let binaryOperationFactory =
+                        Deferral.Create (fun () ->
+                                            let combinationOfFactoriesForSynthesis =
+                                                SynthesisInputs<_, _>.StartWithLeftmostFactory (interpreterFactory ())
+                                            let combinationOfFactoriesForSynthesis =
+                                                SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
+                                                                                           binaryOperationKindFactory)
+                                            let combinationOfFactoriesForSynthesis =
+                                                SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
+                                                                                           interpreterFactory ())
+                                            FixedCombinationOfFactoriesForSynthesis(combinationOfFactoriesForSynthesis,
+                                                                                    (fun (lhs: Lazy<_>)
+                                                                                         binaryOperationKind
+                                                                                         (rhs: Lazy<_>) ->
+                                                                                        let evaluation () =
+                                                                                            match binaryOperationKind with
+                                                                                                Addition ->
+                                                                                                    lhs.Value + rhs.Value
+                                                                                              | Subtraction ->
+                                                                                                    lhs.Value - rhs.Value
+                                                                                              | Multiplication ->
+                                                                                                    lhs.Value * rhs.Value
+                                                                                              | Division ->
+                                                                                                    lhs.Value / rhs.Value
+                                                                                        if delayEvaluation
+                                                                                        then
+                                                                                            Lazy.Create evaluation
+                                                                                        else
+                                                                                            Lazy.CreateFromValue (evaluation ())))
+                                            |> Synthesis.Create)
+                    let interleaving =
+                        Interleaving.Create [binaryOperationFactory; leafValueFactory]
+                    if delayEvaluation
+                    then
+                        interleaving
+                    else
+                        interleaving.WithAutoFilter ()
+                interpreterFactory ()
+            let deferralBudget =
+                3
+            let strength =
+                2
+            let delayedTestCases =
+                ((interpreterFactory true).WithDeferralBudgetOf deferralBudget).CreateEnumerable strength
+            let autoFilteredTestCases =
+                ((interpreterFactory false).WithDeferralBudgetOf deferralBudget).CreateEnumerable strength
+            let numberOfDelayedTestCases =
+                delayedTestCases
+                |> Seq.length
+            let numberOfSuccessfullyBuiltTestCases =
+                delayedTestCases
+                |> Seq.filter (fun delayedTestCase ->
+                                try
+                                    delayedTestCase.Value
+                                    |> ignore
+                                    true with
+                                    _ -> false)
+                |> Seq.length
+            let numberOfAutoFilteredTestCases =
+                autoFilteredTestCases
+                |> Seq.length
+            if numberOfDelayedTestCases = numberOfSuccessfullyBuiltTestCases
+            then
+                raise (InternalAssertionViolationException "Test logic is incorrect - should have failing test cases.")
+            let shouldBeTrue =
+                numberOfAutoFilteredTestCases > numberOfSuccessfullyBuiltTestCases  // Why? Because there were combinations of test variable levels in the failing test cases
+                                                                                    // that didn't contribute to the failure, so the coverage guarantees expect these to show
+                                                                                    // up somewhere in the final sequence of test cases. Repacking puts these outside of the failures,
+                                                                                    // but this will tend to increase the number of successful test cases - they would have been
+                                                                                    // optimally packed before the failures, so more test cases have to be made to find space for
+                                                                                    // the 'orphaned' combinations.
+            Assert.IsTrue shouldBeTrue
+
+        [<Test>]
+        member this.SmokeTestAutoFilters () =
+            let oddPrimes
+                = [3; 5]
+            let leafValuesFactory =
+                2 :: oddPrimes
+                |> List.map (fun prime ->
+                                prime
+                                , prime.ToString()
+                                , false)
+                |> TestVariable.Create
+            let randomBehaviour =
+               Random 83893089
+            let provokeExceptionFactory =
+                [true; false]
+                |> TestVariable.Create
+            let rec productsFactory depth =
+                if 0 < depth
+                then
+                    let depth =
+                        depth - 1
+                    let combinationOfFactoriesForSynthesis =
+                        SynthesisInputs<_, _>.StartWithLeftmostFactory (productsFactory depth)
+                    let combinationOfFactoriesForSynthesis =
+                        SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
+                                                                   provokeExceptionFactory)
+                    let combinationOfFactoriesForSynthesis =
+                        SynthesisInputs<_, _>.AddFactoryToTheRight(combinationOfFactoriesForSynthesis,
+                                                                   productsFactory depth)
+                    let productFactory =
+                        FixedCombinationOfFactoriesForSynthesis(combinationOfFactoriesForSynthesis,
+                                                                (fun (lhsFactor
+                                                                      , lhsFactorText
+                                                                      , lhsProvokesException)
+                                                                      provokeException
+                                                                      (rhsFactor
+                                                                       , rhsFactorText
+                                                                       , rhsProvokesException) ->
+                                                                        let result =
+                                                                            lhsFactor * rhsFactor
+                                                                        if provokeException
+                                                                           && (0 = lhsFactor % 2
+                                                                               || 0 = rhsFactor % 2)
+                                                                        then
+                                                                            raise (PreconditionViolationException "Even factors detected.")
+                                                                        else
+                                                                            result
+                                                                            , String.Format("{0} * {1}", lhsFactorText, rhsFactorText)
+                                                                            , provokeException
+                                                                              || lhsProvokesException && rhsProvokesException))
+                        |> Synthesis.Create
+                    if randomBehaviour.HeadsItIs ()
+                    then
+                        productFactory.WithAutoFilter ()
+                    else
+                        productFactory
+                else
+                    leafValuesFactory
+            let strength =
+                2
+            let depth =
+                3
+            let rootFactoryToApplyFilterTo =
+                Synthesis.Create(productsFactory depth,
+                                 (function product
+                                           , productText
+                                           , true ->
+                                           product
+                                           , productText))
+            let productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct =
+                (rootFactoryToApplyFilterTo.WithAutoFilter ()).CreateEnumerable strength
+            printf "%A\n" (String.Join(",\n" , productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct
+                                             |> Seq.map (fun product -> product.ToString())
+                                             |> Array.ofSeq))
+            printf "Generated %A test cases.\n" (productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct
+                                                 |> Seq.length)
+            let shouldBeTrue =
+                productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct
+                |> Seq.tryFind (function product
+                                         , _ ->
+                                            0 = product % 2)
+                |> Option.isNone
+            Assert.IsTrue shouldBeTrue
