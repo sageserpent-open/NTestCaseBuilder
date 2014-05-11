@@ -1925,9 +1925,9 @@
             Assert.IsTrue shouldBeTrue
 
         [<Test>]
-        member this.TestThatAutoFiltersCoverAllCombinationsApartFromThoseThatCauseExceptionsToBeThrown () =
+        member this.SmokeTestAutoFilters () =
             let oddPrimes
-                = [3; 5]//; 7; 11; 13]
+                = [3; 5]
             let leafValuesFactory =
                 2 :: oddPrimes
                 |> List.map (fun prime ->
@@ -1985,24 +1985,7 @@
             let strength =
                 2
             let depth =
-                2//4
-            let oddPrimesWithDuplicates =
-                oddPrimes
-                |> List.replicate strength
-                |> List.concat
-            let combinationsOfOddPrimes =
-                [
-                    for _ in [1 .. 20] do
-                        yield randomBehaviour.ChooseSeveralOf(oddPrimesWithDuplicates,
-                                                              strength)
-                              |> Array.sort
-                ]
-                |> Set.ofList
-            let numberOfLeafValues =
-                1 <<< depth
-            let minimalNumberOfOccurrancesRequiredByCoverageGuarantee =
-                BargainBasement.NumberOfCombinations numberOfLeafValues
-                                                     strength
+                3
             let rootFactoryToApplyFilterTo =
                 Synthesis.Create(productsFactory depth,
                                  (function product
@@ -2012,9 +1995,11 @@
                                            , productText))
             let productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct =
                 (rootFactoryToApplyFilterTo.WithAutoFilter ()).CreateEnumerable strength
-            printf "%A\n" (String.Join("," , productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct
+            printf "%A\n" (String.Join(",\n" , productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct
                                              |> Seq.map (fun product -> product.ToString())
                                              |> Array.ofSeq))
+            printf "Generated %A test cases.\n" (productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct
+                                                 |> Seq.length)
             let shouldBeTrue =
                 productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct
                 |> Seq.tryFind (function product
@@ -2022,16 +2007,3 @@
                                             0 = product % 2)
                 |> Option.isNone
             Assert.IsTrue shouldBeTrue
-            for combinationOfOddPrimes in combinationsOfOddPrimes do
-                let shouldBeTrue =
-                    let subProduct =
-                        combinationOfOddPrimes
-                        |> Seq.reduce (*)
-                    let numberOfProductsWithSubProductAsFactor =
-                        productsWhoseSynthesesOverTheTreeOfSubProductsHadAtLeastOneOpportunityToDetectAnEvenSubProduct
-                        |> Seq.filter (function product
-                                                , _ ->
-                                                0 = product % subProduct)
-                        |> Seq.length
-                    numberOfProductsWithSubProductAsFactor >= minimalNumberOfOccurrancesRequiredByCoverageGuarantee
-                Assert.IsTrue shouldBeTrue

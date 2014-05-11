@@ -232,7 +232,17 @@
         /// an attempt to make a test case either by this factory or elsewhere in the factory's subtree throws an exception,
         /// this causes the implementation to filter out the combination of test variable levels that caused the failure.</summary>
         /// <remarks>Like the explicit filters, a failure to build a test case will cause the implementation to try re-packing
-        /// the combinations of test variable levels: this is not simply a post-processing operation.</remarks>
+        /// the combinations of test variable levels: this is not simply a post-processing operation - however, the see the
+        /// warning remark below.</remarks>
+        /// <remarks>WARNING: because an automatic filter works with combinations of levels from test variables that make
+        /// complete pieces of a final test case, it has no way of knowing precisely what test variables in the combination
+        /// caused the problem - so the re-packing done when the filter fails can definitely miss opportunities that would be
+        /// seen if an explicit filter was used. This means that the coverage guarantees will not necessarily hold for levels
+        /// that were put together in a failing test case. In effect, an automatic filter is a compromise between doing explicit
+        /// filtering, which gives the most opportunities to re-pack, and simple post-processing filtering on the output sequence
+        /// of test cases, which doesn't re-pack at all. To get the best results, one should site automatic filters as close to
+        /// the leaf node factories as possible - or if a failure is caused by test variables coming from very distantly-related
+        /// subtrees, then an explicit filter should be used.</remarks>
         /// <remarks>As the auto filter holds for all stages of construction in the factory's subtree, it can be applied to
         /// any kind of factory, not just a synthesizing factory.</remarks>
         /// <remarks>This method is idempotent - successive calls on successive results have not further effect; the auto filter
