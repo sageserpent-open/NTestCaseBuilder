@@ -514,7 +514,8 @@ namespace NTestCaseBuilder
                                         adjustedIndexForLeftmostTestVariable
                                         onePastAdjustedIndexForRightmostTestVariable
                                         (nodesWithFiltersAndTheirBracketingIndices
-                                         , nodesWithFiltersForTaggedInputsAndTheirBracketingIndices) =
+                                         , nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
+                                         , nodesWithAnAutoFilterAndTheirBracketingIndices) =
                 let nodesAndTheirBracketingIndicesFor predicate
                                                       nodesAndTheirBracketingIndices =
                     if predicate node
@@ -530,22 +531,28 @@ namespace NTestCaseBuilder
                 , nodesAndTheirBracketingIndicesFor (fun node ->
                                                         node.FiltersForTaggedInputs.Any())
                                                     nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
+                , nodesAndTheirBracketingIndicesFor (fun node ->
+                                                        node.AutoFilterEnabled)
+                                                    nodesWithAnAutoFilterAndTheirBracketingIndices
             let _
                 , _
                 , testVariableIndexToAdjustedIndexMap
                 , adjustedIndexToLevelInterpreterMap
                 , (nodesWithFiltersAndTheirBracketingIndices
-                   , nodesWithFiltersForTaggedInputsAndTheirBracketingIndices) =
+                   , nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
+                   , nodesWithAnAutoFilterAndTheirBracketingIndices) =
                 testVariableIndexToAdjustedIndexMapWithNodeContributions (0
                                                                           , 0
                                                                           , Map.empty
                                                                           , Map.empty
                                                                           , (List.Empty
+                                                                             , List.Empty
                                                                              , List.Empty))
                                                                          addNodesWithFiltersFrom
                                                                          this
             if nodesWithFiltersAndTheirBracketingIndices.IsEmpty
                && nodesWithFiltersForTaggedInputsAndTheirBracketingIndices.IsEmpty
+               && nodesWithAnAutoFilterAndTheirBracketingIndices.IsEmpty
             then
                 (fun _ ->
                     true)   // If there are no filters in the entire subtree headed by 'this',
@@ -663,33 +670,35 @@ namespace NTestCaseBuilder
                         nodeWithFiltersForTaggedInputs.FiltersForTaggedInputs
                         |> List.forall (fun filterForTaggedInputs ->
                                             filterForTaggedInputs.Invoke taggedFilterInputs)
-//                    let vectorIsAcceptedByAutoFilter (nodeWithAutoFilter: Node
-//                                                      , adjustedIndexForLeftmostTestVariable
-//                                                      , onePastAdjustedIndexForRightmostTestVariable) =
-//                        let filterInput =   // THIS IS WRONG - 'buildFilterInput' works with *adjusted* indices - we need the whole test vector here!!!!!
-//                            buildFilterInput adjustedIndexForLeftmostTestVariable
-//                                             onePastAdjustedIndexForRightmostTestVariable
-//                        let finalValueCreator =
-//                            nodeWithAutoFilter.FinalValueCreator ()
-//                        let haveACompleteTestVector =
-//                            filterInput.Count
-//                             = this.CountTestVariables
-//                        if haveACompleteTestVector
-//                        then
-//                            let completeTestVector =
-//                                (filterInput
-//                                 :> IDictionary<_, _>).Values
-//                                |> Array.ofSeq
-//                            try finalValueCreator completeTestVector
-//                                |> ignore
-//                                true with
-//                                _ -> false
-//                        else
-//                            true
+                    let vectorIsAcceptedByAutoFilter (nodeWithAutoFilter: Node
+                                                      , adjustedIndexForLeftmostTestVariable
+                                                      , onePastAdjustedIndexForRightmostTestVariable) =
+                        let filterInput =
+                            sliceFrom adjustedIndexForLeftmostTestVariable
+                                      onePastAdjustedIndexForRightmostTestVariable
+                        let finalValueCreator =
+                            nodeWithAutoFilter.FinalValueCreator ()
+                        let haveACompleteTestVector =
+                            filterInput.Count
+                             = this.CountTestVariables
+                        if haveACompleteTestVector
+                        then
+                            let completeTestVector =
+                                filterInput
+                                |> Seq.map snd
+                                |> Array.ofSeq
+                            try finalValueCreator completeTestVector
+                                |> ignore
+                                true with
+                                _ -> false
+                        else
+                            true
                     (nodesWithFiltersAndTheirBracketingIndices
                      |> List.forall vectorIsAcceptedByFilters)
                     && (nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
                         |> List.forall vectorIsAcceptedByFiltersForTaggedInputs)
+                    && (nodesWithAnAutoFilterAndTheirBracketingIndices
+                        |> List.forall vectorIsAcceptedByAutoFilter)
 
         member this.AssociationFromTestVariableIndexToVariablesThatAreInterleavedWithIt =
             let rec walkTree node
