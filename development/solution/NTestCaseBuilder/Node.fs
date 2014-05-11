@@ -497,24 +497,21 @@ namespace NTestCaseBuilder
                                         onePastAdjustedIndexForRightmostTestVariable
                                         (nodesWithFiltersAndTheirBracketingIndices
                                          , nodesWithFiltersForTaggedInputsAndTheirBracketingIndices) =
-                let nodesWithFiltersAndTheirBracketingIndices =
-                    if node.Filters.IsEmpty
+                let nodesAndTheirBracketingIndicesFor predicate
+                                                      nodesAndTheirBracketingIndices =
+                    if predicate node
                     then
-                        nodesWithFiltersAndTheirBracketingIndices
-                    else
                         (node
                          , adjustedIndexForLeftmostTestVariable
-                         , onePastAdjustedIndexForRightmostTestVariable) :: nodesWithFiltersAndTheirBracketingIndices
-                let nodesWithFiltersForTaggedInputsAndTheirBracketingIndices =
-                    if node.FiltersForTaggedInputs.IsEmpty
-                    then
-                        nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
+                         , onePastAdjustedIndexForRightmostTestVariable) :: nodesAndTheirBracketingIndices
                     else
-                        (node
-                         , adjustedIndexForLeftmostTestVariable
-                         , onePastAdjustedIndexForRightmostTestVariable) :: nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
-                nodesWithFiltersAndTheirBracketingIndices
-                , nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
+                        nodesAndTheirBracketingIndices
+                nodesAndTheirBracketingIndicesFor (fun node ->
+                                                        node.Filters.Any())
+                                                  nodesWithFiltersAndTheirBracketingIndices
+                , nodesAndTheirBracketingIndicesFor (fun node ->
+                                                        node.FiltersForTaggedInputs.Any())
+                                                    nodesWithFiltersForTaggedInputsAndTheirBracketingIndices
             let _
                 , _
                 , testVariableIndexToLevelsAndAdjustedIndexMap
