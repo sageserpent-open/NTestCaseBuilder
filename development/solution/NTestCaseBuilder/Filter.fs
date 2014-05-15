@@ -35,6 +35,8 @@
         /// the factory whose tag matches. The test variable indices are taken relative
         /// to that factory, as opposed to the factory that the filter was applied to.</remarks>
         /// <remarks>If no tagged factory is found, an empty array is returned.</remarks>
+        abstract FilterInputsForMatchingTags: Func<Object, Boolean> -> array<Object * IFilterInput>
+
         abstract FilterInputsForMatchingTags: (Object -> Boolean) -> array<Object * IFilterInput>
 
     /// <summary>Delegate for a filter that can be applied to a factory; the filter uses tags to categorise its inputs.</summary>

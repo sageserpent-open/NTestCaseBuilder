@@ -420,7 +420,7 @@
                                              : Map<_, _>).Count
                                         let checkWith tagPredicate =
                                             let taggedFilterInputsForMatchingTags =
-                                                taggedFilterInputs.FilterInputsForMatchingTags (unbox >> tagPredicate)
+                                                taggedFilterInputs.FilterInputsForMatchingTags (Func<Object, Boolean> (unbox >> tagPredicate))
                                             let tags =
                                                 taggedFilterInputsForMatchingTags
                                                 |> Array.map (fst >> unbox)
@@ -482,8 +482,8 @@
                                         then
                                             let shouldBeTrue =
                                                 let numberOfTagsCoveredByTheFilter =
-                                                    taggedFilterInputs.FilterInputsForMatchingTags (fun _ ->
-                                                                                                        true)
+                                                    taggedFilterInputs.FilterInputsForMatchingTags (Func<Object, Boolean> (fun _ ->
+                                                                                                                            true))
                                                     |> Seq.length
                                                 numberOfTagsCoveredByTheFilter = numberOfFactoriesInSubtreeOfFactoryInclusiveOfRoot
                                             Assert.IsTrue shouldBeTrue

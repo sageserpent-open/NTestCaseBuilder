@@ -230,13 +230,13 @@ namespace NTestCaseBuilder
                                 filterUsingTaggedInputs.Invoke
                                     {
                                         new ITaggedFilterInputs with
-                                            member thisTaggedFilterInputs.FilterInputsForMatchingTags tagMatchPredicate =
+                                            member thisTaggedFilterInputs.FilterInputsForMatchingTags (tagMatchPredicate: Func<Object, Boolean>) =
                                                 let taggedFilterInputsInReverseOrder =
                                                     foldLeftPostOrder thisNode
                                                                       (fun taggedFilterInputsInReverseOrder
                                                                            node ->
                                                                         match node.Tag with
-                                                                            Some tag when tagMatchPredicate tag ->
+                                                                            Some tag when tagMatchPredicate.Invoke tag ->
                                                                                 (tag
                                                                                  , Map.empty :> IFilterInput)
                                                                                 :: taggedFilterInputsInReverseOrder
@@ -246,6 +246,9 @@ namespace NTestCaseBuilder
                                                 taggedFilterInputsInReverseOrder
                                                 |> List.rev
                                                 |> Array.ofList
+
+                                            member thisTaggedFilterInputs.FilterInputsForMatchingTags (tagMatchPredicate: Object -> Boolean) =
+                                                thisTaggedFilterInputs.FilterInputsForMatchingTags (Func<Object, Boolean> tagMatchPredicate)
                                     }
                                 |> not)
 
@@ -641,13 +644,13 @@ namespace NTestCaseBuilder
                         let taggedFilterInputs =
                             {
                                 new ITaggedFilterInputs with
-                                    member this.FilterInputsForMatchingTags tagMatchPredicate =
+                                    member this.FilterInputsForMatchingTags (tagMatchPredicate: Func<Object, Boolean>) =
                                         let addTaggedFilterInput node
                                                                  adjustedIndexForLeftmostTestVariable
                                                                  onePastAdjustedIndexForRightmostTestVariable
                                                                  taggedFilterInputsInReverseOrder =
                                             match node.Tag with
-                                                Some tag when tagMatchPredicate tag ->
+                                                Some tag when tagMatchPredicate.Invoke tag ->
                                                     let filterInputForTag =
                                                         buildFilterInput adjustedIndexForLeftmostTestVariable
                                                                          onePastAdjustedIndexForRightmostTestVariable
@@ -675,6 +678,10 @@ namespace NTestCaseBuilder
                                         taggedFilterInputsInReverseOrder
                                         |> List.rev
                                         |> Array.ofList
+
+
+                                    member thisTaggedFilterInputs.FilterInputsForMatchingTags (tagMatchPredicate: Object -> Boolean) =
+                                        thisTaggedFilterInputs.FilterInputsForMatchingTags (Func<Object, Boolean> tagMatchPredicate)
                             }
                         nodeWithFiltersForTaggedInputs.FiltersForTaggedInputs
                         |> List.forall (fun filterForTaggedInputs ->
