@@ -58,15 +58,16 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\FSPowerPack.Parallel.Seq.Community.3.0.0.0\Lib\Net40\FSharp.PowerPack.Parallel.Seq.dll</HintPath>
     </Reference>
-    <Reference Include="NTestCaseBuilder, Version=2.5.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="NTestCaseBuilder, Version=2.5.1.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NTestCaseBuilder.2.5.0.0\lib\net40\NTestCaseBuilder.dll</HintPath>
+      <HintPath>..\packages\NTestCaseBuilder.2.5.1.0\lib\net40\NTestCaseBuilder.dll</HintPath>
     </Reference>
     <Reference Include="policy.2.3.FSharp.Core">
       <HintPath>..\packages\FSharp.Core.3.0.0.2\lib\net40\policy.2.3.FSharp.Core.dll</HintPath>
     </Reference>
-    <Reference Include="SageSerpent.Infrastructure">
-      <HintPath>..\packages\NTestCaseBuilder.2.5.0.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
+    <Reference Include="SageSerpent.Infrastructure, Version=2.5.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\NTestCaseBuilder.2.5.1.0\lib\net40\SageSerpent.Infrastructure.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
