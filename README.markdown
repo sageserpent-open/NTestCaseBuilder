@@ -3,6 +3,8 @@ NTestCaseBuilder, for .NET Testing
 
 This is a .NET library that generates sets of test cases, for use by parameterised tests.
 
+Think of it as being a DSL for making 'object mothers', whose generated data can be used as test cases (or for any other purpose, for that matter).
+
 Each test case is built up progressively from smaller pieces of data that are combined together.
 
 The smallest pieces are referred to as 'test variables'. Each test variable is constrained to take values from its own set of allowed 'levels'.
@@ -86,26 +88,23 @@ Rather than get distracted with implementing the calculator and verifying expect
         private static readonly ITypedFactory<Char> BinaryOperatorFactory =
             TestVariable.Create(new[] {'+', '-', '*', '/'});
 
-        private static readonly ITypedFactory<String> ConstantFactory = TestVariable.Create(new[] {"0", "1", "2"});
+        private static readonly ITypedFactory<String> ConstantFactory =
+            TestVariable.Create(new[] {"0", "1", "2"});
 
         private static ITypedFactory<String> BuildExpressionFactoryRecursively()
         {
             var subexpressionFactory =
                 Interleaving.Create(new[]
-                                        {
-                                            ConstantFactory,
-                                            Synthesis.Create(
-                                                Deferral.Create<String>(BuildExpressionFactoryRecursively),
-                                                expression => String.Format("({0})", expression))
-                                        });
+                {
+                    ConstantFactory,
+                    Synthesis.Create(Deferral.Create(BuildExpressionFactoryRecursively),
+                        expression => String.Format("({0})", expression))
+                });
 
-            var binaryOperatorExpressionFactory =
-                Synthesis.Create(subexpressionFactory,
-                                 BinaryOperatorFactory,
-                                 subexpressionFactory,
-                                 (lhsOperand, binaryOperator, rhsOperand) =>
-                                 String.Format("{0} {1} {2}", lhsOperand, binaryOperator,
-                                               rhsOperand));
+            var binaryOperatorExpressionFactory = Synthesis.Create(subexpressionFactory, BinaryOperatorFactory,
+                subexpressionFactory,
+                (lhsOperand, binaryOperator, rhsOperand) =>
+                    String.Format("{0} {1} {2}", lhsOperand, binaryOperator, rhsOperand));
 
             return Interleaving.Create(new[] {ConstantFactory, binaryOperatorExpressionFactory});
         }
@@ -121,8 +120,7 @@ Rather than get distracted with implementing the calculator and verifying expect
 
             var numberOfTestCasesExercised =
                 expressionFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
-                                                                              (testCase =>
-                                                                               Console.Out.WriteLine(testCase)));
+                    (testCase => Console.Out.WriteLine(testCase)));
             Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
         }
     }
@@ -177,17 +175,17 @@ Let's thoroughly test a couple of sorting algorithms.
 
 First, the algorithms to test - I'll cheat and just wrap up some existing functionality:-
 
-    ///<summary>
-    ///  Module for holding static methods used to do sorting.
-    ///</summary>
-    public class SortingAlgorithmModule
+    /// <summary>
+    ///     Module for holding static methods used to do sorting.
+    /// </summary>
+    public static class SortingAlgorithmModule
     {
         /// <summary>
-        ///   Sorts a sequence of items into ascending order, using the intrinsic ordering of the TItem type.
-        ///   Has a bug in its implementation - can you spot it?
+        ///     Sorts a sequence of items into ascending order, using the intrinsic ordering of the TItem type.
+        ///     Has a bug in its implementation - can you spot it?
         /// </summary>
-        /// <typeparam name = "TItem">Any type with an intrinsic ordering given by implementing IComparable&lt;TItem&gt;.</typeparam>
-        /// <param name = "unsorted">Sequence of items to be sorted. This is left unchanged by the call.</param>
+        /// <typeparam name="TItem">Any type with an intrinsic ordering given by implementing IComparable&lt;TItem&gt;.</typeparam>
+        /// <param name="unsorted">Sequence of items to be sorted. This is left unchanged by the call.</param>
         /// <returns>The items sorted into ascending order, as a new collection.</returns>
         public static IEnumerable<TItem> SortWithBug<TItem>(IEnumerable<TItem> unsorted)
             where TItem : IComparable<TItem>
@@ -196,10 +194,10 @@ First, the algorithms to test - I'll cheat and just wrap up some existing functi
         }
 
         /// <summary>
-        ///   Sorts a sequence of items into ascending order, using the intrinsic ordering of the TItem type.
+        ///     Sorts a sequence of items into ascending order, using the intrinsic ordering of the TItem type.
         /// </summary>
-        /// <typeparam name = "TItem">Any type with an intrinsic ordering given by implementing IComparable&lt;TItem&gt;.</typeparam>
-        /// <param name = "unsorted">Sequence of items to be sorted. This is left unchanged by the call.</param>
+        /// <typeparam name="TItem">Any type with an intrinsic ordering given by implementing IComparable&lt;TItem&gt;.</typeparam>
+        /// <param name="unsorted">Sequence of items to be sorted. This is left unchanged by the call.</param>
         /// <returns>The items sorted into ascending order, as a new collection.</returns>
         public static IEnumerable<TItem> SortThatWorks<TItem>(IEnumerable<TItem> unsorted)
             where TItem : IComparable<TItem>
@@ -212,31 +210,39 @@ First, the algorithms to test - I'll cheat and just wrap up some existing functi
 
 OK, great. Now for the test:-
 
-    ///<summary>
-    ///  Test fixture for class 'SortingAlgorithmModule'.
-    ///</summary>
+    /// <summary>
+    ///     Test fixture for class 'SortingAlgorithmModule'.
+    /// </summary>
     [TestFixture]
     public class TestSortingAlgorithm
     {
-        ///<summary>
-        ///  A test case to apply sorting to. Provides a sequence of integers in some unspecified order
-        ///  - may or may not be sorted in ascending order. Some of the integers in the sequence may be
-        ///  duplicated; the duplicates may or may not be adjacent to each other.
-        ///  The sequence is generated by permuting a sequence of integers that is known by construction
-        ///  to be monotonic increasing, with any duplicates arranged into runs of adjacent duplicated
-        ///  values. This base sequence is also made available to check the expected results from any sorting
-        ///  algorithm.
-        ///</summary>
+        /// <summary>
+        ///     A test case to apply sorting to. Provides a sequence of integers in some unspecified order
+        ///     - may or may not be sorted in ascending order. Some of the integers in the sequence may be
+        ///     duplicated; the duplicates may or may not be adjacent to each other.
+        ///     The sequence is generated by permuting a sequence of integers that is known by construction
+        ///     to be monotonic increasing, with any duplicates arranged into runs of adjacent duplicated
+        ///     values. This base sequence is also made available to check the expected results from any sorting
+        ///     algorithm.
+        /// </summary>
         public class TestCase
         {
-            ///<summary>
-            ///  Constructor for use by synthesizing factory.
-            ///</summary>
-            ///<param name = "leastItemInSequence">The lowest value that starts off <cref>OriginalMonotonicIncreasingSequence</cref></param>
-            ///<param name = "nonNegativeDeltas">Sequence of non-negative deltas that will be used to build up <cref>OriginalMonotonicIncreasingSequence</cref></param>
-            ///<param name = "permutation">A permutation that is used to shuffle <cref>OriginalMonotonicIncreasingSequence</cref> to give <cref>PermutedSequence</cref></param>
-            public TestCase(Int32 leastItemInSequence, IEnumerable<UInt32> nonNegativeDeltas,
-                            Permutation<Int32> permutation)
+            /// <summary>
+            ///     Constructor for use by synthesizing factory.
+            /// </summary>
+            /// <param name="leastItemInSequence">
+            ///     The lowest value that starts off <cref>OriginalMonotonicIncreasingSequence</cref>
+            /// </param>
+            /// <param name="nonNegativeDeltas">
+            ///     Sequence of non-negative deltas that will be used to build up
+            ///     <cref>OriginalMonotonicIncreasingSequence</cref>
+            /// </param>
+            /// <param name="permutation">
+            ///     A permutation that is used to shuffle <cref>OriginalMonotonicIncreasingSequence</cref> to give
+            ///     <cref>PermutedSequence</cref>
+            /// </param>
+            public TestCase(Int32 leastItemInSequence, IEnumerable<Int32> nonNegativeDeltas,
+                Permutation<Int32> permutation)
             {
                 var originalMonotonicIncreasingSequence = new List<Int32>();
 
@@ -245,7 +251,7 @@ OK, great. Now for the test:-
                 foreach (var nonNegativeDelta in nonNegativeDeltas)
                 {
                     originalMonotonicIncreasingSequence.Add(runningSum);
-                    runningSum += (Int32) nonNegativeDelta;
+                    runningSum += nonNegativeDelta;
                 }
 
                 originalMonotonicIncreasingSequence.Add(runningSum);
@@ -255,9 +261,9 @@ OK, great. Now for the test:-
                 PermutedSequence = permutation(originalMonotonicIncreasingSequence);
             }
 
-            ///<summary>
-            ///  Parameterless constructor that represents the trivial empty sequence case.
-            ///</summary>
+            /// <summary>
+            ///     Parameterless constructor that represents the trivial empty sequence case.
+            /// </summary>
             public TestCase()
             {
                 OriginalMonotonicIncreasingSequence = new List<Int32>();
@@ -266,63 +272,55 @@ OK, great. Now for the test:-
             }
 
             /// <summary>
-            ///   The sequence to be used as input to a sorting algorithm.
+            ///     The sequence to be used as input to a sorting algorithm.
             /// </summary>
             public IEnumerable<Int32> PermutedSequence { get; set; }
 
-            ///<summary>
-            ///  The expected result of sorting <cref>PermutedSequence</cref>.
-            ///</summary>
+            /// <summary>
+            ///     The expected result of sorting <cref>PermutedSequence</cref>.
+            /// </summary>
             public IEnumerable<Int32> OriginalMonotonicIncreasingSequence { get; set; }
         }
 
-        private static TypedFactory<TestCase> BuildTestCaseFactory()
+        private static ITypedFactory<TestCase> BuildTestCaseFactory()
         {
             var factoryForLeastItemInSequence = TestVariable.Create(Enumerable.Range(-3, 10));
 
-            const int maximumNumberOfDeltas = 5;
+            const int maximumNumberOfDeltas = 4;
 
             var factoryForNonNegativeDeltasAndPermutation =
-                Interleaving.Create(
-                    from numberOfDeltas in Enumerable.Range(0, 1 + maximumNumberOfDeltas)
+                Interleaving.Create(from numberOfDeltas in Enumerable.Range(0, 1 + maximumNumberOfDeltas)
                     select BuildNonNegativeDeltasAndPermutationFactory(numberOfDeltas));
 
             var testCaseFactoryForTrivialCase = Singleton.Create(new TestCase());
 
-            var testCaseFactoryForNonTrivialCases =
-                Synthesis.Create(factoryForLeastItemInSequence,
-                                 factoryForNonNegativeDeltasAndPermutation,
-                                 leastItemInSequence, nonNegativeDeltasAndItsPermutation) =>
-									new TestCase(leastItemInSequence,
-												 nonNegativeDeltasAndItsPermutation.Item1,
-												 nonNegativeDeltasAndItsPermutation.Item2));
+            var testCaseFactoryForNonTrivialCases = Synthesis.Create(factoryForLeastItemInSequence,
+                factoryForNonNegativeDeltasAndPermutation,
+                (leastItemInSequence, nonNegativeDeltasAndItsPermutation) =>
+                    new TestCase(leastItemInSequence, nonNegativeDeltasAndItsPermutation.Item1,
+                        nonNegativeDeltasAndItsPermutation.Item2));
 
             return
-                Interleaving.Create(new[]
-										{
-											testCaseFactoryForTrivialCase,
-											testCaseFactoryForNonTrivialCases
-										});
+                Interleaving.Create(new[] {testCaseFactoryForTrivialCase, testCaseFactoryForNonTrivialCases});
         }
 
-        private static TypedFactory<Tuple<FSharpList<UInt32>, Permutation<Int32>>>
+        private static ITypedFactory<Tuple<IEnumerable<Int32>, Permutation<Int32>>>
             BuildNonNegativeDeltasAndPermutationFactory(int numberOfDeltas)
         {
             var factoryForNonNegativeDelta =
-                TestVariable.Create(from signedDelta in Enumerable.Range(0, 5)
-										select (UInt32) signedDelta);
+                TestVariable.Create(from signedDelta in Enumerable.Range(0, 5) select signedDelta);
             return
-                Synthesis.CreateWithPermutation<UInt32, Int32>(
-                    Enumerable.Repeat(factoryForNonNegativeDelta, numberOfDeltas));
+                Synthesis.CreateWithPermutation<Int32, Int32>(Enumerable.Repeat(factoryForNonNegativeDelta,
+                    numberOfDeltas));
         }
 
-        ///<summary>
-        ///  Parameterised unit test for <cref>SortingAlgorithmModule.SortWithBug</cref>.
-        ///</summary>
-        ///<remarks>
-        ///  This is expected to fail.
-        ///</remarks>
-        ///<param name = "testCase"></param>
+        /// <summary>
+        ///     Parameterised unit test for <cref>SortingAlgorithmModule.SortWithBug</cref>.
+        /// </summary>
+        /// <remarks>
+        ///     This is expected to fail.
+        /// </remarks>
+        /// <param name="testCase"></param>
         public static void
             ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm(
             TestCase testCase)
@@ -334,13 +332,13 @@ OK, great. Now for the test:-
             Assert.IsTrue(sortedSequence.SequenceEqual(testCase.OriginalMonotonicIncreasingSequence));
         }
 
-        ///<summary>
-        ///  Parameterised unit test for <cref>SortingAlgorithmModule.SortThatWorks</cref>.
-        ///</summary>
-        ///<remarks>
-        ///  This is expected to succeed.
-        ///</remarks>
-        ///<param name = "testCase"></param>
+        /// <summary>
+        ///     Parameterised unit test for <cref>SortingAlgorithmModule.SortThatWorks</cref>.
+        /// </summary>
+        /// <remarks>
+        ///     This is expected to succeed.
+        /// </remarks>
+        /// <param name="testCase"></param>
         public static void
             ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm(
             TestCase testCase)
@@ -352,49 +350,50 @@ OK, great. Now for the test:-
             Assert.IsTrue(sortedSequence.SequenceEqual(testCase.OriginalMonotonicIncreasingSequence));
         }
 
-        ///<summary>
-        ///  Unit test for <cref>SortingAlgorithmModule.SortWithBug</cref>.
-        ///</summary>
+        /// <summary>
+        ///     Unit test for <cref>SortingAlgorithmModule.SortWithBug</cref>.
+        /// </summary>
         [Test]
         public void TestReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm()
         {
             var factory = BuildTestCaseFactory();
             const Int32 strength = 3;
 
-            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength,
-                                                                                                        ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm);
+            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm);
 
             Console.WriteLine("Executed {0} test cases successfully.", howManyTestCasesWereExecuted);
         }
 
-        ///<summary>
-        ///  Unit test for <cref>SortingAlgorithmModule.SortWithBug</cref>.
-        ///</summary>
+        /// <summary>
+        ///     Unit test for <cref>SortingAlgorithmModule.SortWithBug</cref>.
+        /// </summary>
         [Test]
         public void TestReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm()
         {
             var factory = BuildTestCaseFactory();
             const Int32 strength = 3;
 
-            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength,
-                                                                                                        ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm);
+            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm);
 
             Console.WriteLine("Executed {0} test cases successfully.", howManyTestCasesWereExecuted);
         }
 
-        ///<summary>
-        ///  Reproduce the test failure from <cref>TestReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm</cref>.
-        ///</summary>
+        /// <summary>
+        ///     Reproduce the test failure from
+        ///     <cref>TestReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm</cref>.
+        /// </summary>
         [Test]
         public void TestThatQuicklyReproducesTheFailureFromTheBuggyTest()
         {
             const string reproduction =
                 // This is cut and paste from the exception thrown by test TestReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm.
-                "1090764779116129690923515858308014520222336185700694896976936400046940578111983112055989629000774433035533486068550533022050440563660183849064761156304983412948976304159456160212585466378976909594667084684612546801516123636107446692211655819277413780120806759929010140840008697827135115465225616607798809203458367873411691562721979713961882354096770385022200077792300487450154348405290093318086979681653715322405836685434096018833658636229456574555675195151652459428531061508299664931747065365719117850162811281527400091516589637823594429682568955441792069409205208847075572398888233426062315775402870114572803045795914067931365569114275246048311599741894700523864737051672872528802483817110111608686608827458360038103120991531604421775361054167826545150001992292781046335494324154457414668739117309576039346297670079697257524154329550271947777292290537094346736956268948091777903313525345496582149741944782492799103872334616099727795106811667876758170380884887088616986974976625188605407752075495182120905913383202700133352036512251734298762827813961316721993714755024570196662081751962199426605561965908700795142328884453320004957927439510523380227879363825938787988977967975728062935549745883623609628476528277658518421234293140783526548388497602985573768427961345559633806598551903848790763497525502896203568188102677370277940284573285158549060758896546211293579558404026940367205027555949948805628204197714567186264693710099712904593150372754621524028812642542529410468855013374288043032172490785056367339782135489409486183311963470001571474595268553439958607398330842251665830969026744438788237722944524795549459052038937257628064307406124882229763844847835535075416126793875436472998064961646853322210015091288831022698386768489755846422158885967671250115905737356580081857455214732095380665148768986735002785642366427582440805234265944190152716730826492738778477935134215431637477214305220875927312135809104918253274131296458436530733618589941707032997825748567209394861357445817792611089457540040094573720547194260181348195949843069584745665702373107339072197837099588851295929577152805752201996680853602656945345282415472835767547619168506017288210480375403523129239414108462363929433477563408461200767054588830859151277033980735455669702134911200666081604354523549321428929066413430413589956788583974669596420267857614580359597175145416662814890299120623485734627687923251095531392337095350026139672133747146462640700844690523044588143195532808034929606656";
+                "1090764779116129690923515858308014520222336185700694896976936400046940578111983112055989629000774433035533486068550533022050440563758532034744094390335385597493640149399285518641151929556092665584402288546355440347730368088836771627466259556412021922627725184177788154110107097070732172385860911454891134069325355752405254360949593534879521837273025056195093106165870371041268817411831127077924824920514034566098697648181040760873045194504973952223951724813225504499983047118862663287945210705883307688057054025916951667043265570775146944395249011036178056877575401364350157809719147995239162387828809111641197498761314743201387695694648950056523648142393681967482016898244952046671875614901026969586459303447635896866101123266210751713646802033809707609168906792115491183477974610728150992273068596408688241773251963923138429130520691098243248893419892952443542052191199628809010572675447824551593304497482463813697355082304187386823950217095809276435625749534789299526459222114593592266686209126390984795821501381781745708132091435924939833210114218265084665947358428911669581585498376927407493552466725446760623701467939560074187223831230919745620371755213508831636067167684360039211127262835836349843341641597785732280357370537268744363822886739938694773173734590922835035954079750112107318950146026524038408134904444586730532951131436902225568662170090521600282819666798575526991783952385901520151082949249355302351810143145633498325010249964328245271752986380701194391795177417832062797941842182732805832732335710897274060061770940391780122474565229191756062364516816599581273317348176499228496927992511523072853252075332731890715264392205033020620778478135070528984576870458536756429551045411434100804134681784802530326234271197330772618947349597030925327266034680958734216931873495784114303377681612871232138727564369215981205645526032669238082470024868794218096297605262460037102638172004995808152171391862902260941117558050337516270511463749491604762977109930535373246706986172899428371745042253317918107906121040873486737512994890357293396689164960629846996988387599881819260138835140665303070639472747816265470162847876957484029766979691843665957532773395930568939163631862895529691637676354435952393085610138558008072722760071077361553157249091500252449648886446114577130960581145642226501720172722101650580698819067818352781376634324409182402883078422358854325278360944098195948662827735052082866490169948823637943612256334313998270759439470885372690432";
 
             var factory = BuildTestCaseFactory();
 
-            factory.ExecuteParameterisedUnitTestForReproducedTypedTestCase(
+            factory.ExecuteParameterisedUnitTestForReproducedTestCase(
                 ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm,
                 reproduction);
         }
@@ -422,43 +421,43 @@ Learning to write tests takes practice and has different goals at different stag
 
 A common path is to start with the the basics of writing one-off smoke tests; these simply run some code without any test expectations at all:-
 
-        ///<summary>
-        /// NUnit smoke test.
-        ///</summary>
-        [Test]
-        public void TestThatTheComputerDoesntCatchFire()
-        {
-            var componentUnderTest = new Foo();
+	///<summary>
+	/// NUnit smoke test.
+	///</summary>
+	[Test]
+	public void TestThatTheComputerDoesntCatchFire()
+	{
+		var componentUnderTest = new Foo();
 
-            componentUnderTest.DoThis();
+		componentUnderTest.DoThis();
 
-            componentUnderTest.DoThat();
+		componentUnderTest.DoThat();
 
-            var wasted = componentUnderTest.Bar;	// Hopefully the smoke alarm is still quiet after this executes.
-        }
+		var wasted = componentUnderTest.Bar;	// Hopefully the smoke alarm is still quiet after this executes.
+	}
 
 This progresses to writing unit tests that do have expectations, but which are really just 'executable documentation' for the API of the system under test:-
 
-        ///<summary>
-        /// NUnit unit test serving as documentation of behaviour.
-        ///</summary>
-        [Test]
-        public void TestWithSomeNaivelyCodedTestExpectations()
-        {
-            var componentUnderTest = new Foo();
+	///<summary>
+	/// NUnit unit test serving as documentation of behaviour.
+	///</summary>
+	[Test]
+	public void TestWithSomeNaivelyCodedTestExpectations()
+	{
+		var componentUnderTest = new Foo();
 
-            Assert.IsFalse(componentUnderTest.Bar.IsOpen);
+		Assert.IsFalse(componentUnderTest.Bar.IsOpen);
 
-            componentUnderTest.DoThis();
+		componentUnderTest.DoThis();
 
-            Assert.IsTrue(componentUnderTest.Bar.IsOpen);
-            Assert.IsFalse(componentUnderTest.Bar.IsAtLastOrders);
+		Assert.IsTrue(componentUnderTest.Bar.IsOpen);
+		Assert.IsFalse(componentUnderTest.Bar.IsAtLastOrders);
 
-            componentUnderTest.DoThat();
+		componentUnderTest.DoThat();
 
-            Assert.IsTrue(componentUnderTest.Bar.IsOpen);
-            Assert.IsTrue(componentUnderTest.Bar.IsAtLastOrders);
-        }
+		Assert.IsTrue(componentUnderTest.Bar.IsOpen);
+		Assert.IsTrue(componentUnderTest.Bar.IsAtLastOrders);
+	}
 
 I've avoided the use of mocking and fluent testing above to keep things simple. The important point is that this style of test is generally not sufficient for a statement of correctness of the code; rather, its purpose is to illustrate the API of the system under test by way of example.
 
@@ -507,112 +506,112 @@ So for the example above, our parameter object would describe:-
 
 Omitting some of the detail, the example above becomes the following code snippet:-
 
-        ///<summary>
-        /// NUnit unit test driving a parameterised unit test.
-        ///</summary>
-        [Test]
-        public void TestUsingParametricApproach()
-        {
-            var sequenceOfTestCases = TestCasesSequence();
+	///<summary>
+	/// NUnit unit test driving a parameterised unit test.
+	///</summary>
+	[Test]
+	public void TestUsingParametricApproach()
+	{
+		var sequenceOfTestCases = TestCasesSequence();
 
-            foreach (var testCase in sequenceOfTestCases)
-            {
-                TestUsingParameter(testCase);
-            }
-        }
+		foreach (var testCase in sequenceOfTestCases)
+		{
+			TestUsingParameter(testCase);
+		}
+	}
 
-        enum State
-        {
-            Closed,
-            NormalBusiness,
-            LastOrders
-        }
+	enum State
+	{
+		Closed,
+		NormalBusiness,
+		LastOrders
+	}
 
-        enum Operation
-        {
-            DoThis,
-            DoThat
-        }
+	enum Operation
+	{
+		DoThis,
+		DoThat
+	}
 
-        private static void TestUsingParameter(TestCase testCase)
-        {
-            foreach (var operation in testCase.Operations)
-            {
-                var stateBeforeOperationIsApplied = StateDueTo(testCase);
+	private static void TestUsingParameter(TestCase testCase)
+	{
+		foreach (var operation in testCase.Operations)
+		{
+			var stateBeforeOperationIsApplied = StateDueTo(testCase);
 
-                switch (stateBeforeOperationIsApplied)
-                {
-                    case State.Closed:
-                        Assert.IsFalse(testCase.Foo.Bar.IsAtLastOrders);	// 'Last orders' is in a sense
-																			// a sub-state of being open.
+			switch (stateBeforeOperationIsApplied)
+			{
+				case State.Closed:
+					Assert.IsFalse(testCase.Foo.Bar.IsAtLastOrders);	// 'Last orders' is in a sense
+																		// a sub-state of being open.
 
-                        switch (operation)
-                        {
-                            case Operation.DoThis:
-                                testCase.Foo.DoThis();
-                                Assert.IsTrue(StateDueTo(testCase) == State.NormalBusiness);
-                                break;
+					switch (operation)
+					{
+						case Operation.DoThis:
+							testCase.Foo.DoThis();
+							Assert.IsTrue(StateDueTo(testCase) == State.NormalBusiness);
+							break;
 
-                            case Operation.DoThat:
-                                Assert.Throws<System.Exception>(() => testCase.Foo.DoThat());
-                                Assert.IsTrue(StateDueTo(testCase) == stateBeforeOperationIsApplied);
-                                break;
-                        }
+						case Operation.DoThat:
+							Assert.Throws<System.Exception>(() => testCase.Foo.DoThat());
+							Assert.IsTrue(StateDueTo(testCase) == stateBeforeOperationIsApplied);
+							break;
+					}
 
-                        break;
+					break;
 
-                    case State.NormalBusiness:
-                        switch (operation)
-                        {
-                            case Operation.DoThis:
-                                Assert.Throws<System.Exception>(() => testCase.Foo.DoThis());
-                                Assert.IsTrue(StateDueTo(testCase) == stateBeforeOperationIsApplied);
-                                break;
+				case State.NormalBusiness:
+					switch (operation)
+					{
+						case Operation.DoThis:
+							Assert.Throws<System.Exception>(() => testCase.Foo.DoThis());
+							Assert.IsTrue(StateDueTo(testCase) == stateBeforeOperationIsApplied);
+							break;
 
-                            case Operation.DoThat:
-                                testCase.Foo.DoThat();
-                                Assert.IsTrue(StateDueTo(testCase) == State.LastOrders);
-                                break;
-                        }
+						case Operation.DoThat:
+							testCase.Foo.DoThat();
+							Assert.IsTrue(StateDueTo(testCase) == State.LastOrders);
+							break;
+					}
 
-                        break;
+					break;
 
-                    case State.LastOrders:
-                        switch (operation)
-                        {
-                            case Operation.DoThis:
-                                testCase.Foo.DoThis();
-                                Assert.IsTrue(StateDueTo(testCase) == State.NormalBusiness);
-                                break;
+				case State.LastOrders:
+					switch (operation)
+					{
+						case Operation.DoThis:
+							testCase.Foo.DoThis();
+							Assert.IsTrue(StateDueTo(testCase) == State.NormalBusiness);
+							break;
 
-                            case Operation.DoThat:
-                                Assert.Throws<System.Exception>(() => testCase.Foo.DoThat());
-                                Assert.IsTrue(StateDueTo(testCase) == stateBeforeOperationIsApplied);
-                                break;
-                        }
+						case Operation.DoThat:
+							Assert.Throws<System.Exception>(() => testCase.Foo.DoThat());
+							Assert.IsTrue(StateDueTo(testCase) == stateBeforeOperationIsApplied);
+							break;
+					}
 
-                        break;
-                }
-            }
-        }
+					break;
+			}
+		}
+	}
 
-        private static State StateDueTo(TestCase testCase)
-        {
-            return testCase.Foo.Bar.IsOpen
-                       ? (testCase.Foo.Bar.IsAtLastOrders ? State.LastOrders : State.NormalBusiness)
-                       : State.Closed;
-        }
+	private static State StateDueTo(TestCase testCase)
+	{
+		return testCase.Foo.Bar.IsOpen
+				   ? (testCase.Foo.Bar.IsAtLastOrders ? State.LastOrders : State.NormalBusiness)
+				   : State.Closed;
+	}
 
-        private IEnumerable<TestCase> TestCasesSequence()
-        {
-            throw new NotImplementedException();
-        }
+	private IEnumerable<TestCase> TestCasesSequence()
+	{
+		throw new NotImplementedException();
+	}
 
-        private class TestCase
-        {
-            public Foo Foo { get; private set; }
-            public IEnumerable<Operation> Operations { get; private set; }
-        }
+	private class TestCase
+	{
+		public Foo Foo { get; private set; }
+		public IEnumerable<Operation> Operations { get; private set; }
+	}
 
 Our parameterised unit test in this example has become a state transition machine, relying on the parameter object to provide the initial state of the 'Foo' instance (possibly from a pre-supplied 'Bar' object), as well as a sequence of operations to apply to it.
 
@@ -803,11 +802,20 @@ Our API just needs to create an encoded representation from a string, and then a
 
     public class EncodedFormatStage1
     {
-        ///<summary>
-        /// Constructs an encoding of a string.
-        ///</summary>
-        ///<param name="stringToBeEncoded">Non-null string to encode: may be an empty string.</param>
-        public EncodedFormat(String stringToBeEncoded)
+        /// <summary>
+        ///     Constructs an encoding of a string.
+        /// </summary>
+        /// <param name="stringToBeEncoded">Non-null string to encode: may be an empty string.</param>
+        public EncodedFormatStage1(String stringToBeEncoded)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        ///     Creates a new decoder.
+        /// </summary>
+        /// <returns>A freshly-created decoder set to start progressive decoding at the first character.</returns>
+        public ProgressiveDecoder CreateNewDecoder()
         {
             throw new NotImplementedException();
         }
@@ -815,26 +823,26 @@ Our API just needs to create an encoded representation from a string, and then a
         public class ProgressiveDecoder
         {
             /// <summary>
-            /// Carries out a step of the progressive decoding of the format.
-            /// At each step, all of the occurrences of some character in the original encoded
-            /// string will be decoded and placed into a string builder at their original
-            /// locations. Each step deals with a unique character in the original string.
+            ///     Carries out a step of the progressive decoding of the format.
+            ///     At each step, all of the occurrances of some character in the original encoded
+            ///     string will be decoded and placed into a string builder at their original
+            ///     locations. Each step deals with a unique character in the original string.
             /// </summary>
-            /// <param name="builderForPartiallyDecodedString">A non-null string builder for the partially decoded result. This is modified on each call, and is intended to be reused across successive calls to this method to achieve a progressive decoding. Can be set up arbitrarily; will be resized to accommodate the need for additional characters, or will be trimmed if too long. Any existing characters not placed into the buffer by a previous call to this method will eventually be overwritten or truncated over a progressive series of calls.</param>
-            /// <returns>True if 'builderForPartiallyDecodedString' contains the completely decoded string, false if there is more decoding to follow.</returns>
+            /// <param name="builderForPartiallyDecodedString">
+            ///     A non-null string builder for the partially decoded result. This is
+            ///     modified on each call, and is intended to be reused across successive calls to this method to achieve a progressive
+            ///     decoding. Can be set up arbitrarily; will be resized to accomodate the need for additional characters, or will be
+            ///     trimmed if too long. Any existing characters not placed into the buffer by a previous call to this method will
+            ///     eventually be overwritten or truncated over a progressive series of calls.
+            /// </param>
+            /// <returns>
+            ///     True if 'builderForPartiallyDecodedString' contains the completely decoded string, false if there is more
+            ///     decoding to follow.
+            /// </returns>
             public Boolean DecodeIntoAndReportIfCompleted(StringBuilder builderForPartiallyDecodedString)
             {
                 throw new NotImplementedException();
             }
-        }
-
-        /// <summary>
-        /// Creates a new decoder.
-        /// </summary>
-        /// <returns>A freshly-created decoder set to start progressive decoding at the first character.</returns>
-        public ProgressiveDecoder CreateNewDecoder()
-        {
-            throw new NotImplementedException();
         }
     }
 
@@ -848,27 +856,28 @@ Our parameterised unit test looks like this:-
 
 	public void ParameterisedUnitTestForEncodingAndDecodingRoundtrip(String testCase)
 	{
-		IDictionary<Char, Int32> histogramFromTestCase = BuildHistogramOfCharacterFrequencies(testCase);
+		var histogramFromTestCase = BuildHistogramOfCharacterFrequencies(testCase);
 
 		var encodedFormat = new EncodedFormatStage1(testCase);
 
 		var builderForPartiallyDecodedString = new StringBuilder();
 
-		Int32 expectedSizeOfHistogramFromPartiallyDecodedString = 0;
+		var expectedSizeOfHistogramFromPartiallyDecodedString = 0;
 
-		EncodedFormat.ProgressiveDecoder decoder = encodedFormat.CreateNewDecoder();
+		var decoder = encodedFormat.CreateNewDecoder();
 
 		while (!decoder.DecodeIntoAndReportIfCompleted(builderForPartiallyDecodedString))
 		{
 			// Compute histogram for decoded text: each maplet should be contained in the original histogram, and the number of bins in the histogram should grow by one each time.
 
-			IDictionary<Char, Int32> histogramFromPartiallyDecodedString =
+			var histogramFromPartiallyDecodedString =
 				BuildHistogramOfCharacterFrequencies(builderForPartiallyDecodedString.ToString());
 
 			foreach (var character in histogramFromPartiallyDecodedString.Keys)
 			{
 				Assert.IsTrue(histogramFromTestCase.ContainsKey(character));
-				Assert.IsTrue(histogramFromTestCase[character] == histogramFromPartiallyDecodedString[character]);
+				Assert.IsTrue(histogramFromTestCase[character] ==
+							  histogramFromPartiallyDecodedString[character]);
 			}
 
 			++expectedSizeOfHistogramFromPartiallyDecodedString;
@@ -877,12 +886,13 @@ Our parameterised unit test looks like this:-
 						  expectedSizeOfHistogramFromPartiallyDecodedString);
 		}
 
-		String decodedString = builderForPartiallyDecodedString.ToString();
+		var decodedString = builderForPartiallyDecodedString.ToString();
 
 		Assert.IsTrue(decodedString == testCase);
 	}
 
-	private static IDictionary<Char, Int32> BuildHistogramOfCharacterFrequencies(IEnumerable<Char> stringDistribution)
+	private static IDictionary<Char, Int32> BuildHistogramOfCharacterFrequencies(
+		IEnumerable<Char> stringDistribution)
 	{
 		var result = new Dictionary<Char, Int32>();
 
@@ -983,12 +993,14 @@ To wire up the factories, we can stand the inductive process on its head, giving
 		var factory = BuildFactoryRecursively(maximumStringLength);
 		const Int32 strength = 3;
 
-		var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength, ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+		var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+			ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
 
-		Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
+		Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.",
+			numberOfTestCases);
 	}
 
-	public TypedFactory<String> BuildFactoryRecursively(Int32 maximumStringLength)
+	public ITypedFactory<String> BuildFactoryRecursively(Int32 maximumStringLength)
 	{
 		if (0 == maximumStringLength)
 		{
@@ -997,10 +1009,11 @@ To wire up the factories, we can stand the inductive process on its head, giving
 
 		var simplerFactoryForShorterStrings = BuildFactoryRecursively(maximumStringLength - 1);
 
-		var factoryForNonEmptyStrings = Synthesis.Create(
-			_factoryForSingleCharacters, simplerFactoryForShorterStrings, (leftmostCharacterToPrepend, shorterString) => leftmostCharacterToPrepend + shorterString);
+		var factoryForNonEmptyStrings = Synthesis.Create(_factoryForSingleCharacters,
+			simplerFactoryForShorterStrings,
+			(leftmostCharacterToPrepend, shorterString) => leftmostCharacterToPrepend + shorterString);
 
-		return Interleaving.Create(new[] { _emptyStringFactory, factoryForNonEmptyStrings });
+		return Interleaving.Create(new[] {_emptyStringFactory, factoryForNonEmptyStrings});
 	}
 
 Notice how I'm now using the return value of the call to 'ExecuteParameterisedUnitTestForAllTypedTestCases' - it tells me how many test cases I got through *if the parameterised unit test succeeded for each test case made by NTestCaseBuilder*.
@@ -1042,21 +1055,21 @@ Like this:-
 		const Int32 strength = 3;
 
 		var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
-																					ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+			ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
 
-		Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.", numberOfTestCases);
+		Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.",
+			numberOfTestCases);
 	}
 
 	public ITypedFactory<String> BuildFactoryRecursivelyUsingDeferral()
 	{
-		var simplerFactoryForShorterStrings = Deferral.Create<String>(BuildFactoryRecursivelyUsingDeferral);
+		var simplerFactoryForShorterStrings = Deferral.Create(BuildFactoryRecursivelyUsingDeferral);
 
 		var factoryForNonEmptyStrings = Synthesis.Create(_factoryForSingleCharacters,
-														 simplerFactoryForShorterStrings,
-														 (leftmostCharacterToPrepend, shorterString) =>
-														 leftmostCharacterToPrepend + shorterString);
+			simplerFactoryForShorterStrings,
+			(leftmostCharacterToPrepend, shorterString) => leftmostCharacterToPrepend + shorterString);
 
-		return Interleaving.Create(new[] { _emptyStringFactory, factoryForNonEmptyStrings });
+		return Interleaving.Create(new[] {_emptyStringFactory, factoryForNonEmptyStrings});
 	}
 	
 See how the code for building the factory has simplified - there is no guard logic at the start to terminate recursion.
@@ -1088,31 +1101,29 @@ To see what I mean, let's revisit the short sample from before - we'll add in su
             TestVariable.Create(new[] {'+', '-', '*', '/'});
 
         private static readonly ITypedFactory<Tuple<Boolean, String>> ConstantFactory =
-            Synthesis.Create(TestVariable.Create(new[] {"0", "1", "2"}), constant => Tuple.Create(false, constant));
+            Synthesis.Create(TestVariable.Create(new[] {"0", "1", "2"}),
+                constant => Tuple.Create(false, constant));
 
         private static Tuple<Boolean, String> BinaryExpressionFrom(Tuple<Boolean, String> lhs,
-                                                                   Tuple<Boolean, String> rhs,
-                                                                   Char binaryOperator)
+            Tuple<Boolean, String> rhs, Char binaryOperator)
         {
             switch (binaryOperator)
             {
                 case '*':
                 case '/':
-                    {
-                        var lhsWithCorrectPrecendence =
-                            lhs.Item1 ? String.Format("({0})", lhs.Item2) : lhs.Item2;
-                        var rhsWithCorrectPrecendence =
-                            rhs.Item1 ? String.Format("({0})", rhs.Item2) : rhs.Item2;
+                {
+                    var lhsWithCorrectPrecendence = lhs.Item1 ? String.Format("({0})", lhs.Item2) : lhs.Item2;
+                    var rhsWithCorrectPrecendence = rhs.Item1 ? String.Format("({0})", rhs.Item2) : rhs.Item2;
 
-                        return Tuple.Create(false,
-                                            String.Format("{0} {1} {2}", lhsWithCorrectPrecendence, binaryOperator,
-                                                          rhsWithCorrectPrecendence));
-                    }
+                    return Tuple.Create(false,
+                        String.Format("{0} {1} {2}", lhsWithCorrectPrecendence, binaryOperator,
+                            rhsWithCorrectPrecendence));
+                }
                 default:
-                    {
-                        return Tuple.Create(true,
-                                            String.Format("{0} {1} {2}", lhs.Item2, binaryOperator, rhs.Item2));
-                    }
+                {
+                    return Tuple.Create(true,
+                        String.Format("{0} {1} {2}", lhs.Item2, binaryOperator, rhs.Item2));
+                }
             }
         }
 
@@ -1121,33 +1132,27 @@ To see what I mean, let's revisit the short sample from before - we'll add in su
         {
             var binaryOperatorExpressionFactory =
                 Synthesis.Create(
-                    Deferral.Create(() => BuildExpressionFactoryRecursively(directlyToTheRightOfABinaryOperator)),
-                    Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
-                    BinaryOperatorFactory,
-                    BinaryExpressionFrom
-                    );
+                    Deferral.Create(
+                        () => BuildExpressionFactoryRecursively(directlyToTheRightOfABinaryOperator)),
+                    Deferral.Create(() => BuildExpressionFactoryRecursively(true)), BinaryOperatorFactory,
+                    BinaryExpressionFrom);
 
-            var negatedExpressionFactory = Synthesis.Create(
-                Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
-                expression =>
-                Tuple.Create(
-                    expression.Item1,
-                    String.Format(
-                        directlyToTheRightOfABinaryOperator ? "(-{0})" : "-{0}",
-                        expression.Item2)));
+            var negatedExpressionFactory =
+                Synthesis.Create(Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
+                    expression =>
+                        Tuple.Create(expression.Item1,
+                            String.Format(directlyToTheRightOfABinaryOperator ? "(-{0})" : "-{0}",
+                                expression.Item2)));
 
-            var bracketedExpressionFactory = Synthesis.Create(
-                Deferral.Create(() => BuildExpressionFactoryRecursively(false)),
-                expression =>
-                Tuple.Create(false,
-                             String.Format("({0})", expression.Item2)));
+            var bracketedExpressionFactory =
+                Synthesis.Create(Deferral.Create(() => BuildExpressionFactoryRecursively(false)),
+                    expression => Tuple.Create(false, String.Format("({0})", expression.Item2)));
             return
                 Interleaving.Create(new[]
-                                        {
-                                            ConstantFactory, binaryOperatorExpressionFactory,
-                                            negatedExpressionFactory,
-                                            bracketedExpressionFactory
-                                        });
+                {
+                    ConstantFactory, binaryOperatorExpressionFactory, negatedExpressionFactory,
+                    bracketedExpressionFactory
+                });
         }
 
         [Test]
@@ -1155,18 +1160,17 @@ To see what I mean, let's revisit the short sample from before - we'll add in su
         {
             const Int32 maximumDepth = 3;
 
-            var expressionFactory = BuildExpressionFactoryRecursively(false).WithDeferralBudgetOf(maximumDepth);
+            var expressionFactory = BuildExpressionFactoryRecursively(false)
+                .WithDeferralBudgetOf(maximumDepth);
 
             const Int32 strength = 2;
 
             var numberOfTestCasesExercised =
                 expressionFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
-                                                                              (testCase =>
-                                                                               Console.Out.WriteLine(testCase.Item2)));
+                    (testCase => Console.Out.WriteLine(testCase.Item2)));
             Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
         }
     }
-
 
 NTestCaseBuilder will create test cases in waves of increasing complexity as it increases the deferral budget up to the cap supplied.
 
@@ -1274,25 +1278,25 @@ Here we go, this one is quite long:-
             private void AddStateTransitionsForWhenNoEntryExists()
             {
                 _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Insertion,
-                                                                          AddInsertionOperationThatShouldSucceed);
+                    AddInsertionOperationThatShouldSucceed);
                 _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Deletion,
-                                                                          AddDeletionOperationThatShouldFail);
+                    AddDeletionOperationThatShouldFail);
                 _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Replacement,
-                                                                          AddReplacementOperation);
+                    AddReplacementOperation);
                 _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Query,
-                                                                          AddQueryOperationThatShouldFail);
+                    AddQueryOperationThatShouldFail);
             }
 
             private void AddStateTransitionsForWhenAnEntryAlreadyExists()
             {
                 _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Insertion,
-                                                                                 AddInsertionOperationThatShouldFail);
+                    AddInsertionOperationThatShouldFail);
                 _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Deletion,
-                                                                                 AddDeletionOperationThatShouldSucceed);
+                    AddDeletionOperationThatShouldSucceed);
                 _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Replacement,
-                                                                                 AddReplacementOperation);
+                    AddReplacementOperation);
                 _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Query,
-                                                                                 AddQueryOperationThatShouldSucceed);
+                    AddQueryOperationThatShouldSucceed);
             }
 
             public void AppendNewOperationOfKind(OperationKind operationKind)
@@ -1310,42 +1314,40 @@ Here we go, this one is quite long:-
             private void AddQueryOperationThatShouldFail()
             {
                 Operations.Add(indexedSortedDictionary =>
-                                   {
-                                       Console.WriteLine("Querying with key: {0} - this should fail.", _key);
-                                       Assert.IsFalse(indexedSortedDictionary.ContainsKey(_key));
-                                   });
+                {
+                    Console.WriteLine("Querying with key: {0} - this should fail.", _key);
+                    Assert.IsFalse(indexedSortedDictionary.ContainsKey(_key));
+                });
             }
 
             private void AddQueryOperationThatShouldSucceed()
             {
                 var fixedValue = _value;
                 Operations.Add(indexedSortedDictionary =>
-                                   {
-                                       Console.WriteLine(
-                                           "Querying with key: {0} - this should succeed and yield: {1}.", _key,
-                                           fixedValue);
-                                       Assert.IsTrue(indexedSortedDictionary.ContainsKey(_key));
-                                       Assert.IsTrue(indexedSortedDictionary[_key] == fixedValue);
-                                   });
+                {
+                    Console.WriteLine("Querying with key: {0} - this should succeed and yield: {1}.", _key,
+                        fixedValue);
+                    Assert.IsTrue(indexedSortedDictionary.ContainsKey(_key));
+                    Assert.IsTrue(indexedSortedDictionary[_key] == fixedValue);
+                });
             }
 
             private void AddDeletionOperationThatShouldFail()
             {
                 Operations.Add(indexedSortedDictionary =>
-                                   {
-                                       Console.WriteLine("Deleting key: {0} - this should fail.", _key);
-                                       Assert.IsFalse(indexedSortedDictionary.Remove(_key));
-                                   });
+                {
+                    Console.WriteLine("Deleting key: {0} - this should fail.", _key);
+                    Assert.IsFalse(indexedSortedDictionary.Remove(_key));
+                });
             }
 
             private void AddDeletionOperationThatShouldSucceed()
             {
                 Operations.Add(indexedSortedDictionary =>
-                                   {
-                                       Console.WriteLine("Deleting key: {0} - this should succeed.", _key);
-                                       Assert.IsTrue(indexedSortedDictionary.Remove(_key));
-                                   }
-                    );
+                {
+                    Console.WriteLine("Deleting key: {0} - this should succeed.", _key);
+                    Assert.IsTrue(indexedSortedDictionary.Remove(_key));
+                });
                 _value = null;
             }
 
@@ -1355,40 +1357,40 @@ Here we go, this one is quite long:-
 
                 var fixedValue = _value;
                 Operations.Add(indexedSortedDictionary =>
-                                   {
-                                       Console.WriteLine("Adding key: {0} with value: {1} - this should succeed.", _key,
-                                                         fixedValue);
-                                       indexedSortedDictionary.Add(_key, fixedValue);
-                                   });
+                {
+                    Console.WriteLine("Adding key: {0} with value: {1} - this should succeed.", _key,
+                        fixedValue);
+                    indexedSortedDictionary.Add(_key, fixedValue);
+                });
             }
 
             private void AddInsertionOperationThatShouldFail()
             {
                 var fixedValue = _value;
                 Operations.Add(indexedSortedDictionary =>
-                                   {
-                                       try
-                                       {
-                                           var newValue = MakeRandomValue();
-                                           Console.WriteLine("Adding key: {0} with value: {1} - this should fail.", _key,
-                                                             newValue);
+                {
+                    try
+                    {
+                        var newValue = MakeRandomValue();
+                        Console.WriteLine("Adding key: {0} with value: {1} - this should fail.", _key,
+                            newValue);
 
-                                           indexedSortedDictionary.Add(_key, newValue);
-                                       }
-                                       catch (ArgumentException)
-                                       {
-                                           return;
-                                       }
+                        indexedSortedDictionary.Add(_key, newValue);
+                    }
+                    catch (ArgumentException)
+                    {
+                        return;
+                    }
 
-                                       var stringBuilder = new StringBuilder();
+                    var stringBuilder = new StringBuilder();
 
 
-                                       stringBuilder.AppendFormat(
-                                           "Should not have been able to insert with key {0} as it already has an entry in the dictionary {1} of {2}",
-                                           _key, indexedSortedDictionary, fixedValue);
+                    stringBuilder.AppendFormat(
+                        "Should not have been able to insert with key {0} as it already has an entry in the dictionary {1} of {2}",
+                        _key, indexedSortedDictionary, fixedValue);
 
-                                       Assert.Fail(stringBuilder.ToString());
-                                   });
+                    Assert.Fail(stringBuilder.ToString());
+                });
             }
 
             private void AddReplacementOperation()
@@ -1396,11 +1398,10 @@ Here we go, this one is quite long:-
                 _value = MakeRandomValue();
                 var fixedValue = _value;
                 Operations.Add(indexedSortedDictionary =>
-                                   {
-                                       Console.WriteLine("Replacing value for key: {0} with value: {1}.", _key,
-                                                         fixedValue);
-                                       indexedSortedDictionary[_key] = fixedValue;
-                                   });
+                {
+                    Console.WriteLine("Replacing value for key: {0} with value: {1}.", _key, fixedValue);
+                    indexedSortedDictionary[_key] = fixedValue;
+                });
             }
 
             private Value MakeRandomValue()
@@ -1415,48 +1416,6 @@ Here we go, this one is quite long:-
             #endregion
         }
 
-        [Test]
-        public void TestStandardDictionaryWithJustOneKey()
-        {
-            var keyFactory = TestVariable.Create(Enumerable.Range(-2, 5));
-
-            var operationFactory = TestVariable.Create(
-                from operationKind in ((IEnumerable<OperationKind>) Enum.GetValues(typeof (OperationKind)))
-                select operationKind);
-
-            const Int32 numberOfOperations = 10;
-
-            var randomBehaviour = new Random(0);
-
-            var operationKindSequenceFactory =
-                Synthesis.Create<IEnumerable<ITypedFactory<OperationKind>>, OperationKind>(
-                    Enumerable.Repeat(operationFactory, numberOfOperations));
-
-            var operationListBuilderFactory =
-                Synthesis.Create(keyFactory,
-                                 operationKindSequenceFactory,
-                                 (key, operationKindSequence) =>
-                                     {
-                                         var result = new OperationListBuilder(key,
-                                                                               randomBehaviour);
-
-                                         foreach (
-                                             var operationKind in operationKindSequence)
-                                         {
-                                             result.AppendNewOperationOfKind(operationKind);
-                                         }
-
-                                         return result;
-                                     });
-            const Int32 strength = 4;
-
-            var numberOfTestCasesExercised =
-                operationListBuilderFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
-                                                                                        ParameterisedUnitTestForStandardDictionaryWithJustOneKey);
-
-            Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
-        }
-
         private static void ParameterisedUnitTestForStandardDictionaryWithJustOneKey(
             OperationListBuilder operationListBuilder)
         {
@@ -1468,6 +1427,45 @@ Here we go, this one is quite long:-
             {
                 operation(systemUnderTest);
             }
+        }
+
+        [Test]
+        public void TestStandardDictionaryWithJustOneKey()
+        {
+            var keyFactory = TestVariable.Create(Enumerable.Range(-2, 5));
+
+            var operationFactory =
+                TestVariable.Create(
+                    from operationKind in
+                        ((IEnumerable<OperationKind>) Enum.GetValues(typeof (OperationKind)))
+                    select operationKind);
+
+            const Int32 numberOfOperations = 10;
+
+            var randomBehaviour = new Random(0);
+
+            var operationKindSequenceFactory =
+                Synthesis.Create(Enumerable.Repeat(operationFactory, numberOfOperations));
+
+            var operationListBuilderFactory = Synthesis.Create(keyFactory, operationKindSequenceFactory,
+                (key, operationKindSequence) =>
+                {
+                    var result = new OperationListBuilder(key, randomBehaviour);
+
+                    foreach (var operationKind in operationKindSequence)
+                    {
+                        result.AppendNewOperationOfKind(operationKind);
+                    }
+
+                    return result;
+                });
+            const Int32 strength = 4;
+
+            var numberOfTestCasesExercised =
+                operationListBuilderFactory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                    ParameterisedUnitTestForStandardDictionaryWithJustOneKey);
+
+            Console.Out.WriteLine("Exercised {0} test cases.", numberOfTestCasesExercised);
         }
     }
 	
@@ -1580,56 +1578,55 @@ So now there is a call *'.WithFilter(FilterOutThreeOrMoreConsecutiveIdenticalOpe
 		
 I'll also add in a filter function:
 
-		private static Boolean FilterOutThreeOrMoreConsecutiveIdenticalOperationKinds(
-			IDictionary<Int32, Tuple<Int32, Object>> testVariableIndexToLevelDictionary)
-		{
-			var testVariableIndices = testVariableIndexToLevelDictionary.Keys;
+        private static Boolean FilterOutThreeOrMoreConsecutiveIdenticalOperationKinds(
+            IDictionary<Int32, Tuple<Int32, Object>> testVariableIndexToLevelDictionary)
+        {
+            var testVariableIndices = testVariableIndexToLevelDictionary.Keys;
 
-			var numberOfTestVariables = testVariableIndices.Count;
+            var numberOfTestVariables = testVariableIndices.Count;
 
-			var sortedTestVariableIndices = new Int32[numberOfTestVariables];
+            var sortedTestVariableIndices = new Int32[numberOfTestVariables];
 
-			testVariableIndices.CopyTo(sortedTestVariableIndices, 0);
+            testVariableIndices.CopyTo(sortedTestVariableIndices, 0);
 
-			Array.Sort(sortedTestVariableIndices);
+            Array.Sort(sortedTestVariableIndices);
 
-			if (1 >= numberOfTestVariables)
-			{
-				return true;
-			}
+            if (1 >= numberOfTestVariables)
+            {
+                return true;
+            }
 
-			var preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(sortedTestVariableIndices.First(), 1);
+            var preceedingTestVariableIndexAndConsecutiveCount =
+                Tuple.Create(sortedTestVariableIndices.First(), 1);
 
-			foreach (var index in Enumerable.Range(1, numberOfTestVariables - 1))
-			{
-				var testVariableIndex = sortedTestVariableIndices[index];
+            foreach (var index in Enumerable.Range(1, numberOfTestVariables - 1))
+            {
+                var testVariableIndex = sortedTestVariableIndices[index];
 
-				var preceedingTestVariableIndex = preceedingTestVariableIndexAndConsecutiveCount.Item1;
+                var preceedingTestVariableIndex = preceedingTestVariableIndexAndConsecutiveCount.Item1;
 
-				if (1 + preceedingTestVariableIndex == testVariableIndex
-					&&
-					testVariableIndexToLevelDictionary[preceedingTestVariableIndex].Item1 ==
-					testVariableIndexToLevelDictionary[testVariableIndex].Item1)
-				{
-					var consecutiveCount = preceedingTestVariableIndexAndConsecutiveCount.Item2;
+                if (1 + preceedingTestVariableIndex == testVariableIndex &&
+                    testVariableIndexToLevelDictionary[preceedingTestVariableIndex].Item1 ==
+                    testVariableIndexToLevelDictionary[testVariableIndex].Item1)
+                {
+                    var consecutiveCount = preceedingTestVariableIndexAndConsecutiveCount.Item2;
 
-					if (2 == consecutiveCount)
-					{
-						return false;
-					}
+                    if (2 == consecutiveCount)
+                    {
+                        return false;
+                    }
 
-					preceedingTestVariableIndexAndConsecutiveCount =
-						Tuple.Create(testVariableIndex, 1 + consecutiveCount);
-				}
-				else
-				{
-					preceedingTestVariableIndexAndConsecutiveCount =
-						Tuple.Create(testVariableIndex, 1);
-				}
-			}
+                    preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(testVariableIndex,
+                        1 + consecutiveCount);
+                }
+                else
+                {
+                    preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(testVariableIndex, 1);
+                }
+            }
 
-			return true;
-		}
+            return true;
+        }
 	
 What the filter function does is to vet potential test cases that NTestCaseBuilder is thinking about building up - if it returns 'true', NTestCaseBuilder will carry on as usual. When instead it returns 'false', NTestCaseBuilder is made to reconsider how to combine test levels from the test variables in such as way as to avoid the combination that failed the filter.
 
