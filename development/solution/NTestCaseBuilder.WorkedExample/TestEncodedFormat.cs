@@ -30,18 +30,21 @@ namespace NTestCaseBuilder.WorkedExample
 
             var factoryForNonEmptyStrings = Synthesis.Create(_factoryForSingleCharacters,
                 simplerFactoryForShorterStrings,
-                (leftmostCharacterToPrepend, shorterString) => leftmostCharacterToPrepend + shorterString);
+                (leftmostCharacterToPrepend, shorterString) =>
+                    leftmostCharacterToPrepend + shorterString);
 
             return Interleaving.Create(new[] {_emptyStringFactory, factoryForNonEmptyStrings});
         }
 
         public ITypedFactory<String> BuildFactoryRecursivelyUsingDeferral()
         {
-            var simplerFactoryForShorterStrings = Deferral.Create(BuildFactoryRecursivelyUsingDeferral);
+            var simplerFactoryForShorterStrings =
+                Deferral.Create(BuildFactoryRecursivelyUsingDeferral);
 
             var factoryForNonEmptyStrings = Synthesis.Create(_factoryForSingleCharacters,
                 simplerFactoryForShorterStrings,
-                (leftmostCharacterToPrepend, shorterString) => leftmostCharacterToPrepend + shorterString);
+                (leftmostCharacterToPrepend, shorterString) =>
+                    leftmostCharacterToPrepend + shorterString);
 
             return Interleaving.Create(new[] {_emptyStringFactory, factoryForNonEmptyStrings});
         }
@@ -140,7 +143,8 @@ namespace NTestCaseBuilder.WorkedExample
         {
             const Int32 maximumStringLength = 5;
 
-            var factory = BuildFactoryRecursivelyUsingDeferral().WithDeferralBudgetOf(maximumStringLength);
+            var factory =
+                BuildFactoryRecursivelyUsingDeferral().WithDeferralBudgetOf(maximumStringLength);
             const Int32 strength = 3;
 
             var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,

@@ -21,8 +21,12 @@ namespace NTestCaseBuilder.Examples
                 case '*':
                 case '/':
                 {
-                    var lhsWithCorrectPrecendence = lhs.Item1 ? String.Format("({0})", lhs.Item2) : lhs.Item2;
-                    var rhsWithCorrectPrecendence = rhs.Item1 ? String.Format("({0})", rhs.Item2) : rhs.Item2;
+                    var lhsWithCorrectPrecendence = lhs.Item1
+                        ? String.Format("({0})", lhs.Item2)
+                        : lhs.Item2;
+                    var rhsWithCorrectPrecendence = rhs.Item1
+                        ? String.Format("({0})", rhs.Item2)
+                        : rhs.Item2;
 
                     return Tuple.Create(false,
                         String.Format("{0} {1} {2}", lhsWithCorrectPrecendence, binaryOperator,
@@ -43,8 +47,8 @@ namespace NTestCaseBuilder.Examples
                 Synthesis.Create(
                     Deferral.Create(
                         () => BuildExpressionFactoryRecursively(directlyToTheRightOfABinaryOperator)),
-                    Deferral.Create(() => BuildExpressionFactoryRecursively(true)), BinaryOperatorFactory,
-                    BinaryExpressionFrom);
+                    Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
+                    BinaryOperatorFactory, BinaryExpressionFrom);
 
             var negatedExpressionFactory =
                 Synthesis.Create(Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
@@ -69,8 +73,8 @@ namespace NTestCaseBuilder.Examples
         {
             const Int32 maximumDepth = 3;
 
-            var expressionFactory = BuildExpressionFactoryRecursively(false)
-                .WithDeferralBudgetOf(maximumDepth);
+            var expressionFactory =
+                BuildExpressionFactoryRecursively(false).WithDeferralBudgetOf(maximumDepth);
 
             const Int32 strength = 2;
 

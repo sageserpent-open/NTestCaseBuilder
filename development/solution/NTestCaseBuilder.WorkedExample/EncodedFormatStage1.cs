@@ -42,7 +42,8 @@ namespace NTestCaseBuilder.WorkedExample
             ///     True if 'builderForPartiallyDecodedString' contains the completely decoded string, false if there is more
             ///     decoding to follow.
             /// </returns>
-            public Boolean DecodeIntoAndReportIfCompleted(StringBuilder builderForPartiallyDecodedString)
+            public Boolean DecodeIntoAndReportIfCompleted(
+                StringBuilder builderForPartiallyDecodedString)
             {
                 throw new NotImplementedException();
             }

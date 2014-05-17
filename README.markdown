@@ -844,7 +844,8 @@ Our API just needs to create an encoded representation from a string, and then a
             ///     True if 'builderForPartiallyDecodedString' contains the completely decoded string, false if there is more
             ///     decoding to follow.
             /// </returns>
-            public Boolean DecodeIntoAndReportIfCompleted(StringBuilder builderForPartiallyDecodedString)
+            public Boolean DecodeIntoAndReportIfCompleted(
+                StringBuilder builderForPartiallyDecodedString)
             {
                 throw new NotImplementedException();
             }
@@ -1016,7 +1017,8 @@ To wire up the factories, we can stand the inductive process on its head, giving
 
 		var factoryForNonEmptyStrings = Synthesis.Create(_factoryForSingleCharacters,
 			simplerFactoryForShorterStrings,
-			(leftmostCharacterToPrepend, shorterString) => leftmostCharacterToPrepend + shorterString);
+			(leftmostCharacterToPrepend, shorterString) =>
+				leftmostCharacterToPrepend + shorterString);
 
 		return Interleaving.Create(new[] {_emptyStringFactory, factoryForNonEmptyStrings});
 	}
@@ -1056,7 +1058,8 @@ Like this:-
 	{
 		const Int32 maximumStringLength = 5;
 
-		var factory = BuildFactoryRecursivelyUsingDeferral().WithDeferralBudgetOf(maximumStringLength);
+		var factory =
+			BuildFactoryRecursivelyUsingDeferral().WithDeferralBudgetOf(maximumStringLength);
 		const Int32 strength = 3;
 
 		var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
@@ -1068,11 +1071,13 @@ Like this:-
 
 	public ITypedFactory<String> BuildFactoryRecursivelyUsingDeferral()
 	{
-		var simplerFactoryForShorterStrings = Deferral.Create(BuildFactoryRecursivelyUsingDeferral);
+		var simplerFactoryForShorterStrings =
+			Deferral.Create(BuildFactoryRecursivelyUsingDeferral);
 
 		var factoryForNonEmptyStrings = Synthesis.Create(_factoryForSingleCharacters,
 			simplerFactoryForShorterStrings,
-			(leftmostCharacterToPrepend, shorterString) => leftmostCharacterToPrepend + shorterString);
+			(leftmostCharacterToPrepend, shorterString) =>
+				leftmostCharacterToPrepend + shorterString);
 
 		return Interleaving.Create(new[] {_emptyStringFactory, factoryForNonEmptyStrings});
 	}
@@ -1117,8 +1122,12 @@ To see what I mean, let's revisit the short sample from before - we'll add in su
                 case '*':
                 case '/':
                 {
-                    var lhsWithCorrectPrecendence = lhs.Item1 ? String.Format("({0})", lhs.Item2) : lhs.Item2;
-                    var rhsWithCorrectPrecendence = rhs.Item1 ? String.Format("({0})", rhs.Item2) : rhs.Item2;
+                    var lhsWithCorrectPrecendence = lhs.Item1
+                        ? String.Format("({0})", lhs.Item2)
+                        : lhs.Item2;
+                    var rhsWithCorrectPrecendence = rhs.Item1
+                        ? String.Format("({0})", rhs.Item2)
+                        : rhs.Item2;
 
                     return Tuple.Create(false,
                         String.Format("{0} {1} {2}", lhsWithCorrectPrecendence, binaryOperator,
@@ -1139,8 +1148,8 @@ To see what I mean, let's revisit the short sample from before - we'll add in su
                 Synthesis.Create(
                     Deferral.Create(
                         () => BuildExpressionFactoryRecursively(directlyToTheRightOfABinaryOperator)),
-                    Deferral.Create(() => BuildExpressionFactoryRecursively(true)), BinaryOperatorFactory,
-                    BinaryExpressionFrom);
+                    Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
+                    BinaryOperatorFactory, BinaryExpressionFrom);
 
             var negatedExpressionFactory =
                 Synthesis.Create(Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
@@ -1165,8 +1174,8 @@ To see what I mean, let's revisit the short sample from before - we'll add in su
         {
             const Int32 maximumDepth = 3;
 
-            var expressionFactory = BuildExpressionFactoryRecursively(false)
-                .WithDeferralBudgetOf(maximumDepth);
+            var expressionFactory =
+                BuildExpressionFactoryRecursively(false).WithDeferralBudgetOf(maximumDepth);
 
             const Int32 strength = 2;
 
@@ -1286,22 +1295,22 @@ Here we go, this one is quite long:-
                     AddInsertionOperationThatShouldSucceed);
                 _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Deletion,
                     AddDeletionOperationThatShouldFail);
-                _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Replacement,
-                    AddReplacementOperation);
+                _operationKindToOperationCreatorMapWhereNoEntryExists.Add(
+                    OperationKind.Replacement, AddReplacementOperation);
                 _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Query,
                     AddQueryOperationThatShouldFail);
             }
 
             private void AddStateTransitionsForWhenAnEntryAlreadyExists()
             {
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Insertion,
-                    AddInsertionOperationThatShouldFail);
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Deletion,
-                    AddDeletionOperationThatShouldSucceed);
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Replacement,
-                    AddReplacementOperation);
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Query,
-                    AddQueryOperationThatShouldSucceed);
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(
+                    OperationKind.Insertion, AddInsertionOperationThatShouldFail);
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(
+                    OperationKind.Deletion, AddDeletionOperationThatShouldSucceed);
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(
+                    OperationKind.Replacement, AddReplacementOperation);
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(
+                    OperationKind.Query, AddQueryOperationThatShouldSucceed);
             }
 
             public void AppendNewOperationOfKind(OperationKind operationKind)
@@ -1330,7 +1339,8 @@ Here we go, this one is quite long:-
                 var fixedValue = _value;
                 Operations.Add(indexedSortedDictionary =>
                 {
-                    Console.WriteLine("Querying with key: {0} - this should succeed and yield: {1}.", _key,
+                    Console.WriteLine(
+                        "Querying with key: {0} - this should succeed and yield: {1}.", _key,
                         fixedValue);
                     Assert.IsTrue(indexedSortedDictionary.ContainsKey(_key));
                     Assert.IsTrue(indexedSortedDictionary[_key] == fixedValue);
@@ -1377,8 +1387,8 @@ Here we go, this one is quite long:-
                     try
                     {
                         var newValue = MakeRandomValue();
-                        Console.WriteLine("Adding key: {0} with value: {1} - this should fail.", _key,
-                            newValue);
+                        Console.WriteLine("Adding key: {0} with value: {1} - this should fail.",
+                            _key, newValue);
 
                         indexedSortedDictionary.Add(_key, newValue);
                     }
@@ -1404,14 +1414,16 @@ Here we go, this one is quite long:-
                 var fixedValue = _value;
                 Operations.Add(indexedSortedDictionary =>
                 {
-                    Console.WriteLine("Replacing value for key: {0} with value: {1}.", _key, fixedValue);
+                    Console.WriteLine("Replacing value for key: {0} with value: {1}.", _key,
+                        fixedValue);
                     indexedSortedDictionary[_key] = fixedValue;
                 });
             }
 
             private Value MakeRandomValue()
             {
-                return _randomBehaviour.ChooseAnyNumberFromOneTo(MaximumValueRepresentation).ToString();
+                return
+                    _randomBehaviour.ChooseAnyNumberFromOneTo(MaximumValueRepresentation).ToString();
             }
 
             #region Nested type: OperationCreator
@@ -1452,8 +1464,8 @@ Here we go, this one is quite long:-
             var operationKindSequenceFactory =
                 Synthesis.Create(Enumerable.Repeat(operationFactory, numberOfOperations));
 
-            var operationListBuilderFactory = Synthesis.Create(keyFactory, operationKindSequenceFactory,
-                (key, operationKindSequence) =>
+            var operationListBuilderFactory = Synthesis.Create(keyFactory,
+                operationKindSequenceFactory, (key, operationKindSequence) =>
                 {
                     var result = new OperationListBuilder(key, randomBehaviour);
 
@@ -1608,7 +1620,8 @@ I'll also add in a filter function:
             {
                 var testVariableIndex = sortedTestVariableIndices[index];
 
-                var preceedingTestVariableIndex = preceedingTestVariableIndexAndConsecutiveCount.Item1;
+                var preceedingTestVariableIndex =
+                    preceedingTestVariableIndexAndConsecutiveCount.Item1;
 
                 if (1 + preceedingTestVariableIndex == testVariableIndex &&
                     testVariableIndexToLevelDictionary[preceedingTestVariableIndex].Item1 ==
@@ -1621,12 +1634,13 @@ I'll also add in a filter function:
                         return false;
                     }
 
-                    preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(testVariableIndex,
-                        1 + consecutiveCount);
+                    preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(
+                        testVariableIndex, 1 + consecutiveCount);
                 }
                 else
                 {
-                    preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(testVariableIndex, 1);
+                    preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(
+                        testVariableIndex, 1);
                 }
             }
 

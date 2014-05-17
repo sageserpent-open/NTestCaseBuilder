@@ -6,7 +6,8 @@ using NUnit.Framework;
 using SageSerpent.Infrastructure;
 using Key = System.Int32;
 using Value = System.String;
-using Operation = System.Action<System.Collections.Generic.IDictionary<System.Int32, System.String>>;
+using Operation = System.Action<System.Collections.Generic.IDictionary<System.Int32, System.String>>
+    ;
 
 
 namespace NTestCaseBuilder.Examples
@@ -57,22 +58,22 @@ namespace NTestCaseBuilder.Examples
                     AddInsertionOperationThatShouldSucceed);
                 _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Deletion,
                     AddDeletionOperationThatShouldFail);
-                _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Replacement,
-                    AddReplacementOperation);
+                _operationKindToOperationCreatorMapWhereNoEntryExists.Add(
+                    OperationKind.Replacement, AddReplacementOperation);
                 _operationKindToOperationCreatorMapWhereNoEntryExists.Add(OperationKind.Query,
                     AddQueryOperationThatShouldFail);
             }
 
             private void AddStateTransitionsForWhenAnEntryAlreadyExists()
             {
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Insertion,
-                    AddInsertionOperationThatShouldFail);
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Deletion,
-                    AddDeletionOperationThatShouldSucceed);
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Replacement,
-                    AddReplacementOperation);
-                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(OperationKind.Query,
-                    AddQueryOperationThatShouldSucceed);
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(
+                    OperationKind.Insertion, AddInsertionOperationThatShouldFail);
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(
+                    OperationKind.Deletion, AddDeletionOperationThatShouldSucceed);
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(
+                    OperationKind.Replacement, AddReplacementOperation);
+                _operationKindToOperationCreatorMapWhereAnEntryAlreadyExists.Add(
+                    OperationKind.Query, AddQueryOperationThatShouldSucceed);
             }
 
             public void AppendNewOperationOfKind(OperationKind operationKind)
@@ -101,7 +102,8 @@ namespace NTestCaseBuilder.Examples
                 var fixedValue = _value;
                 Operations.Add(indexedSortedDictionary =>
                 {
-                    Console.WriteLine("Querying with key: {0} - this should succeed and yield: {1}.", _key,
+                    Console.WriteLine(
+                        "Querying with key: {0} - this should succeed and yield: {1}.", _key,
                         fixedValue);
                     Assert.IsTrue(indexedSortedDictionary.ContainsKey(_key));
                     Assert.IsTrue(indexedSortedDictionary[_key] == fixedValue);
@@ -148,8 +150,8 @@ namespace NTestCaseBuilder.Examples
                     try
                     {
                         var newValue = MakeRandomValue();
-                        Console.WriteLine("Adding key: {0} with value: {1} - this should fail.", _key,
-                            newValue);
+                        Console.WriteLine("Adding key: {0} with value: {1} - this should fail.",
+                            _key, newValue);
 
                         indexedSortedDictionary.Add(_key, newValue);
                     }
@@ -175,14 +177,16 @@ namespace NTestCaseBuilder.Examples
                 var fixedValue = _value;
                 Operations.Add(indexedSortedDictionary =>
                 {
-                    Console.WriteLine("Replacing value for key: {0} with value: {1}.", _key, fixedValue);
+                    Console.WriteLine("Replacing value for key: {0} with value: {1}.", _key,
+                        fixedValue);
                     indexedSortedDictionary[_key] = fixedValue;
                 });
             }
 
             private Value MakeRandomValue()
             {
-                return _randomBehaviour.ChooseAnyNumberFromOneTo(MaximumValueRepresentation).ToString();
+                return
+                    _randomBehaviour.ChooseAnyNumberFromOneTo(MaximumValueRepresentation).ToString();
             }
 
             #region Nested type: OperationCreator
@@ -217,7 +221,8 @@ namespace NTestCaseBuilder.Examples
             {
                 var testVariableIndex = sortedTestVariableIndices[index];
 
-                var preceedingTestVariableIndex = preceedingTestVariableIndexAndConsecutiveCount.Item1;
+                var preceedingTestVariableIndex =
+                    preceedingTestVariableIndexAndConsecutiveCount.Item1;
 
                 if (1 + preceedingTestVariableIndex == testVariableIndex &&
                     testVariableIndexToLevelDictionary[preceedingTestVariableIndex].Item1 ==
@@ -230,12 +235,13 @@ namespace NTestCaseBuilder.Examples
                         return false;
                     }
 
-                    preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(testVariableIndex,
-                        1 + consecutiveCount);
+                    preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(
+                        testVariableIndex, 1 + consecutiveCount);
                 }
                 else
                 {
-                    preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(testVariableIndex, 1);
+                    preceedingTestVariableIndexAndConsecutiveCount = Tuple.Create(
+                        testVariableIndex, 1);
                 }
             }
 
@@ -274,8 +280,8 @@ namespace NTestCaseBuilder.Examples
                 Synthesis.Create(Enumerable.Repeat(operationFactory, numberOfOperations))
                     .WithFilter(FilterOutThreeOrMoreConsecutiveIdenticalOperationKinds);
 
-            var operationListBuilderFactory = Synthesis.Create(keyFactory, operationKindSequenceFactory,
-                (key, operationKindSequence) =>
+            var operationListBuilderFactory = Synthesis.Create(keyFactory,
+                operationKindSequenceFactory, (key, operationKindSequence) =>
                 {
                     var result = new OperationListBuilder(key, randomBehaviour);
 
