@@ -934,7 +934,8 @@ First things first - let's introduce NTestCaseBuilder to the test driver. Like t
 		var factory = Singleton.Create(String.Empty);
 		const Int32 strength = 3;
 
-		factory.ExecuteParameterisedUnitTestForAllTypedTestCases(strength, ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+		factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+			ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
 	}
 
 Our parameterised unit test remains unchanged, but the driver now creates a factory, and then uses that factory to execute the parameterised unit test as a delegate passed to the method 'ExecuteParameterisedUnitTestForAllTypedTestCases()'.
