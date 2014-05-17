@@ -101,8 +101,8 @@ Rather than get distracted with implementing the calculator and verifying expect
                         expression => String.Format("({0})", expression))
                 });
 
-            var binaryOperatorExpressionFactory = Synthesis.Create(subexpressionFactory, BinaryOperatorFactory,
-                subexpressionFactory,
+            var binaryOperatorExpressionFactory = Synthesis.Create(subexpressionFactory,
+                BinaryOperatorFactory, subexpressionFactory,
                 (lhsOperand, binaryOperator, rhsOperand) =>
                     String.Format("{0} {1} {2}", lhsOperand, binaryOperator, rhsOperand));
 
@@ -114,7 +114,8 @@ Rather than get distracted with implementing the calculator and verifying expect
         {
             const Int32 maximumDepth = 2;
 
-            var expressionFactory = BuildExpressionFactoryRecursively().WithDeferralBudgetOf(maximumDepth);
+            var expressionFactory =
+                BuildExpressionFactoryRecursively().WithDeferralBudgetOf(maximumDepth);
 
             const Int32 strength = 2;
 
@@ -289,7 +290,8 @@ OK, great. Now for the test:-
             const int maximumNumberOfDeltas = 4;
 
             var factoryForNonNegativeDeltasAndPermutation =
-                Interleaving.Create(from numberOfDeltas in Enumerable.Range(0, 1 + maximumNumberOfDeltas)
+                Interleaving.Create(
+                    from numberOfDeltas in Enumerable.Range(0, 1 + maximumNumberOfDeltas)
                     select BuildNonNegativeDeltasAndPermutationFactory(numberOfDeltas));
 
             var testCaseFactoryForTrivialCase = Singleton.Create(new TestCase());
@@ -301,7 +303,8 @@ OK, great. Now for the test:-
                         nonNegativeDeltasAndItsPermutation.Item2));
 
             return
-                Interleaving.Create(new[] {testCaseFactoryForTrivialCase, testCaseFactoryForNonTrivialCases});
+                Interleaving.Create(new[]
+                {testCaseFactoryForTrivialCase, testCaseFactoryForNonTrivialCases});
         }
 
         private static ITypedFactory<Tuple<IEnumerable<Int32>, Permutation<Int32>>>
@@ -310,8 +313,8 @@ OK, great. Now for the test:-
             var factoryForNonNegativeDelta =
                 TestVariable.Create(from signedDelta in Enumerable.Range(0, 5) select signedDelta);
             return
-                Synthesis.CreateWithPermutation<Int32, Int32>(Enumerable.Repeat(factoryForNonNegativeDelta,
-                    numberOfDeltas));
+                Synthesis.CreateWithPermutation<Int32, Int32>(
+                    Enumerable.Repeat(factoryForNonNegativeDelta, numberOfDeltas));
         }
 
         /// <summary>
@@ -322,8 +325,8 @@ OK, great. Now for the test:-
         /// </remarks>
         /// <param name="testCase"></param>
         public static void
-            ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm(
-            TestCase testCase)
+            ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm
+            (TestCase testCase)
         {
             Console.WriteLine("[{0}]", String.Join(", ", testCase.PermutedSequence));
 
@@ -340,8 +343,8 @@ OK, great. Now for the test:-
         /// </remarks>
         /// <param name="testCase"></param>
         public static void
-            ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm(
-            TestCase testCase)
+            ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm
+            (TestCase testCase)
         {
             Console.WriteLine("[{0}]", String.Join(", ", testCase.PermutedSequence));
 
@@ -359,8 +362,9 @@ OK, great. Now for the test:-
             var factory = BuildTestCaseFactory();
             const Int32 strength = 3;
 
-            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
-                ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm);
+            var howManyTestCasesWereExecuted =
+                factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                    ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm);
 
             Console.WriteLine("Executed {0} test cases successfully.", howManyTestCasesWereExecuted);
         }
@@ -374,8 +378,9 @@ OK, great. Now for the test:-
             var factory = BuildTestCaseFactory();
             const Int32 strength = 3;
 
-            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
-                ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm);
+            var howManyTestCasesWereExecuted =
+                factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                    ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm);
 
             Console.WriteLine("Executed {0} test cases successfully.", howManyTestCasesWereExecuted);
         }

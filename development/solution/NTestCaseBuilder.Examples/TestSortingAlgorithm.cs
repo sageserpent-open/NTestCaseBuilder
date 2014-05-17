@@ -84,7 +84,8 @@ namespace NTestCaseBuilder.Examples
             const int maximumNumberOfDeltas = 4;
 
             var factoryForNonNegativeDeltasAndPermutation =
-                Interleaving.Create(from numberOfDeltas in Enumerable.Range(0, 1 + maximumNumberOfDeltas)
+                Interleaving.Create(
+                    from numberOfDeltas in Enumerable.Range(0, 1 + maximumNumberOfDeltas)
                     select BuildNonNegativeDeltasAndPermutationFactory(numberOfDeltas));
 
             var testCaseFactoryForTrivialCase = Singleton.Create(new TestCase());
@@ -96,7 +97,8 @@ namespace NTestCaseBuilder.Examples
                         nonNegativeDeltasAndItsPermutation.Item2));
 
             return
-                Interleaving.Create(new[] {testCaseFactoryForTrivialCase, testCaseFactoryForNonTrivialCases});
+                Interleaving.Create(new[]
+                {testCaseFactoryForTrivialCase, testCaseFactoryForNonTrivialCases});
         }
 
         private static ITypedFactory<Tuple<IEnumerable<Int32>, Permutation<Int32>>>
@@ -105,8 +107,8 @@ namespace NTestCaseBuilder.Examples
             var factoryForNonNegativeDelta =
                 TestVariable.Create(from signedDelta in Enumerable.Range(0, 5) select signedDelta);
             return
-                Synthesis.CreateWithPermutation<Int32, Int32>(Enumerable.Repeat(factoryForNonNegativeDelta,
-                    numberOfDeltas));
+                Synthesis.CreateWithPermutation<Int32, Int32>(
+                    Enumerable.Repeat(factoryForNonNegativeDelta, numberOfDeltas));
         }
 
         /// <summary>
@@ -117,8 +119,8 @@ namespace NTestCaseBuilder.Examples
         /// </remarks>
         /// <param name="testCase"></param>
         public static void
-            ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm(
-            TestCase testCase)
+            ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm
+            (TestCase testCase)
         {
             Console.WriteLine("[{0}]", String.Join(", ", testCase.PermutedSequence));
 
@@ -135,8 +137,8 @@ namespace NTestCaseBuilder.Examples
         /// </remarks>
         /// <param name="testCase"></param>
         public static void
-            ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm(
-            TestCase testCase)
+            ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm
+            (TestCase testCase)
         {
             Console.WriteLine("[{0}]", String.Join(", ", testCase.PermutedSequence));
 
@@ -154,8 +156,9 @@ namespace NTestCaseBuilder.Examples
             var factory = BuildTestCaseFactory();
             const Int32 strength = 3;
 
-            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
-                ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm);
+            var howManyTestCasesWereExecuted =
+                factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                    ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm);
 
             Console.WriteLine("Executed {0} test cases successfully.", howManyTestCasesWereExecuted);
         }
@@ -169,8 +172,9 @@ namespace NTestCaseBuilder.Examples
             var factory = BuildTestCaseFactory();
             const Int32 strength = 3;
 
-            var howManyTestCasesWereExecuted = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
-                ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm);
+            var howManyTestCasesWereExecuted =
+                factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                    ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm);
 
             Console.WriteLine("Executed {0} test cases successfully.", howManyTestCasesWereExecuted);
         }

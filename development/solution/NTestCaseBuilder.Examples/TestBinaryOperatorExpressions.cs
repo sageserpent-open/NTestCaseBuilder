@@ -22,8 +22,8 @@ namespace NTestCaseBuilder.Examples
                         expression => String.Format("({0})", expression))
                 });
 
-            var binaryOperatorExpressionFactory = Synthesis.Create(subexpressionFactory, BinaryOperatorFactory,
-                subexpressionFactory,
+            var binaryOperatorExpressionFactory = Synthesis.Create(subexpressionFactory,
+                BinaryOperatorFactory, subexpressionFactory,
                 (lhsOperand, binaryOperator, rhsOperand) =>
                     String.Format("{0} {1} {2}", lhsOperand, binaryOperator, rhsOperand));
 
@@ -35,7 +35,8 @@ namespace NTestCaseBuilder.Examples
         {
             const Int32 maximumDepth = 2;
 
-            var expressionFactory = BuildExpressionFactoryRecursively().WithDeferralBudgetOf(maximumDepth);
+            var expressionFactory =
+                BuildExpressionFactoryRecursively().WithDeferralBudgetOf(maximumDepth);
 
             const Int32 strength = 2;
 
