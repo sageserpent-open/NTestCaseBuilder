@@ -13,8 +13,8 @@ namespace NTestCaseBuilder.Examples
             Synthesis.Create(TestVariable.Create(new[] {"0", "1", "2"}),
                 constant => Tuple.Create(false, constant));
 
-        private static Tuple<Boolean, String> BinaryExpressionFrom(Tuple<Boolean, String> lhs,
-            Tuple<Boolean, String> rhs, Char binaryOperator)
+        private static Tuple<Boolean, String> BinaryExpressionFrom(
+            Tuple<Boolean, String> lhs, Tuple<Boolean, String> rhs, Char binaryOperator)
         {
             switch (binaryOperator)
             {
@@ -29,8 +29,8 @@ namespace NTestCaseBuilder.Examples
                         : rhs.Item2;
 
                     return Tuple.Create(false,
-                        String.Format("{0} {1} {2}", lhsWithCorrectPrecendence, binaryOperator,
-                            rhsWithCorrectPrecendence));
+                        String.Format("{0} {1} {2}", lhsWithCorrectPrecendence,
+                            binaryOperator, rhsWithCorrectPrecendence));
                 }
                 default:
                 {
@@ -40,31 +40,37 @@ namespace NTestCaseBuilder.Examples
             }
         }
 
-        private static ITypedFactory<Tuple<Boolean, String>> BuildExpressionFactoryRecursively(
-            Boolean directlyToTheRightOfABinaryOperator)
+        private static ITypedFactory<Tuple<Boolean, String>>
+            BuildExpressionFactoryRecursively(Boolean directlyToTheRightOfABinaryOperator)
         {
             var binaryOperatorExpressionFactory =
                 Synthesis.Create(
                     Deferral.Create(
-                        () => BuildExpressionFactoryRecursively(directlyToTheRightOfABinaryOperator)),
+                        () =>
+                            BuildExpressionFactoryRecursively(
+                                directlyToTheRightOfABinaryOperator)),
                     Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
                     BinaryOperatorFactory, BinaryExpressionFrom);
 
             var negatedExpressionFactory =
-                Synthesis.Create(Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
+                Synthesis.Create(
+                    Deferral.Create(() => BuildExpressionFactoryRecursively(true)),
                     expression =>
                         Tuple.Create(expression.Item1,
-                            String.Format(directlyToTheRightOfABinaryOperator ? "(-{0})" : "-{0}",
+                            String.Format(
+                                directlyToTheRightOfABinaryOperator ? "(-{0})" : "-{0}",
                                 expression.Item2)));
 
             var bracketedExpressionFactory =
-                Synthesis.Create(Deferral.Create(() => BuildExpressionFactoryRecursively(false)),
-                    expression => Tuple.Create(false, String.Format("({0})", expression.Item2)));
+                Synthesis.Create(
+                    Deferral.Create(() => BuildExpressionFactoryRecursively(false)),
+                    expression =>
+                        Tuple.Create(false, String.Format("({0})", expression.Item2)));
             return
                 Interleaving.Create(new[]
                 {
-                    ConstantFactory, binaryOperatorExpressionFactory, negatedExpressionFactory,
-                    bracketedExpressionFactory
+                    ConstantFactory, binaryOperatorExpressionFactory,
+                    negatedExpressionFactory, bracketedExpressionFactory
                 });
         }
 
@@ -74,7 +80,8 @@ namespace NTestCaseBuilder.Examples
             const Int32 maximumDepth = 3;
 
             var expressionFactory =
-                BuildExpressionFactoryRecursively(false).WithDeferralBudgetOf(maximumDepth);
+                BuildExpressionFactoryRecursively(false)
+                    .WithDeferralBudgetOf(maximumDepth);
 
             const Int32 strength = 2;
 

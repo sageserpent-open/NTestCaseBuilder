@@ -36,8 +36,8 @@ namespace NTestCaseBuilder.Examples
             ///     A permutation that is used to shuffle <cref>OriginalMonotonicIncreasingSequence</cref> to give
             ///     <cref>PermutedSequence</cref>
             /// </param>
-            public TestCase(Int32 leastItemInSequence, IEnumerable<Int32> nonNegativeDeltas,
-                Permutation<Int32> permutation)
+            public TestCase(Int32 leastItemInSequence,
+                IEnumerable<Int32> nonNegativeDeltas, Permutation<Int32> permutation)
             {
                 var originalMonotonicIncreasingSequence = new List<Int32>();
 
@@ -79,7 +79,8 @@ namespace NTestCaseBuilder.Examples
 
         private static ITypedFactory<TestCase> BuildTestCaseFactory()
         {
-            var factoryForLeastItemInSequence = TestVariable.Create(Enumerable.Range(-3, 10));
+            var factoryForLeastItemInSequence =
+                TestVariable.Create(Enumerable.Range(-3, 10));
 
             const int maximumNumberOfDeltas = 4;
 
@@ -90,11 +91,13 @@ namespace NTestCaseBuilder.Examples
 
             var testCaseFactoryForTrivialCase = Singleton.Create(new TestCase());
 
-            var testCaseFactoryForNonTrivialCases = Synthesis.Create(factoryForLeastItemInSequence,
-                factoryForNonNegativeDeltasAndPermutation,
-                (leastItemInSequence, nonNegativeDeltasAndItsPermutation) =>
-                    new TestCase(leastItemInSequence, nonNegativeDeltasAndItsPermutation.Item1,
-                        nonNegativeDeltasAndItsPermutation.Item2));
+            var testCaseFactoryForNonTrivialCases =
+                Synthesis.Create(factoryForLeastItemInSequence,
+                    factoryForNonNegativeDeltasAndPermutation,
+                    (leastItemInSequence, nonNegativeDeltasAndItsPermutation) =>
+                        new TestCase(leastItemInSequence,
+                            nonNegativeDeltasAndItsPermutation.Item1,
+                            nonNegativeDeltasAndItsPermutation.Item2));
 
             return
                 Interleaving.Create(new[]
@@ -105,7 +108,8 @@ namespace NTestCaseBuilder.Examples
             BuildNonNegativeDeltasAndPermutationFactory(int numberOfDeltas)
         {
             var factoryForNonNegativeDelta =
-                TestVariable.Create(from signedDelta in Enumerable.Range(0, 5) select signedDelta);
+                TestVariable.Create(from signedDelta in Enumerable.Range(0, 5)
+                    select signedDelta);
             return
                 Synthesis.CreateWithPermutation<Int32, Int32>(
                     Enumerable.Repeat(factoryForNonNegativeDelta, numberOfDeltas));
@@ -124,9 +128,11 @@ namespace NTestCaseBuilder.Examples
         {
             Console.WriteLine("[{0}]", String.Join(", ", testCase.PermutedSequence));
 
-            var sortedSequence = SortingAlgorithmModule.SortWithBug(testCase.PermutedSequence);
+            var sortedSequence =
+                SortingAlgorithmModule.SortWithBug(testCase.PermutedSequence);
 
-            Assert.IsTrue(sortedSequence.SequenceEqual(testCase.OriginalMonotonicIncreasingSequence));
+            Assert.IsTrue(
+                sortedSequence.SequenceEqual(testCase.OriginalMonotonicIncreasingSequence));
         }
 
         /// <summary>
@@ -142,16 +148,19 @@ namespace NTestCaseBuilder.Examples
         {
             Console.WriteLine("[{0}]", String.Join(", ", testCase.PermutedSequence));
 
-            var sortedSequence = SortingAlgorithmModule.SortThatWorks(testCase.PermutedSequence);
+            var sortedSequence =
+                SortingAlgorithmModule.SortThatWorks(testCase.PermutedSequence);
 
-            Assert.IsTrue(sortedSequence.SequenceEqual(testCase.OriginalMonotonicIncreasingSequence));
+            Assert.IsTrue(
+                sortedSequence.SequenceEqual(testCase.OriginalMonotonicIncreasingSequence));
         }
 
         /// <summary>
         ///     Unit test for <cref>SortingAlgorithmModule.SortWithBug</cref>.
         /// </summary>
         [Test]
-        public void TestReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm()
+        public void
+            TestReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm()
         {
             var factory = BuildTestCaseFactory();
             const Int32 strength = 3;
@@ -160,14 +169,16 @@ namespace NTestCaseBuilder.Examples
                 factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
                     ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByBuggySortingAlgorithm);
 
-            Console.WriteLine("Executed {0} test cases successfully.", howManyTestCasesWereExecuted);
+            Console.WriteLine("Executed {0} test cases successfully.",
+                howManyTestCasesWereExecuted);
         }
 
         /// <summary>
         ///     Unit test for <cref>SortingAlgorithmModule.SortWithBug</cref>.
         /// </summary>
         [Test]
-        public void TestReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm()
+        public void
+            TestReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm()
         {
             var factory = BuildTestCaseFactory();
             const Int32 strength = 3;
@@ -176,7 +187,8 @@ namespace NTestCaseBuilder.Examples
                 factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
                     ParameterisedUnitTestForReassemblyOfPermutedMonotonicIncreasingSequenceByCorrectSortingAlgorithm);
 
-            Console.WriteLine("Executed {0} test cases successfully.", howManyTestCasesWereExecuted);
+            Console.WriteLine("Executed {0} test cases successfully.",
+                howManyTestCasesWereExecuted);
         }
 
         /// <summary>

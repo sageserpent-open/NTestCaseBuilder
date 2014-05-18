@@ -27,7 +27,9 @@ namespace NTestCaseBuilder.Examples
                 (lhsOperand, binaryOperator, rhsOperand) =>
                     String.Format("{0} {1} {2}", lhsOperand, binaryOperator, rhsOperand));
 
-            return Interleaving.Create(new[] {ConstantFactory, binaryOperatorExpressionFactory});
+            return
+                Interleaving.Create(new[]
+                {ConstantFactory, binaryOperatorExpressionFactory});
         }
 
         [Test]

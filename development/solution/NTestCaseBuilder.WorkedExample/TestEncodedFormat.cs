@@ -12,7 +12,8 @@ namespace NTestCaseBuilder.WorkedExample
         private const Char MinimumLevel = 'a';
         private const Char MaximumLevel = 'z';
 
-        private readonly ITypedFactory<String> _emptyStringFactory = Singleton.Create(String.Empty);
+        private readonly ITypedFactory<String> _emptyStringFactory =
+            Singleton.Create(String.Empty);
 
         private readonly ITypedFactory<Char> _factoryForSingleCharacters =
             TestVariable.Create(
@@ -26,14 +27,17 @@ namespace NTestCaseBuilder.WorkedExample
                 return _emptyStringFactory;
             }
 
-            var simplerFactoryForShorterStrings = BuildFactoryRecursively(maximumStringLength - 1);
+            var simplerFactoryForShorterStrings =
+                BuildFactoryRecursively(maximumStringLength - 1);
 
-            var factoryForNonEmptyStrings = Synthesis.Create(_factoryForSingleCharacters,
-                simplerFactoryForShorterStrings,
+            var factoryForNonEmptyStrings = Synthesis.Create(
+                _factoryForSingleCharacters, simplerFactoryForShorterStrings,
                 (leftmostCharacterToPrepend, shorterString) =>
                     leftmostCharacterToPrepend + shorterString);
 
-            return Interleaving.Create(new[] {_emptyStringFactory, factoryForNonEmptyStrings});
+            return
+                Interleaving.Create(new[]
+                {_emptyStringFactory, factoryForNonEmptyStrings});
         }
 
         public ITypedFactory<String> BuildFactoryRecursivelyUsingDeferral()
@@ -41,12 +45,14 @@ namespace NTestCaseBuilder.WorkedExample
             var simplerFactoryForShorterStrings =
                 Deferral.Create(BuildFactoryRecursivelyUsingDeferral);
 
-            var factoryForNonEmptyStrings = Synthesis.Create(_factoryForSingleCharacters,
-                simplerFactoryForShorterStrings,
+            var factoryForNonEmptyStrings = Synthesis.Create(
+                _factoryForSingleCharacters, simplerFactoryForShorterStrings,
                 (leftmostCharacterToPrepend, shorterString) =>
                     leftmostCharacterToPrepend + shorterString);
 
-            return Interleaving.Create(new[] {_emptyStringFactory, factoryForNonEmptyStrings});
+            return
+                Interleaving.Create(new[]
+                {_emptyStringFactory, factoryForNonEmptyStrings});
         }
 
         public void ParameterisedUnitTestForEncodingAndDecodingRoundtrip(String testCase)
@@ -61,12 +67,16 @@ namespace NTestCaseBuilder.WorkedExample
 
             var decoder = encodedFormat.CreateNewDecoder();
 
-            while (!decoder.DecodeIntoAndReportIfCompleted(builderForPartiallyDecodedString))
+            while (
+                !decoder.DecodeIntoAndReportIfCompleted(builderForPartiallyDecodedString))
             {
-                // Compute histogram for decoded text: each maplet should be contained in the original histogram, and the number of bins in the histogram should grow by one each time.
+                // Compute histogram for decoded text: each maplet should be contained
+                // in the original histogram, and the number of bins in the histogram
+                // should grow by one each time.
 
                 var histogramFromPartiallyDecodedString =
-                    BuildHistogramOfCharacterFrequencies(builderForPartiallyDecodedString.ToString());
+                    BuildHistogramOfCharacterFrequencies(
+                        builderForPartiallyDecodedString.ToString());
 
                 foreach (var character in histogramFromPartiallyDecodedString.Keys)
                 {
@@ -131,10 +141,12 @@ namespace NTestCaseBuilder.WorkedExample
             var factory = BuildFactoryRecursively(maximumStringLength);
             const Int32 strength = 3;
 
-            var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
-                ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+            var numberOfTestCases =
+                factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                    ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
 
-            Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.",
+            Console.Out.WriteLine(
+                "The parameterised unit test passed for all {0} test cases.",
                 numberOfTestCases);
         }
 
@@ -144,13 +156,16 @@ namespace NTestCaseBuilder.WorkedExample
             const Int32 maximumStringLength = 5;
 
             var factory =
-                BuildFactoryRecursivelyUsingDeferral().WithDeferralBudgetOf(maximumStringLength);
+                BuildFactoryRecursivelyUsingDeferral()
+                    .WithDeferralBudgetOf(maximumStringLength);
             const Int32 strength = 3;
 
-            var numberOfTestCases = factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
-                ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
+            var numberOfTestCases =
+                factory.ExecuteParameterisedUnitTestForAllTestCases(strength,
+                    ParameterisedUnitTestForEncodingAndDecodingRoundtrip);
 
-            Console.Out.WriteLine("The parameterised unit test passed for all {0} test cases.",
+            Console.Out.WriteLine(
+                "The parameterised unit test passed for all {0} test cases.",
                 numberOfTestCases);
         }
     }
