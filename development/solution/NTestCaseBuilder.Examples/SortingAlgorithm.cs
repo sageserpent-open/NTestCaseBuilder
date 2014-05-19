@@ -3,17 +3,17 @@ using System.Collections.Generic;
 
 namespace NTestCaseBuilder.Examples
 {
-    ///<summary>
-    ///  Module for holding static methods used to do sorting.
-    ///</summary>
+    /// <summary>
+    ///     Module for holding static methods used to do sorting.
+    /// </summary>
     public static class SortingAlgorithmModule
     {
         /// <summary>
-        ///   Sorts a sequence of items into ascending order, using the intrinsic ordering of the TItem type.
-        ///   Has a bug in its implementation - can you spot it?
+        ///     Sorts a sequence of items into ascending order, using the intrinsic ordering of the TItem type.
+        ///     Has a bug in its implementation - can you spot it?
         /// </summary>
-        /// <typeparam name = "TItem">Any type with an intrinsic ordering given by implementing IComparable&lt;TItem&gt;.</typeparam>
-        /// <param name = "unsorted">Sequence of items to be sorted. This is left unchanged by the call.</param>
+        /// <typeparam name="TItem">Any type with an intrinsic ordering given by implementing IComparable&lt;TItem&gt;.</typeparam>
+        /// <param name="unsorted">Sequence of items to be sorted. This is left unchanged by the call.</param>
         /// <returns>The items sorted into ascending order, as a new collection.</returns>
         public static IEnumerable<TItem> SortWithBug<TItem>(IEnumerable<TItem> unsorted)
             where TItem : IComparable<TItem>
@@ -22,10 +22,10 @@ namespace NTestCaseBuilder.Examples
         }
 
         /// <summary>
-        ///   Sorts a sequence of items into ascending order, using the intrinsic ordering of the TItem type.
+        ///     Sorts a sequence of items into ascending order, using the intrinsic ordering of the TItem type.
         /// </summary>
-        /// <typeparam name = "TItem">Any type with an intrinsic ordering given by implementing IComparable&lt;TItem&gt;.</typeparam>
-        /// <param name = "unsorted">Sequence of items to be sorted. This is left unchanged by the call.</param>
+        /// <typeparam name="TItem">Any type with an intrinsic ordering given by implementing IComparable&lt;TItem&gt;.</typeparam>
+        /// <param name="unsorted">Sequence of items to be sorted. This is left unchanged by the call.</param>
         /// <returns>The items sorted into ascending order, as a new collection.</returns>
         public static IEnumerable<TItem> SortThatWorks<TItem>(IEnumerable<TItem> unsorted)
             where TItem : IComparable<TItem>
