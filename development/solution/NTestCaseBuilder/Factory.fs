@@ -502,27 +502,25 @@
                             yield! partialTestVectorsAtTheSameStrength
                     })
 
-            let lazilyProduceMergedPartialTestVectors mergedPartialTestVectorRepresentations
-                                                      partialTestVectors =
-                // TODO: use 'Seq.unfold' here!
-                seq
-                    {
-                        let locallyModifiedMergedPartialTestVectorRepresentations =
-                            ref mergedPartialTestVectorRepresentations
-
-                        for partialTestVector in partialTestVectors do
-                            match (!locallyModifiedMergedPartialTestVectorRepresentations: SetOfMergedPaths<_>).MergeOrAdd partialTestVector with
-                                updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
-                                , Some resultingFullTestCaseVector ->
-                                    yield resultingFullTestCaseVector
-
-                                    locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed
-                              | updatedMergedPartialTestVectorRepresentations
-                                , None ->
-                                    locallyModifiedMergedPartialTestVectorRepresentations := updatedMergedPartialTestVectorRepresentations
-
-                        yield! (!locallyModifiedMergedPartialTestVectorRepresentations).EnumerationOfMergedPaths false
-                    }
+            let rec lazilyProduceMergedPartialTestVectors (mergedPartialTestVectorRepresentations : SetOfMergedPaths<_>) 
+                    partialTestVectors = 
+                seq { 
+                    if partialTestVectors |> Seq.isEmpty then 
+                        yield! mergedPartialTestVectorRepresentations.EnumerationOfMergedPaths false
+                    else 
+                        let partialTestVector = partialTestVectors |> Seq.head
+                        let remainingPartialTestVectors = partialTestVectors |> Seq.skip 1
+                        match mergedPartialTestVectorRepresentations.MergeOrAdd partialTestVector with
+                        | updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed, 
+                          Some resultingFullTestCaseVector -> 
+                            yield resultingFullTestCaseVector
+                            yield! lazilyProduceMergedPartialTestVectors 
+                                       updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed 
+                                       remainingPartialTestVectors
+                        | updatedMergedPartialTestVectorRepresentations, None -> 
+                            yield! lazilyProduceMergedPartialTestVectors updatedMergedPartialTestVectorRepresentations 
+                                       remainingPartialTestVectors
+                }
 
             let lazilyProducedMergedPartialTestVectors =
                 lazilyProduceMergedPartialTestVectors (SetOfMergedPaths.Initial (overallNumberOfTestVariables,
