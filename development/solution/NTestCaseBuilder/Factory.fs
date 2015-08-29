@@ -494,7 +494,7 @@
             let partialTestVectorsInOrderOfDecreasingStrength = // Order by decreasing strength so that high strength vectors get in there
                                                                 // first. Hopefully the lesser strength vectors should have a greater chance
                                                                 // of finding an earlier, larger vector to merge with this way.
-                (seq
+                LazyList.ofSeq(seq
                     {
                         for partialTestVectorsAtTheSameStrength in associationFromStrengthToPartialTestVectorRepresentations
                                                                    |> Seq.sortBy (fun keyValuePair -> - keyValuePair.Key)
@@ -505,11 +505,9 @@
             let rec lazilyProduceMergedPartialTestVectors (mergedPartialTestVectorRepresentations : SetOfMergedPaths<_>) 
                     partialTestVectors = 
                 seq { 
-                    if partialTestVectors |> Seq.isEmpty then 
-                        yield! mergedPartialTestVectorRepresentations.EnumerationOfMergedPaths false
-                    else 
-                        let partialTestVector = partialTestVectors |> Seq.head
-                        let remainingPartialTestVectors = partialTestVectors |> Seq.skip 1
+                    match partialTestVectors with
+                    | LazyList.Nil -> yield! mergedPartialTestVectorRepresentations.EnumerationOfMergedPaths false
+                    | LazyList.Cons(partialTestVector, remainingPartialTestVectors) -> 
                         match mergedPartialTestVectorRepresentations.MergeOrAdd partialTestVector with
                         | updatedMergedPartialTestVectorRepresentationsWithFullTestCaseVectorSuppressed, 
                           Some resultingFullTestCaseVector -> 
